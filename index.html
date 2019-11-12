@@ -1,269 +1,232 @@
 <html>
-  <head>
+
+<head>
     <meta charset="utf-8" />
 <meta name="description" content="" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="robots" content="all,follow">
-<meta name="googlebot" content="index,follow,snippet,archive">
-<title>NTLx Blog</title>
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573554381183">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
-<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css" type='text/css' media='all'>
-
+<title>
+    NTLx Blog
+</title>
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573554580050">
+<!-- <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous"> -->
+<link href="https://cdn.bootcss.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
+<!-- js -->
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://ntlx.github.io/media/js/jquery.sticky-sidebar.min.js"></script>
 <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
 <script src="https://cdn.bootcss.com/moment.js/2.23.0/moment.min.js"></script>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 
+</head>
 
-
-  </head>
-  <body class="home blog ct-body standard">
-    <div id="overflow-container" class="overflow-container">
-    <a class="skip-content" href="#main">Skip to content</a>
-        <header id="site-header" class="site-header" role="banner">
-    <div class='top-navigation top-navigation-important'>
-        <div class='container'>
-            <div id="menu-secondary" class="menu-container menu-secondary" role="navigation">
-                <button id="toggle-secondary-navigation" class="toggle-secondary-navigation"><i class="fa fa-plus"></i></button>
-                <div class="menu">
-                    <ul id="menu-secondary-items" class="menu-secondary-items">
-                        
-                        
-                            
-                        <li id="menu-item" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item">
-                            <a href="https://ntlx.github.io/tag/viH3aqPur">教程</a>
-                        </li>
-                            
-                        
-                            
-                        <li id="menu-item" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item">
-                            <a href="https://ntlx.github.io/tag/7-tS265WxA">新手</a>
-                        </li>
-                            
-                        
-                            
-                        <li id="menu-item" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item">
-                            <a href="https://ntlx.github.io/tag/WIVvmbWCr">Gridea</a>
-                        </li>
-                            
-                        
-                    </ul>
-                </div>
+<body>
+    <div class="main">
+        <div class="header">
+    <div class="nav">
+        <div class="logo">
+            <a href="https://ntlx.github.io">
+                <img class="avatar" src="https://ntlx.github.io/images/avatar.png?v=1573554580050" alt="">
+            </a>
+            <div class="site-title">
+                <h1>
+                    NTLx Blog
+                </h1>
             </div>
-            <ul class="social-media-icons">
+        </div>
+        <span class="menu-btn fa fa-align-justify"></span>
+        <div class="menu-container">
+            <ul>
                 
                     
-                
+                            <li>
+                                <a href="/" class="menu">
+                                    首页
+                                </a>
+                            </li>
+                            
+                                
                     
-                
+                            <li>
+                                <a href="/archives" class="menu">
+                                    归档
+                                </a>
+                            </li>
+                            
+                                
                     
-                
+                            <li>
+                                <a href="/tags" class="menu">
+                                    标签
+                                </a>
+                            </li>
+                            
+                                
                     
-                
-                    
-                
-                    
-                
-                    
-                
-                    
-                
+                            <li>
+                                <a href="/post/about" class="menu">
+                                    关于
+                                </a>
+                            </li>
+                            
+                                
             </ul>
         </div>
     </div>
+</div>
 
-    <div class="container">
-        <div id="title-info" class="title-info">
-            <div id='site-title' class='site-title'>
-                <a href="https://ntlx.github.io">  NTLx Blog </a>
-            </div>
-        </div>
-        <button id="toggle-navigation" class="toggle-navigation">
-            <i class="fa fa-bars"></i>
-        </button>
-        <div id="menu-primary-tracks" class="menu-primary-tracks"></div>
-        <div id="menu-primary" class="menu-container menu-primary" role="navigation">
-            <p class="site-description">Play with music</p>
-            <div class="menu">
-                <ul id="menu-primary-items" class="menu-primary-items">
-                     
-                        
-                            <li id="menu-item" class='menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item'>
-                                <a href="/">首页</a>
-                            </li>
-                        
+<script>
+    $(document).ready(function() {
+        $(".menu-btn").click(function() {
+            $(".menu-container").slideToggle();
+        });
+        $(window).resize(function() {
+
+            if (window.matchMedia('(min-width: 960px)').matches) {
+                $(".menu-container").css('display', 'block')
+            } else {
+                $(".menu-container").css('display', 'none')
+            }
+
+        });
+    });
+</script>
+
+            <div id="main-content" class="post-container main-container">
+                <div id="content" class="main-container-left">
                     
-                        
-                            <li id="menu-item" class='menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item'>
-                                <a href="/archives">归档</a>
-                            </li>
-                        
+        
+            <article class="post i-card">
+                <h2 class="post-title">
+                    <a href="https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang">
+                        Shadowsocks科学上网
+                    </a>
+                </h2>
+                <div class="post-info">
+                    <time class="post-time">2019-11-12</time>
                     
+                        <a href="https://ntlx.github.io/tag/viH3aqPur" class="post-tag i-tag
+                            i-tag-warning">
+            #教程
+        </a>
                         
-                            <li id="menu-item" class='menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item'>
-                                <a href="/tags">标签</a>
-                            </li>
+                        <a href="https://ntlx.github.io/tag/7-tS265WxA" class="post-tag i-tag
+                            i-tag-error">
+            #新手
+        </a>
                         
+                </div>
+                <div class="post-article">
                     
+                        <a href="https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang" class="post-feature-image" style="background-image:url(https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4) ">
+                        </a>
                         
-                            <li id="menu-item" class='menu-item menu-item-type-post_type menu-item-object-page current-menu-item current_page_item'>
-                                <a href="/post/about">关于</a>
-                            </li>
-                        
-                    
-                </ul>
-            </div>
-        </div>
-    </div>
-
-
-</header>
-
-
-        <div id="main" class="main" role="main">
-  <h1 class="screen-reader-text">Posts</h1>
-  
-  <div id="loop-container" class="loop-container">
-    <div class="post type-post status-publish format-standard   has-post-thumbnail hentry category-design tag-memories
-    tag-normal-post tag-standard-2 excerpt zoom full-without-featured
-      
-      even
-       excerpt">
-      
-      <a class="featured-image-link" href="https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang">
-        <div class='featured-image lazy lazy-bg-image' data-background="https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4"></div>
-      </a>
-      
-      <div class="excerpt-container">
-        <div class="excerpt-meta">
-          <span class="date">  · 2019-11-12 ·</span> <span> / </span>
-          <span class="author">
-              <a href="https://ntlx.github.io" title="Posts by  NTLx Blog" rel="author"> NTLx Blog</a>
-          </span>
-            
-                <span> / </span>
-                <span class="category">
-                        <a href="https://ntlx.github.io/tag/viH3aqPur">教程</a>
-                </span>
-            
-                <span> / </span>
-                <span class="category">
-                        <a href="https://ntlx.github.io/tag/7-tS265WxA">新手</a>
-                </span>
-            
-
-        </div>
-        <div class='excerpt-header'>
-          <h2 class='excerpt-title'>
-            <a href="https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang"> Shadowsocks科学上网 </a>
-          </h2>
-        </div>
-        <div class='excerpt-content'>
-          <article>
-              <p><span id="top"></span></p>
+                            <div class="post-content">
+                                
+                                    <div class="post-content-abstract">
+                                        <p><span id="top"></span></p>
 <h1 id="shadowsocks">Shadowsocks</h1>
 <p>Shadowsocks 可以指：一种基于 Socks5 代理方式的加密传输协议，也可以指实现这个协议的各种传输包，并采用 Apache 许可证、GPL、MIT 许可证等多种自由软件许可协议开放源代码。shadowsocks 分为服务器端和客户端，在使用之前，需要先将服务器端部署到服务器上面，然后通过客户端连接并创建本地代理。目前包使用 Python、C、C++、C#、Go 语言等编程语言开发。<a href="https://zh.wikipedia.org/wiki/Shadowsocks">Wikipedia</a></p>
 
-          </article>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div id="loop-container" class="loop-container">
-    <div class="post type-post status-publish format-standard   has-post-thumbnail hentry category-design tag-memories
-    tag-normal-post tag-standard-2 excerpt zoom full-without-featured
-      
-        odd
-       excerpt">
-      
-      <a class="featured-image-link" href="https://ntlx.github.io/post/hello-gridea">
-        <div class='featured-image lazy lazy-bg-image' data-background="https://ntlx.github.io/post-images/hello-gridea.png"></div>
-      </a>
-      
-      <div class="excerpt-container">
-        <div class="excerpt-meta">
-          <span class="date">  · 2018-12-12 ·</span> <span> / </span>
-          <span class="author">
-              <a href="https://ntlx.github.io" title="Posts by  NTLx Blog" rel="author"> NTLx Blog</a>
-          </span>
+                                    </div>
+                                    
+                                            <a class="btn btn-text" href="https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang">Read More ~</a>
+                            </div>
+                </div>
+            </article>
             
-                <span> / </span>
-                <span class="category">
-                        <a href="https://ntlx.github.io/tag/WIVvmbWCr">Gridea</a>
-                </span>
-            
-
-        </div>
-        <div class='excerpt-header'>
-          <h2 class='excerpt-title'>
-            <a href="https://ntlx.github.io/post/hello-gridea"> Hello Gridea </a>
-          </h2>
-        </div>
-        <div class='excerpt-content'>
-          <article>
-              <p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+            <article class="post i-card">
+                <h2 class="post-title">
+                    <a href="https://ntlx.github.io/post/hello-gridea">
+                        Hello Gridea
+                    </a>
+                </h2>
+                <div class="post-info">
+                    <time class="post-time">2018-12-12</time>
+                    
+                        <a href="https://ntlx.github.io/tag/WIVvmbWCr" class="post-tag i-tag
+                            i-tag-info">
+            #Gridea
+        </a>
+                        
+                </div>
+                <div class="post-article">
+                    
+                        <a href="https://ntlx.github.io/post/hello-gridea" class="post-feature-image" style="background-image:url(https://ntlx.github.io/post-images/hello-gridea.png) ">
+                        </a>
+                        
+                            <div class="post-content">
+                                
+                                    <div class="post-content-abstract">
+                                        <p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
 ✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
 
-          </article>
+                                    </div>
+                                    
+                                            <a class="btn btn-text" href="https://ntlx.github.io/post/hello-gridea">Read More ~</a>
+                            </div>
+                </div>
+            </article>
+            
+                <!-- 翻页 -->
+                
+                </div>
+                <!--  -->
+                <div class="main-container-middle"></div>
+                <!--  -->
+                <div id="sidebar" class="main-container-right">
+
+                    <!-- 个人信息 -->
+                    
+    <div class="id_card i-card">
+        <div class="id_card-avatar" style="background-image: url(https://ntlx.github.io/images/avatar.png?v=1573554580050)">
         </div>
-      </div>
+        <h1 class="id_card-title">
+            NTLx Blog
+        </h1>
+        <h2 class="id_card-description">
+            Play with music
+        </h2>
+        <!--  -->
+        <div class="id_card-sns">
+            <!-- github -->
+            
+                    <!-- twitter -->
+                    
+                            <!-- weibo -->
+                            
+                                    <!-- facebook -->
+                                    
+
+        </div>
     </div>
-  </div>
-  
+    
+
+                        <!-- 公告栏 -->
+                        
+
+                </div>
+            </div>
+
+
+
+            <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | 
+  <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
 </div>
 
-        <nav class="navigation pagination" role="navigation">
-    <h2 class="screen-reader-text">Posts navigation</h2>
-    <div class="nav-links">
-        
-        
-    </div>
-</nav>
-
-        <footer id="site-footer" class="site-footer" role="contentinfo">
-    <h1>
-        <a href="https://ntlx.github.io"> NTLx Blog </a>
-    </h1>
-    <p class="site-description">Play with music</p>
-    <div id="menu-footer" class="menu-container menu-footer" role="navigation">
-        <div class="menu">
-            <ul id="menu-footer-items" class="menu-footer-items">
-            </ul>
-        </div>
-    </div>
-    <ul class="social-media-icons">
-        
-            
-        
-            
-        
-            
-        
-            
-        
-            
-        
-            
-        
-            
-        
-            
-        
-    </ul>
-    <div class="design-credit">
-        <p>Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a></p>
-    </div>
-</footer>
 <script>
-    hljs.initHighlightingOnLoad()
+  hljs.initHighlightingOnLoad()
 </script>
-<script src="https://ntlx.github.io/media/scripts/lib/jquery.min.js"></script>
-<script src="https://ntlx.github.io/media/scripts/lib/jquerymigrate.js"></script>
-<script src="https://ntlx.github.io/media/scripts/lib/production.min.js"></script>
 
-      </div>
-  </body>
+    </div>
+    <script>
+        $('#sidebar').stickySidebar({
+            topSpacing: 80,
+            // bottomSpacing: 60
+        });
+    </script>
+</body>
+
 </html>
-
