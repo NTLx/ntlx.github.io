@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T01:10:25.450Z</updated>
+    <updated>2019-11-13T01:15:42.324Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -20,6 +20,7 @@
 ]]></summary>
         <content type="html"><![CDATA[<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
 <!-- more -->
+<figure data-type="image" tabindex="1"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191113091528.png" alt="logo"></figure>
 <h1 id="installation-note">Installation Note</h1>
 <blockquote>
 <p>for Minimal Installation</p>
