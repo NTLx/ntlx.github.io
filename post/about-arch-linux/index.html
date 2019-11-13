@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>About Arch Linux | NTLx Blog</title>
+<meta name="description" content="Play with music">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573631116085">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114672259-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-114672259-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://ntlx.github.io">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1573631116085" class="site-logo">
+        <h1 class="site-title">NTLx Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/NTLx" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      Play with music
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">About Arch Linux</h2>
+            <div class="post-date">2019-11-13</div>
+            
+            <div class="post-content">
+              <h1 id="arch-linux-installation">Arch Linux Installation</h1>
+<blockquote>
+<p>for UEFI boot and GPT partation</p>
+</blockquote>
+<!-- more -->
+<h2 id="set-timezone">set timezone</h2>
+<pre><code class="language-bash">timedatectl set-timezone Asia/Shanghai
+</code></pre>
+<h2 id="disk-partation">disk partation</h2>
+<h3 id="set-boot-partation">set boot partation</h3>
+<pre><code class="language-bash">fdisk /dev/sda
+g # set a new gpt partation table
+1
+2048
++512M # add a 512M partation
+t
+1 # set 512M partation to EFT System
+w
+mkfs.fat -F32 /dev/sda1
+</code></pre>
+<h3 id="set-partation">set / partation</h3>
+<pre><code class="language-bash">fdisk /dev/sda
+n
+# then use default value (just hit enter)
+w
+mkfs.ext4 /dev/sda2
+</code></pre>
+<h2 id="mount">mount</h2>
+<pre><code class="language-bash">mount /dev/sda2 /mnt
+mkdir /mnt/boot
+mount /dev/sda1 /mnt/boot
+</code></pre>
+<h2 id="set-mirror">set mirror</h2>
+<p>Edit <code>/etc/pacman.d/mirrorlist</code> and add blow at the top</p>
+<pre><code class="language-bash">Server = http://mirrors.aliyun.com/archlinux/$repo/os/$arch
+</code></pre>
+<h2 id="basic-packages-installation">basic packages installation</h2>
+<pre><code class="language-bash">pacstrap /mnt base base-devel linux dhcpcd
+</code></pre>
+<h2 id="set-fstab">set Fstab</h2>
+<pre><code class="language-bash">genfstab -L /mnt &gt;&gt; /mnt/etc/fstab
+</code></pre>
+<p>test result:</p>
+<pre><code class="language-bash">cat /mnt/etc/fstab
+</code></pre>
+<h2 id="chroot">Chroot</h2>
+<pre><code class="language-bash">arch-chroot /mnt
+</code></pre>
+<h2 id="set-timezone-for-new-system">set timezone for new system</h2>
+<pre><code class="language-bash">ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+hwclock --systohc
+</code></pre>
+<h2 id="must-have-packages-installation">must have packages installation</h2>
+<pre><code class="language-bash">pacman -S vim dialog wpa_supplicant ntfs-3g networkmanager
+</code></pre>
+<h2 id="localization">Localization</h2>
+<pre><code class="language-bash">vim /etc/locale.gen
+</code></pre>
+<p>unset annotation for blow:</p>
+<pre><code>en_US.UTF-8 UTF-8
+zh_CN.UTF-8 UTF-8
+zh_HK.UTF-8 UTF-8
+zh_TW.UTF-8 UTF-8
+</code></pre>
+<pre><code class="language-bash">locale-gen
+vim /etc/locale.conf
+</code></pre>
+<p>add blow to the top:</p>
+<pre><code>LANG=en_US.UTF-8
+</code></pre>
+<h2 id="set-server-name">set server name</h2>
+<pre><code class="language-bash">vim /etc/hostname
+vim /etc/hosts
+</code></pre>
+<p>add host name in <code>/etc/hostname</code> file, add blow to <code>/etc/hosts</code> file:</p>
+<pre><code>127.0.0.1	localhost
+::1		localhost
+127.0.1.1	ArchLx.localdomain	ArchLx
+</code></pre>
+<h2 id="set-root-password">set root password</h2>
+<pre><code class="language-bash">passwd
+</code></pre>
+<h2 id="intel-ucode-installation">Intel-ucode Installation</h2>
+<blockquote>
+<p>skip this if not Intel CPU</p>
+</blockquote>
+<pre><code class="language-bash">pacman -S intel-ucode
+</code></pre>
+<h2 id="bootloader-installation">Bootloader Installation</h2>
+<blockquote>
+<p>if installed Grub before, must delete it first</p>
+</blockquote>
+<pre><code class="language-bash">pacman -S os-prober ntfs-3g
+pacman -S grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=grub
+grub-mkconfig -o /boot/grub/grub.cfg
+exit
+reboot
+</code></pre>
+<blockquote>
+<p>if report error <code>warning failed to connect to lvmetad，falling back to device scanning.</code>, edit <code>/etc/lvm/lvm.conf</code>, set <code>use_lvmetad = 1</code> to <code>0</code>, the reset grub</p>
+</blockquote>
+<blockquote>
+<p>if report error like <code>grub-probe: error: cannot find a GRUB drive for /dev/sdb1, check your device.map</code>, and this <code>sdb1</code> was your USB drive, you can ignore this error</p>
+</blockquote>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/boF6zZO7X" class="tag">
+                    Setting
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/IGog1aO36" class="tag">
+                    Tutorials
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/Futdjqll2" class="tag">
+                    Linux
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/recommend-chrome-extension">
+                  <h3 class="post-title">
+                    recommend  chrome extension
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>
