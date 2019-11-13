@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T01:22:48.923Z</updated>
+    <updated>2019-11-13T01:25:55.920Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -16,11 +16,12 @@
         <link href="https://ntlx.github.io/post/about-centos-8">
         </link>
         <updated>2019-11-13T01:03:17.000Z</updated>
-        <summary type="html"><![CDATA[<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
+        <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
+<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
 ]]></summary>
-        <content type="html"><![CDATA[<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
+        <content type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
+<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
 <!-- more -->
-<figure data-type="image" tabindex="1"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191113091528.png" alt="logo"></figure>
 <h1 id="installation-note">Installation Note</h1>
 <blockquote>
 <p>for Minimal Installation</p>
