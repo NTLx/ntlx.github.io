@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>vim 推荐配置 | NTLx Blog</title>
+<meta name="description" content="Play with music">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573630456444">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114672259-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-114672259-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://ntlx.github.io">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1573630456444" class="site-logo">
+        <h1 class="site-title">NTLx Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/NTLx" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    </div>
+    <div class="site-description">
+      Play with music
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">vim 推荐配置</h2>
+            <div class="post-date">2019-11-13</div>
+            
+            <div class="post-content">
+              <h1 id="vim-config">Vim Config</h1>
+<blockquote>
+<p>for <code>~/.vimrc</code></p>
+</blockquote>
+<!-- more -->
+<pre><code class="language-bash">set ruler
+filetype off
+set backspace=2
+set nu
+set mouse=a
+
+
+
+&quot; -- bootstrap -----------------------------------------------------------------
+set encoding=utf-8  &quot; set vim encoding to UTF-8
+set nocompatible    &quot; the future is now, use vim defaults instead of vi ones
+set history=1000    &quot; boost commands and search patterns history
+set undolevels=1000 &quot; boost undo levels
+
+
+
+&quot; -- tmux integration ----------------------------------------------------------
+if exists('$TMUX')
+	set term=screen-256color
+endif
+
+if exists('$ITERM_PROFILE')
+  if exists('$TMUX') 
+    let &amp;amp;t_SI = &quot;&lt;Esc&gt;[3 q&quot;
+    let &amp;amp;t_EI = &quot;&lt;Esc&gt;[0 q&quot;
+  else
+    let &amp;amp;t_SI = &quot;&lt;Esc&gt;]50;CursorShape=1x7&quot;
+    let &amp;amp;t_EI = &quot;&lt;Esc&gt;]50;CursorShape=0x7&quot;
+  endif
+end
+
+
+
+&quot; -- backup and swap files -----------------------------------------------------
+set backup      &quot; enable backup files
+set writebackup &quot; enable backup files
+set swapfile    &quot; enable swap files (useful when loading huge files)
+
+let s:vimdir=$HOME . &quot;/.vim&quot;
+let &amp;backupdir=s:vimdir . &quot;/backup&quot;  &quot; backups location
+let &amp;directory=s:vimdir . &quot;/tmp&quot;     &quot; swap location
+
+if exists(&quot;*mkdir&quot;)
+  if !isdirectory(s:vimdir)
+    call mkdir(s:vimdir, &quot;p&quot;)
+  endif
+  if !isdirectory(&amp;backupdir)
+    call mkdir(&amp;backupdir, &quot;p&quot;)
+  endif
+  if !isdirectory(&amp;directory)
+    call mkdir(&amp;directory, &quot;p&quot;)
+  endif
+endif
+
+set backupskip+=*.tmp &quot; skip backup for *.tmp
+
+if has(&quot;persistent_undo&quot;)
+  let &amp;undodir=&amp;backupdir
+  set undofile  &quot; enable persistent undo
+endif
+
+let &amp;viminfo=&amp;viminfo . &quot;,n&quot; . s:vimdir . &quot;/.viminfo&quot; &quot; viminfo location
+
+
+
+&quot; -- command mode --------------------------------------------------------------
+set wildmenu                    &quot; enable tab completion menu
+set wildmode=longest:full,full  &quot; complete till longest common string, then full
+set wildignore+=.git            &quot; ignore the .git directory
+set wildignore+=*.DS_Store      &quot; ignore Mac finder/spotlight crap
+if exists (&quot;&amp;wildignorecase&quot;)
+  set wildignorecase
+endif
+
+
+
+&quot; -- display -------------------------------------------------------------------
+set title       &quot; change the terminal title
+set lazyredraw  &quot; do not redraw when executing macros
+set report=0    &quot; always report changes
+set cursorline  &quot; highlight current line
+
+if has(&quot;gui_running&quot;)
+  set cursorcolumn  &quot; highlight current column
+endif
+
+if exists(&quot;+showtabline&quot;)
+  set showtabline=1 &quot; only if there are at least two tabs (default)
+endif
+
+if has(&quot;statusline&quot;)
+
+  function! StatusLineUTF8()
+    try
+      let p = getpos('.')
+      redir =&gt; utf8seq
+      sil normal! g8
+      redir End
+      call setpos('.', p)
+      return substitute(matchstr(utf8seq, '\x\+ .*\x'), '\&lt;\x\x', '0x\U&amp;', 'g')
+    catch
+      return '?'
+    endtry
+  endfunction
+
+  function! StatusLineFileEncoding()
+    return has(&quot;multi_byte&quot;) &amp;&amp; strlen(&amp;fenc) ? &amp;fenc : ''
+  endfunction
+
+  function! StatusLineUTF8Bomb()
+    return has(&quot;multi_byte&quot;) &amp;&amp; &amp;fenc == 'utf-8' &amp;&amp; &amp;bomb?'+bomb' : ''
+  endfunction
+
+  function! StatusLineCWD()
+    let l:pwd = exists('$PWD') ? $PWD : getcwd()
+    return substitute(fnamemodify(l:pwd, ':~'), '\(\~\?/[^/]*/\).*\(/.\{20\}\)', '\1...\2', '')
+  endfunction
+
+  set laststatus=2  &quot; always show a status line
+  &quot; set exact status line format
+  set statusline=
+  set statusline+=%#Number#
+  set statusline+=❐\ %02n                        &quot; buffer number
+  set statusline+=\ \|\                          &quot; separator
+  set statusline+=%*
+  set statusline+=%#Identifier#
+  set statusline+=%f                             &quot; file path relative to CWD
+  set statusline+=%*
+  set statusline+=%#Special#
+  set statusline+=%m                             &quot; modified flag
+  set statusline+=%#Statement#
+  set statusline+=%r                             &quot; readonly flag
+  set statusline+=%h                             &quot; help buffer flag
+  set statusline+=%w                             &quot; preview window flag
+  set statusline+=%#Type#
+  set statusline+=[%{&amp;ff}]                       &quot; file format
+  set statusline+=[
+  set statusline+=%{StatusLineFileEncoding()}    &quot; file encoding
+  set statusline+=%#Error#
+  set statusline+=%{StatusLineUTF8Bomb()}        &quot; UTF-8 bomb alert
+  set statusline+=%#Type#
+  set statusline+=]
+  set statusline+=%y                             &quot; type of file
+  set statusline+=\ \|\                          &quot; separator
+  set statusline+=%*
+  set statusline+=%#Directory#
+  set statusline+=%{StatusLineCWD()}             &quot; current working directory
+  set statusline+=\                              &quot; separator
+  set statusline+=%*
+  set statusline+=%=                             &quot; left / right items separator
+  set statusline+=%#Comment#
+  set statusline+=%{v:register}                  &quot; current register in effect
+  set statusline+=\                              &quot; separator
+  set statusline+=%#Statement#
+  set statusline+=[U+\%04B]                      &quot; Unicode code point
+  set statusline+=[%{StatusLineUTF8()}]          &quot; UTF8 sequence
+  set statusline+=\ \|\                          &quot; separator
+  set statusline+=%#Comment#
+  set statusline+=line\ %5l/%L\                  &quot; line number / number of lines
+  set statusline+=●\ %02p%%,\                    &quot; percentage through file
+  set statusline+=col\ %3v                       &quot; column number
+endif
+
+set showcmd     &quot; show partial command line (default)
+set cmdheight=1 &quot; height of the command line
+
+set shortmess=astT  &quot; abbreviate messages
+
+if (&amp;t_Co &gt; 2 || has(&quot;gui_running&quot;)) &amp;&amp; has(&quot;syntax&quot;)
+   syntax on  &quot; turn syntax highlighting on, when terminal has colors or in GUI
+endif
+
+&quot; highlight SCM merge conflict markers
+match ErrorMsg '^\(&lt;\|=\|&gt;\)\{7\}\([^=].\+\)\?$'
+
+if has(&quot;termguicolors&quot;)
+    &quot; fix bug for vim
+    let &amp;t_8f = &quot;\&lt;Esc&gt;[38;2;%lu;%lu;%lum&quot;
+    let &amp;t_8b = &quot;\&lt;Esc&gt;[48;2;%lu;%lu;%lum&quot;
+
+    &quot; enable true color
+    set termguicolors
+endif
+
+
+
+&quot; -- buffers -------------------------------------------------------------------
+set autoread
+set fsync             &quot; sync after write
+
+
+
+&quot; -- navigation ----------------------------------------------------------------
+&quot; scroll slightly faster
+nnoremap &lt;C-e&gt; 2&lt;C-e&gt;
+nnoremap &lt;C-y&gt; 2&lt;C-y&gt;
+map &lt;C-Up&gt; &lt;C-y&gt;
+map &lt;C-Down&gt; &lt;C-e&gt;
+
+set startofline &quot; move to first non-blank of the line when using PageUp/PageDown
+
+&quot; scroll by visual lines, useful when wrapping is enabled
+nnoremap j gj
+nnoremap &lt;Down&gt; gj
+nnoremap k gk
+nnoremap &lt;Up&gt; gk
+
+set scrolljump=1    &quot; minimal number of lines to scroll vertically
+set scrolloff=4     &quot; number of lines to keep above and below the cursor
+                    &quot;   typing zz sets current line at the center of window
+set sidescroll=1    &quot; minimal number of columns to scroll horizontally
+set sidescrolloff=4 &quot; minimal number of columns to keep around the cursor
+
+
+
+&quot; -- editing -------------------------------------------------------------------
+set showmode      &quot; always show the current editing mode
+set nowrap        &quot; don't wrap lines
+set linebreak     &quot; yet if enabled break at word boundaries
+
+if has(&quot;multi_byte&quot;)  &quot; if multi_byte is available,
+  set showbreak=↪     &quot; use pretty Unicode marker
+else                  &quot; otherwise,
+  set showbreak=&gt;     &quot; use ASCII character
+endif
+
+set nojoinspaces  &quot; insert only one space after '.', '?', '!' when joining lines
+set showmatch     &quot; briefly jumps the cursor to the matching brace on insert
+set matchtime=4   &quot; blink matching braces for 0.4s
+set matchpairs+=&lt;:&gt;         &quot; make &lt; and &gt; match
+
+&quot;set virtualedit=insert    &quot; allow the cursor to go everywhere (insert)
+set virtualedit+=onemore  &quot; allow the cursor to go just past the end of line
+&quot;set virtualedit+=block    &quot; allow the cursor to go everywhere (visual block)
+
+&quot;set expandtab     &quot; insert spaces instead of tab, CTRL-V+Tab inserts a real tab
+&quot;set tabstop=2     &quot; 1 tab == 2 spaces
+&quot;set softtabstop=2 &quot; number of columns used when hitting TAB in insert mode
+set smarttab      &quot; insert tabs on the start of a line according to shiftwidth
+
+&quot;set autoindent    &quot; enable autoindenting
+&quot;set copyindent    &quot; copy the previous indentation on autoindenting
+&quot;set shiftwidth=2  &quot; indent with 2 spaces
+&quot;set shiftround    &quot; use multiple of shiftwidth when indenting with '&lt;' and '&gt;'
+
+&quot; -- searching -----------------------------------------------------------------
+set wrapscan    &quot; wrap around when searching
+set incsearch   &quot; show match results while typing search pattern
+if (&amp;t_Co &gt; 2 || has(&quot;gui_running&quot;))
+  set hlsearch  &quot; highlight search terms
+endif
+
+set ignorecase  &quot; case insensitive search
+set smartcase   &quot; case insensitive only if search pattern is all lowercase
+                &quot;   (smartcase requires ignorecase)
+&quot;set gdefault    &quot; search/replace globally (on a line) by default
+
+&quot; -- spell checking ------------------------------------------------------------
+set spelllang=en  &quot; English only
+set nospell       &quot; disabled by default
+
+
+
+
+&quot; Language:    Snakemake (extended from python.vim)
+&quot; Maintainer:    Jay Hesselberth (jay.hesselberth@gmail.com)
+&quot; Last Change:    2016 Aug 19
+&quot; load settings from system python.vim (7.4)
+source $VIMRUNTIME/syntax/python.vim
+&quot;
+&quot;&quot; Snakemake rules, as of version 3.3
+&quot;
+&quot;&quot; XXX N.B. several of the new defs are missing from this table i.e.
+&quot; subworkflow, touch etc
+&quot; rule       = &quot;rule&quot; (identifier | &quot;&quot;) &quot;:&quot; ruleparams
+&quot; include    = &quot;include:&quot; stringliteral
+&quot; workdir    = &quot;workdir:&quot; stringliteral
+&quot; ni         = NEWLINE INDENT
+&quot; ruleparams = [ni input] [ni output] [ni params] [ni message] [ni threads]
+&quot; [ni (run | shell)] NEWLINE snakemake
+&quot; input      = &quot;input&quot; &quot;:&quot; parameter_list
+&quot; output     = &quot;output&quot; &quot;:&quot; parameter_list
+&quot; params     = &quot;params&quot; &quot;:&quot; parameter_list
+&quot; message    = &quot;message&quot; &quot;:&quot; stringliteral
+&quot; threads    = &quot;threads&quot; &quot;:&quot; integer
+&quot; resources  = &quot;resources&quot; &quot;:&quot; parameter_list
+&quot; version    = &quot;version&quot; &quot;:&quot; statement
+&quot; run        = &quot;run&quot; &quot;:&quot; ni statement
+&quot; shell      = &quot;shell&quot; &quot;:&quot; stringliteral
+syn keyword pythonStatement    include workdir onsuccess onerror
+syn keyword pythonStatement    ruleorder localrules configfile
+syn keyword pythonStatement    touch protected temp wrapper
+syn keyword pythonStatement    input output params message threads resources
+syn keyword pythonStatement    version run shell benchmark snakefile log script
+syn keyword pythonStatement    rule subworkflow nextgroup=pythonFunction skipwhite
+syn keyword pythonBuiltin expand config temp protected
+&quot; similar to special def and class treatment from python.vim, except
+&quot; parenthetical part of def and class
+syn match pythonFunction &quot;\%(\%(rule\s\|subworkflow\s\)\s*\)\@&lt;=\h*&quot; contained
+syn sync match pythonSync grouphere NONE &quot;^\s*\%(rule\|subworkflow\)\s\+\h\w*\s*&quot;
+let b:current_syntax = &quot;snakemake&quot;
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/ltZrYjT_D" class="tag">
+                    VIM
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/j8s4WqOlG" class="tag">
+                    配置
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/privoxy-conf">
+                  <h3 class="post-title">
+                    privoxy 配置示例
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>
