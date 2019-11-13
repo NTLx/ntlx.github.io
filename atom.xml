@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T00:54:33.748Z</updated>
+    <updated>2019-11-13T01:09:38.534Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -10,6 +10,224 @@
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
     <rights>All rights reserved 2019, NTLx Blog</rights>
+    <entry>
+        <title type="html"><![CDATA[About CentOS 8]]></title>
+        <id>https://ntlx.github.io/post/about-centos-8</id>
+        <link href="https://ntlx.github.io/post/about-centos-8">
+        </link>
+        <updated>2019-11-13T01:03:17.000Z</updated>
+        <summary type="html"><![CDATA[<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
+<!-- more -->
+<h1 id="installation-note">Installation Note</h1>
+<blockquote>
+<p>for Minimal Installation</p>
+</blockquote>
+<h2 id="system-dependency">system dependency</h2>
+<pre><code class="language-bash">sudo yum install autoconf automake c-ares c-ares-devel chrony clang clang-devel clang-libs clang-tools-extra cmake cmake-data cmake-filesystem cmake-rpm-macros CUnit curl expat expat-devel gcc gcc-c++ gmp gmp-c++ gmp-devel gnutls gnutls-c++ gnutls-devel gnutls-utils graphviz icu libconfig libgcc libgcrypt libgcrypt-devel libicu libicu-devel libpkgconf libssh2 libstdc++ libstdc++-devel libuv libxml2 libxml2-devel make make-devel ncurses-c++-libs nettle nettle-devel nodejs nodejs-devel openssh-clients openssh-server openssl openssl-devel openssl-libs pcre pcre2 pcre2-devel pcre-cpp pcre-devel perl-CPAN pkgconf pkgconf-pkg-config policycoreutils postfix sqlite-devel sqlite-libs zlib zlib-devel wget tar git
+</code></pre>
+<h2 id="set-language">set language</h2>
+<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
+<pre><code class="language-bash">export LANGUAGE=en_US.utf8
+export LC_ALL=en_US.utf8
+export LANG=en_US.utf8
+</code></pre>
+<h2 id="install-tmux-zsh">install tmux zsh</h2>
+<pre><code class="language-bash">sudo yum install tmux zsh
+</code></pre>
+<h2 id="install-python3">install python3</h2>
+<pre><code class="language-bash">sudo yum install python36 python36-devel
+</code></pre>
+<h2 id="install-shadowsocks">install shadowsocks</h2>
+<pre><code class="language-bash">sudo pip3 install shadowsocks-py
+sudo ln -s /usr/local/bin/sslocal /usr/bin/
+</code></pre>
+<h3 id="using-shadowsocks">using shadowsocks</h3>
+<pre><code class="language-bash">sudo sslocal -c HK03.json -d start
+</code></pre>
+<h2 id="install-privoxy">install privoxy</h2>
+<p><a href="https://sourceforge.net/projects/ijbswa/files/Sources/">Download</a></p>
+<pre><code class="language-bash">tar zxf privoxy-3.0.28-stable-src.tar.gz
+cd privoxy-3.0.28-stable/
+sudo autoheader
+sudo autoconf
+sudo ./configure
+sudo make
+sudo useradd privoxy -r -s /usr/sbin/nologin
+sudo make install
+</code></pre>
+<h2 id="install-aria2-v1350">install aria2 v1.35.0</h2>
+<pre><code class="language-bash">wget https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0.tar.gz
+tar zxf aria2-1.35.0.tar.gz
+cd aria2-1.35.0
+./configure --prefix=$HOME/software/aria2-1.35.0
+make
+make install
+</code></pre>
+<h3 id="install-aria2-webui">install aria2 webui</h3>
+<pre><code class="language-bash">git clone git@github.com:ziahamza/webui-aria2.git
+# or wget https://github.com/ziahamza/webui-aria2/archive/master.zip
+</code></pre>
+<h3 id="run-aria2">run aria2</h3>
+<pre><code class="language-bash">~/software/aria2-1.35.0/bin/aria2c --enable-rpc --rpc-listen-all
+</code></pre>
+<h3 id="run-webui">run webui</h3>
+<pre><code class="language-bash">node node-server.js
+</code></pre>
+<h2 id="install-ruby">install ruby</h2>
+<pre><code class="language-bash">sudo yum install ruby ruby-devel ruby-libs
+gem sources --remove https://rubygems.org/
+gem sources -a https://mirrors.aliyun.com/rubygems/
+gem update
+gem update --system
+</code></pre>
+<p>edit <code>~/.gemrc</code> like blow:</p>
+<pre><code>---
+:backtrace: false
+:bulk_threshold: 1000
+:sources:
+- https://mirrors.aliyun.com/rubygems/
+:update_sources: true
+:verbose: true
+gem: &quot;--user-install --bindir /home/lx/bin&quot;
+:concurrent_downloads: 8
+install: --no-document
+update: --no-document
+</code></pre>
+<h2 id="install-samba4">Install Samba4</h2>
+<pre><code class="language-bash">sudo dnf install samba samba-client samba-common
+sudo systemctl start smb
+sudo systemctl enable smb
+sudo systemctl status smb
+sudo firewall-cmd --permanent --add-service=samba
+sudo firewall-cmd --reload
+cp /etc/samba/smb.conf /etc/samba/smb.conf.orig
+sudo touch /etc/samba/smbpasswd
+sudo vim /etc/samba/smb.conf
+testparm
+# groupadd smbgrp
+# usermod lx -aG smbgrp
+sudo smbpasswd -a lx
+sudo systemctl restart smb
+sudo systemctl restart nmb
+</code></pre>
+<blockquote>
+<p>正常使用 Samba 服务必须设置好 SELinux，一般<s>简单粗暴的</s>直接关闭，但其实设置好更能保证安全性，可参考<a href="https://linuxconfig.org/install-samba-on-redhat-8#h7-setup-selinux-for-samba">这里</a>进行设置。</p>
+</blockquote>
+<h3 id="minimal-config">minimal config</h3>
+<pre><code class="language-conf">[global]
+    workgroup = WORKGROUP
+    security = user
+    netbios name = HaseeServer
+    hosts allow = 192.168.0.
+    passdb backend = smbpasswd
+    encrypt passwords = true
+    smb passwd file = /etc/samba/smbpasswd
+    log file = /var/log/samba/log.%m
+    max open files = 1000
+
+[SSD]
+    comment = Hasee SSD Download folder
+    path = /home/lx/Download
+    valid users = lx
+    writable = no
+    browseable = yes
+    available = yes
+
+[SATA]
+    comment = Hasee SATA Download folder
+    path = /home/lx/public/Download
+    valid users = lx
+    writeable = no
+    browseable = yes
+    available = yes
+</code></pre>
+<h1 id="usefull-tips">Usefull Tips</h1>
+<h2 id="about-disk">about disk</h2>
+<pre><code class="language-bash">sudo yum install gdisk
+</code></pre>
+<pre><code class="language-bash">sudo gdisk /dev/sda
+sudo mkfs.xfs -f -d agcount=8 /dev/sda1
+sudo mount /dev/sda1 /store
+</code></pre>
+<h2 id="sync-time">sync time</h2>
+<pre><code class="language-bash">sudo systemctl enable chronyd                  # 设置开机启动
+sudo systemctl is-enabled chronyd              # 查看是否设置了开机启动
+sudo systemctl start chronyd                   # 开启 chrony
+sudo timedatectl list-timezones                # 列出所有时区
+sudo timedatectl set-local-rtc 1               # 将硬件时钟调整为与本地时钟一致，0 即设置为 UTC 时间
+sudo timedatectl set-timezone Asia/Shanghai    # 设置系统时区为上海
+sudo timedatectl set-ntp yes                   # 设置开启自动同步
+</code></pre>
+<h2 id="about-selinux">about SELinux</h2>
+<pre><code class="language-bash">getenforce                      # 查看运行状态，如果显示 Enforcing，说明是开启状态
+sudo setenforce 0               # 临时禁用 SELinux
+sudo vim /etc/selinux/config    # 编辑配置文件，永久禁用 SELinux
+</code></pre>
+<p>将 SELINUX=enforcing 修改为 SELINUX=disabled 即可：</p>
+<pre><code class="language-conf"># This file controls the state of SELinux on the system.
+# SELINUX= can take one of these three values:
+#     enforcing - SELinux security policy is enforced.
+#     permissive - SELinux prints warnings instead of enforcing.
+#     disabled - No SELinux policy is loaded.
+SELINUX=enforcing
+# SELINUXTYPE= can take one of these three values:
+#     targeted - Targeted processes are protected,
+#     minimum - Modification of targeted policy. Only selected processes are protected.
+#     mls - Multi Level Security protection.
+SELINUXTYPE=targeted
+</code></pre>
+<h2 id="about-firewall">about firewall</h2>
+<h3 id="systemctl">systemctl</h3>
+<pre><code class="language-bash">sudo systemctl unmask firewalld                # 执行命令，即可实现取消服务的锁定
+sudo systemctl mask firewalld                  # 下次需要锁定该服务时执行
+sudo systemctl start firewalld.service         # 启动防火墙
+sudo systemctl stop firewalld.service          # 停止防火墙
+sudo systemctl reloadt firewalld.service       # 重载配置
+sudo systemctl restart firewalld.service       # 重启服务
+sudo systemctl status firewalld.service        # 显示服务的状态
+sudo systemctl enable firewalld.service        # 在开机时启用服务
+sudo systemctl disable firewalld.service       # 在开机时禁用服务
+sudo systemctl is-enabled firewalld.service    # 查看服务是否开机启动
+sudo systemctl list-unit-files|grep enabled    # 查看已启动的服务列表
+sudo systemctl --failed                        # 查看启动失败的服务列表
+</code></pre>
+<h3 id="firewall-cmd">firewall-cmd</h3>
+<pre><code class="language-bash">sudo firewall-cmd --state            # 查看防火墙状态
+sudo firewall-cmd --reload           # 更新防火墙规则
+sudo firewall-cmd --state            # 查看防火墙状态
+sudo firewall-cmd --reload           # 重载防火墙规则
+sudo firewall-cmd --list-ports       # 查看所有打开的端口
+sudo firewall-cmd --list-services    # 查看所有允许的服务
+sudo firewall-cmd --get-services     # 获取所有支持的服务
+
+# 区域相关
+sudo firewall-cmd --list-all-zones                      # 查看所有区域信息
+sudo firewall-cmd --get-active-zones                    # 查看活动区域信息
+sudo firewall-cmd --set-default-zone=public             # 设置 public 为默认区域
+sudo firewall-cmd --get-default-zone                    # 查看默认区域信息
+sudo firewall-cmd --zone=public --add-interface=eth0    # 将接口 eth0 加入区域 public
+
+# 接口相关
+sudo firewall-cmd --zone=public --remove-interface=eth0     # 从区域 public 中删除接口 eth0
+sudo firewall-cmd --zone=default --change-interface=eth0    # 修改接口 eth0 所属区域为 default
+sudo firewall-cmd --get-zone-of-interface=eth0              # 查看接口 eth0 所属区域
+
+# 端口控制
+sudo firewall-cmd --add-port=80/tcp --permanent                            # 永久添加 80 端口例外(全局)
+sudo firewall-cmd --remove-port=80/tcp --permanent                         # 永久删除 80 端口例外(全局)
+sudo firewall-cmd --add-port=65001-65010/tcp --permanent                   # 永久增加 65001-65010 例外(全局)
+sudo firewall-cmd  --zone=public --add-port=80/tcp --permanent             # 永久添加 80 端口例外(区域public)
+sudo firewall-cmd  --zone=public --remove-port=80/tcp --permanent          # 永久删除 80 端口例外(区域public)
+sudo firewall-cmd  --zone=public --add-port=65001-65010/tcp --permanent    # 永久增加 65001-65010 例外(区域 public)
+sudo firewall-cmd --query-port=8080/tcp                                    # 查询端口是否开放
+sudo firewall-cmd --permanent --add-port=80/tcp                            # 开放 80 端口
+sudo firewall-cmd --permanent --remove-port=8080/tcp                       # 移除端口
+sudo firewall-cmd --reload                                                 # 重启防火墙(修改配置后要重启防火墙)
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Shadowsocks科学上网]]></title>
         <id>https://ntlx.github.io/post/shadowsocks-ke-xue-shang-wang</id>
