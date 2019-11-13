@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T07:47:10.301Z</updated>
+    <updated>2019-11-13T07:50:19.277Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -314,7 +314,7 @@ reboot
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[recommend  chrome extension]]></title>
+        <title type="html"><![CDATA[Chrome 插件推荐]]></title>
         <id>https://ntlx.github.io/post/recommend-chrome-extension</id>
         <link href="https://ntlx.github.io/post/recommend-chrome-extension">
         </link>
@@ -2521,7 +2521,7 @@ autocmd BufNewFile      *.spec  call SKEL_spec()
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[vim 推荐配置]]></title>
+        <title type="html"><![CDATA[华丽 Vim 配置]]></title>
         <id>https://ntlx.github.io/post/vim-conf</id>
         <link href="https://ntlx.github.io/post/vim-conf">
         </link>
