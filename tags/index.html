@@ -1,130 +1,183 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    
-<meta charset="utf-8" >
-
+<head>
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>NTLx Blog</title>
-<meta name="description" content="Play with music">
-
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
-
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573605259129">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="Play with music"/>
+<meta name="keywords" content="Play with music"/>
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
 
-
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<!-- Comment -->
 
 
+<link href="https://cdn.bootcss.com/font-awesome/5.11.2/css/all.min.css" rel="stylesheet">
 
-  </head>
-  <body>
-    <div id="app" class="main">
-      <div class="site-header-container">
-  <div class="site-header">
-    <div class="left">
-      <a href="https://ntlx.github.io">
-        <img class="avatar" src="https://ntlx.github.io/images/avatar.png?v=1573605259129" alt="" width="32px" height="32px">
-      </a>
-      <a href="https://ntlx.github.io">
-        <h1 class="site-title">NTLx Blog</h1>
-      </a>
+
+
+</head>
+<body class="tag-template">
+<div id="page" class="site">
+
+    <header class="site-header">
+    <h1 class="site-title"><a href="https://ntlx.github.io">NTLx Blog</a></h1>
+    <a class="sidebar-toggle"><span class="screen-reader-text">Menu</span><span class="icon" aria-hidden="true"></span></a>
+</header>
+
+<aside class="sidebar">
+    <div class="sidebar-scrollable">
+        <div class="inner">
+            <div class="widget-area">
+                <!-- 菜单 -->
+                <nav class="site-navigation">
+                    <h2>NTLx Blog</h2>
+                    <ul class="menu">
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/"
+                                
+                                >首页</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/archives"
+                                
+                                >归档</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/tags"
+                                
+                                >标签</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/post/about"
+                                
+                                >关于</a>
+                            </li>
+                        
+                    </ul>
+                </nav>
+
+                <section class="widget widget-about">
+                    <h2 class="widget-title">关于</h2>
+                    <p>Play with music</p>
+                </section>
+
+                <section class="widget widget-tags">
+                    <h2 class="widget-title">标签</h2>
+                    <div class="tagcloud">
+                        
+                            <a href="https://ntlx.github.io/tag/viH3aqPur" class="button">
+                                教程
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                            <a href="https://ntlx.github.io/tag/7-tS265WxA" class="button">
+                                新手
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                            <a href="https://ntlx.github.io/tag/WIVvmbWCr" class="button">
+                                Gridea
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                    </div>
+                </section>
+
+            </div>
+            <a class="sidebar-toggle"><span class="screen-reader-text">Close</span><span class="icon" aria-hidden="true"></span></a>
+        </div>
     </div>
-    <div class="right">
-      <transition name="fade">
-        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
-      </transition>
-    </div>
-  </div>
-</div>
-
-<transition name="fade">
-  <div class="menu-container" style="display: none;" v-show="menuVisible">
-    <div class="menu-list">
-      
-        
-          <a href="/" class="menu purple-link">
-            首页
-          </a>
-        
-      
-        
-          <a href="/archives" class="menu purple-link">
-            归档
-          </a>
-        
-      
-        
-          <a href="/tags" class="menu purple-link">
-            标签
-          </a>
-        
-      
-        
-          <a href="/post/about" class="menu purple-link">
-            关于
-          </a>
-        
-      
-    </div>
-  </div>
-</transition>
+</aside>
 
 
-        <div class="content-container">
-          
-          <div class="tags-container">
-            
-              <a class="tag" href="https://ntlx.github.io/tag/viH3aqPur">教程</a>
-            
-              <a class="tag" href="https://ntlx.github.io/tag/7-tS265WxA">新手</a>
-            
-              <a class="tag" href="https://ntlx.github.io/tag/WIVvmbWCr">Gridea</a>
-            
-          </div>
+    <main class="site-main">
+        <div class="site-content">
+            <header class="cover page-header">
+                <div class="cover-bg" style="background-image: linear-gradient( 135deg, #43CBFF 10%, #9708CC 100%);"></div>
+                <div class="cover-content">
+                    <div class="inner">
+                        <div class="post-count"></div>
+                        <h1 class="page-title" style="font-size: 46px;">标签</h1>
+                    </div>
+                </div>
+            </header>
+
+            <div id="post-list" class="post-list inner" style="padding-bottom: 90px;">
+                <div class="tagcloud tag-page">
+                    
+                        <a href="https://ntlx.github.io/tag/viH3aqPur" class="button">
+                            教程
+                            <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                        </a>
+                    
+                        <a href="https://ntlx.github.io/tag/7-tS265WxA" class="button">
+                            新手
+                            <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                        </a>
+                    
+                        <a href="https://ntlx.github.io/tag/WIVvmbWCr" class="button">
+                            Gridea
+                            <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                        </a>
+                    
+                </div>
+            </div>
 
         </div>
+    </main>
 
-        <div class="site-footer">
-  <div class="slogan">Play with music</div>
-  <div class="social-container">
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-  </div>
-  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
+    <footer class="site-footer">
+    <div class="inner">
+        <!-- 社交 -->
+        <div class="offsite-links">
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
+        </div>
+
+        <div class="site-info">
+            THEME BY <a href="https://github.com/GalaxySuze/gridea-theme-subtle-galaxy">Subtle Galaxy</a>, REFERENCE FROM <a href="https://subtle.justgoodthemes.com/">Subtle</a><br/>
+            Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+        </div>
+        <a href="#page" class="arrow-up" data-scroll><span class="screen-reader-text">Back to the top</span></a>
+    </div>
+</footer>
+
+
 </div>
 
+<script src="https://ntlx.github.io/media/scripts/_core/plugins.js"></script>
+<script src="https://ntlx.github.io/media/scripts/_core/custom.js"></script>
 
-      </div>
-      <script type="application/javascript">
+<!-- highlight -->
+<script src="https://cdn.bootcss.com/highlight.js/9.15.8/highlight.min.js"></script>
+<!-- Md5 Min JS -->
+<script src="https://ntlx.github.io/media/scripts/_vendors/md5.min.js"></script>
 
-hljs.initHighlightingOnLoad()
-
-var app = new Vue({
-  el: '#app',
-  data: {
-    menuVisible: false,
-  },
-})
+<script type="application/javascript">
+    // 代码高亮
+    hljs.initHighlightingOnLoad();
 
 </script>
 
 
 
 
-    </div>
-  </body>
+
+</body>
 </html>

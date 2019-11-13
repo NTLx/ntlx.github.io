@@ -1,112 +1,144 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    
-<meta charset="utf-8" >
-
-<title>Shadowsocks科学上网 | NTLx Blog</title>
-<meta name="description" content="Play with music">
-
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
-
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573605259129">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<head>
+    <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>NTLx Blog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="Play with music"/>
+<meta name="keywords" content="Play with music"/>
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
 
-
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+<!-- Comment -->
 
 
-
-  </head>
-  <body>
-    <div id="app" class="main">
-      <div class="site-header-container">
-  <div class="site-header">
-    <div class="left">
-      <a href="https://ntlx.github.io">
-        <img class="avatar" src="https://ntlx.github.io/images/avatar.png?v=1573605259129" alt="" width="32px" height="32px">
-      </a>
-      <a href="https://ntlx.github.io">
-        <h1 class="site-title">NTLx Blog</h1>
-      </a>
-    </div>
-    <div class="right">
-      <transition name="fade">
-        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
-      </transition>
-    </div>
-  </div>
-</div>
-
-<transition name="fade">
-  <div class="menu-container" style="display: none;" v-show="menuVisible">
-    <div class="menu-list">
-      
-        
-          <a href="/" class="menu purple-link">
-            首页
-          </a>
-        
-      
-        
-          <a href="/archives" class="menu purple-link">
-            归档
-          </a>
-        
-      
-        
-          <a href="/tags" class="menu purple-link">
-            标签
-          </a>
-        
-      
-        
-          <a href="/post/about" class="menu purple-link">
-            关于
-          </a>
-        
-      
-    </div>
-  </div>
-</transition>
+<link href="https://cdn.bootcss.com/font-awesome/5.11.2/css/all.min.css" rel="stylesheet">
 
 
-      <div class="content-container">
-        <div class="post-detail">
-          
-            <div class="feature-container" style="background-image: url('https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4')">
+
+</head>
+<body class="post-template">
+<div id="page" class="site">
+
+    <header class="site-header">
+    <h1 class="site-title"><a href="https://ntlx.github.io">NTLx Blog</a></h1>
+    <a class="sidebar-toggle"><span class="screen-reader-text">Menu</span><span class="icon" aria-hidden="true"></span></a>
+</header>
+
+<aside class="sidebar">
+    <div class="sidebar-scrollable">
+        <div class="inner">
+            <div class="widget-area">
+                <!-- 菜单 -->
+                <nav class="site-navigation">
+                    <h2>NTLx Blog</h2>
+                    <ul class="menu">
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/"
+                                
+                                >首页</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/archives"
+                                
+                                >归档</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/tags"
+                                
+                                >标签</a>
+                            </li>
+                        
+                            <li class="menu-item home current-menu-item">
+                                <a href="/post/about"
+                                
+                                >关于</a>
+                            </li>
+                        
+                    </ul>
+                </nav>
+
+                <section class="widget widget-about">
+                    <h2 class="widget-title">关于</h2>
+                    <p>Play with music</p>
+                </section>
+
+                <section class="widget widget-tags">
+                    <h2 class="widget-title">标签</h2>
+                    <div class="tagcloud">
+                        
+                            <a href="https://ntlx.github.io/tag/viH3aqPur" class="button">
+                                教程
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                            <a href="https://ntlx.github.io/tag/7-tS265WxA" class="button">
+                                新手
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                            <a href="https://ntlx.github.io/tag/WIVvmbWCr" class="button">
+                                Gridea
+                                <span aria-hidden="true"><span class="line left"></span><span class="line top"></span><span class="line right"></span><span class="line bottom"></span></span>
+                            </a>
+                        
+                    </div>
+                </section>
+
             </div>
-          
-          <h2 class="post-title">Shadowsocks科学上网</h2>
-          <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2019-11-12</span>
-            
-              <span>
-                <i class="icon-pricetags-outline"></i>
-                
-                  <a href="https://ntlx.github.io/tag/viH3aqPur">
-                    教程
-                    
-                      ，
-                    
-                  </a>
-                
-                  <a href="https://ntlx.github.io/tag/7-tS265WxA">
-                    新手
-                    
-                  </a>
-                
-              </span>
-            
-          </div>
-          <div class="post-content">
-            <p><span id="top"></span></p>
+            <a class="sidebar-toggle"><span class="screen-reader-text">Close</span><span class="icon" aria-hidden="true"></span></a>
+        </div>
+    </div>
+</aside>
+
+
+    <main class="site-main">
+        <div class="site-content">
+            <article class="post tag-getting-started">
+                <header class="cover post-header">
+                    <div class="cover-bg" >
+
+                        
+                            <img srcset="https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4 300w, https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4 600w, https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4 800w, https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4 1600w, https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4 2000w"
+                                 sizes="100vw" src="https://avatars1.githubusercontent.com/u/3006190?s=200&amp;v=4" alt="Shadowsocks科学上网"/>
+                        
+
+                    </div>
+                    <div class="cover-content">
+                        <div class="inner">
+                            <div class="post-tags">
+                                
+                                    
+                                        <a href="https://ntlx.github.io/tag/viH3aqPur">教程&nbsp;&nbsp;</a>
+                                    
+                                        <a href="https://ntlx.github.io/tag/7-tS265WxA">新手&nbsp;&nbsp;</a>
+                                    
+                                
+                            </div>
+                            <h1 class="post-title">Shadowsocks科学上网</h1>
+                            <div class="post-meta">
+                                <span class="post-meta-wrap">
+                                    <img class="author-avatar"
+                                         srcset="https://ntlx.github.io/media/images/avatar.png, https://ntlx.github.io/media/images/avatar.png 2x"
+                                         src="https://ntlx.github.io/media/images/avatar.png" alt=""/>
+                                    <span class="post-author">987字</span>
+                                    <time class="published" datetime="2019-11-12">2019-11-12</time>
+                                </span>
+                                <div>4 min read</div>
+                            </div>
+                            <a href="#post-content" class="arrow-down" data-scroll><span class="screen-reader-text">Scroll Down</span></a>
+                        </div>
+                    </div>
+                </header>
+                <div class="inner">
+
+                    <div id="post-content" class="post-content">
+                        <p><span id="top"></span></p>
 <h1 id="shadowsocks">Shadowsocks</h1>
 <p>Shadowsocks 可以指：一种基于 Socks5 代理方式的加密传输协议，也可以指实现这个协议的各种传输包，并采用 Apache 许可证、GPL、MIT 许可证等多种自由软件许可协议开放源代码。shadowsocks 分为服务器端和客户端，在使用之前，需要先将服务器端部署到服务器上面，然后通过客户端连接并创建本地代理。目前包使用 Python、C、C++、C#、Go 语言等编程语言开发。<a href="https://zh.wikipedia.org/wiki/Shadowsocks">Wikipedia</a></p>
 <!-- more -->
@@ -181,57 +213,87 @@
 <p><em><strong>请注意本文高频使用的<code>类似</code>，意即与各自实际情况类比即可</strong></em></p>
 <p><a href="#top">Back to Top</a></p>
 
-          </div>
+                    </div>
+
+                </div>
+            </article>
+
+            <section class="comments-area">
+    <div class="inner">
+        <h2 class="screen-reader-text">评论</h2>
+        
+    </div>
+</section>
+
+
+            
+                <nav class="post-navigation">
+                    <h2 class="screen-reader-text">Post navigation</h2>
+                    <div class="nav-links">
+                        <a href="https://ntlx.github.io/post/hello-gridea" class="nav-previous">
+                            <div class="nav-bg" >
+                                
+                                    <img srcset="https://ntlx.github.io/post-images/hello-gridea.png 300w, https://ntlx.github.io/post-images/hello-gridea.png 600w, https://ntlx.github.io/post-images/hello-gridea.png 800w, https://ntlx.github.io/post-images/hello-gridea.png 1600w, https://ntlx.github.io/post-images/hello-gridea.png 2000w" sizes="(max-width: 800px) 100vw, 50vw" src="https://ntlx.github.io/post-images/hello-gridea.png" alt="图裂了"/>
+                                
+                            </div>
+                            <div class="nav-inside">
+                                <span class="nav-before">下一篇</span>
+                                <span class="nav-title">Hello Gridea</span>
+                                <span class="nav-date">2018-12-12</span>
+                            </div>
+                        </a>
+                    </div>
+                </nav>
+            
+
+        </div>
+    </main>
+
+    <footer class="site-footer">
+    <div class="inner">
+        <!-- 社交 -->
+        <div class="offsite-links">
+            
+                
+            
+                
+            
+                
+            
+                
+            
+                
+            
         </div>
 
-        
-          <div class="next-post">
-            <a class="purple-link" href="https://ntlx.github.io/post/hello-gridea">
-              <h3 class="post-title">
-                下一篇：Hello Gridea
-              </h3>
-            </a>
-          </div>
-          
-      </div>
+        <div class="site-info">
+            THEME BY <a href="https://github.com/GalaxySuze/gridea-theme-subtle-galaxy">Subtle Galaxy</a>, REFERENCE FROM <a href="https://subtle.justgoodthemes.com/">Subtle</a><br/>
+            Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+        </div>
+        <a href="#page" class="arrow-up" data-scroll><span class="screen-reader-text">Back to the top</span></a>
+    </div>
+</footer>
 
-      
 
-      <div class="site-footer">
-  <div class="slogan">Play with music</div>
-  <div class="social-container">
-    
-      
-    
-      
-    
-      
-    
-      
-    
-      
-    
-  </div>
-  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
 </div>
 
+<script src="https://ntlx.github.io/media/scripts/_core/plugins.js"></script>
+<script src="https://ntlx.github.io/media/scripts/_core/custom.js"></script>
 
-    </div>
-    <script type="application/javascript">
+<!-- highlight -->
+<script src="https://cdn.bootcss.com/highlight.js/9.15.8/highlight.min.js"></script>
+<!-- Md5 Min JS -->
+<script src="https://ntlx.github.io/media/scripts/_vendors/md5.min.js"></script>
 
-hljs.initHighlightingOnLoad()
-
-var app = new Vue({
-  el: '#app',
-  data: {
-    menuVisible: false,
-  },
-})
+<script type="application/javascript">
+    // 代码高亮
+    hljs.initHighlightingOnLoad();
 
 </script>
 
 
 
 
-  </body>
+
+</body>
 </html>
