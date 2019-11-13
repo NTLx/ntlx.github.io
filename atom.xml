@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T07:50:19.277Z</updated>
+    <updated>2019-11-13T08:08:21.757Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -346,7 +346,7 @@ reboot
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[tmux 配置]]></title>
+        <title type="html"><![CDATA[TMUX 配置]]></title>
         <id>https://ntlx.github.io/post/tmux-conf</id>
         <link href="https://ntlx.github.io/post/tmux-conf">
         </link>
@@ -8077,9 +8077,11 @@ forward-socks5 .1-apple.com.tw 127.0.0.1:1080 .
         <link href="https://ntlx.github.io/post/about-centos-76">
         </link>
         <updated>2019-11-13T07:18:49.000Z</updated>
-        <summary type="html"><![CDATA[<p>Intallation note for CentOS 7.6 for now.</p>
+        <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
+<p>Intallation note for CentOS 7.6 for now.</p>
 ]]></summary>
-        <content type="html"><![CDATA[<p>Intallation note for CentOS 7.6 for now.</p>
+        <content type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
+<p>Intallation note for CentOS 7.6 for now.</p>
 <!-- more -->
 <h1 id="install-centos-76">Install CentOS 7.6</h1>
 <blockquote>
