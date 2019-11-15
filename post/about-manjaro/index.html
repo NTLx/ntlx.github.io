@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>About Manjaro | NTLx Blog</title>
+<meta name="description" content="Play with music">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1573790943799">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
+
+
+  
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/disqusjs@1.1/dist/disqusjs.css" />
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114672259-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-114672259-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://ntlx.github.io">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1573790943799" class="site-logo">
+        <h1 class="site-title">NTLx Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/NTLx" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://twitter.com/lx3325360" target="_blank">
+            <i class="fab fa-twitter"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://facebook.com/lx3325360" target="_blank">
+            <i class="fab fa-facebook"></i>
+          </a>
+        
+      
+    </div>
+    <div class="site-description">
+      Play with music
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">About Manjaro</h2>
+            <div class="post-date">2019-11-15</div>
+            
+              <div class="feature-container" style="background-image: url('https://manjaro.org/img/logo.svg')">
+              </div>
+            
+            <div class="post-content">
+              <p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
+<!-- more -->
+<h1 id="settings-after-installation">Settings after Installation</h1>
+<h2 id="set-language">set language</h2>
+<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
+<pre><code class="language-bash">export LANGUAGE=en_US.utf8
+export LC_ALL=en_US.utf8
+export LANG=en_US.utf8
+</code></pre>
+<h2 id="change-source-mirror">change source mirror</h2>
+<blockquote>
+<p>choose https://mirrors.sjtug.sjtu.edu.cn</p>
+</blockquote>
+<pre><code class="language-bash">sudo pacman -Syy
+sudo pacman-mirrors -i -c China -m rank
+sudo pacman -Syyu
+</code></pre>
+<p>then edit <code>/etc/pacman.conf</code>, add:</p>
+<pre><code class="language-bash">[archlinuxcn]
+SigLevel = Optional TrustedOnly
+Server = https://mirrors.sjtug.sjtu.edu.cn/archlinux-cn/$arch
+</code></pre>
+<p>then:</p>
+<pre><code class="language-bash">sudo pacman -Syy &amp;&amp; sudo pacman -S archlinuxcn-keyring
+sudo pacman -Su
+</code></pre>
+<h2 id="dependency-installation">dependency installation</h2>
+<pre><code class="language-bash">sudo pacman -S clang make cmake gdb c-ares cunit graphviz gnutls gmp expat curl autoconf automake icu libconfig libgcrypt pkgconf libssh2 libuv libxml2 libxml++ make ncurses nettle nodejs nodejs-material-design-icons openssh openssl pcre pcre2 postfix sqlite zlib wget tar git vim htop ncdu axel privoxy
+</code></pre>
+<h2 id="tmux">tmux</h2>
+<pre><code class="language-bash">sudo pacman -S tmux
+scp -P 8022 lx@ntlx.tpddns.cn:/home/lx/tmux_conf.zip .
+unzip tmux_conf.zip
+</code></pre>
+<h2 id="zsh">zsh</h2>
+<pre><code class="language-bash">sudo pacman -S zsh zsh-lovers
+sh -c &quot;$(wget https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)&quot;
+git clone https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+</code></pre>
+<p>setting <code>~/.zshrc</code> like below:</p>
+<pre><code class="language-bash">export TERM=&quot;xterm-256color&quot;
+
+ZSH_THEME=&quot;powerlevel10k/powerlevel10k&quot;
+POWERLEVEL9K_MODE=&quot;nerdfont-complete&quot;
+POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(os_icon user dir_writable dir vcs)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time root_indicator background_jobs time disk_usage ram load)
+POWERLEVEL9K_MULTILINE_LAST_PROMPT_PREFIX=&quot;%(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )&quot;
+POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX=&quot;&quot;
+POWERLEVEL9K_USER_ICON=&quot;\uF415&quot; # &lt;U+F415&gt;
+POWERLEVEL9K_ROOT_ICON=&quot;\uF09C&quot;
+POWERLEVEL9K_SUDO_ICON=$'\uF09C' # &lt;U+F09C&gt;
+POWERLEVEL9K_TIME_FORMAT=&quot;%D{%H:%M}&quot;
+POWERLEVEL9K_VCS_GIT_ICON='\uF408'
+POWERLEVEL9K_VCS_GIT_GITHUB_ICON='\uF408'
+</code></pre>
+<h2 id="install-firacode">install FiraCode</h2>
+<blockquote>
+<p>Nerd Fonts</p>
+</blockquote>
+<pre><code class="language-bash">wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.0.0/FiraCode.zip
+unzip FiraCode.zip
+rm Fura*.otf
+rm Fura*Windows*.ttf
+sudo mkdir -p /usr/share/fonts/TTF
+sudo mv Fura*.ttf /usr/share/fonts/TTF/
+fc-cache -fv
+</code></pre>
+<h2 id="samba">samba</h2>
+<pre><code class="language-bash">sudo pacman -S samba gvfs-smb thunar-shares-plugin manjaro-settings-samba
+sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.orig
+sudo touch /etc/samba/smbpasswd
+sudo vim /etc/samba/smb.conf
+testparm
+sudo smbpasswd -a lx
+sudo systemctl enable smb nmb
+sudo systemctl start smb nmb
+sudo reboot
+</code></pre>
+<h3 id="samba-configure-file">samba configure file</h3>
+<pre><code class="language-bash">[global]
+    workgroup = WORKGROUP
+    security = user
+    netbios name = Manjaro
+    hosts allow = 192.168.120.
+    passdb backend = smbpasswd
+    encrypt passwords = true
+    smb passwd file = /etc/samba/smbpasswd
+    log file = /var/log/samba/log.%m
+    max open files = 1000
+
+[public]
+    comment = Manjaro public
+    path = /public
+    valid users = lx
+    writable = yes
+    browseable = yes
+    available = yes
+</code></pre>
+<h2 id="aria2-v1350">aria2 v1.35.0</h2>
+<pre><code class="language-bash">wget https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0.tar.gz
+tar zxf aria2-1.35.0.tar.gz
+cd aria2-1.35.0
+./configure --prefix=/public/software/aria2-1.35.0
+make
+make install
+</code></pre>
+<h3 id="webui-for-aria2">webui for aria2</h3>
+<pre><code class="language-bash">git clone git@github.com:ziahamza/webui-aria2.git
+cd webui-aria2
+/public/software/aria2-1.35.0/bin/aria2c --enable-rpc --rpc-listen-all
+node node-server.js
+</code></pre>
+<h2 id="rust">Rust</h2>
+<h3 id="mirror-for-rust">mirror for rust</h3>
+<blockquote>
+<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
+</blockquote>
+<pre><code class="language-bash">export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+</code></pre>
+<h3 id="install-rust">install rust</h3>
+<pre><code class="language-bash">curl -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+</code></pre>
+<h3 id="mirror-for-cargo">mirror for cargo</h3>
+<blockquote>
+<p>set blow in <code>~/.cargo/config</code></p>
+</blockquote>
+<pre><code class="language-bash">[source.crates-io]
+registry = &quot;https://github.com/rust-lang/crates.io-index&quot;
+replace-with = 'ustc'
+[source.ustc]
+registry = &quot;git://mirrors.ustc.edu.cn/crates.io-index&quot;
+</code></pre>
+<h3 id="install-lsd-exa">install lsd &amp; exa</h3>
+<pre><code class="language-bash">cargo install lsd exa
+</code></pre>
+<h2 id="sogou-input-method-optional">sogou input method (optional)</h2>
+<pre><code class="language-bash">sudo pacman -S fcitx-sogoupinyin
+sudo pacman -S fcitx-im
+sudo pacman -S fcitx-configtool
+</code></pre>
+<p>then edit <code>~/.xprofile</code>, add:</p>
+<pre><code class="language-bash">export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=&quot;@im=fcitx&quot;
+</code></pre>
+<h1 id="tips">Tips</h1>
+<h2 id="pacman">pacman</h2>
+<pre><code class="language-bash">pacman -S package_name        # 安装软件  
+pacman -S extra/package_name  # 安装不同仓库中的版本
+pacman -Syu                   # 升级整个系统，y是更新数据库，yy是强制更新，u是升级软件
+pacman -Ss string             # 在包数据库中查询软件
+pacman -Si package_name       # 显示软件的详细信息
+pacman -Sc                    # 清除软件缓存，即/var/cache/pacman/pkg目录下的文件
+pacman -R package_name        # 删除单个软件
+pacman -Rs package_name       # 删除指定软件及其没有被其他已安装软件使用的依赖关系
+pacman -Qs string             # 查询已安装的软件包
+pacman -Qi package_name       # 查询本地安装包的详细信息
+pacman -Ql package_name       # 获取已安装软件所包含的文件的列表
+pacman -U package.tar.zx      # 从本地文件安装
+pactree package_name          # 显示软件的依赖树
+</code></pre>
+<h2 id="usefull-software">usefull software</h2>
+<pre><code class="language-bash">sudo pacman -S google-chrome
+sudo pacman -S visual-studio-code-bin                     # VS Code
+sudo pacman -S netease-cloud-music                        # 网易云音乐
+sudo pacman -S wps-office ttf-wps-fonts                   # WPS Office
+sudo pacman -S texlive-most texlive-langchinese texstudio # TeXLive
+</code></pre>
+<h1 id="direct-reference">Direct Reference</h1>
+<p><a href="https://manjaro.org/">manjaro.org</a><br>
+<a href="https://wiki.manjaro.org/index.php?title=About_Manjaro">wiki.manjaro.org</a><br>
+<a href="http://panqiincs.me/2019/06/05/after-installing-manjaro/">安装Manjaro之后的配置</a><br>
+<a href="https://blog.csdn.net/aaa111/article/details/82774860">Manjaro 配置Samba 共享文件夹给Windows 访问</a><br>
+<a href="https://wiki.archlinux.org/index.php?title=Fonts&amp;oldid=588239">Arch Linux WiKi: Fonts</a><br>
+<a href="https://www.nerdfonts.com/">nerdfonts.com</a></p>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/AbSLODOvW" class="tag">
+                    Manjaro
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/boF6zZO7X" class="tag">
+                    Setting
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/IGog1aO36" class="tag">
+                    Tutorials
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/Futdjqll2" class="tag">
+                    Linux
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/ocr-ruan-jian-tui-jian">
+                  <h3 class="post-title">
+                    OCR 软件推荐
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+
+              
+                <div id="disqus_thread" data-aos="fade-in"></div>
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+
+  
+    <script src="https://unpkg.com/disqusjs@1.1/dist/disqus.js"></script>
+    <script>
+
+    var options = {
+      shortname: 'ntlx-blog',
+      apikey: 'fdjiLOEB5sqKL62zNPOMAzCraxgPwyODAWTMgcuyT9r0XKOsehAQCvxlHugFPbm2',
+    }
+    if ('') {
+      options.api = ''
+    }
+    var dsqjs = new DisqusJS(options)
+
+    </script>
+  
+
+
+
+
+  </body>
+</html>

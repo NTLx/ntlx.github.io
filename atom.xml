@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-13T09:23:04.136Z</updated>
+    <updated>2019-11-15T04:09:14.516Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -10,6 +10,197 @@
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
     <rights>All rights reserved 2019, NTLx Blog</rights>
+    <entry>
+        <title type="html"><![CDATA[About Manjaro]]></title>
+        <id>https://ntlx.github.io/post/about-manjaro</id>
+        <link href="https://ntlx.github.io/post/about-manjaro">
+        </link>
+        <updated>2019-11-15T01:41:59.000Z</updated>
+        <summary type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
+]]></summary>
+        <content type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
+<!-- more -->
+<h1 id="settings-after-installation">Settings after Installation</h1>
+<h2 id="set-language">set language</h2>
+<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
+<pre><code class="language-bash">export LANGUAGE=en_US.utf8
+export LC_ALL=en_US.utf8
+export LANG=en_US.utf8
+</code></pre>
+<h2 id="change-source-mirror">change source mirror</h2>
+<blockquote>
+<p>choose https://mirrors.sjtug.sjtu.edu.cn</p>
+</blockquote>
+<pre><code class="language-bash">sudo pacman -Syy
+sudo pacman-mirrors -i -c China -m rank
+sudo pacman -Syyu
+</code></pre>
+<p>then edit <code>/etc/pacman.conf</code>, add:</p>
+<pre><code class="language-bash">[archlinuxcn]
+SigLevel = Optional TrustedOnly
+Server = https://mirrors.sjtug.sjtu.edu.cn/archlinux-cn/$arch
+</code></pre>
+<p>then:</p>
+<pre><code class="language-bash">sudo pacman -Syy &amp;&amp; sudo pacman -S archlinuxcn-keyring
+sudo pacman -Su
+</code></pre>
+<h2 id="dependency-installation">dependency installation</h2>
+<pre><code class="language-bash">sudo pacman -S clang make cmake gdb c-ares cunit graphviz gnutls gmp expat curl autoconf automake icu libconfig libgcrypt pkgconf libssh2 libuv libxml2 libxml++ make ncurses nettle nodejs nodejs-material-design-icons openssh openssl pcre pcre2 postfix sqlite zlib wget tar git vim htop ncdu axel privoxy
+</code></pre>
+<h2 id="tmux">tmux</h2>
+<pre><code class="language-bash">sudo pacman -S tmux
+scp -P 8022 lx@ntlx.tpddns.cn:/home/lx/tmux_conf.zip .
+unzip tmux_conf.zip
+</code></pre>
+<h2 id="zsh">zsh</h2>
+<pre><code class="language-bash">sudo pacman -S zsh zsh-lovers
+sh -c &quot;$(wget https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)&quot;
+git clone https://github.com/romkatv/powerlevel10k.git $ZSH_CUSTOM/themes/powerlevel10k
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+</code></pre>
+<p>setting <code>~/.zshrc</code> like below:</p>
+<pre><code class="language-bash">export TERM=&quot;xterm-256color&quot;
+
+ZSH_THEME=&quot;powerlevel10k/powerlevel10k&quot;
+POWERLEVEL9K_MODE=&quot;nerdfont-complete&quot;
+POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(os_icon user dir_writable dir vcs)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status command_execution_time root_indicator background_jobs time disk_usage ram load)
+POWERLEVEL9K_MULTILINE_LAST_PROMPT_PREFIX=&quot;%(?:%{$fg_bold[green]%}➜ :%{$fg_bold[red]%}➜ )&quot;
+POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX=&quot;&quot;
+POWERLEVEL9K_USER_ICON=&quot;\uF415&quot; # &lt;U+F415&gt;
+POWERLEVEL9K_ROOT_ICON=&quot;\uF09C&quot;
+POWERLEVEL9K_SUDO_ICON=$'\uF09C' # &lt;U+F09C&gt;
+POWERLEVEL9K_TIME_FORMAT=&quot;%D{%H:%M}&quot;
+POWERLEVEL9K_VCS_GIT_ICON='\uF408'
+POWERLEVEL9K_VCS_GIT_GITHUB_ICON='\uF408'
+</code></pre>
+<h2 id="install-firacode">install FiraCode</h2>
+<blockquote>
+<p>Nerd Fonts</p>
+</blockquote>
+<pre><code class="language-bash">wget https://github.com/ryanoasis/nerd-fonts/releases/download/v2.0.0/FiraCode.zip
+unzip FiraCode.zip
+rm Fura*.otf
+rm Fura*Windows*.ttf
+sudo mkdir -p /usr/share/fonts/TTF
+sudo mv Fura*.ttf /usr/share/fonts/TTF/
+fc-cache -fv
+</code></pre>
+<h2 id="samba">samba</h2>
+<pre><code class="language-bash">sudo pacman -S samba gvfs-smb thunar-shares-plugin manjaro-settings-samba
+sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.orig
+sudo touch /etc/samba/smbpasswd
+sudo vim /etc/samba/smb.conf
+testparm
+sudo smbpasswd -a lx
+sudo systemctl enable smb nmb
+sudo systemctl start smb nmb
+sudo reboot
+</code></pre>
+<h3 id="samba-configure-file">samba configure file</h3>
+<pre><code class="language-bash">[global]
+    workgroup = WORKGROUP
+    security = user
+    netbios name = Manjaro
+    hosts allow = 192.168.120.
+    passdb backend = smbpasswd
+    encrypt passwords = true
+    smb passwd file = /etc/samba/smbpasswd
+    log file = /var/log/samba/log.%m
+    max open files = 1000
+
+[public]
+    comment = Manjaro public
+    path = /public
+    valid users = lx
+    writable = yes
+    browseable = yes
+    available = yes
+</code></pre>
+<h2 id="aria2-v1350">aria2 v1.35.0</h2>
+<pre><code class="language-bash">wget https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0.tar.gz
+tar zxf aria2-1.35.0.tar.gz
+cd aria2-1.35.0
+./configure --prefix=/public/software/aria2-1.35.0
+make
+make install
+</code></pre>
+<h3 id="webui-for-aria2">webui for aria2</h3>
+<pre><code class="language-bash">git clone git@github.com:ziahamza/webui-aria2.git
+cd webui-aria2
+/public/software/aria2-1.35.0/bin/aria2c --enable-rpc --rpc-listen-all
+node node-server.js
+</code></pre>
+<h2 id="rust">Rust</h2>
+<h3 id="mirror-for-rust">mirror for rust</h3>
+<blockquote>
+<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
+</blockquote>
+<pre><code class="language-bash">export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+</code></pre>
+<h3 id="install-rust">install rust</h3>
+<pre><code class="language-bash">curl -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+</code></pre>
+<h3 id="mirror-for-cargo">mirror for cargo</h3>
+<blockquote>
+<p>set blow in <code>~/.cargo/config</code></p>
+</blockquote>
+<pre><code class="language-bash">[source.crates-io]
+registry = &quot;https://github.com/rust-lang/crates.io-index&quot;
+replace-with = 'ustc'
+[source.ustc]
+registry = &quot;git://mirrors.ustc.edu.cn/crates.io-index&quot;
+</code></pre>
+<h3 id="install-lsd-exa">install lsd &amp; exa</h3>
+<pre><code class="language-bash">cargo install lsd exa
+</code></pre>
+<h2 id="sogou-input-method-optional">sogou input method (optional)</h2>
+<pre><code class="language-bash">sudo pacman -S fcitx-sogoupinyin
+sudo pacman -S fcitx-im
+sudo pacman -S fcitx-configtool
+</code></pre>
+<p>then edit <code>~/.xprofile</code>, add:</p>
+<pre><code class="language-bash">export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=&quot;@im=fcitx&quot;
+</code></pre>
+<h1 id="tips">Tips</h1>
+<h2 id="pacman">pacman</h2>
+<pre><code class="language-bash">pacman -S package_name        # 安装软件  
+pacman -S extra/package_name  # 安装不同仓库中的版本
+pacman -Syu                   # 升级整个系统，y是更新数据库，yy是强制更新，u是升级软件
+pacman -Ss string             # 在包数据库中查询软件
+pacman -Si package_name       # 显示软件的详细信息
+pacman -Sc                    # 清除软件缓存，即/var/cache/pacman/pkg目录下的文件
+pacman -R package_name        # 删除单个软件
+pacman -Rs package_name       # 删除指定软件及其没有被其他已安装软件使用的依赖关系
+pacman -Qs string             # 查询已安装的软件包
+pacman -Qi package_name       # 查询本地安装包的详细信息
+pacman -Ql package_name       # 获取已安装软件所包含的文件的列表
+pacman -U package.tar.zx      # 从本地文件安装
+pactree package_name          # 显示软件的依赖树
+</code></pre>
+<h2 id="usefull-software">usefull software</h2>
+<pre><code class="language-bash">sudo pacman -S google-chrome
+sudo pacman -S visual-studio-code-bin                     # VS Code
+sudo pacman -S netease-cloud-music                        # 网易云音乐
+sudo pacman -S wps-office ttf-wps-fonts                   # WPS Office
+sudo pacman -S texlive-most texlive-langchinese texstudio # TeXLive
+</code></pre>
+<h1 id="direct-reference">Direct Reference</h1>
+<p><a href="https://manjaro.org/">manjaro.org</a><br>
+<a href="https://wiki.manjaro.org/index.php?title=About_Manjaro">wiki.manjaro.org</a><br>
+<a href="http://panqiincs.me/2019/06/05/after-installing-manjaro/">安装Manjaro之后的配置</a><br>
+<a href="https://blog.csdn.net/aaa111/article/details/82774860">Manjaro 配置Samba 共享文件夹给Windows 访问</a><br>
+<a href="https://wiki.archlinux.org/index.php?title=Fonts&amp;oldid=588239">Arch Linux WiKi: Fonts</a><br>
+<a href="https://www.nerdfonts.com/">nerdfonts.com</a></p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[OCR 软件推荐]]></title>
         <id>https://ntlx.github.io/post/ocr-ruan-jian-tui-jian</id>
@@ -8690,226 +8881,6 @@ export PATH=&quot;/home/lx/software/bcftools-1.9/bin:$PATH&quot;
 <p>check rpm related package: <code>rpm -qa | grep [package]</code></p>
 <p>check whether installed or not: <code>rpm -q [package]</code></p>
 <p>remove package: <code>rpm -e [package]</code></p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[About CentOS 8]]></title>
-        <id>https://ntlx.github.io/post/about-centos-8</id>
-        <link href="https://ntlx.github.io/post/about-centos-8">
-        </link>
-        <updated>2019-11-13T01:03:17.000Z</updated>
-        <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
-<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
-]]></summary>
-        <content type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS"></figure>
-<p>CentOS 8 Installation Note &amp; Some usefull tips for now.</p>
-<!-- more -->
-<h1 id="installation-note">Installation Note</h1>
-<blockquote>
-<p>for Minimal Installation</p>
-</blockquote>
-<h2 id="system-dependency">system dependency</h2>
-<pre><code class="language-bash">sudo yum install autoconf automake c-ares c-ares-devel chrony clang clang-devel clang-libs clang-tools-extra cmake cmake-data cmake-filesystem cmake-rpm-macros CUnit curl expat expat-devel gcc gcc-c++ gmp gmp-c++ gmp-devel gnutls gnutls-c++ gnutls-devel gnutls-utils graphviz icu libconfig libgcc libgcrypt libgcrypt-devel libicu libicu-devel libpkgconf libssh2 libstdc++ libstdc++-devel libuv libxml2 libxml2-devel make make-devel ncurses-c++-libs nettle nettle-devel nodejs nodejs-devel openssh-clients openssh-server openssl openssl-devel openssl-libs pcre pcre2 pcre2-devel pcre-cpp pcre-devel perl-CPAN pkgconf pkgconf-pkg-config policycoreutils postfix sqlite-devel sqlite-libs zlib zlib-devel wget tar git
-</code></pre>
-<h2 id="set-language">set language</h2>
-<p>add blow to <code>~/.bashrc</code> or <code>~/.zshrc</code></p>
-<pre><code class="language-bash">export LANGUAGE=en_US.utf8
-export LC_ALL=en_US.utf8
-export LANG=en_US.utf8
-</code></pre>
-<h2 id="install-tmux-zsh">install tmux zsh</h2>
-<pre><code class="language-bash">sudo yum install tmux zsh
-</code></pre>
-<h2 id="install-python3">install python3</h2>
-<pre><code class="language-bash">sudo yum install python36 python36-devel
-</code></pre>
-<h2 id="install-shadowsocks">install shadowsocks</h2>
-<pre><code class="language-bash">sudo pip3 install shadowsocks-py
-sudo ln -s /usr/local/bin/sslocal /usr/bin/
-</code></pre>
-<h3 id="using-shadowsocks">using shadowsocks</h3>
-<pre><code class="language-bash">sudo sslocal -c HK03.json -d start
-</code></pre>
-<h2 id="install-privoxy">install privoxy</h2>
-<p><a href="https://sourceforge.net/projects/ijbswa/files/Sources/">Download</a></p>
-<pre><code class="language-bash">tar zxf privoxy-3.0.28-stable-src.tar.gz
-cd privoxy-3.0.28-stable/
-sudo autoheader
-sudo autoconf
-sudo ./configure
-sudo make
-sudo useradd privoxy -r -s /usr/sbin/nologin
-sudo make install
-</code></pre>
-<h2 id="install-aria2-v1350">install aria2 v1.35.0</h2>
-<pre><code class="language-bash">wget https://github.com/aria2/aria2/releases/download/release-1.35.0/aria2-1.35.0.tar.gz
-tar zxf aria2-1.35.0.tar.gz
-cd aria2-1.35.0
-./configure --prefix=$HOME/software/aria2-1.35.0
-make
-make install
-</code></pre>
-<h3 id="install-aria2-webui">install aria2 webui</h3>
-<pre><code class="language-bash">git clone git@github.com:ziahamza/webui-aria2.git
-# or wget https://github.com/ziahamza/webui-aria2/archive/master.zip
-</code></pre>
-<h3 id="run-aria2">run aria2</h3>
-<pre><code class="language-bash">~/software/aria2-1.35.0/bin/aria2c --enable-rpc --rpc-listen-all
-</code></pre>
-<h3 id="run-webui">run webui</h3>
-<pre><code class="language-bash">node node-server.js
-</code></pre>
-<h2 id="install-ruby">install ruby</h2>
-<pre><code class="language-bash">sudo yum install ruby ruby-devel ruby-libs
-gem sources --remove https://rubygems.org/
-gem sources -a https://mirrors.aliyun.com/rubygems/
-gem update
-gem update --system
-</code></pre>
-<p>edit <code>~/.gemrc</code> like blow:</p>
-<pre><code>---
-:backtrace: false
-:bulk_threshold: 1000
-:sources:
-- https://mirrors.aliyun.com/rubygems/
-:update_sources: true
-:verbose: true
-gem: &quot;--user-install --bindir /home/lx/bin&quot;
-:concurrent_downloads: 8
-install: --no-document
-update: --no-document
-</code></pre>
-<h2 id="install-samba4">Install Samba4</h2>
-<pre><code class="language-bash">sudo dnf install samba samba-client samba-common
-sudo systemctl start smb
-sudo systemctl enable smb
-sudo systemctl status smb
-sudo firewall-cmd --permanent --add-service=samba
-sudo firewall-cmd --reload
-cp /etc/samba/smb.conf /etc/samba/smb.conf.orig
-sudo touch /etc/samba/smbpasswd
-sudo vim /etc/samba/smb.conf
-testparm
-# groupadd smbgrp
-# usermod lx -aG smbgrp
-sudo smbpasswd -a lx
-sudo systemctl restart smb
-sudo systemctl restart nmb
-</code></pre>
-<blockquote>
-<p>正常使用 Samba 服务必须设置好 SELinux，一般<s>简单粗暴的</s>直接关闭，但其实设置好更能保证安全性，可参考<a href="https://linuxconfig.org/install-samba-on-redhat-8#h7-setup-selinux-for-samba">这里</a>进行设置。</p>
-</blockquote>
-<h3 id="minimal-config">minimal config</h3>
-<pre><code class="language-conf">[global]
-    workgroup = WORKGROUP
-    security = user
-    netbios name = HaseeServer
-    hosts allow = 192.168.0.
-    passdb backend = smbpasswd
-    encrypt passwords = true
-    smb passwd file = /etc/samba/smbpasswd
-    log file = /var/log/samba/log.%m
-    max open files = 1000
-
-[SSD]
-    comment = Hasee SSD Download folder
-    path = /home/lx/Download
-    valid users = lx
-    writable = no
-    browseable = yes
-    available = yes
-
-[SATA]
-    comment = Hasee SATA Download folder
-    path = /home/lx/public/Download
-    valid users = lx
-    writeable = no
-    browseable = yes
-    available = yes
-</code></pre>
-<h1 id="usefull-tips">Usefull Tips</h1>
-<h2 id="about-disk">about disk</h2>
-<pre><code class="language-bash">sudo yum install gdisk
-</code></pre>
-<pre><code class="language-bash">sudo gdisk /dev/sda
-sudo mkfs.xfs -f -d agcount=8 /dev/sda1
-sudo mount /dev/sda1 /store
-</code></pre>
-<h2 id="sync-time">sync time</h2>
-<pre><code class="language-bash">sudo systemctl enable chronyd                  # 设置开机启动
-sudo systemctl is-enabled chronyd              # 查看是否设置了开机启动
-sudo systemctl start chronyd                   # 开启 chrony
-sudo timedatectl list-timezones                # 列出所有时区
-sudo timedatectl set-local-rtc 1               # 将硬件时钟调整为与本地时钟一致，0 即设置为 UTC 时间
-sudo timedatectl set-timezone Asia/Shanghai    # 设置系统时区为上海
-sudo timedatectl set-ntp yes                   # 设置开启自动同步
-</code></pre>
-<h2 id="about-selinux">about SELinux</h2>
-<pre><code class="language-bash">getenforce                      # 查看运行状态，如果显示 Enforcing，说明是开启状态
-sudo setenforce 0               # 临时禁用 SELinux
-sudo vim /etc/selinux/config    # 编辑配置文件，永久禁用 SELinux
-</code></pre>
-<p>将 SELINUX=enforcing 修改为 SELINUX=disabled 即可：</p>
-<pre><code class="language-conf"># This file controls the state of SELinux on the system.
-# SELINUX= can take one of these three values:
-#     enforcing - SELinux security policy is enforced.
-#     permissive - SELinux prints warnings instead of enforcing.
-#     disabled - No SELinux policy is loaded.
-SELINUX=enforcing
-# SELINUXTYPE= can take one of these three values:
-#     targeted - Targeted processes are protected,
-#     minimum - Modification of targeted policy. Only selected processes are protected.
-#     mls - Multi Level Security protection.
-SELINUXTYPE=targeted
-</code></pre>
-<h2 id="about-firewall">about firewall</h2>
-<h3 id="systemctl">systemctl</h3>
-<pre><code class="language-bash">sudo systemctl unmask firewalld                # 执行命令，即可实现取消服务的锁定
-sudo systemctl mask firewalld                  # 下次需要锁定该服务时执行
-sudo systemctl start firewalld.service         # 启动防火墙
-sudo systemctl stop firewalld.service          # 停止防火墙
-sudo systemctl reloadt firewalld.service       # 重载配置
-sudo systemctl restart firewalld.service       # 重启服务
-sudo systemctl status firewalld.service        # 显示服务的状态
-sudo systemctl enable firewalld.service        # 在开机时启用服务
-sudo systemctl disable firewalld.service       # 在开机时禁用服务
-sudo systemctl is-enabled firewalld.service    # 查看服务是否开机启动
-sudo systemctl list-unit-files|grep enabled    # 查看已启动的服务列表
-sudo systemctl --failed                        # 查看启动失败的服务列表
-</code></pre>
-<h3 id="firewall-cmd">firewall-cmd</h3>
-<pre><code class="language-bash">sudo firewall-cmd --state            # 查看防火墙状态
-sudo firewall-cmd --reload           # 更新防火墙规则
-sudo firewall-cmd --state            # 查看防火墙状态
-sudo firewall-cmd --reload           # 重载防火墙规则
-sudo firewall-cmd --list-ports       # 查看所有打开的端口
-sudo firewall-cmd --list-services    # 查看所有允许的服务
-sudo firewall-cmd --get-services     # 获取所有支持的服务
-
-# 区域相关
-sudo firewall-cmd --list-all-zones                      # 查看所有区域信息
-sudo firewall-cmd --get-active-zones                    # 查看活动区域信息
-sudo firewall-cmd --set-default-zone=public             # 设置 public 为默认区域
-sudo firewall-cmd --get-default-zone                    # 查看默认区域信息
-sudo firewall-cmd --zone=public --add-interface=eth0    # 将接口 eth0 加入区域 public
-
-# 接口相关
-sudo firewall-cmd --zone=public --remove-interface=eth0     # 从区域 public 中删除接口 eth0
-sudo firewall-cmd --zone=default --change-interface=eth0    # 修改接口 eth0 所属区域为 default
-sudo firewall-cmd --get-zone-of-interface=eth0              # 查看接口 eth0 所属区域
-
-# 端口控制
-sudo firewall-cmd --add-port=80/tcp --permanent                            # 永久添加 80 端口例外(全局)
-sudo firewall-cmd --remove-port=80/tcp --permanent                         # 永久删除 80 端口例外(全局)
-sudo firewall-cmd --add-port=65001-65010/tcp --permanent                   # 永久增加 65001-65010 例外(全局)
-sudo firewall-cmd  --zone=public --add-port=80/tcp --permanent             # 永久添加 80 端口例外(区域public)
-sudo firewall-cmd  --zone=public --remove-port=80/tcp --permanent          # 永久删除 80 端口例外(区域public)
-sudo firewall-cmd  --zone=public --add-port=65001-65010/tcp --permanent    # 永久增加 65001-65010 例外(区域 public)
-sudo firewall-cmd --query-port=8080/tcp                                    # 查询端口是否开放
-sudo firewall-cmd --permanent --add-port=80/tcp                            # 开放 80 端口
-sudo firewall-cmd --permanent --remove-port=8080/tcp                       # 移除端口
-sudo firewall-cmd --reload                                                 # 重启防火墙(修改配置后要重启防火墙)
-</code></pre>
 ]]></content>
     </entry>
 </feed>
