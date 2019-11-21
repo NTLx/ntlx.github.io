@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" >
 
-<title>关于 | NTLx Blog</title>
+<title>About VMware vSphere | NTLx Blog</title>
 <meta name="description" content="Play with music">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -119,24 +119,83 @@
       <div class="main-container">
         <div class="content-container" data-aos="fade-up">
           <div class="post-detail">
-            <h2 class="post-title">关于</h2>
-            <div class="post-date">2019-01-25</div>
+            <h2 class="post-title">About VMware vSphere</h2>
+            <div class="post-date">2019-11-21</div>
+            
+              <div class="feature-container" style="background-image: url('https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595')">
+              </div>
             
             <div class="post-content">
               <blockquote>
-<p>欢迎来到我的小站呀，很高兴遇见你！🤝</p>
+<p>For v6.7u3 currently</p>
 </blockquote>
-<h2 id="关于本站">🏠 关于本站</h2>
-<p>这是我的新博客，以前使用纯 GitHub Pages 方法搭建的博客已经关闭博客页面，但仓库还在，里面的内容基本上不在此博客复述了。</p>
-<h2 id="博主是谁">👨‍💻 博主是谁</h2>
-<p>NTLx</p>
-<h2 id="兴趣爱好">⛹ 兴趣爱好</h2>
-<p>Coding &amp; Badminton &amp; Volleyball</p>
-<h2 id="联系我呀">📬 联系我呀</h2>
-<p>Find my GitHub profile within this blog.</p>
+<!-- more -->
+<h1 id="install-esxi">Install ESXi</h1>
+<blockquote>
+<p>Using <code>VMware-VMvisor-Installer-6.7.0.update03-14320388.x86_64.iso</code></p>
+</blockquote>
+<p>Flash iso file to USB drive, then install to server.</p>
+<blockquote>
+<p>when setting root password, use <code>tab</code> or <code>direction key</code> to switch input lines.</p>
+</blockquote>
+<p>After the installation, use web interface to manage.</p>
+<h1 id="set-esxi">Set ESXi</h1>
+<h2 id="key">Key</h2>
+<pre><code>HY0XH-D508H-081U8-JA2GH-CCUM2
+</code></pre>
+<h2 id="add-storage">Add storage</h2>
+<p>Do this if you have more disks.</p>
+<h2 id="install-virtual-systems">Install virtual systems</h2>
+<h3 id="mac-os">Mac OS</h3>
+<blockquote>
+<p>Need to &quot;crack&quot; first.</p>
+</blockquote>
+<p>Download <a href="https://github.com/DrDonk/esxi-unlocker">esxi-unlocker</a>, extract, then run the script <code>./esxi-install.sh</code>.</p>
+<p>Reboot ESXi after above.</p>
+<blockquote>
+<p>For VMware Fusion or WorkStation, download <a href="https://github.com/DrDonk/unlocker">unlocker</a></p>
+</blockquote>
+<h4 id="setting-in-virtual-mac">Setting in virtual Mac</h4>
+<h5 id="activate-hidpi">Activate HiDPI</h5>
+<pre><code class="language-bash">sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutionEnabled -bool YES
+sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResolutionDisabled
+</code></pre>
+<p>then reboot.</p>
+<h5 id="change-screen-resolution">Change screen resolution</h5>
+<pre><code class="language-bash">/Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
+</code></pre>
 
             </div>
             
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/DKrlN1uPy" class="tag">
+                    VMware
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/VHZSr2eo9v" class="tag">
+                    vSphere
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/OlM5IM5ROV" class="tag">
+                    ESXi
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/IGog1aO36" class="tag">
+                    Tutorials
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/about-manjaro">
+                  <h3 class="post-title">
+                    About Manjaro
+                  </h3>
+                </a>
+              </div>
             
 
             
