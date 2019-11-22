@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-22T01:48:49.749Z</updated>
+    <updated>2019-11-22T01:51:00.649Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -61,7 +61,7 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <h1 id="backup">Backup</h1>
 <h2 id="virtual-machine">Virtual Machine</h2>
 <blockquote>
-<p>Here is the setting example for backing up a virtual machine in ESXi to a Synology NAS</p>
+<p>Here is the <a href="https://www.synology.com/en-global/knowledgebase/DSM/tutorial/Backup/How_to_enable_CBT_manually_for_a_virtual_machine">setting example</a> for backing up a virtual machine in ESXi to a Synology NAS</p>
 </blockquote>
 <p>In order to enable <code>CBT</code> (Changed Block Tracking) for a virtual machine, blow settings was needed:</p>
 <ol>
