@@ -9,7 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574387444223">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574387787509">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
@@ -45,7 +45,7 @@
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://ntlx.github.io">
-        <img src="https://ntlx.github.io/images/avatar.png?v=1574387444223" class="site-logo">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1574387787509" class="site-logo">
         <h1 class="site-title">NTLx Blog</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -166,10 +166,11 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 </code></pre>
 <h1 id="backup">Backup</h1>
 <h2 id="virtual-machine">Virtual Machine</h2>
+<p>Enable VMware Changed Block Tracking (CBT) to only back up blocks that have changed since last backup time and greatly reduce the transferred data size and time for backup.</p>
+<p>This part of content will guide you through the process of enabling CBT manually in VMware vSphere. Please follow the instructions of VMware and perform the following steps.</p>
 <blockquote>
 <p>Here is the <a href="https://www.synology.com/en-global/knowledgebase/DSM/tutorial/Backup/How_to_enable_CBT_manually_for_a_virtual_machine">setting example</a> for backing up a virtual machine in ESXi to a Synology NAS</p>
 </blockquote>
-<p>In order to enable <code>CBT</code> (Changed Block Tracking) for a virtual machine, blow settings was needed:</p>
 <ol>
 <li><strong>Power off</strong> the virtual machine. You will not be able to successfully complete the setting without powering off the virtual machine.</li>
 <li>Right-click the virtual machine and click Edit Settings.</li>
