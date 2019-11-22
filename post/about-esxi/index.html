@@ -9,7 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574322656924">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574387326934">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
@@ -45,7 +45,7 @@
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://ntlx.github.io">
-        <img src="https://ntlx.github.io/images/avatar.png?v=1574322656924" class="site-logo">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1574387326934" class="site-logo">
         <h1 class="site-title">NTLx Blog</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -164,6 +164,29 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <h5 id="change-screen-resolution">Change screen resolution</h5>
 <pre><code class="language-bash">/Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
 </code></pre>
+<h1 id="backup">Backup</h1>
+<h2 id="virtual-machine">Virtual Machine</h2>
+<blockquote>
+<p>Here is the setting example for backing up a virtual machine in ESXi to a Synology NAS</p>
+</blockquote>
+<p>In order to enable <code>CBT</code> (Changed Block Tracking) for a virtual machine, blow settings was needed:</p>
+<ol>
+<li><strong>Power off</strong> the virtual machine. You will not be able to successfully complete the setting without powering off the virtual machine.</li>
+<li>Right-click the virtual machine and click Edit Settings.</li>
+<li>Click VM Options tab.</li>
+<li>Click Advanced and then click Edit Configuration next to Configuration Parameters. It will open the Configuration Parameters dialog.</li>
+<li>Click Add parameters, add the ctkEnabled parameter, and set its value to true.</li>
+<li>Click Add parameters, add scsi0:0.ctkEnabled, and set its value to true.</li>
+</ol>
+<blockquote>
+<ul>
+<li>Whenever a hard drive is added to the virtual machine, a SCSI device will be assigned to the hard drive. scsi0:0 in scsi0:0.ctkEnabled represents the SCSI device, while the others display similar to scsi0:1, or scsi 1:1.</li>
+<li>You can enable or disable CBT individually on each hard drive.</li>
+</ul>
+</blockquote>
+<p>Then, power on the virtual machine, in the home directory of the virtual machine, verify that each drive having CBT enabled has also a vmname-ctk.vmdk file.</p>
+<p>The instruction above is referring to this website: <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>. It might be subject to change in different versions of VMware vSphere. You may find more up-to-date details regarding enabling CBT in VMware VMs on <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>.</p>
+<p>After CBT is enabled, the first backup will still be full backup, and the subsequent backups will be incremental backup.</p>
 
             </div>
             

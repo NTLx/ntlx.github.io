@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-21T07:51:00.328Z</updated>
+    <updated>2019-11-22T01:48:49.749Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -58,6 +58,29 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <h5 id="change-screen-resolution">Change screen resolution</h5>
 <pre><code class="language-bash">/Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
 </code></pre>
+<h1 id="backup">Backup</h1>
+<h2 id="virtual-machine">Virtual Machine</h2>
+<blockquote>
+<p>Here is the setting example for backing up a virtual machine in ESXi to a Synology NAS</p>
+</blockquote>
+<p>In order to enable <code>CBT</code> (Changed Block Tracking) for a virtual machine, blow settings was needed:</p>
+<ol>
+<li><strong>Power off</strong> the virtual machine. You will not be able to successfully complete the setting without powering off the virtual machine.</li>
+<li>Right-click the virtual machine and click Edit Settings.</li>
+<li>Click VM Options tab.</li>
+<li>Click Advanced and then click Edit Configuration next to Configuration Parameters. It will open the Configuration Parameters dialog.</li>
+<li>Click Add parameters, add the ctkEnabled parameter, and set its value to true.</li>
+<li>Click Add parameters, add scsi0:0.ctkEnabled, and set its value to true.</li>
+</ol>
+<blockquote>
+<ul>
+<li>Whenever a hard drive is added to the virtual machine, a SCSI device will be assigned to the hard drive. scsi0:0 in scsi0:0.ctkEnabled represents the SCSI device, while the others display similar to scsi0:1, or scsi 1:1.</li>
+<li>You can enable or disable CBT individually on each hard drive.</li>
+</ul>
+</blockquote>
+<p>Then, power on the virtual machine, in the home directory of the virtual machine, verify that each drive having CBT enabled has also a vmname-ctk.vmdk file.</p>
+<p>The instruction above is referring to this website: <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>. It might be subject to change in different versions of VMware vSphere. You may find more up-to-date details regarding enabling CBT in VMware VMs on <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>.</p>
+<p>After CBT is enabled, the first backup will still be full backup, and the subsequent backups will be incremental backup.</p>
 ]]></content>
     </entry>
     <entry>
