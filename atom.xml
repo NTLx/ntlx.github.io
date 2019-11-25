@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-22T01:56:29.395Z</updated>
+    <updated>2019-11-25T07:28:50.126Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -35,6 +35,9 @@
 <p>After the installation, use web interface to manage.</p>
 <h1 id="set-esxi">Set ESXi</h1>
 <h2 id="key">Key</h2>
+<blockquote>
+<p>Just a free key for test, limits: up to 8 vCPUs per virtual machine.</p>
+</blockquote>
 <pre><code>HY0XH-D508H-081U8-JA2GH-CCUM2
 </code></pre>
 <h2 id="add-storage">Add storage</h2>
