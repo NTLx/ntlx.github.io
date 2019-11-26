@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-26T04:00:16.533Z</updated>
+    <updated>2019-11-26T09:08:26.642Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -474,7 +474,7 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <h5 id="change-screen-resolution">Change screen resolution</h5>
 <pre><code class="language-bash">/Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
 </code></pre>
-<h1 id="backup">Backup</h1>
+<h1 id="about-backup">About Backup</h1>
 <h2 id="virtual-machine">Virtual Machine</h2>
 <p>Enable VMware Changed Block Tracking (CBT) to only back up blocks that have changed since last backup time and greatly reduce the transferred data size and time for backup.</p>
 <p>This part of content will guide you through the process of enabling CBT manually in VMware vSphere. Please follow the instructions of VMware and perform the following steps.</p>
@@ -498,6 +498,19 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <p>Then, power on the virtual machine, in the home directory of the virtual machine, verify that each drive having CBT enabled has also a vmname-ctk.vmdk file.</p>
 <p>The instruction above is referring to this website: <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>. It might be subject to change in different versions of VMware vSphere. You may find more up-to-date details regarding enabling CBT in VMware VMs on <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>.</p>
 <p>After CBT is enabled, the first backup will still be full backup, and the subsequent backups will be incremental backup.</p>
+<h1 id="about-client">About Client</h1>
+<h2 id="vmware-work-station">VMWare Work Station</h2>
+<blockquote>
+<p>Version 15</p>
+</blockquote>
+<p>Use any key below for test:</p>
+<pre><code class="language-bash">ZC10K-8EF57-084QZ-VXYXE-ZF2XF
+UF71K-2TW5J-M88QZ-8WMNT-WKUY4
+AZ7MK-44Y1J-H819Z-WMYNC-N7ATF
+CU702-DRD1M-H89GP-JFW5E-YL8X6
+YY5EA-00XDJ-480RP-35QQV-XY8F6
+VA510-23F57-M85PY-7FN7C-MCRG0
+</code></pre>
 ]]></content>
     </entry>
     <entry>
