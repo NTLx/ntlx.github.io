@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" >
 
-<title>Gridea | NTLx Blog</title>
+<title>About Raspberry Pi 4 | NTLx Blog</title>
 <meta name="description" content="Play with music">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -13,6 +13,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
+
+  
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/disqusjs@1.1/dist/disqusjs.css" />
+  
 
 
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
@@ -112,35 +118,60 @@
 
       <div class="main-container">
         <div class="content-container" data-aos="fade-up">
-          <h2 class="current-tag">标签: Gridea</h2>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/hello-gridea">
-                  <h2 class="post-title">Hello Gridea</h2>
-                </a>
-                <div class="post-date">
-                  2018-12-12
-                </div>
-                <div class="post-abstract">
-                  <p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
-✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+          <div class="post-detail">
+            <h2 class="post-title">About Raspberry Pi 4</h2>
+            <div class="post-date">2019-11-26</div>
+            
+            <div class="post-content">
+              <h1 id="system-installation">System Installation</h1>
+<!-- more -->
+<h2 id="windows-for-arm">Windows For ARM</h2>
+<h3 id="download-system">Download system</h3>
+<p>Go to <a href="https://uupdump.ml/">UUP dump</a>, choose a system version (arm64), and choose <code>Download using aria2 and convert</code>, get the generated <code>*.zip</code> file, extract it, then run <code>*.cmd</code> under a windows system, you will get the <code>*.iso</code> system mirror file.</p>
+<h3 id="deploy-system-to-tf-card">Deploy system to TF card</h3>
+<p>First, download <a href="https://github.com/WOA-Project/WOA-Deployer-Rpi">WOA</a>.</p>
+<p>Then, open system mirror (<code>*.iso</code>) file, and choose <code>source/install.wim</code> as deploy source.</p>
+<h2 id="manjaro-for-arm">Manjaro For ARM</h2>
+<p>Download system installation mirror files at <a href="https://osdn.net/projects/manjaro-arm/storage/rpi4/">OSDN</a>, you can choose form minimal, xfce, kde-plasma, mate and lxqt.</p>
 
-                </div>
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/hyT2vEEvI" class="tag">
+                    RaspberryPi
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/boF6zZO7X" class="tag">
+                    Setting
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/IGog1aO36" class="tag">
+                    Tutorials
+                  </a>
+                
               </div>
-              
-                <a class="right" href="https://ntlx.github.io/post/hello-gridea">
-                  <div class="feature-container" style="background-image: url('https://ntlx.github.io/post-images/hello-gridea.png')">
-                  </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/zsh-setting">
+                  <h3 class="post-title">
+                    Zsh Setting
+                  </h3>
                 </a>
-              
-            </article>
-          
+              </div>
+            
 
-          <div class="pagination-container">
-  
-  
-</div>
+            
+              
+
+              
+                <div id="disqus_thread" data-aos="fade-in"></div>
+              
+            
+
+          </div>
 
         </div>
       </div>
@@ -162,6 +193,26 @@ var app = new Vue({
 })
 
 </script>
+
+
+
+  
+
+  
+    <script src="https://unpkg.com/disqusjs@1.1/dist/disqus.js"></script>
+    <script>
+
+    var options = {
+      shortname: 'ntlx-blog',
+      apikey: 'fdjiLOEB5sqKL62zNPOMAzCraxgPwyODAWTMgcuyT9r0XKOsehAQCvxlHugFPbm2',
+    }
+    if ('') {
+      options.api = ''
+    }
+    var dsqjs = new DisqusJS(options)
+
+    </script>
+  
 
 
 
