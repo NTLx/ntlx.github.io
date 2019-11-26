@@ -9,7 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574734691474">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574736021264">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
@@ -45,7 +45,7 @@
   <div class="top-container" data-aos="fade-right">
     <div class="top-header-container">
       <a class="site-title-container" href="https://ntlx.github.io">
-        <img src="https://ntlx.github.io/images/avatar.png?v=1574734691474" class="site-logo">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1574736021264" class="site-logo">
         <h1 class="site-title">NTLx Blog</h1>
       </a>
       <div class="menu-btn" @click="menuVisible = !menuVisible">
@@ -183,6 +183,13 @@ POWERLEVEL9K_SUDO_ICON=$'\uF09C' # &lt;U+F09C&gt;
 POWERLEVEL9K_TIME_FORMAT=&quot;%D{%H:%M}&quot;
 POWERLEVEL9K_VCS_GIT_ICON='\uF408'
 POWERLEVEL9K_VCS_GIT_GITHUB_ICON='\uF408'
+</code></pre>
+<h3 id="using-system-zsh-configure">Using system zsh configure</h3>
+<p>If you choose zsh during installation, you will be use pacman managed zsh, then you should install zsh related packages like below:</p>
+<pre><code class="language-bash">sudo pacman -S acpi awesome-terminal-fonts git mercurial powerline-fonts systemd manjaro-zsh-config zsh-autosuggestions zsh-completions zsh-history-substring-search zsh-lovers zsh-syntax-highlighting zsh-theme-powerlevel9k
+</code></pre>
+<p>then, setting like below:</p>
+<pre><code class="language-bash">echo 'source /usr/share/zsh-theme-powerlevel9k/powerlevel9k.zsh-theme' &gt;&gt; ~/.zshrc
 </code></pre>
 <h2 id="install-firacode">install FiraCode</h2>
 <blockquote>

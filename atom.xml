@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-11-26T02:18:13.504Z</updated>
+    <updated>2019-11-26T02:40:23.923Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -546,6 +546,13 @@ POWERLEVEL9K_SUDO_ICON=$'\uF09C' # &lt;U+F09C&gt;
 POWERLEVEL9K_TIME_FORMAT=&quot;%D{%H:%M}&quot;
 POWERLEVEL9K_VCS_GIT_ICON='\uF408'
 POWERLEVEL9K_VCS_GIT_GITHUB_ICON='\uF408'
+</code></pre>
+<h3 id="using-system-zsh-configure">Using system zsh configure</h3>
+<p>If you choose zsh during installation, you will be use pacman managed zsh, then you should install zsh related packages like below:</p>
+<pre><code class="language-bash">sudo pacman -S acpi awesome-terminal-fonts git mercurial powerline-fonts systemd manjaro-zsh-config zsh-autosuggestions zsh-completions zsh-history-substring-search zsh-lovers zsh-syntax-highlighting zsh-theme-powerlevel9k
+</code></pre>
+<p>then, setting like below:</p>
+<pre><code class="language-bash">echo 'source /usr/share/zsh-theme-powerlevel9k/powerlevel9k.zsh-theme' &gt;&gt; ~/.zshrc
 </code></pre>
 <h2 id="install-firacode">install FiraCode</h2>
 <blockquote>
