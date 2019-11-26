@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" >
+
+<title>Zsh Setting | NTLx Blog</title>
+<meta name="description" content="Play with music">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1574734243846">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
+
+
+  
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/disqusjs@1.1/dist/disqusjs.css" />
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114672259-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-114672259-1');
+</script>
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+
+      <div class="sidebar" :class="{ 'full-height': menuVisible }">
+  <div class="top-container" data-aos="fade-right">
+    <div class="top-header-container">
+      <a class="site-title-container" href="https://ntlx.github.io">
+        <img src="https://ntlx.github.io/images/avatar.png?v=1574734243846" class="site-logo">
+        <h1 class="site-title">NTLx Blog</h1>
+      </a>
+      <div class="menu-btn" @click="menuVisible = !menuVisible">
+        <div class="line"></div>
+      </div>
+    </div>
+    <div>
+      
+        
+          <a href="/" class="site-nav">
+            首页
+          </a>
+        
+      
+        
+          <a href="/archives" class="site-nav">
+            归档
+          </a>
+        
+      
+        
+          <a href="/tags" class="site-nav">
+            标签
+          </a>
+        
+      
+        
+          <a href="/post/about" class="site-nav">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
+    <div class="social-container">
+      
+        
+          <a class="social-link" href="https://github.com/NTLx" target="_blank">
+            <i class="fab fa-github"></i>
+          </a>
+        
+      
+        
+          <a class="social-link" href="https://twitter.com/lx3325360" target="_blank">
+            <i class="fab fa-twitter"></i>
+          </a>
+        
+      
+        
+      
+        
+      
+        
+          <a class="social-link" href="https://facebook.com/lx3325360" target="_blank">
+            <i class="fab fa-facebook"></i>
+          </a>
+        
+      
+    </div>
+    <div class="site-description">
+      Play with music
+    </div>
+    <div class="site-footer">
+      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
+    </div>
+  </div>
+</div>
+
+
+      <div class="main-container">
+        <div class="content-container" data-aos="fade-up">
+          <div class="post-detail">
+            <h2 class="post-title">Zsh Setting</h2>
+            <div class="post-date">2019-11-26</div>
+            
+            <div class="post-content">
+              <h1 id="default-settings-within-popular-oss">Default settings within popular OSs</h1>
+<h2 id="manjaro-architect">Manjaro Architect</h2>
+<p><code>/etc/zsh/zprofile</code></p>
+<pre><code class="language-bash">emulate sh -c 'source /etc/profile'
+</code></pre>
+<p><code>~/.zshrc</code></p>
+<pre><code class="language-bash">## Options section
+setopt correct                                                  # Auto correct mistakes
+setopt extendedglob                                             # Extended globbing. Allows using regular expressions with *
+setopt nocaseglob                                               # Case insensitive globbing
+setopt rcexpandparam                                            # Array expension with parameters
+setopt nocheckjobs                                              # Don't warn about running processes when exiting
+setopt numericglobsort                                          # Sort filenames numerically when it makes sense
+setopt nobeep                                                   # No beep
+setopt appendhistory                                            # Immediately append history instead of overwriting
+setopt histignorealldups                                        # If a new command is a duplicate, remove the older one
+setopt autocd                                                   # if only directory path is entered, cd there.
+
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'       # Case insensitive tab completion
+zstyle ':completion:*' list-colors &quot;${(s.:.)LS_COLORS}&quot;         # Colored completion (different colors for dirs/files/etc)
+zstyle ':completion:*' rehash true                              # automatically find new executables in path
+# Speed up completions
+zstyle ':completion:*' accept-exact '*(N)'
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zsh/cache
+HISTFILE=~/.zhistory
+HISTSIZE=1000
+SAVEHIST=500
+#export EDITOR=/usr/bin/nano
+#export VISUAL=/usr/bin/nano
+WORDCHARS=${WORDCHARS//\/[&amp;.;]}                                 # Don't consider certain characters part of the word
+
+
+## Keybindings section
+bindkey -e
+bindkey '^[[7~' beginning-of-line                               # Home key
+bindkey '^[[H' beginning-of-line                                # Home key
+if [[ &quot;${terminfo[khome]}&quot; != &quot;&quot; ]]; then
+  bindkey &quot;${terminfo[khome]}&quot; beginning-of-line                # [Home] - Go to beginning of line
+fi
+bindkey '^[[8~' end-of-line                                     # End key
+bindkey '^[[F' end-of-line                                     # End key
+if [[ &quot;${terminfo[kend]}&quot; != &quot;&quot; ]]; then
+  bindkey &quot;${terminfo[kend]}&quot; end-of-line                       # [End] - Go to end of line
+fi
+bindkey '^[[2~' overwrite-mode                                  # Insert key
+bindkey '^[[3~' delete-char                                     # Delete key
+bindkey '^[[C'  forward-char                                    # Right key
+bindkey '^[[D'  backward-char                                   # Left key
+bindkey '^[[5~' history-beginning-search-backward               # Page up key
+bindkey '^[[6~' history-beginning-search-forward                # Page down key
+
+# Navigate words with ctrl+arrow keys
+bindkey '^[Oc' forward-word                                     #
+bindkey '^[Od' backward-word                                    #
+bindkey '^[[1;5D' backward-word                                 #
+bindkey '^[[1;5C' forward-word                                  #
+bindkey '^H' backward-kill-word                                 # delete previous word with ctrl+backspace
+bindkey '^[[Z' undo                                             # Shift+tab undo last action
+
+## Alias section
+alias cp=&quot;cp -i&quot;                                                # Confirm before overwriting something
+alias df='df -h'                                                # Human-readable sizes
+alias free='free -m'                                            # Show sizes in MB
+alias gitu='git add . &amp;&amp; git commit &amp;&amp; git push'
+
+# Theming section
+autoload -U compinit colors zcalc
+compinit -d
+colors
+
+# enable substitution for prompt
+setopt prompt_subst
+
+# Prompt (on left side) similar to default bash prompt, or redhat zsh prompt with colors
+ #PROMPT=&quot;%(!.%{$fg[red]%}[%n@%m %1~]%{$reset_color%}# .%{$fg[green]%}[%n@%m %1~]%{$reset_color%}$ &quot;
+# Maia prompt
+PROMPT=&quot;%B%{$fg[cyan]%}%(4~|%-1~/.../%2~|%~)%u%b &gt;%{$fg[cyan]%}&gt;%B%(?.%{$fg[cyan]%}.%{$fg[red]%})&gt;%{$reset_color%}%b &quot; # Print some system information when the shell is first started
+# Print a greeting message when shell is started
+echo $USER@$HOST  $(uname -srm) $(lsb_release -rcs)
+## Prompt on right side:
+#  - shows status of git when in git repository (code adapted from https://techanic.net/2012/12/30/my_git_prompt_for_zsh.html)
+#  - shows exit status of previous command (if previous command finished with an error)
+#  - is invisible, if neither is the case
+
+# Modify the colors and symbols in these variables as desired.
+GIT_PROMPT_SYMBOL=&quot;%{$fg[blue]%}±&quot;                              # plus/minus     - clean repo
+GIT_PROMPT_PREFIX=&quot;%{$fg[green]%}[%{$reset_color%}&quot;
+GIT_PROMPT_SUFFIX=&quot;%{$fg[green]%}]%{$reset_color%}&quot;
+GIT_PROMPT_AHEAD=&quot;%{$fg[red]%}ANUM%{$reset_color%}&quot;             # A&quot;NUM&quot;         - ahead by &quot;NUM&quot; commits
+GIT_PROMPT_BEHIND=&quot;%{$fg[cyan]%}BNUM%{$reset_color%}&quot;           # B&quot;NUM&quot;         - behind by &quot;NUM&quot; commits
+GIT_PROMPT_MERGING=&quot;%{$fg_bold[magenta]%}⚡︎%{$reset_color%}&quot;     # lightning bolt - merge conflict
+GIT_PROMPT_UNTRACKED=&quot;%{$fg_bold[red]%}●%{$reset_color%}&quot;       # red circle     - untracked files
+GIT_PROMPT_MODIFIED=&quot;%{$fg_bold[yellow]%}●%{$reset_color%}&quot;     # yellow circle  - tracked files modified
+GIT_PROMPT_STAGED=&quot;%{$fg_bold[green]%}●%{$reset_color%}&quot;        # green circle   - staged changes present = ready for &quot;git push&quot;
+
+parse_git_branch() {
+  # Show Git branch/tag, or name-rev if on detached head
+  ( git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD ) 2&gt; /dev/null
+}
+
+parse_git_state() {
+  # Show different symbols as appropriate for various Git repository states
+  # Compose this value via multiple conditional appends.
+  local GIT_STATE=&quot;&quot;
+  local NUM_AHEAD=&quot;$(git log --oneline @{u}.. 2&gt; /dev/null | wc -l | tr -d ' ')&quot;
+  if [ &quot;$NUM_AHEAD&quot; -gt 0 ]; then
+    GIT_STATE=$GIT_STATE${GIT_PROMPT_AHEAD//NUM/$NUM_AHEAD}
+  fi
+  local NUM_BEHIND=&quot;$(git log --oneline ..@{u} 2&gt; /dev/null | wc -l | tr -d ' ')&quot;
+  if [ &quot;$NUM_BEHIND&quot; -gt 0 ]; then
+    GIT_STATE=$GIT_STATE${GIT_PROMPT_BEHIND//NUM/$NUM_BEHIND}
+  fi
+  local GIT_DIR=&quot;$(git rev-parse --git-dir 2&gt; /dev/null)&quot;
+  if [ -n $GIT_DIR ] &amp;&amp; test -r $GIT_DIR/MERGE_HEAD; then
+    GIT_STATE=$GIT_STATE$GIT_PROMPT_MERGING
+  fi
+  if [[ -n $(git ls-files --other --exclude-standard 2&gt; /dev/null) ]]; then
+    GIT_STATE=$GIT_STATE$GIT_PROMPT_UNTRACKED
+  fi
+  if ! git diff --quiet 2&gt; /dev/null; then
+    GIT_STATE=$GIT_STATE$GIT_PROMPT_MODIFIED
+  fi
+  if ! git diff --cached --quiet 2&gt; /dev/null; then
+    GIT_STATE=$GIT_STATE$GIT_PROMPT_STAGED
+  fi
+  if [[ -n $GIT_STATE ]]; then
+    echo &quot;$GIT_PROMPT_PREFIX$GIT_STATE$GIT_PROMPT_SUFFIX&quot;
+  fi
+}
+
+git_prompt_string() {
+  local git_where=&quot;$(parse_git_branch)&quot;
+
+  # If inside a Git repository, print its branch and state
+  [ -n &quot;$git_where&quot; ] &amp;&amp; echo &quot;$GIT_PROMPT_SYMBOL$(parse_git_state)$GIT_PROMPT_PREFIX%{$fg[yellow]%}${git_where#(refs/heads/|tags/)}$GIT_PROMPT_SUFFIX&quot;
+
+  # If not inside the Git repo, print exit codes of last command (only if it failed)
+  [ ! -n &quot;$git_where&quot; ] &amp;&amp; echo &quot;%{$fg[red]%} %(?..[%?])&quot;
+}
+
+# Right prompt with exit status of previous command if not successful
+ #RPROMPT=&quot;%{$fg[red]%} %(?..[%?])&quot;
+# Right prompt with exit status of previous command marked with ✓ or ✗
+ #RPROMPT=&quot;%(?.%{$fg[green]%}✓ %{$reset_color%}.%{$fg[red]%}✗ %{$reset_color%})&quot;
+
+
+# Color man pages
+export LESS_TERMCAP_mb=$'\E[01;32m'
+export LESS_TERMCAP_md=$'\E[01;32m'
+export LESS_TERMCAP_me=$'\E[0m'
+export LESS_TERMCAP_se=$'\E[0m'
+export LESS_TERMCAP_so=$'\E[01;47;34m'
+export LESS_TERMCAP_ue=$'\E[0m'
+export LESS_TERMCAP_us=$'\E[01;36m'
+export LESS=-r
+
+
+## Plugins section: Enable fish style features
+# Use syntax highlighting
+source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# Use history substring search
+source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
+# bind UP and DOWN arrow keys to history substring search
+zmodload zsh/terminfo
+bindkey &quot;$terminfo[kcuu1]&quot; history-substring-search-up
+bindkey &quot;$terminfo[kcud1]&quot; history-substring-search-down
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+# Apply different settigns for different terminals
+case $(basename &quot;$(cat &quot;/proc/$PPID/comm&quot;)&quot;) in
+  login)
+        RPROMPT=&quot;%{$fg[red]%} %(?..[%?])&quot;
+        alias x='startx ~/.xinitrc'      # Type name of desired desktop after x, xinitrc is configured for it
+    ;;
+#  'tmux: server')
+#        RPROMPT='$(git_prompt_string)'
+#               ## Base16 Shell color themes.
+#               #possible themes: 3024, apathy, ashes, atelierdune, atelierforest, atelierhearth,
+#               #atelierseaside, bespin, brewer, chalk, codeschool, colors, default, eighties,
+#               #embers, flat, google, grayscale, greenscreen, harmonic16, isotope, londontube,
+#               #marrakesh, mocha, monokai, ocean, paraiso, pop (dark only), railscasts, shapesifter,
+#               #solarized, summerfruit, tomorrow, twilight
+#               #theme=&quot;eighties&quot;
+#               #Possible variants: dark and light
+#               #shade=&quot;dark&quot;
+#               #BASE16_SHELL=&quot;/usr/share/zsh/scripts/base16-shell/base16-$theme.$shade.sh&quot;
+#               #[[ -s $BASE16_SHELL ]] &amp;&amp; source $BASE16_SHELL
+#               # Use autosuggestion
+#               source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+#               ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+#               ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+#     ;;
+  *)
+        RPROMPT='$(git_prompt_string)'
+                # Use autosuggestion
+                source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+                ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+                ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+    ;;
+esac
+</code></pre>
+
+            </div>
+            
+              <div class="tag-container">
+                
+                  <a href="https://ntlx.github.io/tag/JAMPpLMcJ" class="tag">
+                    Zsh
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/boF6zZO7X" class="tag">
+                    Setting
+                  </a>
+                
+                  <a href="https://ntlx.github.io/tag/Futdjqll2" class="tag">
+                    Linux
+                  </a>
+                
+              </div>
+            
+            
+              <div class="next-post">
+                <div class="next">下一篇</div>
+                <a href="https://ntlx.github.io/post/bash-setting">
+                  <h3 class="post-title">
+                    Bash Setting
+                  </h3>
+                </a>
+              </div>
+            
+
+            
+              
+
+              
+                <div id="disqus_thread" data-aos="fade-in"></div>
+              
+            
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+
+<script type="application/javascript">
+
+AOS.init();
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+
+  
+    <script src="https://unpkg.com/disqusjs@1.1/dist/disqus.js"></script>
+    <script>
+
+    var options = {
+      shortname: 'ntlx-blog',
+      apikey: 'fdjiLOEB5sqKL62zNPOMAzCraxgPwyODAWTMgcuyT9r0XKOsehAQCvxlHugFPbm2',
+    }
+    if ('') {
+      options.api = ''
+    }
+    var dsqjs = new DisqusJS(options)
+
+    </script>
+  
+
+
+
+
+  </body>
+</html>
