@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-12-03T08:08:43.118Z</updated>
+    <updated>2019-12-03T08:10:24.997Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -862,7 +862,7 @@ export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 export XMODIFIERS=“@im=fcitx”
 </code></pre>
-<h2 id="sogou-input-method-optional">sogou input method (optional)</h2>
+<h2 id="sogou-pinyin-input-method-optional">Sogou Pinyin input method (optional)</h2>
 <pre><code class="language-bash">sudo pacman -S fcitx-im fcitx-configtool fcitx-sogoupinyin
 vim ~/.xprofile
 # add below
