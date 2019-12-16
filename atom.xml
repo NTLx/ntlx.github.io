@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-12-09T03:04:11.771Z</updated>
+    <updated>2019-12-16T01:36:16.986Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -10,6 +10,20 @@
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
     <rights>All rights reserved 2019, NTLx Blog</rights>
+    <entry>
+        <title type="html"><![CDATA[黑群晖]]></title>
+        <id>https://ntlx.github.io/post/hei-qun-hui</id>
+        <link href="https://ntlx.github.io/post/hei-qun-hui">
+        </link>
+        <updated>2019-12-16T01:34:30.000Z</updated>
+        <summary type="html"><![CDATA[<p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
+]]></summary>
+        <content type="html"><![CDATA[<p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
+<!-- more -->
+<h1 id="tips">Tips</h1>
+<p>如使用DS918+的引导无法获得IP，可尝试更换不同型号的引导。</p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[读书笔记]]></title>
         <id>https://ntlx.github.io/post/reading-notes</id>
@@ -654,6 +668,8 @@ ex ()
 </blockquote>
 <figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt=""></figure>
 <!-- more -->
+<h1 id="get-esxi">Get ESXi</h1>
+<p><a href="https://blog.whsir.com/post-3377.html">Read this</a>.</p>
 <h1 id="install-esxi">Install ESXi</h1>
 <blockquote>
 <p>Using <code>VMware-VMvisor-Installer-6.7.0.update03-14320388.x86_64.iso</code></p>
@@ -672,6 +688,8 @@ ex ()
 </code></pre>
 <h2 id="add-storage">Add storage</h2>
 <p>Do this if you have more disks.</p>
+<h3 id="rdm">RDM</h3>
+<p>Choose <a href="https://www.jianshu.com/p/9606c9cdfc56">online method</a> or <a href="https://blog.whsir.com/post-4462.html">offline method</a>.</p>
 <h2 id="install-virtual-systems">Install virtual systems</h2>
 <h3 id="mac-os">Mac OS</h3>
 <blockquote>
@@ -716,7 +734,7 @@ sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResoluti
 <p>The instruction above is referring to this website: <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>. It might be subject to change in different versions of VMware vSphere. You may find more up-to-date details regarding enabling CBT in VMware VMs on <a href="https://kb.vmware.com/s/article/1031873">VMware KB 1031873</a>.</p>
 <p>After CBT is enabled, the first backup will still be full backup, and the subsequent backups will be incremental backup.</p>
 <h1 id="about-client">About Client</h1>
-<h2 id="vmware-work-station">VMWare Work Station</h2>
+<h2 id="vmware-workstation">VMWare WorkStation</h2>
 <blockquote>
 <p>Version 15</p>
 </blockquote>
@@ -956,51 +974,6 @@ sudo pacman -S google-chinese-handwriting-ime-git         # Chinese handwriting 
 <a href="https://wiki.archlinux.org/index.php?title=Fonts&amp;oldid=588239">Arch Linux WiKi: Fonts</a><br>
 <a href="https://www.nerdfonts.com/">nerdfonts.com</a><br>
 <a href="https://blog.csdn.net/ppggxn/article/details/82263332">Manjaro安装googlepinyin</a></p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[OCR 软件推荐]]></title>
-        <id>https://ntlx.github.io/post/ocr-ruan-jian-tui-jian</id>
-        <link href="https://ntlx.github.io/post/ocr-ruan-jian-tui-jian">
-        </link>
-        <updated>2019-11-13T07:45:57.000Z</updated>
-        <summary type="html"><![CDATA[<h1 id="图片转文字软件">图片转文字软件</h1>
-]]></summary>
-        <content type="html"><![CDATA[<h1 id="图片转文字软件">图片转文字软件</h1>
-<!-- more -->
-<h2 id="手机端">手机端</h2>
-<h3 id="白描">白描</h3>
-<figure data-type="image" tabindex="1"><img src="https://xlimage.uzero.cn/webbm/imgs/app-screen.png" alt=""></figure>
-<p>具备高准确度的文字识别、表格识别转Excel、批量识别、识别后翻译、文件扫描等功能。</p>
-<p>“当我需要快速识别图片中的文字以及扫描文件时，第一个想到的就是白描。”</p>
-<p>获小米应用市场、360手机市场、百度手机助手、豌豆荚市场、最美应用、少数派、爱范儿、AppSo、威锋网、小众软件等多平台采访推荐，绝对是你手机里最值得留存的app之一，简单好用，还很美貌。</p>
-<p>连接电脑，大屏操作更方便：通过WiFi，App通过配对码连接电脑浏览器(Windows PC / Mac)，可在电脑浏览器上操作，直接在电脑上把要识别的图片拖入PC浏览器，识别完成直接在电脑上查看结果，校对，导出，省事省力。</p>
-<h4 id="照片识别">照片识别</h4>
-<figure data-type="image" tabindex="2"><img src="https://cdn.sspai.com/vanilla/2018-11-07-1.gif?imageView2/2/w/1120/q/90/interlace/1/ignore-error/1" alt=""></figure>
-<h4 id="表格识别">表格识别</h4>
-<figure data-type="image" tabindex="3"><img src="https://cdn.sspai.com/vanilla/2018-11-07-2.gif?imageView2/2/w/1120/q/90/interlace/1/ignore-error/1" alt=""></figure>
-<h4 id="手写识别">手写识别</h4>
-<figure data-type="image" tabindex="4"><img src="https://cdn.sspai.com/vanilla/2018-11-07-IMG_0966.TRIM.2018-11-07%2023_25_29.gif?imageView2/2/w/1120/q/90/interlace/1/ignore-error/1" alt=""></figure>
-<h4 id="便捷处理">便捷处理</h4>
-<figure data-type="image" tabindex="5"><img src="https://cdn.sspai.com/vanilla/2018-11-07-ScreenRecording_11-07-2018%2023-35-27.2018-11-07%2023_36_53.gif?imageView2/2/w/1120/q/90/interlace/1/ignore-error/1" alt=""></figure>
-<h4 id="自动化处理">自动化处理</h4>
-<figure data-type="image" tabindex="6"><img src="https://cdn.sspai.com/vanilla/2018-11-07-IMG_0980.TRIM.2018-11-07%2023_48_09.gif?imageView2/2/w/1120/q/90/interlace/1/ignore-error/1" alt=""></figure>
-<ul>
-<li><a href="https://baimiao.uzero.cn/">官网</a></li>
-<li><a href="https://sspai.com/post/47838">第三方测评</a></li>
-</ul>
-<h2 id="电脑端">电脑端</h2>
-<h3 id="onenote">OneNote</h3>
-<p>Windows 10 UWP 或 单独下载安装 或 随 Office 一起安装。将图片加入 OneNote 后，右键点击即可识别文字。</p>
-<p><a href="https://support.office.com/zh-cn/article/%E4%BB%8E%E5%9B%BE%E7%89%87%E5%92%8C%E6%96%87%E4%BB%B6%E6%89%93%E5%8D%B0%E8%BE%93%E5%87%BA%E5%9C%A8-onenote-%E4%B8%AD%E4%BD%BF%E7%94%A8-ocr-%E5%A4%8D%E5%88%B6%E6%96%87%E6%9C%AC-93a70a2f-ebcd-42dc-9f0b-19b09fd775b4">官方说明</a></p>
-<h2 id="浏览器">浏览器</h2>
-<h3 id="copy-fish">Copy Fish</h3>
-<p>提供在线 OCR 和 Google Chrome、Firefox 浏览器插件。</p>
-<p><a href="http://ocr.space/">官网</a></p>
-<h3 id="textocry">Textocry</h3>
-<p>开源软件，Google Chrome 浏览器插件，使用方法类似截图。</p>
-<figure data-type="image" tabindex="7"><img src="https://github.com/rinormaloku/textocry/raw/master/images/textocry-demo.gif" alt=""></figure>
-<p><a href="https://github.com/rinormaloku/textocry">GitHub 页面</a></p>
 ]]></content>
     </entry>
 </feed>
