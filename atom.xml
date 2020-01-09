@@ -2,14 +2,14 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2019-12-16T06:57:35.071Z</updated>
+    <updated>2020-01-09T06:32:13.693Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
     <subtitle>Play with music</subtitle>
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
-    <rights>All rights reserved 2019, NTLx Blog</rights>
+    <rights>All rights reserved 2020, NTLx Blog</rights>
     <entry>
         <title type="html"><![CDATA[黑群晖]]></title>
         <id>https://ntlx.github.io/post/hei-qun-hui</id>
@@ -31,7 +31,7 @@
         </link>
         <updated>2019-12-06T00:31:41.000Z</updated>
         <content type="html"><![CDATA[<p>《21世纪资本论》<br>
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/07/Capital_in_the_Twenty-First_Century_%28front_cover%29.jpg?1575592621882" alt="21世纪资本论"></p>
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/07/Capital_in_the_Twenty-First_Century_%28front_cover%29.jpg?1575592621882" alt="21世纪资本论" loading="lazy"></p>
 <ol>
 <li>资本收入与劳动收入的不平等分配是贫富分化的重要力量</li>
 <li>资本收入本身也是不平等分配的，劳动收入也一样，所以劳动收入的不平等也是贫富分化的重要力量</li>
@@ -39,7 +39,7 @@
 <li>“力量阶层”（资本富集阶层）的收入“议价权”与资本增值速度是贫富分化的重要力量</li>
 </ol>
 <p>《迷人的温度》<br>
-<img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191216145721.jpg" alt="迷人的温度"></p>
+<img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191216145721.jpg" alt="迷人的温度" loading="lazy"></p>
 <ol>
 <li>温度的概念只出现了300多年</li>
 <li>温度促进了近代科学诞生：温度概念的提出对科学（物理学）发展的推动作用不亚于望远镜对天文学、显微镜对近代生物学的作用（玻璃的制造工艺至关重要）</li>
@@ -479,10 +479,10 @@ esac
         </link>
         <updated>2019-11-26T02:04:15.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
-<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt="" loading="lazy"></figure>
 ]]></summary>
         <content type="html"><![CDATA[<h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
-<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt="" loading="lazy"></figure>
 <!-- more -->
 <h2 id="manjaro-architect">Manjaro Architect</h2>
 <p><code>/etc/bash.bashrc</code></p>
@@ -661,12 +661,12 @@ ex ()
         <summary type="html"><![CDATA[<blockquote>
 <p>For v6.7u3 currently</p>
 </blockquote>
-<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt="" loading="lazy"></figure>
 ]]></summary>
         <content type="html"><![CDATA[<blockquote>
 <p>For v6.7u3 currently</p>
 </blockquote>
-<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt="" loading="lazy"></figure>
 <!-- more -->
 <h1 id="get-esxi">Get ESXi</h1>
 <p><a href="https://blog.whsir.com/post-3377.html">Read this</a>.</p>
@@ -755,10 +755,10 @@ VA510-23F57-M85PY-7FN7C-MCRG0
         </link>
         <updated>2019-11-15T01:41:59.000Z</updated>
         <summary type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
-<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting" loading="lazy"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software" loading="lazy"></p>
 ]]></summary>
         <content type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
-<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting" loading="lazy"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software" loading="lazy"></p>
 <!-- more -->
 <h1 id="settings-after-installation">Settings after Installation</h1>
 <h2 id="set-language">set language</h2>

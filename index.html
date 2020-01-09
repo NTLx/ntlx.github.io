@@ -1,350 +1,763 @@
-<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" >
-
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>NTLx Blog</title>
-<meta name="description" content="Play with music">
-
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico?v=1576479452608">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<meta name="description" content="Play with music" />
+<link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
 
-
-
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
-
-<link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-
-
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-114672259-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-114672259-1');
-</script>
-
-
+<script src="https://ntlx.github.io/media/js/jquery.min.js"></script>
+<script src="https://ntlx.github.io/media/js/masonry.pkgd.min.js"></script>
+<script src="https://ntlx.github.io/media/js/aos.js"></script>
+<script src="https://ntlx.github.io/media/js/pace.min.js"></script>
+<script src="https://ntlx.github.io/media/js/view-image.min.js"></script>
+<script src="https://ntlx.github.io/media/js/functions.js"></script>
   </head>
   <body>
-    <div id="app" class="main">
+    <!-- start: #wrapper -->
+    <div class="wrapper">
+      
+            <header id="header" class="grid-container">
+        <!-- start: .menu-wrapper -->
+        <div class="menu-mobile"> 
+          <i class="fa fa-reorder"></i>
+        </div>
+        <div class="menu-wrapper">
+          <div class="">
+            <div class="logo">
+              <a href="https://ntlx.github.io"><img src="https://ntlx.github.io/media/images/logoo.png" alt=""></a>
+            </div>
+            <!-- start: .main-nav -->
 
-      <div class="sidebar" :class="{ 'full-height': menuVisible }">
-  <div class="top-container" data-aos="fade-right">
-    <div class="top-header-container">
-      <a class="site-title-container" href="https://ntlx.github.io">
-        <img src="https://ntlx.github.io/images/avatar.png?v=1576479452608" class="site-logo">
-        <h1 class="site-title">NTLx Blog</h1>
-      </a>
-      <div class="menu-btn" @click="menuVisible = !menuVisible">
-        <div class="line"></div>
-      </div>
-    </div>
-    <div>
-      
-        
-          <a href="/" class="site-nav">
-            首页
-          </a>
-        
-      
-        
-          <a href="/archives" class="site-nav">
-            归档
-          </a>
-        
-      
-        
-          <a href="/tags" class="site-nav">
-            标签
-          </a>
-        
-      
-        
-          <a href="/post/about" class="site-nav">
-            关于
-          </a>
-        
-      
-    </div>
-  </div>
-  <div class="bottom-container" data-aos="flip-up" data-aos-offset="0">
-    <div class="social-container">
-      
-        
-          <a class="social-link" href="https://github.com/NTLx" target="_blank">
-            <i class="fab fa-github"></i>
-          </a>
-        
-      
-        
-          <a class="social-link" href="https://twitter.com/lx3325360" target="_blank">
-            <i class="fab fa-twitter"></i>
-          </a>
-        
-      
-        
-      
-        
-      
-        
-          <a class="social-link" href="https://facebook.com/lx3325360" target="_blank">
-            <i class="fab fa-facebook"></i>
-          </a>
-        
-      
-    </div>
-    <div class="site-description">
-      Play with music
-    </div>
-    <div class="site-footer">
-      Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="https://ntlx.github.io/atom.xml" target="_blank">RSS</a>
-    </div>
-  </div>
-</div>
+            <nav class="main-nav grid-container grid-parent">
+              <ul id="menu-header" class="menu gradient-effect">
+                
+                  <li class="current-menu-item"><a href="https://ntlx.github.io" class="menu">首页</a></li>
+                
+                
+                  <li class="" >
+                    <a href="/" class="menu">
+                      首页
+                    </a>
+                  </li>
+                
+                  <li class="" >
+                    <a href="/archives" class="menu">
+                      归档
+                    </a>
+                  </li>
+                
+                  <li class="" >
+                    <a href="/tags" class="menu">
+                      标签
+                    </a>
+                  </li>
+                
+                  <li class="" >
+                    <a href="/post/about" class="menu">
+                      关于
+                    </a>
+                  </li>
+                
+              </ul>
+            </nav>
+            <!-- end: .main-nav -->
+            <div class="clear"></div>
+            <div class="border hide-on-tablet hide-on-mobile"></div>
+          </div>    
+          <div class="clear"></div>
+        </div>
+        <!-- end: .menu-wrapper -->
+        <div class="clear"></div>
+      </header>
 
-
-      <div class="main-container">
-        <div class="content-container" data-aos="fade-up">
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/hei-qun-hui">
-                  <h2 class="post-title">黑群晖</h2>
-                </a>
-                <div class="post-date">
-                  2019-12-16
-                </div>
-                <div class="post-abstract">
-                  <p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
-
-                </div>
-              </div>
+      <main id="home" class="main">
+        <div class="grid-container module-wrapper enable-masonry aos-init aos-animate" data-aos="fade-up">
+        <div class="row">
+          <div class="content-wrapper grid-posts content">
+                
+            <!-- start: .articles -->
+            
               
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/reading-notes">
-                  <h2 class="post-title">读书笔记</h2>
-                </a>
-                <div class="post-date">
-                  2019-12-06
-                </div>
-                <div class="post-abstract">
-                  
-                </div>
-              </div>
               
-                <a class="right" href="https://ntlx.github.io/post/reading-notes">
-                  <div class="feature-container" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191206084037.jpeg')">
+              <div class="articles columns-3">
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/hei-qun-hui" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://ntlx.github.io/media/images/gridea.jpg');"></span>
+                        </a>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-12-16"><i class="fa fa-calendar"></i><span class="lately">24 天前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/hei-qun-hui">黑群晖</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
+
+                    <div class="clear"></div>
                   </div>
-                </a>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/commond-line-tips">
-                  <h2 class="post-title">Commond Line Tips</h2>
-                </a>
-                <div class="post-date">
-                  2019-12-05
-                </div>
-                <div class="post-abstract">
-                  <p>Recording usefull CLI tips.</p>
 
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/hei-qun-hui#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
                 </div>
-              </div>
+              </article>
+                
               
-                <a class="right" href="https://ntlx.github.io/post/commond-line-tips">
-                  <div class="feature-container" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191205093354.jpg')">
+              
+              
+              
+                
+                <article class="bgstyle grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry" style="">
+                  <div class="article-wrapper  cover" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191206084037.jpeg');">
+                  <header>
+                    
+                      <div class="tags absolute">
+                        <a href="https://ntlx.github.io/tag/7fRshXZqf" class="ctag ctag-1 ctag-7fRshXZqf">Reading</a>
+                      </div>
+                    
+                    <div class="meta">
+                      <time datetime="2019-12-06"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/reading-notes">读书笔记</a></h1>
+                  </header>
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/reading-notes#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="overlay"></div>       
+                </div>
+              </article>
+                
+              
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/commond-line-tips" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191205093354.jpg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/sHC4etYbF" class="ctag ctag-2 ctag-sHC4etYbF">grep</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-12-05"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/commond-line-tips">Commond Line Tips</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <p>Recording usefull CLI tips.</p>
+
+                    <div class="clear"></div>
                   </div>
-                </a>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people">
-                  <h2 class="post-title">The 7 Habits of Highly Effective People</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-29
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/commond-line-tips#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
                 </div>
-                <div class="post-abstract">
-                  <p>by Stephen R. Covey</p>
+              </article>
+                
+              
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20190802110330.jpg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/OYuUaCm3B" class="ctag ctag-3 ctag-OYuUaCm3B">InstaRead</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-29"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people">The 7 Habits of Highly Effective People</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <p>by Stephen R. Covey</p>
 <p>From <a href="https://instaread.co/insights/self-help-personal-growth/the-7-habits-of-highly-effective-people-book/ddsjdpauf4">InstaRead</a></p>
 
-                </div>
-              </div>
-              
-                <a class="right" href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people">
-                  <div class="feature-container" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20190802110330.jpg')">
+                    <div class="clear"></div>
                   </div>
-                </a>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/how-we-learn">
-                  <h2 class="post-title">How We Learn</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-29
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
                 </div>
-                <div class="post-abstract">
-                  <p><strong>The Surprising Truth About When, Where, and Why It Happens</strong></p>
+              </article>
+                
+              
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/how-we-learn" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20190802110005.jpg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/OYuUaCm3B" class="ctag ctag-4 ctag-OYuUaCm3B">InstaRead</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-29"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/how-we-learn">How We Learn</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <p><strong>The Surprising Truth About When, Where, and Why It Happens</strong></p>
 <p>by Benedict Carey</p>
 <p>From <a href="https://instaread.co/insights/self-help-personal-growth/how-we-learn-book/iac9hupzcu">InstaRead</a></p>
 
-                </div>
-              </div>
-              
-                <a class="right" href="https://ntlx.github.io/post/how-we-learn">
-                  <div class="feature-container" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20190802110005.jpg')">
+                    <div class="clear"></div>
                   </div>
-                </a>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/about-raspberry-pi-4">
-                  <h2 class="post-title">About Raspberry Pi 4</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-26
-                </div>
-                <div class="post-abstract">
-                  <h1 id="system-installation">System Installation</h1>
 
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/how-we-learn#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
                 </div>
-              </div>
+              </article>
+                
               
-                <a class="right" href="https://ntlx.github.io/post/about-raspberry-pi-4">
-                  <div class="feature-container" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191205103453.gif')">
-                  </div>
-                </a>
               
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/zsh-setting">
-                  <h2 class="post-title">Zsh Setting</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-26
-                </div>
-                <div class="post-abstract">
-                  
-                </div>
-              </div>
               
-                <a class="right" href="https://ntlx.github.io/post/zsh-setting">
-                  <div class="feature-container" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/1/1f/Zsh-agnoster.png?1574734349248')">
-                  </div>
-                </a>
               
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/bash-setting">
-                  <h2 class="post-title">Bash Setting</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-26
-                </div>
-                <div class="post-abstract">
-                  <h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
-<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt=""></figure>
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/about-raspberry-pi-4" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191205103453.gif');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/hyT2vEEvI" class="ctag ctag-5 ctag-hyT2vEEvI">RaspberryPi</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-26"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
 
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/about-raspberry-pi-4">About Raspberry Pi 4</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <h1 id="system-installation">System Installation</h1>
+
+                    <div class="clear"></div>
+                  </div>
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/about-raspberry-pi-4#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
                 </div>
-              </div>
+              </article>
+                
               
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/about-esxi">
-                  <h2 class="post-title">About VMware vSphere</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-21
+              
+              
+              
+                
+                <article class="bgstyle grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry" style="">
+                  <div class="article-wrapper  cover" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/1/1f/Zsh-agnoster.png?1574734349248');">
+                  <header>
+                    
+                      <div class="tags absolute">
+                        <a href="https://ntlx.github.io/tag/JAMPpLMcJ" class="ctag ctag-6 ctag-JAMPpLMcJ">Zsh</a>
+                      </div>
+                    
+                    <div class="meta">
+                      <time datetime="2019-11-26"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/zsh-setting">Zsh Setting</a></h1>
+                  </header>
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/zsh-setting#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="overlay"></div>       
                 </div>
-                <div class="post-abstract">
-                  <blockquote>
+              </article>
+                
+              
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/bash-setting" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://ntlx.github.io/media/images/vopZctWxl.jpg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/vopZctWxl" class="ctag ctag-7 ctag-vopZctWxl">Bash</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-26"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/bash-setting">Bash Setting</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
+<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt="" loading="lazy"></figure>
+
+                    <div class="clear"></div>
+                  </div>
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/bash-setting#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
+                </div>
+              </article>
+                
+              
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/about-esxi" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://ntlx.github.io/media/images/DKrlN1uPy.jpg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/DKrlN1uPy" class="ctag ctag-8 ctag-DKrlN1uPy">VMware</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-21"><i class="fa fa-calendar"></i><span class="lately">2 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
+
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/about-esxi">About VMware vSphere</a></h1>
+                  </header>
+
+                  <div class="post-excerpt">
+                      <blockquote>
 <p>For v6.7u3 currently</p>
 </blockquote>
-<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt=""></figure>
+<figure data-type="image" tabindex="1"><img src="https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595" alt="" loading="lazy"></figure>
 
-                </div>
-              </div>
-              
-            </article>
-          
-            <article class="post-item">
-              <div class="left">
-                <a href="https://ntlx.github.io/post/about-manjaro">
-                  <h2 class="post-title">About Manjaro</h2>
-                </a>
-                <div class="post-date">
-                  2019-11-15
-                </div>
-                <div class="post-abstract">
-                  <p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
-<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software"></p>
-
-                </div>
-              </div>
-              
-                <a class="right" href="https://ntlx.github.io/post/about-manjaro">
-                  <div class="feature-container" style="background-image: url('https://manjaro.org/img/logo.svg')">
+                    <div class="clear"></div>
                   </div>
-                </a>
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/about-esxi#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
+                </div>
+              </article>
+                
               
-            </article>
-          
+              
+              
+              
+                
+              <article class="default grid-33 tablet-grid-50 mobile-grid-100 np-mobile post type-post status-publish format-standard has-post-thumbnail hentry">
+                <div class="article-wrapper">
+                  <header>
+                    <div class="post-format-image post-format-wrapper">
+                      <div class="featured-image">
+                        <a href="https://ntlx.github.io/post/about-manjaro" class="thumb hover-effect">
+                          <span class="fullimage cover" role="img" aria-label="" style="background-image: url('https://manjaro.org/img/logo.svg');"></span>
+                        </a>
+                        
+                        <div class="tags absolute">
+                          <a href="https://ntlx.github.io/tag/AbSLODOvW" class="ctag ctag-9 ctag-AbSLODOvW">Manjaro</a>
+                        </div>
+                        
+                      </div>
+                    </div>                    
+                    <div class="meta">
+                      <time datetime="2019-11-15"><i class="fa fa-calendar"></i><span class="lately">2 个月前</span></time>
+                      <div class="clear"></div>
+                    </div>
 
-          <div class="pagination-container">
-  
-  
-    <a href="https://ntlx.github.io/page/2/" class="next">下一页 <i class="icon-arrow-ios-forward-outline"></i></a>
-  
-</div>
+                    <h1 class="title main-title gradient-effect"><a href="https://ntlx.github.io/post/about-manjaro">About Manjaro</a></h1>
+                  </header>
 
+                  <div class="post-excerpt">
+                      <p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
+<p><img src="https://wiki.manjaro.org/images/e/e5/Control.png" alt="setting" loading="lazy"><img src="https://wiki.manjaro.org/images/a/a2/Octopi.png" alt="software" loading="lazy"></p>
+
+                    <div class="clear"></div>
+                  </div>
+
+                  <footer class="author-meta">
+                    <a href="" class="author" title="">
+                      <span class="author-image cover" style="background-image: url('https://ntlx.github.io/images/avatar.png');"></span>
+                      <span class="author-name">NTLx Blog</span>
+                    </a>
+                    <a href="https://ntlx.github.io/post/about-manjaro#comments" class="comments meta-info alignright" title="">
+                      <i class="fa fa-comment"></i>
+                    </a>
+                    <div class="clear"></div>
+                  </footer>
+                  <div class="border"></div>       
+                </div>
+              </article>
+                
+              
+              
+              <div class="clear"></div>
+              <div class="separator last hide-on-tablet hide-on-mobile"></div>
+            </div>
+            <!-- end: .articles -->
+            
+                        <div class="epcl-pagination section">
+              <div class="nav">
+                
+                
+                  <a href="https://ntlx.github.io/page/2" class="next button red">下一页</a>
+                
+              </div>
+            </div>
+
+            
+          </div>
+          </div>
         </div>
-      </div>
+      </main>
+
+        <footer id="footer" class="grid-container">
+        <div class="widgets row gradient-effect">
+            <div class="default-sidebar border-effect">
+              <div class="grid-33 tablet-grid-50 mobile-grid-100">
+                <section id="tag_cloud-2" class="widget widget_epcl_posts_thumbs underline-effect">
+                  <h4 class="widget-title title white bordered">最新文章</h4>
+                  
+                  
+                  <article class="item post-0 post type-post status-publish format-standard has-post-thumbnail hentry">
+                    <a href="https://ntlx.github.io/post/hei-qun-hui" class="thumb hover-effect">
+                      <span class="fullimage cover" style="display: block;background-image: url('https://ntlx.github.io/media/images/gridea.jpg');"></span>
+                    </a>
+                    <div class="info gradient-effect">
+                      <time datetime="2019-12-16">2019-12-16</time>
+                      <h4 class="title usmall">
+                        <a href="https://ntlx.github.io/post/hei-qun-hui">黑群晖</a>
+                      </h4>
+                    </div>
+                    <div class="clear"></div>
+                  </article>
+                  
+                  
+                  
+                  <article class="item post-1 post type-post status-publish format-standard has-post-thumbnail hentry">
+                    <a href="https://ntlx.github.io/post/about" class="thumb hover-effect">
+                      <span class="fullimage cover" style="display: block;background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191209110356.jpg');"></span>
+                    </a>
+                    <div class="info gradient-effect">
+                      <time datetime="2019-12-09">2019-12-09</time>
+                      <h4 class="title usmall">
+                        <a href="https://ntlx.github.io/post/about">关于</a>
+                      </h4>
+                    </div>
+                    <div class="clear"></div>
+                  </article>
+                  
+                  
+                  
+                  <article class="item post-2 post type-post status-publish format-standard has-post-thumbnail hentry">
+                    <a href="https://ntlx.github.io/post/reading-notes" class="thumb hover-effect">
+                      <span class="fullimage cover" style="display: block;background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191206084037.jpeg');"></span>
+                    </a>
+                    <div class="info gradient-effect">
+                      <time datetime="2019-12-06">2019-12-06</time>
+                      <h4 class="title usmall">
+                        <a href="https://ntlx.github.io/post/reading-notes">读书笔记</a>
+                      </h4>
+                    </div>
+                    <div class="clear"></div>
+                  </article>
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  <div class="clear"></div>
+                </section>
+              </div>
+
+              <div class="grid-33 tablet-grid-50 mobile-grid-100">
+                <section id="tag_cloud-2" class="widget widget_tag_cloud underline-effect">
+                  <h4 class="widget-title title white bordered">标签云</h4>
+                  <div class="tagcloud">
+                    
+                      <a href="https://ntlx.github.io/tag/7fRshXZqf" class="ctag ctag-0 ctag-7fRshXZqf" aria-label="">Reading</a>
+                    
+                      <a href="https://ntlx.github.io/tag/sHC4etYbF" class="ctag ctag-1 ctag-sHC4etYbF" aria-label="">grep</a>
+                    
+                      <a href="https://ntlx.github.io/tag/Futdjqll2" class="ctag ctag-2 ctag-Futdjqll2" aria-label="">Linux</a>
+                    
+                      <a href="https://ntlx.github.io/tag/OYuUaCm3B" class="ctag ctag-3 ctag-OYuUaCm3B" aria-label="">InstaRead</a>
+                    
+                      <a href="https://ntlx.github.io/tag/NSclsDRvC" class="ctag ctag-4 ctag-NSclsDRvC" aria-label="">Excerpt</a>
+                    
+                      <a href="https://ntlx.github.io/tag/hyT2vEEvI" class="ctag ctag-5 ctag-hyT2vEEvI" aria-label="">RaspberryPi</a>
+                    
+                      <a href="https://ntlx.github.io/tag/boF6zZO7X" class="ctag ctag-6 ctag-boF6zZO7X" aria-label="">Setting</a>
+                    
+                      <a href="https://ntlx.github.io/tag/IGog1aO36" class="ctag ctag-7 ctag-IGog1aO36" aria-label="">Tutorials</a>
+                    
+                      <a href="https://ntlx.github.io/tag/JAMPpLMcJ" class="ctag ctag-8 ctag-JAMPpLMcJ" aria-label="">Zsh</a>
+                    
+                      <a href="https://ntlx.github.io/tag/vopZctWxl" class="ctag ctag-9 ctag-vopZctWxl" aria-label="">Bash</a>
+                    
+                      <a href="https://ntlx.github.io/tag/DKrlN1uPy" class="ctag ctag-10 ctag-DKrlN1uPy" aria-label="">VMware</a>
+                    
+                      <a href="https://ntlx.github.io/tag/VHZSr2eo9v" class="ctag ctag-11 ctag-VHZSr2eo9v" aria-label="">vSphere</a>
+                    
+                      <a href="https://ntlx.github.io/tag/OlM5IM5ROV" class="ctag ctag-12 ctag-OlM5IM5ROV" aria-label="">ESXi</a>
+                    
+                      <a href="https://ntlx.github.io/tag/AbSLODOvW" class="ctag ctag-13 ctag-AbSLODOvW" aria-label="">Manjaro</a>
+                    
+                      <a href="https://ntlx.github.io/tag/XVEu7T82K" class="ctag ctag-14 ctag-XVEu7T82K" aria-label="">Software</a>
+                    
+                      <a href="https://ntlx.github.io/tag/C1I-OWG08g" class="ctag ctag-15 ctag-C1I-OWG08g" aria-label="">OCR</a>
+                    
+                      <a href="https://ntlx.github.io/tag/MEd_JO3F_" class="ctag ctag-16 ctag-MEd_JO3F_" aria-label="">Recomendation</a>
+                    
+                      <a href="https://ntlx.github.io/tag/FX7L1G28t" class="ctag ctag-17 ctag-FX7L1G28t" aria-label="">Windows</a>
+                    
+                      <a href="https://ntlx.github.io/tag/fA9FbZxQQW" class="ctag ctag-18 ctag-fA9FbZxQQW" aria-label="">Crack</a>
+                    
+                      <a href="https://ntlx.github.io/tag/7pAVzz7msN" class="ctag ctag-19 ctag-7pAVzz7msN" aria-label="">Browser</a>
+                    
+                      <a href="https://ntlx.github.io/tag/zGiZ77mP7q" class="ctag ctag-20 ctag-zGiZ77mP7q" aria-label="">Chrome</a>
+                    
+                      <a href="https://ntlx.github.io/tag/71qPdepVk" class="ctag ctag-21 ctag-71qPdepVk" aria-label="">TMUX</a>
+                    
+                      <a href="https://ntlx.github.io/tag/ltZrYjT_D" class="ctag ctag-22 ctag-ltZrYjT_D" aria-label="">VIM</a>
+                    
+                      <a href="https://ntlx.github.io/tag/3iWWhfFX8" class="ctag ctag-23 ctag-3iWWhfFX8" aria-label="">CentOS</a>
+                    
+                      <a href="https://ntlx.github.io/tag/nlJ3XJ0ee" class="ctag ctag-24 ctag-nlJ3XJ0ee" aria-label="">Shadowsocks</a>
+                    
+                      <a href="https://ntlx.github.io/tag/WIVvmbWCr" class="ctag ctag-25 ctag-WIVvmbWCr" aria-label="">Gridea</a>
+                    
+                  </div>
+                  <div class="clear"></div>
+                </section>
+              </div>
+
+              <div class="grid-33 tablet-grid-50 mobile-grid-100">
+                <section id="epcl_about-2" class="widget widget_epcl_about underline-effect">
+                  <h4 class="widget-title title white bordered">关于我</h4>
+                  <div class="avatar">
+                    <a href="" class="translate-effect thumb"><span class="fullimage cover" style="background-image: url(https://ntlx.github.io/images/avatar.png);"></span></a>
+                  </div>
+                  <div class="info">
+                    <h4 class="title small author-name gradient-effect no-margin"><a href="">NTLx Blog</a></h4>
+                    <p class="founder">Play with music</p>
+                    <div class="social">
+                      
+                        
+                      
+                        
+                      
+                        
+                      
+                        
+                      
+                        
+                      
+                    </div> 
+                  </div>
+                  <div class="clear"></div>
+                  </section>
+              </div>
+
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="logo">
+          <a href="https://ntlx.github.io"><img class="" src="https://ntlx.github.io/media/images/logo.png" alt=""></a>
+        </div>
+        <p class="published border-effect">
+          ©2019 共 23 篇文章
+          <br/>
+          Theme <a href="https://gridea.dev/" target="_blank">「breek」</a> Powered by <a href="https://gridea.dev/" target="_blank">「Gridea」</a>
+        </p>
+        
+        <a href="javascript:void(0)" id="back-to-top" class="epcl-button dark" style="display:none">
+          <i class="fa fa-arrow"></i>
+        </a>
+    </footer>
+    <div class="clear"></div>
     </div>
-
-    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-
-<script type="application/javascript">
-
-AOS.init();
-
-hljs.initHighlightingOnLoad()
-
-var app = new Vue({
-  el: '#app',
-  data: {
-    menuVisible: false,
-  },
-})
-
-</script>
-
-
-
-
+    <!-- end: #wrapper -->
   </body>
 </html>
