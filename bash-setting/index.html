@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>我的观影 | NTLx Blog</title>
+<title>Bash Setting | NTLx Blog</title>
 <meta name="description" content="Play with music" />
 <link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
@@ -13,14 +13,11 @@
 <script src="https://ntlx.github.io/media/js/pace.min.js"></script>
 <script src="https://ntlx.github.io/media/js/view-image.min.js"></script>
 <script src="https://ntlx.github.io/media/js/functions.js"></script>
-    <meta name="referrer" content="never">
-    <link rel="stylesheet" href="https://ntlx.github.io/media/js/Bmdb.min.css">
-    <script type='text/javascript' src='https://ntlx.github.io/media/js/Bmdb.min.js'></script>
+    <script src="https://ntlx.github.io/media/js/waterfall.min.js"></script>
+    <script src="https://ntlx.github.io/media/js/prism.min.js"></script>
+    
   </head>
   <body>
-    <!-- start: #wrapper -->
-    <div class="wrapper">
-      
             <header id="header" class="grid-container">
         <!-- start: .menu-wrapper -->
         <div class="menu-mobile"> 
@@ -69,14 +66,284 @@
         <div class="clear"></div>
       </header>
 
-      <main id="friends" class="main fullcover no-sidebar content">
-        <div class="grid-container module-wrapper enable-masonry aos-init aos-animate" data-aos="fade-up">
+      <main id="single" class="main grid-container fullcover no-sidebar aos-init aos-animate" data-aos="fade">
+
+        <div class="center content">
+          <div class="featured-image cover" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20200110102216.png');">
+            <div class="meta top"> 
+              <time class="meta-info" style="float:left;" datetime="2019-11-26"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+               
+               
+               <span id="/post/bash-setting/" class="leancloud_visitors views-counter meta-info">
+                <i class="fa fa-leancloud"></i><span class="leancloud-visitors-count" style="vertical-align: middle;">0</span>
+               </span>
+               
+            </div>
+            <div class="info">
+              <div class="tags ">
+                
+                      <a href="https://ntlx.github.io/vopZctWxl" class="ctag ctag-0 ctag-vopZctWxl" aria-label="">Bash</a>
+                    
+                      <a href="https://ntlx.github.io/boF6zZO7X" class="ctag ctag-1 ctag-boF6zZO7X" aria-label="">Setting</a>
+                    
+                      <a href="https://ntlx.github.io/Futdjqll2" class="ctag ctag-2 ctag-Futdjqll2" aria-label="">Linux</a>
+                    
+              </div>
+              <h1 class="title ularge white bold">Bash Setting</h1>
+            </div>
+          </div>
+        </div>  
+
         <div class="epcl-page-wrapper">
-          <div class="section-content" style="margin-top:3em;"></div>
-        </div>
-        </div>
+          <div class="left-content grid-70 np-mobile">
+            <article class="main-article post">
+              <section class="post-content">
+                <div class="text">
+                  <h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
+<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873" alt="" loading="lazy"></figure>
+<!-- more -->
+<h2 id="manjaro-architect">Manjaro Architect</h2>
+<p><code>/etc/bash.bashrc</code></p>
+<pre><code class="language-bash">#
+# /etc/bash.bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] &amp;&amp; return
+
+[[ $DISPLAY ]] &amp;&amp; shopt -s checkwinsize
+
+PS1='[\u@\h \W]\$ '
+
+case ${TERM} in
+  xterm*|rxvt*|Eterm|aterm|kterm|gnome*)
+    PROMPT_COMMAND=${PROMPT_COMMAND:+$PROMPT_COMMAND; }'printf &quot;\033]0;%s@%s:%s\007&quot; &quot;${USER}&quot; &quot;${HOSTNAME%%.*}&quot; &quot;${PWD/#$HOME/\~}&quot;'
+
+    ;;
+  screen*)
+    PROMPT_COMMAND=${PROMPT_COMMAND:+$PROMPT_COMMAND; }'printf &quot;\033_%s@%s:%s\033\\&quot; &quot;${USER}&quot; &quot;${HOSTNAME%%.*}&quot; &quot;${PWD/#$HOME/\~}&quot;'
+    ;;
+esac
+
+[ -r /usr/share/bash-completion/bash_completion   ] &amp;&amp; . /usr/share/bash-completion/bash_completion
+</code></pre>
+<p><code>~/.bashrc</code></p>
+<pre><code class="language-bash">#
+# ~/.bashrc
+#
+
+[[ $- != *i* ]] &amp;&amp; return
+
+colors() {
+        local fgc bgc vals seq0
+
+        printf &quot;Color escapes are %s\n&quot; '\e[${value};...;${value}m'
+        printf &quot;Values 30..37 are \e[33mforeground colors\e[m\n&quot;
+        printf &quot;Values 40..47 are \e[43mbackground colors\e[m\n&quot;
+        printf &quot;Value  1 gives a  \e[1mbold-faced look\e[m\n\n&quot;
+
+        # foreground colors
+        for fgc in {30..37}; do
+                # background colors
+                for bgc in {40..47}; do
+                        fgc=${fgc#37} # white
+                        bgc=${bgc#40} # black
+
+                        vals=&quot;${fgc:+$fgc;}${bgc}&quot;
+                        vals=${vals%%;}
+
+                        seq0=&quot;${vals:+\e[${vals}m}&quot;
+                        printf &quot;  %-9s&quot; &quot;${seq0:-(default)}&quot;
+                        printf &quot; ${seq0}TEXT\e[m&quot;
+                        printf &quot; \e[${vals:+${vals+$vals;}}1mBOLD\e[m&quot;
+                done
+                echo; echo
+        done
+}
+
+[ -r /usr/share/bash-completion/bash_completion ] &amp;&amp; . /usr/share/bash-completion/bash_completion
+
+# Change the window title of X terminals
+case ${TERM} in
+        xterm*|rxvt*|Eterm*|aterm|kterm|gnome*|interix|konsole*)
+                PROMPT_COMMAND='echo -ne &quot;\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/\~}\007&quot;'
+                ;;
+        screen*)
+                PROMPT_COMMAND='echo -ne &quot;\033_${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/\~}\033\\&quot;'
+                ;;
+esac
+
+use_color=true
+
+# Set colorful PS1 only on colorful terminals.
+# dircolors --print-database uses its own built-in database
+# instead of using /etc/DIR_COLORS.  Try to use the external file
+# first to take advantage of user additions.  Use internal bash
+# globbing instead of external grep binary.
+safe_term=${TERM//[^[:alnum:]]/?}   # sanitize TERM
+match_lhs=&quot;&quot;
+[[ -f ~/.dir_colors   ]] &amp;&amp; match_lhs=&quot;${match_lhs}$(&lt;~/.dir_colors)&quot;
+[[ -f /etc/DIR_COLORS ]] &amp;&amp; match_lhs=&quot;${match_lhs}$(&lt;/etc/DIR_COLORS)&quot;
+[[ -z ${match_lhs}    ]] \
+        &amp;&amp; type -P dircolors &gt;/dev/null \
+        &amp;&amp; match_lhs=$(dircolors --print-database)
+[[ $'\n'${match_lhs} == *$'\n'&quot;TERM &quot;${safe_term}* ]] &amp;&amp; use_color=true
+
+if ${use_color} ; then
+        # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
+        if type -P dircolors &gt;/dev/null ; then
+                if [[ -f ~/.dir_colors ]] ; then
+                        eval $(dircolors -b ~/.dir_colors)
+                elif [[ -f /etc/DIR_COLORS ]] ; then
+                        eval $(dircolors -b /etc/DIR_COLORS)
+                fi
+        fi
+
+        if [[ ${EUID} == 0 ]] ; then
+                PS1='\[\033[01;31m\][\h\[\033[01;36m\] \W\[\033[01;31m\]]\$\[\033[00m\] '
+        else
+                PS1='\[\033[01;32m\][\u@\h\[\033[01;37m\] \W\[\033[01;32m\]]\$\[\033[00m\] '
+        fi
+
+        alias ls='ls --color=auto'
+        alias grep='grep --colour=auto'
+        alias egrep='egrep --colour=auto'
+        alias fgrep='fgrep --colour=auto'
+else
+        if [[ ${EUID} == 0 ]] ; then
+                # show root@ when we don't have colors
+                PS1='\u@\h \W \$ '
+        else
+                PS1='\u@\h \w \$ '
+        fi
+fi
+
+unset use_color safe_term match_lhs sh
+
+alias cp=&quot;cp -i&quot;                          # confirm before overwriting something
+alias df='df -h'                          # human-readable sizes
+alias free='free -m'                      # show sizes in MB
+alias np='nano -w PKGBUILD'
+alias more=less
+
+xhost +local:root &gt; /dev/null 2&gt;&amp;1
+
+complete -cf sudo
+
+# Bash won't get SIGWINCH if another process is in the foreground.
+# Enable checkwinsize so that bash will check the terminal size when
+# it regains control.  #65623
+# http://cnswww.cns.cwru.edu/~chet/bash/FAQ (E11)
+shopt -s checkwinsize
+
+shopt -s expand_aliases
+
+# export QT_SELECT=4
+
+# Enable history appending instead of overwriting.  #139609
+shopt -s histappend
+
+#
+# # ex - archive extractor
+# # usage: ex &lt;file&gt;
+ex ()
+{
+  if [ -f $1 ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1   ;;
+      *.tar.gz)    tar xzf $1   ;;
+      *.bz2)       bunzip2 $1   ;;
+      *.rar)       unrar x $1     ;;
+      *.gz)        gunzip $1    ;;
+      *.tar)       tar xf $1    ;;
+      *.tbz2)      tar xjf $1   ;;
+      *.tgz)       tar xzf $1   ;;
+      *.zip)       unzip $1     ;;
+      *.Z)         uncompress $1;;
+      *.7z)        7z x $1      ;;
+      *)           echo &quot;'$1' cannot be extracted via ex()&quot; ;;
+    esac
+  else
+    echo &quot;'$1' is not a valid file&quot;
+  fi
+}
+</code></pre>
+
+                </div>
+                <div class="clear"></div>
+              </section>
+            </article>
+            <div class="clear"></div>
+
+            <section class="related section">
+              
+              <article class="prev grid-50 tablet-grid-50 grid-parent">
+                <div class="thumb cover lazy loaded" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/1/1f/Zsh-agnoster.png?1574734349248');"></div>
+                 <a href="https://ntlx.github.io/zsh-setting" class="full-link"></a>
+                 <div class="info">
+                  <time datetime="2019-11-26">2019-11-26</time>
+                  <h4 class="title white no-margin">Zsh Setting</h4>
+                </div>
+                 <span class="epcl-button red">
+                  <img src="https://ntlx.github.io/media/images/left-arrow.svg" width="15" alt="Left Arrow">
+                </span>
+                <div class="overlay"></div>
+              </article>
+              
+              
+              <article class="next grid-50 tablet-grid-50 grid-parent">
+                <div class="thumb cover lazy loaded" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20200110101817.png');"></div>
+                 <a href="https://ntlx.github.io/about-esxi" class="full-link"></a>
+                 <div class="info">
+                  <time datetime="2019-11-21">2019-11-21</time>
+                  <h4 class="title white no-margin">About VMware vSphere</h4>
+                </div>
+                 <span class="epcl-button red">
+                  <img src="https://ntlx.github.io/media/images/right-arrow.svg" width="15" alt="Left Arrow">
+                </span>
+                <div class="overlay"></div>
+              </article>
+              
+
+                <div class="clear"></div>
+            </section>
+
+              <div class="clear"></div>
+
+              <div id="comments" class="bg-white hosted ">
+
+              
+                
+                
+                  <link rel="stylesheet" href="https://unpkg.com/disqusjs@1.1/dist/disqusjs.css">
+<script src="https://unpkg.com/disqusjs@1.1/dist/disqus.js"></script>
+
+<div id="disqus_thread"></div>
+
+<script>
+
+var options = {
+  shortname: 'ntlx-blog',
+  apikey: 'fdjiLOEB5sqKL62zNPOMAzCraxgPwyODAWTMgcuyT9r0XKOsehAQCvxlHugFPbm2',
+}
+if ('') {
+  options.api = ''
+}
+var dsqjs = new DisqusJS(options)
+
+</script>
+
+                
+              
+                <div class="clear"></div>
+              </div>
+
+              <div class="clear"></div>
+            </div>
+          </div>
       </main>
-        <footer id="footer" class="grid-container">
+
+          <footer id="footer" class="grid-container">
         <div class="widgets row gradient-effect">
             <div class="default-sidebar border-effect">
               <div class="grid-33 tablet-grid-50 mobile-grid-100">
@@ -283,15 +550,50 @@
         </a>
     </footer>
     <div class="clear"></div>
-    <script>
-    new Bmdb({
-      type: 'movies',
-      selector: '.section-content',
-      secret: '0bba46738324c778ad2da662837c14d2c1e5bceb22e3729febc9fd3677bdcea5',
-      noMoreText: '没有更多数据了',
-      limit: 30
-    })
-    </script>
+
+      <script type="text/javascript">
+       jQuery(document).ready(function($){
+          $("photos img").each(function(){
+              var _a = $("<a></a>").attr("href",this.src);
+              $(this).wrap("<div class='photo'></div>").wrap(_a);
+          })
+          $("figure img").each(function(){
+              var _b = $("<a></a>").attr("href",this.src);
+              $(this).wrap(_b);
+          })
+          isImgLoad(function(){
+            var photos = document.querySelector('photos');
+            if(photos){
+              waterfall(photos);
+            }
+            $(window).resize(function() {
+             if(photos){
+                  waterfall(photos);
+            }
+          });
+        });
+        var t_img;
+        var isLoad = true;
+        function isImgLoad(callback){
+          $('photos img').each(function(){
+            if(this.height === 0){
+              isLoad = false;
+              return false;
+            }
+          });
+          if(isLoad){
+            clearTimeout(t_img);
+            callback();
+          }else{
+            isLoad = true;
+            t_img = setTimeout(function(){
+              isImgLoad(callback);
+            },500);
+          }
+        }
+      });
+      </script>
+
     </div>
     <!-- end: #wrapper -->
   </body>

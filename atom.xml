@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-01-10T02:22:42.358Z</updated>
+    <updated>2020-01-10T02:25:54.668Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -12,8 +12,8 @@
     <rights>All rights reserved 2020, NTLx Blog</rights>
     <entry>
         <title type="html"><![CDATA[黑群晖]]></title>
-        <id>https://ntlx.github.io/post/hei-qun-hui</id>
-        <link href="https://ntlx.github.io/post/hei-qun-hui">
+        <id>https://ntlx.github.io/hei-qun-hui</id>
+        <link href="https://ntlx.github.io/hei-qun-hui">
         </link>
         <updated>2019-12-16T01:34:30.000Z</updated>
         <summary type="html"><![CDATA[<p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
@@ -26,8 +26,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[读书笔记]]></title>
-        <id>https://ntlx.github.io/post/reading-notes</id>
-        <link href="https://ntlx.github.io/post/reading-notes">
+        <id>https://ntlx.github.io/reading-notes</id>
+        <link href="https://ntlx.github.io/reading-notes">
         </link>
         <updated>2019-12-06T00:31:41.000Z</updated>
         <content type="html"><![CDATA[<p>《21世纪资本论》<br>
@@ -51,8 +51,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[Commond Line Tips]]></title>
-        <id>https://ntlx.github.io/post/commond-line-tips</id>
-        <link href="https://ntlx.github.io/post/commond-line-tips">
+        <id>https://ntlx.github.io/commond-line-tips</id>
+        <link href="https://ntlx.github.io/commond-line-tips">
         </link>
         <updated>2019-12-05T01:21:18.000Z</updated>
         <summary type="html"><![CDATA[<p>Recording usefull CLI tips.</p>
@@ -73,8 +73,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[The 7 Habits of Highly Effective People]]></title>
-        <id>https://ntlx.github.io/post/the-7-habits-of-highly-effective-people</id>
-        <link href="https://ntlx.github.io/post/the-7-habits-of-highly-effective-people">
+        <id>https://ntlx.github.io/the-7-habits-of-highly-effective-people</id>
+        <link href="https://ntlx.github.io/the-7-habits-of-highly-effective-people">
         </link>
         <updated>2019-11-29T01:27:54.000Z</updated>
         <summary type="html"><![CDATA[<p>by Stephen R. Covey</p>
@@ -151,8 +151,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[How We Learn]]></title>
-        <id>https://ntlx.github.io/post/how-we-learn</id>
-        <link href="https://ntlx.github.io/post/how-we-learn">
+        <id>https://ntlx.github.io/how-we-learn</id>
+        <link href="https://ntlx.github.io/how-we-learn">
         </link>
         <updated>2019-11-29T01:23:19.000Z</updated>
         <summary type="html"><![CDATA[<p><strong>The Surprising Truth About When, Where, and Why It Happens</strong></p>
@@ -224,8 +224,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[About Raspberry Pi 4]]></title>
-        <id>https://ntlx.github.io/post/about-raspberry-pi-4</id>
-        <link href="https://ntlx.github.io/post/about-raspberry-pi-4">
+        <id>https://ntlx.github.io/about-raspberry-pi-4</id>
+        <link href="https://ntlx.github.io/about-raspberry-pi-4">
         </link>
         <updated>2019-11-26T03:06:56.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="system-installation">System Installation</h1>
@@ -263,8 +263,8 @@
     </entry>
     <entry>
         <title type="html"><![CDATA[Zsh Setting]]></title>
-        <id>https://ntlx.github.io/post/zsh-setting</id>
-        <link href="https://ntlx.github.io/post/zsh-setting">
+        <id>https://ntlx.github.io/zsh-setting</id>
+        <link href="https://ntlx.github.io/zsh-setting">
         </link>
         <updated>2019-11-26T02:07:43.000Z</updated>
         <content type="html"><![CDATA[<h1 id="default-settings-within-popular-oss">Default settings within popular OSs</h1>
@@ -474,8 +474,8 @@ esac
     </entry>
     <entry>
         <title type="html"><![CDATA[Bash Setting]]></title>
-        <id>https://ntlx.github.io/post/bash-setting</id>
-        <link href="https://ntlx.github.io/post/bash-setting">
+        <id>https://ntlx.github.io/bash-setting</id>
+        <link href="https://ntlx.github.io/bash-setting">
         </link>
         <updated>2019-11-26T02:04:15.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
@@ -654,8 +654,8 @@ ex ()
     </entry>
     <entry>
         <title type="html"><![CDATA[About VMware vSphere]]></title>
-        <id>https://ntlx.github.io/post/about-esxi</id>
-        <link href="https://ntlx.github.io/post/about-esxi">
+        <id>https://ntlx.github.io/about-esxi</id>
+        <link href="https://ntlx.github.io/about-esxi">
         </link>
         <updated>2019-11-21T07:29:14.000Z</updated>
         <summary type="html"><![CDATA[<blockquote>
@@ -750,8 +750,8 @@ VA510-23F57-M85PY-7FN7C-MCRG0
     </entry>
     <entry>
         <title type="html"><![CDATA[About Manjaro]]></title>
-        <id>https://ntlx.github.io/post/about-manjaro</id>
-        <link href="https://ntlx.github.io/post/about-manjaro">
+        <id>https://ntlx.github.io/about-manjaro</id>
+        <link href="https://ntlx.github.io/about-manjaro">
         </link>
         <updated>2019-11-15T01:41:59.000Z</updated>
         <summary type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
@@ -978,8 +978,8 @@ sudo pacman -S google-chinese-handwriting-ime-git         # Chinese handwriting 
     </entry>
     <entry>
         <title type="html"><![CDATA[OCR 软件推荐]]></title>
-        <id>https://ntlx.github.io/post/ocr-ruan-jian-tui-jian</id>
-        <link href="https://ntlx.github.io/post/ocr-ruan-jian-tui-jian">
+        <id>https://ntlx.github.io/ocr-ruan-jian-tui-jian</id>
+        <link href="https://ntlx.github.io/ocr-ruan-jian-tui-jian">
         </link>
         <updated>2019-11-13T07:45:57.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="图片转文字软件">图片转文字软件</h1>
@@ -1023,8 +1023,8 @@ sudo pacman -S google-chinese-handwriting-ime-git         # Chinese handwriting 
     </entry>
     <entry>
         <title type="html"><![CDATA[About Windows]]></title>
-        <id>https://ntlx.github.io/post/about-windows</id>
-        <link href="https://ntlx.github.io/post/about-windows">
+        <id>https://ntlx.github.io/about-windows</id>
+        <link href="https://ntlx.github.io/about-windows">
         </link>
         <updated>2019-11-13T07:39:52.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="activate-windows">Activate Windows</h1>
@@ -1163,8 +1163,8 @@ Windows 7 Enterprise E	C29WB-22CC8-VJ326-GHFJW-H9DH4
     </entry>
     <entry>
         <title type="html"><![CDATA[About Arch Linux]]></title>
-        <id>https://ntlx.github.io/post/about-arch-linux</id>
-        <link href="https://ntlx.github.io/post/about-arch-linux">
+        <id>https://ntlx.github.io/about-arch-linux</id>
+        <link href="https://ntlx.github.io/about-arch-linux">
         </link>
         <updated>2019-11-13T07:38:17.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="arch-linux-installation">Arch Linux Installation</h1>
@@ -1281,8 +1281,8 @@ reboot
     </entry>
     <entry>
         <title type="html"><![CDATA[Chrome 插件推荐]]></title>
-        <id>https://ntlx.github.io/post/recommend-chrome-extension</id>
-        <link href="https://ntlx.github.io/post/recommend-chrome-extension">
+        <id>https://ntlx.github.io/recommend-chrome-extension</id>
+        <link href="https://ntlx.github.io/recommend-chrome-extension">
         </link>
         <updated>2019-11-13T07:36:18.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="recomendation-chrome-extension">Recomendation: Chrome Extension</h1>
@@ -1313,8 +1313,8 @@ reboot
     </entry>
     <entry>
         <title type="html"><![CDATA[TMUX Setting]]></title>
-        <id>https://ntlx.github.io/post/tmux-conf</id>
-        <link href="https://ntlx.github.io/post/tmux-conf">
+        <id>https://ntlx.github.io/tmux-conf</id>
+        <link href="https://ntlx.github.io/tmux-conf">
         </link>
         <updated>2019-11-13T07:31:59.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="tmux-config">TMUX Config</h1>
@@ -2856,8 +2856,8 @@ set -g status-position top
     </entry>
     <entry>
         <title type="html"><![CDATA[Vim Setting]]></title>
-        <id>https://ntlx.github.io/post/vim-setting</id>
-        <link href="https://ntlx.github.io/post/vim-setting">
+        <id>https://ntlx.github.io/vim-setting</id>
+        <link href="https://ntlx.github.io/vim-setting">
         </link>
         <updated>2019-11-13T07:28:12.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="minimal-vim-configure">Minimal VIM Configure</h1>
@@ -3488,8 +3488,8 @@ autocmd BufNewFile      *.spec  call SKEL_spec()
     </entry>
     <entry>
         <title type="html"><![CDATA[华丽 Vim 配置]]></title>
-        <id>https://ntlx.github.io/post/vim-conf</id>
-        <link href="https://ntlx.github.io/post/vim-conf">
+        <id>https://ntlx.github.io/vim-conf</id>
+        <link href="https://ntlx.github.io/vim-conf">
         </link>
         <updated>2019-11-13T07:26:09.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="vim-config">Vim Config</h1>
@@ -3808,8 +3808,8 @@ let b:current_syntax = &quot;snakemake&quot;
     </entry>
     <entry>
         <title type="html"><![CDATA[Privoxy Setting]]></title>
-        <id>https://ntlx.github.io/post/privoxy-conf</id>
-        <link href="https://ntlx.github.io/post/privoxy-conf">
+        <id>https://ntlx.github.io/privoxy-conf</id>
+        <link href="https://ntlx.github.io/privoxy-conf">
         </link>
         <updated>2019-11-13T07:24:52.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="for-custom-proxy-rule">for custom proxy rule</h1>
@@ -9039,8 +9039,8 @@ forward-socks5 .1-apple.com.tw 127.0.0.1:1080 .
     </entry>
     <entry>
         <title type="html"><![CDATA[About CentOS 7.6]]></title>
-        <id>https://ntlx.github.io/post/about-centos-76</id>
-        <link href="https://ntlx.github.io/post/about-centos-76">
+        <id>https://ntlx.github.io/about-centos-76</id>
+        <link href="https://ntlx.github.io/about-centos-76">
         </link>
         <updated>2019-11-13T07:18:49.000Z</updated>
         <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS" loading="lazy"></figure>
@@ -9660,8 +9660,8 @@ export PATH=&quot;/home/lx/software/bcftools-1.9/bin:$PATH&quot;
     </entry>
     <entry>
         <title type="html"><![CDATA[About CentOS 8]]></title>
-        <id>https://ntlx.github.io/post/about-centos-8</id>
-        <link href="https://ntlx.github.io/post/about-centos-8">
+        <id>https://ntlx.github.io/about-centos-8</id>
+        <link href="https://ntlx.github.io/about-centos-8">
         </link>
         <updated>2019-11-13T01:03:17.000Z</updated>
         <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS" loading="lazy"></figure>
@@ -9880,8 +9880,8 @@ sudo firewall-cmd --reload                                                 # 重
     </entry>
     <entry>
         <title type="html"><![CDATA[Shadowsocks 科学上网]]></title>
-        <id>https://ntlx.github.io/post/shadowsocks</id>
-        <link href="https://ntlx.github.io/post/shadowsocks">
+        <id>https://ntlx.github.io/shadowsocks</id>
+        <link href="https://ntlx.github.io/shadowsocks">
         </link>
         <updated>2019-11-12T10:15:12.000Z</updated>
         <summary type="html"><![CDATA[<p><span id="top"></span></p>
@@ -9966,8 +9966,8 @@ sudo firewall-cmd --reload                                                 # 重
     </entry>
     <entry>
         <title type="html"><![CDATA[Hello Gridea]]></title>
-        <id>https://ntlx.github.io/post/hello-gridea</id>
-        <link href="https://ntlx.github.io/post/hello-gridea">
+        <id>https://ntlx.github.io/hello-gridea</id>
+        <link href="https://ntlx.github.io/hello-gridea">
         </link>
         <updated>2018-12-11T16:00:00.000Z</updated>
         <summary type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>

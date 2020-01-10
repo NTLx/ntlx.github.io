@@ -2,7 +2,7 @@
   <head>
     <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>我的观影 | NTLx Blog</title>
+<title>Commond Line Tips | NTLx Blog</title>
 <meta name="description" content="Play with music" />
 <link rel="shortcut icon" href="https://ntlx.github.io/favicon.ico">
 <link rel="stylesheet" href="https://ntlx.github.io/styles/main.css">
@@ -13,14 +13,11 @@
 <script src="https://ntlx.github.io/media/js/pace.min.js"></script>
 <script src="https://ntlx.github.io/media/js/view-image.min.js"></script>
 <script src="https://ntlx.github.io/media/js/functions.js"></script>
-    <meta name="referrer" content="never">
-    <link rel="stylesheet" href="https://ntlx.github.io/media/js/Bmdb.min.css">
-    <script type='text/javascript' src='https://ntlx.github.io/media/js/Bmdb.min.js'></script>
+    <script src="https://ntlx.github.io/media/js/waterfall.min.js"></script>
+    <script src="https://ntlx.github.io/media/js/prism.min.js"></script>
+    
   </head>
   <body>
-    <!-- start: #wrapper -->
-    <div class="wrapper">
-      
             <header id="header" class="grid-container">
         <!-- start: .menu-wrapper -->
         <div class="menu-mobile"> 
@@ -69,14 +66,125 @@
         <div class="clear"></div>
       </header>
 
-      <main id="friends" class="main fullcover no-sidebar content">
-        <div class="grid-container module-wrapper enable-masonry aos-init aos-animate" data-aos="fade-up">
+      <main id="single" class="main grid-container fullcover no-sidebar aos-init aos-animate" data-aos="fade">
+
+        <div class="center content">
+          <div class="featured-image cover" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191205093354.jpg');">
+            <div class="meta top"> 
+              <time class="meta-info" style="float:left;" datetime="2019-12-05"><i class="fa fa-calendar"></i><span class="lately">1 个月前</span></time>
+               
+               
+               <span id="/post/commond-line-tips/" class="leancloud_visitors views-counter meta-info">
+                <i class="fa fa-leancloud"></i><span class="leancloud-visitors-count" style="vertical-align: middle;">0</span>
+               </span>
+               
+            </div>
+            <div class="info">
+              <div class="tags ">
+                
+                      <a href="https://ntlx.github.io/sHC4etYbF" class="ctag ctag-0 ctag-sHC4etYbF" aria-label="">grep</a>
+                    
+                      <a href="https://ntlx.github.io/Futdjqll2" class="ctag ctag-1 ctag-Futdjqll2" aria-label="">Linux</a>
+                    
+              </div>
+              <h1 class="title ularge white bold">Commond Line Tips</h1>
+            </div>
+          </div>
+        </div>  
+
         <div class="epcl-page-wrapper">
-          <div class="section-content" style="margin-top:3em;"></div>
-        </div>
-        </div>
+          <div class="left-content grid-70 np-mobile">
+            <article class="main-article post">
+              <section class="post-content">
+                <div class="text">
+                  <p>Recording usefull CLI tips.</p>
+<!-- more -->
+<h1 id="grep">grep</h1>
+<p>Regular Expression to find Chinese Charactars:</p>
+<pre><code class="language-bash">grep -P '[\p{Han}]'
+</code></pre>
+<blockquote>
+<p><a href="https://www.regular-expressions.info/unicode.html#script">the Unicode-script category properties usable in any PCRE-supporting engine</a></p>
+<pre><code class="language-bash">\p{Common} \p{Arabic} \p{Armenian} \p{Bengali} \p{Bopomofo} \p{Braille} \p{Buhid} \p{Canadian_Aboriginal} \p{Cherokee} \p{Cyrillic} \p{Devanagari} \p{Ethiopic} \p{Georgian} \p{Greek} \p{Gujarati} \p{Gurmukhi} \p{Han} \p{Hangul} \p{Hanunoo} \p{Hebrew} \p{Hiragana} \p{Inherited} \p{Kannada} \p{Katakana} \p{Khmer} \p{Lao} \p{Latin} \p{Limbu} \p{Malayalam} \p{Mongolian} \p{Myanmar} \p{Ogham} \p{Oriya} \p{Runic} \p{Sinhala} \p{Syriac} \p{Tagalog} \p{Tagbanwa} \p{TaiLe} \p{Tamil} \p{Telugu} \p{Thaana} \p{Thai} \p{Tibetan}
+</code></pre>
+</blockquote>
+<!-- more -->
+
+                </div>
+                <div class="clear"></div>
+              </section>
+            </article>
+            <div class="clear"></div>
+
+            <section class="related section">
+              
+              <article class="prev grid-50 tablet-grid-50 grid-parent">
+                <div class="thumb cover lazy loaded" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191206084037.jpeg');"></div>
+                 <a href="https://ntlx.github.io/reading-notes" class="full-link"></a>
+                 <div class="info">
+                  <time datetime="2019-12-06">2019-12-06</time>
+                  <h4 class="title white no-margin">读书笔记</h4>
+                </div>
+                 <span class="epcl-button red">
+                  <img src="https://ntlx.github.io/media/images/left-arrow.svg" width="15" alt="Left Arrow">
+                </span>
+                <div class="overlay"></div>
+              </article>
+              
+              
+              <article class="next grid-50 tablet-grid-50 grid-parent">
+                <div class="thumb cover lazy loaded" style="background-image: url('https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20190802110330.jpg');"></div>
+                 <a href="https://ntlx.github.io/the-7-habits-of-highly-effective-people" class="full-link"></a>
+                 <div class="info">
+                  <time datetime="2019-11-29">2019-11-29</time>
+                  <h4 class="title white no-margin">The 7 Habits of Highly Effective People</h4>
+                </div>
+                 <span class="epcl-button red">
+                  <img src="https://ntlx.github.io/media/images/right-arrow.svg" width="15" alt="Left Arrow">
+                </span>
+                <div class="overlay"></div>
+              </article>
+              
+
+                <div class="clear"></div>
+            </section>
+
+              <div class="clear"></div>
+
+              <div id="comments" class="bg-white hosted ">
+
+              
+                
+                
+                  <link rel="stylesheet" href="https://unpkg.com/disqusjs@1.1/dist/disqusjs.css">
+<script src="https://unpkg.com/disqusjs@1.1/dist/disqus.js"></script>
+
+<div id="disqus_thread"></div>
+
+<script>
+
+var options = {
+  shortname: 'ntlx-blog',
+  apikey: 'fdjiLOEB5sqKL62zNPOMAzCraxgPwyODAWTMgcuyT9r0XKOsehAQCvxlHugFPbm2',
+}
+if ('') {
+  options.api = ''
+}
+var dsqjs = new DisqusJS(options)
+
+</script>
+
+                
+              
+                <div class="clear"></div>
+              </div>
+
+              <div class="clear"></div>
+            </div>
+          </div>
       </main>
-        <footer id="footer" class="grid-container">
+
+          <footer id="footer" class="grid-container">
         <div class="widgets row gradient-effect">
             <div class="default-sidebar border-effect">
               <div class="grid-33 tablet-grid-50 mobile-grid-100">
@@ -283,15 +391,50 @@
         </a>
     </footer>
     <div class="clear"></div>
-    <script>
-    new Bmdb({
-      type: 'movies',
-      selector: '.section-content',
-      secret: '0bba46738324c778ad2da662837c14d2c1e5bceb22e3729febc9fd3677bdcea5',
-      noMoreText: '没有更多数据了',
-      limit: 30
-    })
-    </script>
+
+      <script type="text/javascript">
+       jQuery(document).ready(function($){
+          $("photos img").each(function(){
+              var _a = $("<a></a>").attr("href",this.src);
+              $(this).wrap("<div class='photo'></div>").wrap(_a);
+          })
+          $("figure img").each(function(){
+              var _b = $("<a></a>").attr("href",this.src);
+              $(this).wrap(_b);
+          })
+          isImgLoad(function(){
+            var photos = document.querySelector('photos');
+            if(photos){
+              waterfall(photos);
+            }
+            $(window).resize(function() {
+             if(photos){
+                  waterfall(photos);
+            }
+          });
+        });
+        var t_img;
+        var isLoad = true;
+        function isImgLoad(callback){
+          $('photos img').each(function(){
+            if(this.height === 0){
+              isLoad = false;
+              return false;
+            }
+          });
+          if(isLoad){
+            clearTimeout(t_img);
+            callback();
+          }else{
+            isLoad = true;
+            t_img = setTimeout(function(){
+              isImgLoad(callback);
+            },500);
+          }
+        }
+      });
+      </script>
+
     </div>
     <!-- end: #wrapper -->
   </body>
