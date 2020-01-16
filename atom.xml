@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-01-10T02:33:27.128Z</updated>
+    <updated>2020-01-16T01:06:29.564Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -10,6 +10,22 @@
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, NTLx Blog</rights>
+    <entry>
+        <title type="html"><![CDATA[mDNS]]></title>
+        <id>https://ntlx.github.io/ybC4stKJg</id>
+        <link href="https://ntlx.github.io/ybC4stKJg">
+        </link>
+        <updated>2020-01-16T01:02:09.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="ubuntu">Ubuntu</h1>
+<pre><code class="language-bash">sudo apt install avahi-daemon
+</code></pre>
+<h1 id="alpine">Alpine</h1>
+<pre><code class="language-bash">sudo apk add avahi dbus
+sudo rc-update add avahi-daemon
+sudo service avahi-daemon start
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[黑群晖]]></title>
         <id>https://ntlx.github.io/hei-qun-hui</id>
