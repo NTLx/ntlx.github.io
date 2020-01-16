@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-01-16T01:06:29.564Z</updated>
+    <updated>2020-01-16T01:49:25.219Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -16,13 +16,27 @@
         <link href="https://ntlx.github.io/ybC4stKJg">
         </link>
         <updated>2020-01-16T01:02:09.000Z</updated>
-        <content type="html"><![CDATA[<h1 id="ubuntu">Ubuntu</h1>
-<pre><code class="language-bash">sudo apt install avahi-daemon
-</code></pre>
-<h1 id="alpine">Alpine</h1>
+        <content type="html"><![CDATA[<h1 id="alpine">Alpine</h1>
 <pre><code class="language-bash">sudo apk add avahi dbus
 sudo rc-update add avahi-daemon
 sudo service avahi-daemon start
+</code></pre>
+<h1 id="centos">CentOS</h1>
+<pre><code class="language-bash">sudo yum install avahi
+sudo yum install avahi-tools
+sudo systemctl start avahi-daemon
+sudo systemctl enable avahi-daemon
+sudo yum install -y nss-mdns
+</code></pre>
+<p>then modify <code>/etc/nsswitch.conf</code> with root privilege, replace <code>hosts: files dns</code> to <code>hosts: files mdns_minimal [NOTFOUND=return] dns</code>.</p>
+<p>At last, firewall setting must be modified:</p>
+<pre><code class="language-bash"># sudo firewall-cmd --get-services
+# sudo firewall-cmd --add-service=mdns
+sudo firewall-cmd --permanent --add-service=mdns
+sudo firewall-cmd --reload
+</code></pre>
+<h1 id="ubuntu">Ubuntu</h1>
+<pre><code class="language-bash">sudo apt install avahi-daemon
 </code></pre>
 ]]></content>
     </entry>

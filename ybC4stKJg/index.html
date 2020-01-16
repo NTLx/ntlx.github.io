@@ -71,7 +71,7 @@
         <div class="center content">
           <div class="featured-image cover" style="background-image: url('https://ntlx.github.io/media/images/gridea.jpg');">
             <div class="meta top"> 
-              <time class="meta-info" style="float:left;" datetime="2020-01-16"><i class="fa fa-calendar"></i><span class="lately">4 分钟前</span></time>
+              <time class="meta-info" style="float:left;" datetime="2020-01-16"><i class="fa fa-calendar"></i><span class="lately">1 小时前</span></time>
                
                
                <span id="/post/ybC4stKJg/" class="leancloud_visitors views-counter meta-info">
@@ -93,13 +93,27 @@
             <article class="main-article post">
               <section class="post-content">
                 <div class="text">
-                  <h1 id="ubuntu">Ubuntu</h1>
-<pre><code class="language-bash">sudo apt install avahi-daemon
-</code></pre>
-<h1 id="alpine">Alpine</h1>
+                  <h1 id="alpine">Alpine</h1>
 <pre><code class="language-bash">sudo apk add avahi dbus
 sudo rc-update add avahi-daemon
 sudo service avahi-daemon start
+</code></pre>
+<h1 id="centos">CentOS</h1>
+<pre><code class="language-bash">sudo yum install avahi
+sudo yum install avahi-tools
+sudo systemctl start avahi-daemon
+sudo systemctl enable avahi-daemon
+sudo yum install -y nss-mdns
+</code></pre>
+<p>then modify <code>/etc/nsswitch.conf</code> with root privilege, replace <code>hosts: files dns</code> to <code>hosts: files mdns_minimal [NOTFOUND=return] dns</code>.</p>
+<p>At last, firewall setting must be modified:</p>
+<pre><code class="language-bash"># sudo firewall-cmd --get-services
+# sudo firewall-cmd --add-service=mdns
+sudo firewall-cmd --permanent --add-service=mdns
+sudo firewall-cmd --reload
+</code></pre>
+<h1 id="ubuntu">Ubuntu</h1>
+<pre><code class="language-bash">sudo apt install avahi-daemon
 </code></pre>
 
                 </div>
