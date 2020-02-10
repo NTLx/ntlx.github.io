@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-01-16T01:49:25.219Z</updated>
+    <updated>2020-02-10T00:33:33.461Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -10,6 +10,174 @@
     <logo>https://ntlx.github.io/images/avatar.png</logo>
     <icon>https://ntlx.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, NTLx Blog</rights>
+    <entry>
+        <title type="html"><![CDATA[UNRAID]]></title>
+        <id>https://ntlx.github.io/iDUezxQ-R</id>
+        <link href="https://ntlx.github.io/iDUezxQ-R">
+        </link>
+        <updated>2020-01-30T08:57:15.000Z</updated>
+        <summary type="html"><![CDATA[<h1 id="unraid">UNRAID</h1>
+<p><strong><a href="https://unraid.net/">Unleash Your Hardware</a></strong></p>
+<p>Unraid is an operating system for personal and small business use that brings enterprise-class features letting you configure your computer systems to maximize performance and capacity using any combination of applications, VMs, storage devices, and hardware.</p>
+]]></summary>
+        <content type="html"><![CDATA[<h1 id="unraid">UNRAID</h1>
+<p><strong><a href="https://unraid.net/">Unleash Your Hardware</a></strong></p>
+<p>Unraid is an operating system for personal and small business use that brings enterprise-class features letting you configure your computer systems to maximize performance and capacity using any combination of applications, VMs, storage devices, and hardware.</p>
+<!-- more -->
+<h1 id="unraid-installation">UNRAID Installation</h1>
+<ol>
+<li>Download files from <a href="https://softoroom.net/topic89043.html">softoroom</a> web site and extract by password: <code>softoroom</code>, <a href="http://ntlx.tpddns.cn:10080/share/ikO_a7mu">here</a> is a mirror</li>
+<li>Get a USB drive, format to FAT32, then copy all content in UNRAID image to USB drive</li>
+<li>Run <code>make_bootable.bat</code> (on windows) with admin privilege</li>
+<li>Plug in the USB drive to target machine, then power on (set <code>legacy boot</code> in BIOS if cannot boot from the USB drive)</li>
+<li>Visit the ip shows in target machine, recored the UUID, and choose <code>Trail</code>, then power off the UNRAID</li>
+<li>Plug in the USB drive to a windows PC (for example), run <code>keymaker.exe UUID</code>, you will get a <code>UUID.key</code> file in the same dir of <code>keymaker.exe</code>, put the <code>UUID.key</code> file to <code>config</code> dir in USB drive, and delete <code>trail.key</code></li>
+<li>Plug in the USB drive to traget machine and power on, enjoy it</li>
+</ol>
+<h1 id="unraid-settings">UNRAID Settings</h1>
+<h2 id="time">Time</h2>
+<blockquote>
+<p>NTP server settings.</p>
+</blockquote>
+<pre><code>time.asia.apple.com
+ntp1.aliyun.com
+s1b.time.edu.cn
+s1c.time.edu.cn
+</code></pre>
+<h2 id="storage">Storage</h2>
+<p>Every mounted disk inside UNRAID disk array will link to <code>/mnt/usr/</code> dir, so if you need to manipulate file(s) or dir(s) manually, operate inside <code>/mnt/usr/</code> dir was recommanded, it's also recommanded to docker path link settings.</p>
+<blockquote>
+<p>You can modify this disk management strategy in <code>SETTINGS</code> menu's <code>Global Share Settings</code>.</p>
+</blockquote>
+<h2 id="plugin">Plugin</h2>
+<pre><code>http://github.com/dlandon/unassigned.devices/raw/master/unassigned.devices.plg
+</code></pre>
+<h1 id="unraid-docker">UNRAID Docker</h1>
+<p>The Docker GUI in UNRAID was recommanded, but the Command Line was also convenient.</p>
+<blockquote>
+<p>You can set <code>Web UI</code> like this format in UNRAID docker GUI: <code>http://[IP]:[PORT:8080]</code></p>
+</blockquote>
+<h2 id="filebrowser">FileBrowser</h2>
+<figure data-type="image" tabindex="1"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141856.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='FileBrowser' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'WEB_PORT'='10080' -p '10080:10080/tcp' -v '/mnt/disk1/appdata/FileBrowser':'/config':'rw' -v '/mnt':'/myfiles':'rw' '80x86/filebrowser'
+</code></pre>
+<h2 id="aria2-webui">Aria2 &amp; WebUI</h2>
+<figure data-type="image" tabindex="2"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141835.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='Aria2WebUI' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '6800:6800/tcp' -v '/mnt/disk1/appdata/Aria2WebUI':'/conf':'rw' -v '/mnt/disk1/Download':'/data':'rw' 'xujinkai/aria2-with-webui'
+</code></pre>
+<h2 id="rrshare">rrshare</h2>
+<figure data-type="image" tabindex="3"><img src="https://odcn.top/wp-content/uploads/2018/11/%E9%BB%91%E5%88%BA%E7%8C%AC%E6%A8%AA150.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='rrshare' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'PUID'='100' -e 'PGID'='99' -p '3001:3001/tcp' -v '/mnt/disk1/Download':'/opt/work/store':'rw' 'oldiy/rrshare64'
+</code></pre>
+<h2 id="airsonic">AirSonic</h2>
+<figure data-type="image" tabindex="4"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131112627.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='AirSonic' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '4040:4040/tcp' -p '4040:4040/udp' -v '/mnt/disk1/appdata/AirSonic':'/config':'rw' -v '/mnt/disk1/Music':'/music':'rw' -v '/mnt/disk1/Music/playlists':'/playlists':'rw' -v '/mnt/disk1/Music/podcasts':'/podcasts':'rw' 'linuxserver/airsonic'
+</code></pre>
+<blockquote>
+<p>There are many <a href="https://airsonic.github.io/docs/apps/">Apps</a> could connect to AirSonic Music Library as an easy to use music player.</p>
+</blockquote>
+<h2 id="calibre-web">Calibre WEB</h2>
+<figure data-type="image" tabindex="5"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141905.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='Calibre' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '8080:8080/tcp' -p '8081:8081/tcp' -v '/mnt/disk1/Book/Calibre_Books':'/config':'rw' 'linuxserver/calibre'
+cp /mnt/disk1/Book/Calibre_Books/Calibre\ Library/metadata.db /mnt/disk1/Book/
+docker run -d --name='CalibreWeb' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '10082:8082/tcp' -p '10083:8083/tcp' -v '/mnt/disk1/appdata/CalibreWeb':'/config':'rw' -v '/mnt/disk1/Book':'/books':'rw' 'linuxserver/calibre-web'
+</code></pre>
+<p>If you get error &quot;<code>DB location is not valid, please enter correct path</code>&quot;, you could just put an <a href="http://ntlx.tpddns.cn:10080/share/5biuC9Ch">empty database</a> to where <code>/books</code> links to.</p>
+<h2 id="leanote">LeaNote</h2>
+<figure data-type="image" tabindex="6"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
+<p>First, run CMD:</p>
+<pre><code class="language-bash">docker run -d --name='LeaNote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '9000:9000/tcp' -p '9000:9000/udp' -v '/mnt/disk1/appdata/leanote/mongo':'/usr/local/bin/leanote/db_data':'rw' 'idealclover/leanote'
+</code></pre>
+<p>Then, copy <code>conf</code> and <code>public</code> for docker path link:</p>
+<pre><code class="language-bash">docker cp LeaNote:/usr/local/bin/leanote/conf /mnt/disk1/appdata/leanote/conf
+docker cp LeaNote:/usr/local/bin/leanote/public /mnt/disk1/appdata/leanote/public
+</code></pre>
+<p>At last, stop this container and re-run with CMD:</p>
+<pre><code class="language-bash">docker run -d --name='LeaNote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '9000:9000/tcp' -p '9000:9000/udp' -v '/mnt/disk1/appdata/leanote/conf':'/usr/local/bin/leanote/conf':'rw' -v '/mnt/disk1/appdata/leanote/public':'/usr/local/bin/leanote/public':'rw' -v '/mnt/disk1/appdata/leanote/mongo':'/usr/local/bin/leanote/db_data':'rw' 'idealclover/leanote'
+</code></pre>
+<blockquote>
+<p>Default Administrator Account: admin</p>
+<p>Password: abc123</p>
+</blockquote>
+<h2 id="leanote-new">LeaNote (New)</h2>
+<figure data-type="image" tabindex="7"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash"># docker run -d --name leanote --restart=always -m 512M --cpus=1 -e SITEURL=&quot;[访问网址/IP+端口]&quot; -e LANG=&quot;zh-cn&quot; -e DAYS=&quot;3&quot; -p 8080:9000 -v [宿主机储存路径]/leanotedata:/data hjh142857/leanote
+docker run -d --name='leanote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'SITEURL'='http://ntlx.tpddns.cn:9000' -e 'LANG'='zh-cn' -e 'DAYS'='3' -p '20000:9000/tcp' -v '/mnt/disk1/appdata/leanotedata':'/data':'rw' 'hjh142857/leanote'
+</code></pre>
+<p><strong>Do not change default administrator account's username !</strong></p>
+<blockquote>
+<p>Default administrator account: admin / abc123</p>
+<p>Default demo account: demo@leanote.com / demo@leanote.com</p>
+<p>Default backup files will be under <code>/mnt/disk1/appdata/leanotedata/backup</code> dir</p>
+<p>Copy backup files (<code>tar.gz</code> files named <code>mongodb</code> and <code>leanote</code>) to <code>/mnt/disk1/appdata/leanotedata/restore</code> dir to restore data</p>
+</blockquote>
+<h2 id="wiznote">WizNote</h2>
+<figure data-type="image" tabindex="8"><img src="https://www.xiazaiba.com/uploadfiles/ico/2015/0512/2015051209502232051.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='WizNote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '9000:80/tcp' -p '9000:80/udp' -p '9269:9269/udp' -v '/mnt/disk1/appdata/wiz':'/wiz/storage':'rw' 'wiznote/wizserver'
+</code></pre>
+<blockquote>
+<p>Default Administrator account: admin@wiz.cn</p>
+<p>Password: 123456</p>
+<p>If you need <code>web clip</code> function, you need pay for it.</p>
+</blockquote>
+<h2 id="wikijs">WiKi.js</h2>
+<h3 id="postgresql">PostgreSQL</h3>
+<figure data-type="image" tabindex="9"><img src="http://img.52z.com/upload/info/20180919/201809191722011146.jpg" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='postgresql' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'POSTGRES_PASSWORD'='password' -p '54321:5432/tcp' -v '/mnt/disk1/appdata/wikijs/postgresql':'/var/lib/postgresql/data':'rw' 'postgres'
+</code></pre>
+<h3 id="wikijs-2">wikijs</h3>
+<figure data-type="image" tabindex="10"><img src="https://wiki.js.org/img/logo.fc80554c.svg" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='wikijs' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'DB_TYPE'='postgres' -e 'DB_HOST'='192.168.0.100' -e 'DB_PORT'='54321' -e 'DB_USER'='postgres' -e 'DB_PASS'='password' -e 'DB_NAME'='postgres' -p '3000:3000/tcp' 'requarks/wiki:2'
+</code></pre>
+<h2 id="open-project">Open Project</h2>
+<figure data-type="image" tabindex="11"><img src="https://secure.gravatar.com/avatar/acd15bc2006a09325df72b6a6223c5ec.jpg?s=80&amp;r=g&amp;d=mm" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='OpenProject' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'SECRET_KEY_BASE'='secret' -p '10008:80/tcp' -v '/mnt/disk1/appdata/openproject/pgdata':'/var/openproject/pgdata':'rw' -v '/mnt/disk1/appdata/openproject/assets':'/var/openproject/assets':'rw' 'openproject/community:latest'
+</code></pre>
+<h2 id="erpnext">ERPNext</h2>
+<figure data-type="image" tabindex="12"><img src="https://raw.githubusercontent.com/frappe/erpnext/develop/erpnext/public/images/erpnext-logo.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash"># docker run -d --name='ERPNext' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '16000:80/tcp' -v '/mnt/disk1/appdata/ERPNext/frappe/site1.local':'/home/frappe/frappe-bench/sites/site1.local':'rw' -v '/mnt/disk1/appdata/ERPNext/logs':'/home/frappe/frappe-bench/logs':'rw' -v '/mnt/disk1/appdata/ERPNext/mysql':'/var/lib/mysql':'rw' 'lukptr/erpnext7'
+docker run -d --name='ERPNext' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '16000:80/tcp' 'lukptr/erpnext7'
+</code></pre>
+<blockquote>
+<p>Default Admin User Account: Administrator</p>
+<p>Password: 12345678</p>
+</blockquote>
+<p>Usefull CMD:</p>
+<pre><code class="language-bash"># Copy files from Docker Container to outside
+docker cp ERPNext:/home/frappe/frappe-bench/sites/site1.local /mnt/disk1/appdata/ERPNext/frappe/
+docker cp ERPNext:/home/frappe/frappe-bench/logs /mnt/disk1/appdata/ERPNext/
+docker cp ERPNext:/var/lib/mysql /mnt/disk1/appdata/ERPNext/
+# Enter Docker Container
+docker exec -it ERPNext bash
+# Run CMD inside Docker Container
+bench update
+bench migrate
+bench backup
+</code></pre>
+<p>Data backup:</p>
+<pre><code class="language-bash">docker exec -it ERPNext bash ## run this CMD inside docker container
+bench backup # backup ## run this CMD inside docker container
+docker cp ERPNext:/home/frappe/frappe-bench/sites/site1.local/private/backups /mnt/disk1/appdata/ERPNext/ # copy backup files ## run this CMD inside docker container
+</code></pre>
+<p>Data restore:</p>
+<pre><code class="language-bash">docker cp /mnt/disk1/appdata/ERPNext/backups/database.sql.gz ERPNext:/home/frappe/
+docker exec -it ERPNext bash
+bench --force restore /home/frappe/database.sql.gz
+</code></pre>
+<h2 id="watchtower">Watchtower</h2>
+<figure data-type="image" tabindex="13"><img src="https://camo.githubusercontent.com/7edd4ae7ae04b30fd707f9f9713e9778040b39ad/68747470733a2f2f30783132622e636f6d2f7761746368746f7765722d6c6f676f2e706e67" alt="icon" loading="lazy"></figure>
+<blockquote>
+<p>Docker container auto update.</p>
+</blockquote>
+<pre><code class="language-bash">docker run -d --name='Watchtower' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower AirSonic CalibreWeb FileBrowser wikijs WizNote
+</code></pre>
+<h1 id="unraid-virtual-machine">UNRAID Virtual Machine</h1>
+<h2 id="black-synology-dsm">Black Synology DSM</h2>
+<p>Mount NFS folder to DSM:</p>
+<pre><code class="language-bash">/bin/mount -t nfs -o hard 192.168.0.100:/mnt/disk2/Photo /volume1/photo
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[mDNS]]></title>
         <id>https://ntlx.github.io/ybC4stKJg</id>
