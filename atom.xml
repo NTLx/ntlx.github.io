@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-02-10T00:33:33.461Z</updated>
+    <updated>2020-02-17T06:39:06.066Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -24,6 +24,9 @@
 <p><strong><a href="https://unraid.net/">Unleash Your Hardware</a></strong></p>
 <p>Unraid is an operating system for personal and small business use that brings enterprise-class features letting you configure your computer systems to maximize performance and capacity using any combination of applications, VMs, storage devices, and hardware.</p>
 <!-- more -->
+<figure data-type="image" tabindex="1"><img src="https://craftassets.unraid.net/uploads/logos/unraid-stacked-dark.svg" alt="logo" loading="lazy"></figure>
+<p><strong><a href="https://unraid.net/">Unleash Your Hardware</a></strong></p>
+<p>Unraid is an operating system for personal and small business use that brings enterprise-class features letting you configure your computer systems to maximize performance and capacity using any combination of applications, VMs, storage devices, and hardware.</p>
 <h1 id="unraid-installation">UNRAID Installation</h1>
 <ol>
 <li>Download files from <a href="https://softoroom.net/topic89043.html">softoroom</a> web site and extract by password: <code>softoroom</code>, <a href="http://ntlx.tpddns.cn:10080/share/ikO_a7mu">here</a> is a mirror</li>
@@ -58,33 +61,37 @@ s1c.time.edu.cn
 <p>You can set <code>Web UI</code> like this format in UNRAID docker GUI: <code>http://[IP]:[PORT:8080]</code></p>
 </blockquote>
 <h2 id="filebrowser">FileBrowser</h2>
-<figure data-type="image" tabindex="1"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141856.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="2"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141856.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='FileBrowser' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'WEB_PORT'='10080' -p '10080:10080/tcp' -v '/mnt/disk1/appdata/FileBrowser':'/config':'rw' -v '/mnt':'/myfiles':'rw' '80x86/filebrowser'
 </code></pre>
 <h2 id="aria2-webui">Aria2 &amp; WebUI</h2>
-<figure data-type="image" tabindex="2"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141835.png" alt="icon" loading="lazy"></figure>
-<pre><code class="language-bash">docker run -d --name='Aria2WebUI' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '6800:6800/tcp' -v '/mnt/disk1/appdata/Aria2WebUI':'/conf':'rw' -v '/mnt/disk1/Download':'/data':'rw' 'xujinkai/aria2-with-webui'
+<figure data-type="image" tabindex="3"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141835.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='Aria2WebUI' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '6800:6800/tcp' -p '6880:6880/tcp' -p '6800:6800/udp' -p '6880:6880/udp' -v '/mnt/disk1/appdata/Aria2WebUI':'/conf':'rw' -v '/mnt/disk1/Download':'/data':'rw' 'xujinkai/aria2-with-webui'
 </code></pre>
 <h2 id="rrshare">rrshare</h2>
-<figure data-type="image" tabindex="3"><img src="https://odcn.top/wp-content/uploads/2018/11/%E9%BB%91%E5%88%BA%E7%8C%AC%E6%A8%AA150.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="4"><img src="https://odcn.top/wp-content/uploads/2018/11/%E9%BB%91%E5%88%BA%E7%8C%AC%E6%A8%AA150.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='rrshare' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'PUID'='100' -e 'PGID'='99' -p '3001:3001/tcp' -v '/mnt/disk1/Download':'/opt/work/store':'rw' 'oldiy/rrshare64'
 </code></pre>
 <h2 id="airsonic">AirSonic</h2>
-<figure data-type="image" tabindex="4"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131112627.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="5"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131112627.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='AirSonic' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '4040:4040/tcp' -p '4040:4040/udp' -v '/mnt/disk1/appdata/AirSonic':'/config':'rw' -v '/mnt/disk1/Music':'/music':'rw' -v '/mnt/disk1/Music/playlists':'/playlists':'rw' -v '/mnt/disk1/Music/podcasts':'/podcasts':'rw' 'linuxserver/airsonic'
 </code></pre>
 <blockquote>
 <p>There are many <a href="https://airsonic.github.io/docs/apps/">Apps</a> could connect to AirSonic Music Library as an easy to use music player.</p>
 </blockquote>
+<h2 id="lms">lms</h2>
+<figure data-type="image" tabindex="6"><img src="http://img.aso.aizhan.com/icon/fe/b4/5e/feb45e8acd229ee3994be8fb8514a9ee.jpg" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">docker run -d --name='lms' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '5082:5082/tcp' -v '/mnt/disk1/appdata/lms':'/var/lms':'rw' -v '/mnt/disk1/Music':'/music':'ro' 'epoupon/lms'
+</code></pre>
 <h2 id="calibre-web">Calibre WEB</h2>
-<figure data-type="image" tabindex="5"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141905.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="7"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGO/20200131141905.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='Calibre' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '8080:8080/tcp' -p '8081:8081/tcp' -v '/mnt/disk1/Book/Calibre_Books':'/config':'rw' 'linuxserver/calibre'
 cp /mnt/disk1/Book/Calibre_Books/Calibre\ Library/metadata.db /mnt/disk1/Book/
-docker run -d --name='CalibreWeb' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '10082:8082/tcp' -p '10083:8083/tcp' -v '/mnt/disk1/appdata/CalibreWeb':'/config':'rw' -v '/mnt/disk1/Book':'/books':'rw' 'linuxserver/calibre-web'
+docker run -d --name='CalibreWeb' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '10082:8082/tcp' -p '10083:8083/tcp' -v '/mnt/disk1/appdata/CalibreWeb':'/config':'rw' -v '/mnt/disk1/Book/Calibre_Books/CalibreLibrary':'/books':'rw' 'linuxserver/calibre-web'
 </code></pre>
 <p>If you get error &quot;<code>DB location is not valid, please enter correct path</code>&quot;, you could just put an <a href="http://ntlx.tpddns.cn:10080/share/5biuC9Ch">empty database</a> to where <code>/books</code> links to.</p>
 <h2 id="leanote">LeaNote</h2>
-<figure data-type="image" tabindex="6"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="8"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
 <p>First, run CMD:</p>
 <pre><code class="language-bash">docker run -d --name='LeaNote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '9000:9000/tcp' -p '9000:9000/udp' -v '/mnt/disk1/appdata/leanote/mongo':'/usr/local/bin/leanote/db_data':'rw' 'idealclover/leanote'
 </code></pre>
@@ -100,7 +107,7 @@ docker cp LeaNote:/usr/local/bin/leanote/public /mnt/disk1/appdata/leanote/publi
 <p>Password: abc123</p>
 </blockquote>
 <h2 id="leanote-new">LeaNote (New)</h2>
-<figure data-type="image" tabindex="7"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="9"><img src="https://cn.bing.com/th?id=OIP.duxFKYas_oKAHVjoZZcStAAAAA&amp;pid=Api&amp;rs=1" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash"># docker run -d --name leanote --restart=always -m 512M --cpus=1 -e SITEURL=&quot;[访问网址/IP+端口]&quot; -e LANG=&quot;zh-cn&quot; -e DAYS=&quot;3&quot; -p 8080:9000 -v [宿主机储存路径]/leanotedata:/data hjh142857/leanote
 docker run -d --name='leanote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'SITEURL'='http://ntlx.tpddns.cn:9000' -e 'LANG'='zh-cn' -e 'DAYS'='3' -p '20000:9000/tcp' -v '/mnt/disk1/appdata/leanotedata':'/data':'rw' 'hjh142857/leanote'
 </code></pre>
@@ -112,7 +119,7 @@ docker run -d --name='leanote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e
 <p>Copy backup files (<code>tar.gz</code> files named <code>mongodb</code> and <code>leanote</code>) to <code>/mnt/disk1/appdata/leanotedata/restore</code> dir to restore data</p>
 </blockquote>
 <h2 id="wiznote">WizNote</h2>
-<figure data-type="image" tabindex="8"><img src="https://www.xiazaiba.com/uploadfiles/ico/2015/0512/2015051209502232051.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="10"><img src="https://www.xiazaiba.com/uploadfiles/ico/2015/0512/2015051209502232051.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='WizNote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '9000:80/tcp' -p '9000:80/udp' -p '9269:9269/udp' -v '/mnt/disk1/appdata/wiz':'/wiz/storage':'rw' 'wiznote/wizserver'
 </code></pre>
 <blockquote>
@@ -122,19 +129,29 @@ docker run -d --name='leanote' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e
 </blockquote>
 <h2 id="wikijs">WiKi.js</h2>
 <h3 id="postgresql">PostgreSQL</h3>
-<figure data-type="image" tabindex="9"><img src="http://img.52z.com/upload/info/20180919/201809191722011146.jpg" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="11"><img src="http://img.52z.com/upload/info/20180919/201809191722011146.jpg" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='postgresql' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'POSTGRES_PASSWORD'='password' -p '54321:5432/tcp' -v '/mnt/disk1/appdata/wikijs/postgresql':'/var/lib/postgresql/data':'rw' 'postgres'
 </code></pre>
 <h3 id="wikijs-2">wikijs</h3>
-<figure data-type="image" tabindex="10"><img src="https://wiki.js.org/img/logo.fc80554c.svg" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="12"><img src="https://wiki.js.org/img/logo.fc80554c.svg" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='wikijs' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'DB_TYPE'='postgres' -e 'DB_HOST'='192.168.0.100' -e 'DB_PORT'='54321' -e 'DB_USER'='postgres' -e 'DB_PASS'='password' -e 'DB_NAME'='postgres' -p '3000:3000/tcp' 'requarks/wiki:2'
 </code></pre>
+<h2 id="matterwiki">MatterWiKi</h2>
+<figure data-type="image" tabindex="13"><img src="http://matterwiki.com/assets/logo.png" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">git clone http://github.com/matterwiki/matterwiki
+cd matterwiki
+docker build -t matterwiki .
+docker run -d --name='MatterWiKi' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '5000:5000/tcp' -v '/mnt/disk1/appdata/MatterWiKi/db':'/server/db':'rw' 'matterwiki'
+</code></pre>
+<blockquote>
+<p>Visit <code>http://ip:5000/#/setup</code> to set up administrator account.</p>
+</blockquote>
 <h2 id="open-project">Open Project</h2>
-<figure data-type="image" tabindex="11"><img src="https://secure.gravatar.com/avatar/acd15bc2006a09325df72b6a6223c5ec.jpg?s=80&amp;r=g&amp;d=mm" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="14"><img src="https://secure.gravatar.com/avatar/acd15bc2006a09325df72b6a6223c5ec.jpg?s=80&amp;r=g&amp;d=mm" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash">docker run -d --name='OpenProject' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -e 'SECRET_KEY_BASE'='secret' -p '10008:80/tcp' -v '/mnt/disk1/appdata/openproject/pgdata':'/var/openproject/pgdata':'rw' -v '/mnt/disk1/appdata/openproject/assets':'/var/openproject/assets':'rw' 'openproject/community:latest'
 </code></pre>
 <h2 id="erpnext">ERPNext</h2>
-<figure data-type="image" tabindex="12"><img src="https://raw.githubusercontent.com/frappe/erpnext/develop/erpnext/public/images/erpnext-logo.png" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="15"><img src="https://raw.githubusercontent.com/frappe/erpnext/develop/erpnext/public/images/erpnext-logo.png" alt="icon" loading="lazy"></figure>
 <pre><code class="language-bash"># docker run -d --name='ERPNext' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '16000:80/tcp' -v '/mnt/disk1/appdata/ERPNext/frappe/site1.local':'/home/frappe/frappe-bench/sites/site1.local':'rw' -v '/mnt/disk1/appdata/ERPNext/logs':'/home/frappe/frappe-bench/logs':'rw' -v '/mnt/disk1/appdata/ERPNext/mysql':'/var/lib/mysql':'rw' 'lukptr/erpnext7'
 docker run -d --name='ERPNext' --net='bridge' -e TZ=&quot;Asia/Shanghai&quot; -e HOST_OS=&quot;Unraid&quot; -p '16000:80/tcp' 'lukptr/erpnext7'
 </code></pre>
@@ -165,7 +182,7 @@ docker exec -it ERPNext bash
 bench --force restore /home/frappe/database.sql.gz
 </code></pre>
 <h2 id="watchtower">Watchtower</h2>
-<figure data-type="image" tabindex="13"><img src="https://camo.githubusercontent.com/7edd4ae7ae04b30fd707f9f9713e9778040b39ad/68747470733a2f2f30783132622e636f6d2f7761746368746f7765722d6c6f676f2e706e67" alt="icon" loading="lazy"></figure>
+<figure data-type="image" tabindex="16"><img src="https://camo.githubusercontent.com/7edd4ae7ae04b30fd707f9f9713e9778040b39ad/68747470733a2f2f30783132622e636f6d2f7761746368746f7765722d6c6f676f2e706e67" alt="icon" loading="lazy"></figure>
 <blockquote>
 <p>Docker container auto update.</p>
 </blockquote>
@@ -228,16 +245,46 @@ sudo firewall-cmd --reload
         <link href="https://ntlx.github.io/reading-notes">
         </link>
         <updated>2019-12-06T00:31:41.000Z</updated>
-        <content type="html"><![CDATA[<p>《21世纪资本论》<br>
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/07/Capital_in_the_Twenty-First_Century_%28front_cover%29.jpg?1575592621882" alt="21世纪资本论" loading="lazy"></p>
+        <content type="html"><![CDATA[<h1 id="21世纪资本论">21世纪资本论</h1>
+<h2 id="info">Info</h2>
+<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/0/07/Capital_in_the_Twenty-First_Century_%28front_cover%29.jpg?1575592621882" alt="21世纪资本论" loading="lazy"></figure>
+<pre><code class="language-bash">作者: [法] 托马斯·皮凯蒂（Thomas Piketty）
+出版社: 中信出版社
+副标题: Capital in the Twenty-First Century
+原作名: Le capital au XXIe siècle
+译者: 巴曙松 等译
+出版年: 2014-9
+页数: 685
+定价: 98.00元
+装帧: 精装
+ISBN: 9787508647258
+</code></pre>
+<h2 id="source">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note">Note</h2>
 <ol>
 <li>资本收入与劳动收入的不平等分配是贫富分化的重要力量</li>
 <li>资本收入本身也是不平等分配的，劳动收入也一样，所以劳动收入的不平等也是贫富分化的重要力量</li>
 <li>世袭资本主义（继承财富的资本收益率）将再次成为贫富分化的重要力量</li>
 <li>“力量阶层”（资本富集阶层）的收入“议价权”与资本增值速度是贫富分化的重要力量</li>
 </ol>
-<p>《迷人的温度》<br>
-<img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191216145721.jpg" alt="迷人的温度" loading="lazy"></p>
+<h1 id="迷人的温度">迷人的温度</h1>
+<h2 id="info-2">Info</h2>
+<figure data-type="image" tabindex="2"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191216145721.jpg" alt="迷人的温度" loading="lazy"></figure>
+<pre><code class="language-bash">作者: [美] 吉诺•塞格雷
+出版社: 上海译文出版社
+副标题: 温度计里的人类、地球和宇宙史
+原作名: A Matter of Degrees: What Temperature Reveals about the Past and Future of Our Species, Planet, and Universe
+译者: 高天羽
+出版年: 2017-4
+页数: 262
+定价: 58
+装帧: 平装
+ISBN: 9787532773640
+</code></pre>
+<h2 id="source-2">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-2">Note</h2>
 <ol>
 <li>温度的概念只出现了300多年</li>
 <li>温度促进了近代科学诞生：温度概念的提出对科学（物理学）发展的推动作用不亚于望远镜对天文学、显微镜对近代生物学的作用（玻璃的制造工艺至关重要）</li>
@@ -245,6 +292,245 @@ sudo firewall-cmd --reload
 <li>地球历史上的几次温度剧烈变化（如冰河期）之后都迎来了生物发展的一次大跃进（多样性和进化等级），并导致地球生命进化成以氧气为生</li>
 <li>温度打造出了不同的原子，从而决定了宇宙中万事万物的形态：自然界中最稳定的原子就是铁，除非超新星爆炸、中子星对撞等事件才能生成更重的原子；而一个恒星的命运由其质量和温度决定</li>
 </ol>
+<h1 id="时间的秩序">时间的秩序</h1>
+<h2 id="info-3">Info</h2>
+<figure data-type="image" tabindex="3"><img src="https://img3.doubanio.com/view/subject/l/public/s32332471.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者: [意] 卡洛·罗韦利
+出版社: 湖南科学技术出版社
+出品方: 企鹅图书
+原作名: The Order of Time
+译者: 杨光
+出版年: 2019-6
+页数: 183
+定价: 56.00元
+装帧: 精装
+丛书: 卡洛·罗韦利诗意科普系列
+ISBN: 9787571001636
+</code></pre>
+<h2 id="source-3">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-3">Note</h2>
+<ol>
+<li>有序和无序可能只是人的感觉而已，并非客观实在</li>
+<li>人感受到时间的流逝和不可逆，可能只是因为在人的尺度上只能观察到有限的变量，而这种模糊的观察让我们认为时间是有序的</li>
+<li>从物理（数学）角度来讲，时间没有方向（比如某行星的状态可以推演，也可以反演）</li>
+<li>在物理学中，只有热力学第二定律不能反演</li>
+<li>结合以上几点，时间可能并不是客观存在的（熵也可能并不存在），我们感受到的时间可能与热力学第二定律有关</li>
+<li>人从量子世界中选择看到了这个世界（即量子世界的一个特殊的子集），感受到了时间的流逝（这是准备要完美解释人择的节奏？）</li>
+<li>记忆是人感受到时间的关键，记忆组合了事件</li>
+</ol>
+<h1 id="欲罢不能">欲罢不能</h1>
+<h2 id="info-4">Info</h2>
+<figure data-type="image" tabindex="4"><img src="https://img3.doubanio.com/view/subject/l/public/s29756931.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者: [美] 亚当·奥尔特
+出版社: 机械工业出版社
+副标题: 刷屏时代如何摆脱行为上瘾
+原作名: Irresistible: The Rise of Addictive Technology and the Business of Keeping Us Hooked
+译者: 闾佳
+出版年: 2018-4-1
+页数: 272
+定价: 59.00元
+装帧: 平装
+ISBN: 9787111587514
+</code></pre>
+<h2 id="source-4">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-4">Note</h2>
+<ul>
+<li>
+<p>电子产品会带来行为上瘾</p>
+</li>
+<li>
+<p>生物大脑有一个“快感中枢”导致上瘾</p>
+</li>
+<li>
+<p>行为上瘾可能改变大脑</p>
+</li>
+<li>
+<p>上瘾推手最常用的招数：</p>
+<ol>
+<li>诱人深入的目标</li>
+<li>轻而易举的进步</li>
+<li>大张旗鼓的反馈</li>
+<li>逐渐升级的挑战</li>
+<li>不可预见的悬念</li>
+<li>令人痴迷的社会互动</li>
+</ol>
+</li>
+<li>
+<p>如何对抗上瘾（纯靠意志力是不行的）：</p>
+<ol>
+<li>发现上瘾背后的心理需求</li>
+<li>营造一个有利的环境</li>
+<li>借助工具的力量</li>
+<li>借助他人的力量</li>
+</ol>
+</li>
+</ul>
+<h1 id="为什么">为什么</h1>
+<h2 id="info-5">Info</h2>
+<figure data-type="image" tabindex="5"><img src="https://img9.doubanio.com/view/subject/l/public/s33298015.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者: [美]朱迪亚·珀尔(Judea Pearl) / [美]达纳·麦肯齐(Dana Mackenzie)
+出版社: 中信出版集团股份有限公司
+副标题: 关于因果关系的新科学
+原作名: The Book of Why : The New Science of Cause and Effect
+译者: 江生 / 于华
+出版年: 2019-7-1
+页数: 374
+定价: 69.00元
+装帧: 精装
+ISBN: 9787521705072
+</code></pre>
+<h2 id="source-5">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-5">Note</h2>
+<ul>
+<li>这本书尝试让因果回到科学的范畴之内（很长一段时间里，科学的世界里只有相关没有因果）</li>
+<li>因果思维是一种超越经验的思考能力</li>
+<li>因果思维中考虑到因素越关键（或越全面），因果关系的建立就越准确</li>
+<li>提升因果思维的方法：</li>
+</ul>
+<ol>
+<li>区分混杂因子（并阻断之，即区分开来进行分析）</li>
+<li>找到中介因素（原因1＝》原因2＝》结果，原因2即为中介因素）</li>
+</ol>
+<h1 id="原则">原则</h1>
+<h2 id="info-6">Info</h2>
+<figure data-type="image" tabindex="6"><img src="https://img3.doubanio.com/view/subject/l/public/s29689353.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者: [美] 瑞·达利欧
+出版社: 中信出版社
+原作名: Principles: Life and Work
+译者: 刘波 / 綦相
+出版年: 2018-1
+页数: 576
+定价: CNY 98.00
+装帧: 精装
+ISBN: 9787508684031
+</code></pre>
+<h2 id="source-6">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-6">Note</h2>
+<blockquote>
+<p>本书讲的其实就是绝对理性的原则，奉行理性至上。</p>
+</blockquote>
+<h3 id="生活的原则">生活的原则</h3>
+<ul>
+<li>
+<p>做到用绝对理性的角度理解世界</p>
+</li>
+<li>
+<p>保持极度的开放和坦诚有助于理性思考</p>
+</li>
+<li>
+<p>达成目标的五个步骤：</p>
+</li>
+</ul>
+<ol>
+<li>设定目标</li>
+<li>认识问题</li>
+<li>诊断问题</li>
+<li>设计解决方案</li>
+<li>执行解决方案</li>
+</ol>
+<h3 id="工作的原则">工作的原则</h3>
+<blockquote>
+<p>其实就是把生活原则应用到了工作上</p>
+</blockquote>
+<ul>
+<li>优秀想法至上原则：在工作中营造极度透明和极度真实的文化有助于找到最优idea并作出最优决策</li>
+</ul>
+<h3 id="从错误中反思形成自己的原则">从错误中反思，形成自己的原则</h3>
+<ul>
+<li>成为一个专业的犯错者</li>
+<li>从“我是对的”到“我怎么知道我是对的”</li>
+<li>从生活和工作中得到的经验不要只停留在感性经验，要记录＆总结，形成自己的原则（甚至可以形成一个相应的WiKi）</li>
+</ul>
+<h1 id="俞军产品方法论">俞军产品方法论</h1>
+<h2 id="info-7">Info</h2>
+<figure data-type="image" tabindex="7"><img src="https://img1.doubanio.com/view/subject/l/public/s33543538.jpg" alt="icon" loading="lazy"></figure>
+<pre><code class="language-bash">作者: 俞军
+出版社: 中信出版集团
+出版年: 2019-12-1
+页数: 352
+定价: 65
+装帧: 精装
+ISBN: 9787521712056
+</code></pre>
+<h2 id="source-7">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-7">Note</h2>
+<h3 id="什么是产品经理">什么是产品经理</h3>
+<ul>
+<li>在各个时代的定义不一样，见“核心能力的演进”</li>
+</ul>
+<h3 id="产品经理需要掌握什么样的知识模型">产品经理需要掌握什么样的知识模型</h3>
+<ul>
+<li>核心能力的演进：品牌营销＝》项目管理＝》需求洞察＝》连接器</li>
+<li>经济学和心理学是快速提升洞察能力，突破天花板的必备</li>
+<li>用户模型
+<ul>
+<li>产品经理眼中的用户不应是自然人，而是需求的集合</li>
+<li>对用户模型的总结能力很重要</li>
+</ul>
+</li>
+<li>交易模型
+<ul>
+<li>搞清楚利益相关方（根据其影响力和利益得失大小）各方在交易中的利害得失</li>
+<li>创造有利可图的用户价值（产品经理不是单纯创造利益最大化或产品最优化，需要在各方面做权衡取舍）</li>
+</ul>
+</li>
+</ul>
+<h3 id="产品经理的职业成长线路图是什么">产品经理的职业成长线路图是什么</h3>
+<ul>
+<li>对新人来说，带你的人最重要，产品次之，平台反而最不重要</li>
+<li>过早做管理反而是减分项</li>
+</ul>
+<h1 id="数学之美">数学之美</h1>
+<h2 id="info-8">Info</h2>
+<figure data-type="image" tabindex="8"><img src="https://img9.doubanio.com/view/subject/l/public/s9114855.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者:  [美] 吴军
+出版社: 人民邮电出版社
+出品方: Just-pub
+出版年: 2012-5-1
+页数: 272
+定价: 45.00元
+装帧: 平装
+ISBN: 9787115282828
+</code></pre>
+<h2 id="source-8">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-8">Note</h2>
+<ul>
+<li>数学的用处
+<ul>
+<li>让我们掌握“道”，即事物的道理，原理</li>
+</ul>
+</li>
+<li>数学为什么这么有用
+<ul>
+<li>能帮我们找到仅凭经验无法找到或发现的道理或事物</li>
+</ul>
+</li>
+<li>数学之美就是简单之美</li>
+</ul>
+<h1 id="五角大楼之脑">五角大楼之脑</h1>
+<h2 id="info-9">Info</h2>
+<figure data-type="image" tabindex="9"><img src="https://img1.doubanio.com/view/subject/l/public/s29345059.jpg" alt="cover" loading="lazy"></figure>
+<pre><code>作者: (美) 安妮·雅各布森
+出版社: 中信出版集团
+副标题: 美国国防部高级研究计划局不为人知的历史
+原作名: The Pentagon’s Brain: An Uncensored History of DARPA, America’s Top-Secret Military Research Agency
+译者: 李文婕 / 郭颖
+出版年: 2017-3
+页数: 485
+定价: 58.00元
+装帧: 平装
+ISBN: 9787508672045
+</code></pre>
+<h2 id="source-9">Source</h2>
+<p>得到 App：每天读本书</p>
+<h2 id="note-9">Note</h2>
+<p>DARPA 研究机构，最特别的是其允许失败的文化，这与其它研究机构不同</p>
 ]]></content>
     </entry>
     <entry>
