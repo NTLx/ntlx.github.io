@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://ntlx.github.io</id>
     <title>NTLx Blog</title>
-    <updated>2020-02-17T06:39:06.066Z</updated>
+    <updated>2020-02-21T07:16:19.480Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://ntlx.github.io"/>
     <link rel="self" href="https://ntlx.github.io/atom.xml"/>
@@ -12,8 +12,8 @@
     <rights>All rights reserved 2020, NTLx Blog</rights>
     <entry>
         <title type="html"><![CDATA[UNRAID]]></title>
-        <id>https://ntlx.github.io/iDUezxQ-R</id>
-        <link href="https://ntlx.github.io/iDUezxQ-R">
+        <id>https://ntlx.github.io/iDUezxQ-R/</id>
+        <link href="https://ntlx.github.io/iDUezxQ-R/">
         </link>
         <updated>2020-01-30T08:57:15.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="unraid">UNRAID</h1>
@@ -197,8 +197,8 @@ bench --force restore /home/frappe/database.sql.gz
     </entry>
     <entry>
         <title type="html"><![CDATA[mDNS]]></title>
-        <id>https://ntlx.github.io/ybC4stKJg</id>
-        <link href="https://ntlx.github.io/ybC4stKJg">
+        <id>https://ntlx.github.io/ybC4stKJg/</id>
+        <link href="https://ntlx.github.io/ybC4stKJg/">
         </link>
         <updated>2020-01-16T01:02:09.000Z</updated>
         <content type="html"><![CDATA[<h1 id="alpine">Alpine</h1>
@@ -227,8 +227,8 @@ sudo firewall-cmd --reload
     </entry>
     <entry>
         <title type="html"><![CDATA[黑群晖]]></title>
-        <id>https://ntlx.github.io/hei-qun-hui</id>
-        <link href="https://ntlx.github.io/hei-qun-hui">
+        <id>https://ntlx.github.io/hei-qun-hui/</id>
+        <link href="https://ntlx.github.io/hei-qun-hui/">
         </link>
         <updated>2019-12-16T01:34:30.000Z</updated>
         <summary type="html"><![CDATA[<p><a href="https://www.nas2x.com/threads/2019-3-12.588/">黑群晖教程收录</a></p>
@@ -240,303 +240,9 @@ sudo firewall-cmd --reload
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[读书笔记]]></title>
-        <id>https://ntlx.github.io/reading-notes</id>
-        <link href="https://ntlx.github.io/reading-notes">
-        </link>
-        <updated>2019-12-06T00:31:41.000Z</updated>
-        <content type="html"><![CDATA[<h1 id="21世纪资本论">21世纪资本论</h1>
-<h2 id="info">Info</h2>
-<figure data-type="image" tabindex="1"><img src="https://upload.wikimedia.org/wikipedia/commons/0/07/Capital_in_the_Twenty-First_Century_%28front_cover%29.jpg?1575592621882" alt="21世纪资本论" loading="lazy"></figure>
-<pre><code class="language-bash">作者: [法] 托马斯·皮凯蒂（Thomas Piketty）
-出版社: 中信出版社
-副标题: Capital in the Twenty-First Century
-原作名: Le capital au XXIe siècle
-译者: 巴曙松 等译
-出版年: 2014-9
-页数: 685
-定价: 98.00元
-装帧: 精装
-ISBN: 9787508647258
-</code></pre>
-<h2 id="source">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note">Note</h2>
-<ol>
-<li>资本收入与劳动收入的不平等分配是贫富分化的重要力量</li>
-<li>资本收入本身也是不平等分配的，劳动收入也一样，所以劳动收入的不平等也是贫富分化的重要力量</li>
-<li>世袭资本主义（继承财富的资本收益率）将再次成为贫富分化的重要力量</li>
-<li>“力量阶层”（资本富集阶层）的收入“议价权”与资本增值速度是贫富分化的重要力量</li>
-</ol>
-<h1 id="迷人的温度">迷人的温度</h1>
-<h2 id="info-2">Info</h2>
-<figure data-type="image" tabindex="2"><img src="https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20191216145721.jpg" alt="迷人的温度" loading="lazy"></figure>
-<pre><code class="language-bash">作者: [美] 吉诺•塞格雷
-出版社: 上海译文出版社
-副标题: 温度计里的人类、地球和宇宙史
-原作名: A Matter of Degrees: What Temperature Reveals about the Past and Future of Our Species, Planet, and Universe
-译者: 高天羽
-出版年: 2017-4
-页数: 262
-定价: 58
-装帧: 平装
-ISBN: 9787532773640
-</code></pre>
-<h2 id="source-2">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-2">Note</h2>
-<ol>
-<li>温度的概念只出现了300多年</li>
-<li>温度促进了近代科学诞生：温度概念的提出对科学（物理学）发展的推动作用不亚于望远镜对天文学、显微镜对近代生物学的作用（玻璃的制造工艺至关重要）</li>
-<li>温度是人类进化出智慧的关键：为什么高等动物都是恒温的？「远古时期的生物生活在海中时，由于海水基本是恒温的，生物体并不需要体温恒定；但某些生物登陆后，陆地环境温差较大，为保持机体高效运转，温度较高的恒温环境就很必要，拥有恒定体温的生物就获得了更大的生存优势」体温为什么都会恒定在37℃左右？「也许是维持复杂脑组织高效运转的必需」</li>
-<li>地球历史上的几次温度剧烈变化（如冰河期）之后都迎来了生物发展的一次大跃进（多样性和进化等级），并导致地球生命进化成以氧气为生</li>
-<li>温度打造出了不同的原子，从而决定了宇宙中万事万物的形态：自然界中最稳定的原子就是铁，除非超新星爆炸、中子星对撞等事件才能生成更重的原子；而一个恒星的命运由其质量和温度决定</li>
-</ol>
-<h1 id="时间的秩序">时间的秩序</h1>
-<h2 id="info-3">Info</h2>
-<figure data-type="image" tabindex="3"><img src="https://img3.doubanio.com/view/subject/l/public/s32332471.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者: [意] 卡洛·罗韦利
-出版社: 湖南科学技术出版社
-出品方: 企鹅图书
-原作名: The Order of Time
-译者: 杨光
-出版年: 2019-6
-页数: 183
-定价: 56.00元
-装帧: 精装
-丛书: 卡洛·罗韦利诗意科普系列
-ISBN: 9787571001636
-</code></pre>
-<h2 id="source-3">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-3">Note</h2>
-<ol>
-<li>有序和无序可能只是人的感觉而已，并非客观实在</li>
-<li>人感受到时间的流逝和不可逆，可能只是因为在人的尺度上只能观察到有限的变量，而这种模糊的观察让我们认为时间是有序的</li>
-<li>从物理（数学）角度来讲，时间没有方向（比如某行星的状态可以推演，也可以反演）</li>
-<li>在物理学中，只有热力学第二定律不能反演</li>
-<li>结合以上几点，时间可能并不是客观存在的（熵也可能并不存在），我们感受到的时间可能与热力学第二定律有关</li>
-<li>人从量子世界中选择看到了这个世界（即量子世界的一个特殊的子集），感受到了时间的流逝（这是准备要完美解释人择的节奏？）</li>
-<li>记忆是人感受到时间的关键，记忆组合了事件</li>
-</ol>
-<h1 id="欲罢不能">欲罢不能</h1>
-<h2 id="info-4">Info</h2>
-<figure data-type="image" tabindex="4"><img src="https://img3.doubanio.com/view/subject/l/public/s29756931.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者: [美] 亚当·奥尔特
-出版社: 机械工业出版社
-副标题: 刷屏时代如何摆脱行为上瘾
-原作名: Irresistible: The Rise of Addictive Technology and the Business of Keeping Us Hooked
-译者: 闾佳
-出版年: 2018-4-1
-页数: 272
-定价: 59.00元
-装帧: 平装
-ISBN: 9787111587514
-</code></pre>
-<h2 id="source-4">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-4">Note</h2>
-<ul>
-<li>
-<p>电子产品会带来行为上瘾</p>
-</li>
-<li>
-<p>生物大脑有一个“快感中枢”导致上瘾</p>
-</li>
-<li>
-<p>行为上瘾可能改变大脑</p>
-</li>
-<li>
-<p>上瘾推手最常用的招数：</p>
-<ol>
-<li>诱人深入的目标</li>
-<li>轻而易举的进步</li>
-<li>大张旗鼓的反馈</li>
-<li>逐渐升级的挑战</li>
-<li>不可预见的悬念</li>
-<li>令人痴迷的社会互动</li>
-</ol>
-</li>
-<li>
-<p>如何对抗上瘾（纯靠意志力是不行的）：</p>
-<ol>
-<li>发现上瘾背后的心理需求</li>
-<li>营造一个有利的环境</li>
-<li>借助工具的力量</li>
-<li>借助他人的力量</li>
-</ol>
-</li>
-</ul>
-<h1 id="为什么">为什么</h1>
-<h2 id="info-5">Info</h2>
-<figure data-type="image" tabindex="5"><img src="https://img9.doubanio.com/view/subject/l/public/s33298015.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者: [美]朱迪亚·珀尔(Judea Pearl) / [美]达纳·麦肯齐(Dana Mackenzie)
-出版社: 中信出版集团股份有限公司
-副标题: 关于因果关系的新科学
-原作名: The Book of Why : The New Science of Cause and Effect
-译者: 江生 / 于华
-出版年: 2019-7-1
-页数: 374
-定价: 69.00元
-装帧: 精装
-ISBN: 9787521705072
-</code></pre>
-<h2 id="source-5">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-5">Note</h2>
-<ul>
-<li>这本书尝试让因果回到科学的范畴之内（很长一段时间里，科学的世界里只有相关没有因果）</li>
-<li>因果思维是一种超越经验的思考能力</li>
-<li>因果思维中考虑到因素越关键（或越全面），因果关系的建立就越准确</li>
-<li>提升因果思维的方法：</li>
-</ul>
-<ol>
-<li>区分混杂因子（并阻断之，即区分开来进行分析）</li>
-<li>找到中介因素（原因1＝》原因2＝》结果，原因2即为中介因素）</li>
-</ol>
-<h1 id="原则">原则</h1>
-<h2 id="info-6">Info</h2>
-<figure data-type="image" tabindex="6"><img src="https://img3.doubanio.com/view/subject/l/public/s29689353.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者: [美] 瑞·达利欧
-出版社: 中信出版社
-原作名: Principles: Life and Work
-译者: 刘波 / 綦相
-出版年: 2018-1
-页数: 576
-定价: CNY 98.00
-装帧: 精装
-ISBN: 9787508684031
-</code></pre>
-<h2 id="source-6">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-6">Note</h2>
-<blockquote>
-<p>本书讲的其实就是绝对理性的原则，奉行理性至上。</p>
-</blockquote>
-<h3 id="生活的原则">生活的原则</h3>
-<ul>
-<li>
-<p>做到用绝对理性的角度理解世界</p>
-</li>
-<li>
-<p>保持极度的开放和坦诚有助于理性思考</p>
-</li>
-<li>
-<p>达成目标的五个步骤：</p>
-</li>
-</ul>
-<ol>
-<li>设定目标</li>
-<li>认识问题</li>
-<li>诊断问题</li>
-<li>设计解决方案</li>
-<li>执行解决方案</li>
-</ol>
-<h3 id="工作的原则">工作的原则</h3>
-<blockquote>
-<p>其实就是把生活原则应用到了工作上</p>
-</blockquote>
-<ul>
-<li>优秀想法至上原则：在工作中营造极度透明和极度真实的文化有助于找到最优idea并作出最优决策</li>
-</ul>
-<h3 id="从错误中反思形成自己的原则">从错误中反思，形成自己的原则</h3>
-<ul>
-<li>成为一个专业的犯错者</li>
-<li>从“我是对的”到“我怎么知道我是对的”</li>
-<li>从生活和工作中得到的经验不要只停留在感性经验，要记录＆总结，形成自己的原则（甚至可以形成一个相应的WiKi）</li>
-</ul>
-<h1 id="俞军产品方法论">俞军产品方法论</h1>
-<h2 id="info-7">Info</h2>
-<figure data-type="image" tabindex="7"><img src="https://img1.doubanio.com/view/subject/l/public/s33543538.jpg" alt="icon" loading="lazy"></figure>
-<pre><code class="language-bash">作者: 俞军
-出版社: 中信出版集团
-出版年: 2019-12-1
-页数: 352
-定价: 65
-装帧: 精装
-ISBN: 9787521712056
-</code></pre>
-<h2 id="source-7">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-7">Note</h2>
-<h3 id="什么是产品经理">什么是产品经理</h3>
-<ul>
-<li>在各个时代的定义不一样，见“核心能力的演进”</li>
-</ul>
-<h3 id="产品经理需要掌握什么样的知识模型">产品经理需要掌握什么样的知识模型</h3>
-<ul>
-<li>核心能力的演进：品牌营销＝》项目管理＝》需求洞察＝》连接器</li>
-<li>经济学和心理学是快速提升洞察能力，突破天花板的必备</li>
-<li>用户模型
-<ul>
-<li>产品经理眼中的用户不应是自然人，而是需求的集合</li>
-<li>对用户模型的总结能力很重要</li>
-</ul>
-</li>
-<li>交易模型
-<ul>
-<li>搞清楚利益相关方（根据其影响力和利益得失大小）各方在交易中的利害得失</li>
-<li>创造有利可图的用户价值（产品经理不是单纯创造利益最大化或产品最优化，需要在各方面做权衡取舍）</li>
-</ul>
-</li>
-</ul>
-<h3 id="产品经理的职业成长线路图是什么">产品经理的职业成长线路图是什么</h3>
-<ul>
-<li>对新人来说，带你的人最重要，产品次之，平台反而最不重要</li>
-<li>过早做管理反而是减分项</li>
-</ul>
-<h1 id="数学之美">数学之美</h1>
-<h2 id="info-8">Info</h2>
-<figure data-type="image" tabindex="8"><img src="https://img9.doubanio.com/view/subject/l/public/s9114855.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者:  [美] 吴军
-出版社: 人民邮电出版社
-出品方: Just-pub
-出版年: 2012-5-1
-页数: 272
-定价: 45.00元
-装帧: 平装
-ISBN: 9787115282828
-</code></pre>
-<h2 id="source-8">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-8">Note</h2>
-<ul>
-<li>数学的用处
-<ul>
-<li>让我们掌握“道”，即事物的道理，原理</li>
-</ul>
-</li>
-<li>数学为什么这么有用
-<ul>
-<li>能帮我们找到仅凭经验无法找到或发现的道理或事物</li>
-</ul>
-</li>
-<li>数学之美就是简单之美</li>
-</ul>
-<h1 id="五角大楼之脑">五角大楼之脑</h1>
-<h2 id="info-9">Info</h2>
-<figure data-type="image" tabindex="9"><img src="https://img1.doubanio.com/view/subject/l/public/s29345059.jpg" alt="cover" loading="lazy"></figure>
-<pre><code>作者: (美) 安妮·雅各布森
-出版社: 中信出版集团
-副标题: 美国国防部高级研究计划局不为人知的历史
-原作名: The Pentagon’s Brain: An Uncensored History of DARPA, America’s Top-Secret Military Research Agency
-译者: 李文婕 / 郭颖
-出版年: 2017-3
-页数: 485
-定价: 58.00元
-装帧: 平装
-ISBN: 9787508672045
-</code></pre>
-<h2 id="source-9">Source</h2>
-<p>得到 App：每天读本书</p>
-<h2 id="note-9">Note</h2>
-<p>DARPA 研究机构，最特别的是其允许失败的文化，这与其它研究机构不同</p>
-]]></content>
-    </entry>
-    <entry>
         <title type="html"><![CDATA[Commond Line Tips]]></title>
-        <id>https://ntlx.github.io/commond-line-tips</id>
-        <link href="https://ntlx.github.io/commond-line-tips">
+        <id>https://ntlx.github.io/commond-line-tips/</id>
+        <link href="https://ntlx.github.io/commond-line-tips/">
         </link>
         <updated>2019-12-05T01:21:18.000Z</updated>
         <summary type="html"><![CDATA[<p>Recording usefull CLI tips.</p>
@@ -557,8 +263,8 @@ ISBN: 9787508672045
     </entry>
     <entry>
         <title type="html"><![CDATA[The 7 Habits of Highly Effective People]]></title>
-        <id>https://ntlx.github.io/the-7-habits-of-highly-effective-people</id>
-        <link href="https://ntlx.github.io/the-7-habits-of-highly-effective-people">
+        <id>https://ntlx.github.io/the-7-habits-of-highly-effective-people/</id>
+        <link href="https://ntlx.github.io/the-7-habits-of-highly-effective-people/">
         </link>
         <updated>2019-11-29T01:27:54.000Z</updated>
         <summary type="html"><![CDATA[<p>by Stephen R. Covey</p>
@@ -635,8 +341,8 @@ ISBN: 9787508672045
     </entry>
     <entry>
         <title type="html"><![CDATA[How We Learn]]></title>
-        <id>https://ntlx.github.io/how-we-learn</id>
-        <link href="https://ntlx.github.io/how-we-learn">
+        <id>https://ntlx.github.io/how-we-learn/</id>
+        <link href="https://ntlx.github.io/how-we-learn/">
         </link>
         <updated>2019-11-29T01:23:19.000Z</updated>
         <summary type="html"><![CDATA[<p><strong>The Surprising Truth About When, Where, and Why It Happens</strong></p>
@@ -708,8 +414,8 @@ ISBN: 9787508672045
     </entry>
     <entry>
         <title type="html"><![CDATA[About Raspberry Pi 4]]></title>
-        <id>https://ntlx.github.io/about-raspberry-pi-4</id>
-        <link href="https://ntlx.github.io/about-raspberry-pi-4">
+        <id>https://ntlx.github.io/about-raspberry-pi-4/</id>
+        <link href="https://ntlx.github.io/about-raspberry-pi-4/">
         </link>
         <updated>2019-11-26T03:06:56.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="system-installation">System Installation</h1>
@@ -747,8 +453,8 @@ ISBN: 9787508672045
     </entry>
     <entry>
         <title type="html"><![CDATA[Zsh Setting]]></title>
-        <id>https://ntlx.github.io/zsh-setting</id>
-        <link href="https://ntlx.github.io/zsh-setting">
+        <id>https://ntlx.github.io/zsh-setting/</id>
+        <link href="https://ntlx.github.io/zsh-setting/">
         </link>
         <updated>2019-11-26T02:07:43.000Z</updated>
         <content type="html"><![CDATA[<h1 id="default-settings-within-popular-oss">Default settings within popular OSs</h1>
@@ -958,8 +664,8 @@ esac
     </entry>
     <entry>
         <title type="html"><![CDATA[Bash Setting]]></title>
-        <id>https://ntlx.github.io/bash-setting</id>
-        <link href="https://ntlx.github.io/bash-setting">
+        <id>https://ntlx.github.io/bash-setting/</id>
+        <link href="https://ntlx.github.io/bash-setting/">
         </link>
         <updated>2019-11-26T02:04:15.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="default-settings-in-popular-oss">Default Settings in popular OSs</h1>
@@ -1138,8 +844,8 @@ ex ()
     </entry>
     <entry>
         <title type="html"><![CDATA[About VMware vSphere]]></title>
-        <id>https://ntlx.github.io/about-esxi</id>
-        <link href="https://ntlx.github.io/about-esxi">
+        <id>https://ntlx.github.io/about-esxi/</id>
+        <link href="https://ntlx.github.io/about-esxi/">
         </link>
         <updated>2019-11-21T07:29:14.000Z</updated>
         <summary type="html"><![CDATA[<blockquote>
@@ -1234,8 +940,8 @@ VA510-23F57-M85PY-7FN7C-MCRG0
     </entry>
     <entry>
         <title type="html"><![CDATA[About Manjaro]]></title>
-        <id>https://ntlx.github.io/about-manjaro</id>
-        <link href="https://ntlx.github.io/about-manjaro">
+        <id>https://ntlx.github.io/about-manjaro/</id>
+        <link href="https://ntlx.github.io/about-manjaro/">
         </link>
         <updated>2019-11-15T01:41:59.000Z</updated>
         <summary type="html"><![CDATA[<p>Manjaro is a user-friendly Linux distribution based on the independently developed Arch operating system.</p>
@@ -1462,8 +1168,8 @@ sudo pacman -S google-chinese-handwriting-ime-git         # Chinese handwriting 
     </entry>
     <entry>
         <title type="html"><![CDATA[OCR 软件推荐]]></title>
-        <id>https://ntlx.github.io/ocr-ruan-jian-tui-jian</id>
-        <link href="https://ntlx.github.io/ocr-ruan-jian-tui-jian">
+        <id>https://ntlx.github.io/ocr-ruan-jian-tui-jian/</id>
+        <link href="https://ntlx.github.io/ocr-ruan-jian-tui-jian/">
         </link>
         <updated>2019-11-13T07:45:57.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="图片转文字软件">图片转文字软件</h1>
@@ -1507,8 +1213,8 @@ sudo pacman -S google-chinese-handwriting-ime-git         # Chinese handwriting 
     </entry>
     <entry>
         <title type="html"><![CDATA[About Windows]]></title>
-        <id>https://ntlx.github.io/about-windows</id>
-        <link href="https://ntlx.github.io/about-windows">
+        <id>https://ntlx.github.io/about-windows/</id>
+        <link href="https://ntlx.github.io/about-windows/">
         </link>
         <updated>2019-11-13T07:39:52.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="activate-windows">Activate Windows</h1>
@@ -1647,8 +1353,8 @@ Windows 7 Enterprise E	C29WB-22CC8-VJ326-GHFJW-H9DH4
     </entry>
     <entry>
         <title type="html"><![CDATA[About Arch Linux]]></title>
-        <id>https://ntlx.github.io/about-arch-linux</id>
-        <link href="https://ntlx.github.io/about-arch-linux">
+        <id>https://ntlx.github.io/about-arch-linux/</id>
+        <link href="https://ntlx.github.io/about-arch-linux/">
         </link>
         <updated>2019-11-13T07:38:17.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="arch-linux-installation">Arch Linux Installation</h1>
@@ -1765,8 +1471,8 @@ reboot
     </entry>
     <entry>
         <title type="html"><![CDATA[Chrome 插件推荐]]></title>
-        <id>https://ntlx.github.io/recommend-chrome-extension</id>
-        <link href="https://ntlx.github.io/recommend-chrome-extension">
+        <id>https://ntlx.github.io/recommend-chrome-extension/</id>
+        <link href="https://ntlx.github.io/recommend-chrome-extension/">
         </link>
         <updated>2019-11-13T07:36:18.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="recomendation-chrome-extension">Recomendation: Chrome Extension</h1>
@@ -1797,8 +1503,8 @@ reboot
     </entry>
     <entry>
         <title type="html"><![CDATA[TMUX Setting]]></title>
-        <id>https://ntlx.github.io/tmux-conf</id>
-        <link href="https://ntlx.github.io/tmux-conf">
+        <id>https://ntlx.github.io/tmux-conf/</id>
+        <link href="https://ntlx.github.io/tmux-conf/">
         </link>
         <updated>2019-11-13T07:31:59.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="tmux-config">TMUX Config</h1>
@@ -3340,8 +3046,8 @@ set -g status-position top
     </entry>
     <entry>
         <title type="html"><![CDATA[Vim Setting]]></title>
-        <id>https://ntlx.github.io/vim-setting</id>
-        <link href="https://ntlx.github.io/vim-setting">
+        <id>https://ntlx.github.io/vim-setting/</id>
+        <link href="https://ntlx.github.io/vim-setting/">
         </link>
         <updated>2019-11-13T07:28:12.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="minimal-vim-configure">Minimal VIM Configure</h1>
@@ -3972,8 +3678,8 @@ autocmd BufNewFile      *.spec  call SKEL_spec()
     </entry>
     <entry>
         <title type="html"><![CDATA[华丽 Vim 配置]]></title>
-        <id>https://ntlx.github.io/vim-conf</id>
-        <link href="https://ntlx.github.io/vim-conf">
+        <id>https://ntlx.github.io/vim-conf/</id>
+        <link href="https://ntlx.github.io/vim-conf/">
         </link>
         <updated>2019-11-13T07:26:09.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="vim-config">Vim Config</h1>
@@ -4292,8 +3998,8 @@ let b:current_syntax = &quot;snakemake&quot;
     </entry>
     <entry>
         <title type="html"><![CDATA[Privoxy Setting]]></title>
-        <id>https://ntlx.github.io/privoxy-conf</id>
-        <link href="https://ntlx.github.io/privoxy-conf">
+        <id>https://ntlx.github.io/privoxy-conf/</id>
+        <link href="https://ntlx.github.io/privoxy-conf/">
         </link>
         <updated>2019-11-13T07:24:52.000Z</updated>
         <summary type="html"><![CDATA[<h1 id="for-custom-proxy-rule">for custom proxy rule</h1>
@@ -9523,8 +9229,8 @@ forward-socks5 .1-apple.com.tw 127.0.0.1:1080 .
     </entry>
     <entry>
         <title type="html"><![CDATA[About CentOS 7.6]]></title>
-        <id>https://ntlx.github.io/about-centos-76</id>
-        <link href="https://ntlx.github.io/about-centos-76">
+        <id>https://ntlx.github.io/about-centos-76/</id>
+        <link href="https://ntlx.github.io/about-centos-76/">
         </link>
         <updated>2019-11-13T07:18:49.000Z</updated>
         <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS" loading="lazy"></figure>
@@ -10144,8 +9850,8 @@ export PATH=&quot;/home/lx/software/bcftools-1.9/bin:$PATH&quot;
     </entry>
     <entry>
         <title type="html"><![CDATA[About CentOS 8]]></title>
-        <id>https://ntlx.github.io/about-centos-8</id>
-        <link href="https://ntlx.github.io/about-centos-8">
+        <id>https://ntlx.github.io/about-centos-8/</id>
+        <link href="https://ntlx.github.io/about-centos-8/">
         </link>
         <updated>2019-11-13T01:03:17.000Z</updated>
         <summary type="html"><![CDATA[<figure data-type="image" tabindex="1"><img src="https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg" alt="CentOS" loading="lazy"></figure>
@@ -10364,8 +10070,8 @@ sudo firewall-cmd --reload                                                 # 重
     </entry>
     <entry>
         <title type="html"><![CDATA[Shadowsocks 科学上网]]></title>
-        <id>https://ntlx.github.io/shadowsocks</id>
-        <link href="https://ntlx.github.io/shadowsocks">
+        <id>https://ntlx.github.io/shadowsocks/</id>
+        <link href="https://ntlx.github.io/shadowsocks/">
         </link>
         <updated>2019-11-12T10:15:12.000Z</updated>
         <summary type="html"><![CDATA[<p><span id="top"></span></p>
@@ -10450,8 +10156,8 @@ sudo firewall-cmd --reload                                                 # 重
     </entry>
     <entry>
         <title type="html"><![CDATA[Hello Gridea]]></title>
-        <id>https://ntlx.github.io/hello-gridea</id>
-        <link href="https://ntlx.github.io/hello-gridea">
+        <id>https://ntlx.github.io/hello-gridea/</id>
+        <link href="https://ntlx.github.io/hello-gridea/">
         </link>
         <updated>2018-12-11T16:00:00.000Z</updated>
         <summary type="html"><![CDATA[<p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
