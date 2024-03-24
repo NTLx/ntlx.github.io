@@ -43,5 +43,20 @@
     <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-ini.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-json.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/prismjs/components/prism-markdown.min.js"></script>
+    <!-- CSS -->
+    <link href="https://unpkg.com/artalk@2.4.4/dist/Artalk.css" rel="stylesheet">
+    <!-- JS -->
+    <script src="https://unpkg.com/artalk@2.4.4/dist/Artalk.js"></script>
+    <!-- Artalk -->
+    <div id="Comments"></div>
+    <script>
+      Artalk.init({
+        el:        '#Comments',              // 绑定元素的 Selector
+        pageKey:   '',                // 固定链接 (留空自动获取)
+        pageTitle: '', // 页面标题 (留空自动获取)
+        server:    'http://pi.ntlx.top:60016',  // 后端地址
+        site:      'NTLx\'s Blog',           // 你的站点名
+      })
+    </script>
   </body>
 </html>
