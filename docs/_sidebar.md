@@ -6,4 +6,4 @@
 	* [Installation of Slurm and OpenMPI](InstallSlurmOpenMPI.md)
 	* [Usage of Slurm and OpenMPI](UsageSlurmOpenMPI.md)
 * Bioinformatics
-	* [Snakemake Benchmark Summarizing](benchmark.md)
+	* [Snakemake Benchmark Summarize](benchmark.md)

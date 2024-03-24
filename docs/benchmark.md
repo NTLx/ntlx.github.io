@@ -1,4 +1,4 @@
-# Snakemake Benchmark Summarizing
+# Snakemake Benchmark Summarize
 
 ## Usage
 
