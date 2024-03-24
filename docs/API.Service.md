@@ -1,8 +1,8 @@
 # AI大模型代理服务
 ## 简介
-* [https://api.ntlx.top/](https://api.ntlx.top/)是专用于对接大模型（API）的代理服务平台
+* [https://api.ntlx.top/](https://api.ntlx.top/) 是专用于对接大模型（API）的代理服务平台
 * 建立本平台的初衷是为了绕开 OpenAI 等对不同地区提供不同程度服务的问题，通过代理的方式正常提供服务，而无需科学上网等操作
-* 本平台对接/集成了一款大模型聊天客户端方便日常使用，可以点击本平台顶部导航栏的`聊天`按钮或直接访问其主页地址来使用[https://ai.ntlx.top/](https://ai.ntlx.top/)
+* 本平台对接/集成了一款大模型聊天客户端方便日常使用，可以点击本平台顶部导航栏的`聊天`按钮或直接访问其主页地址来使用 [https://ai.ntlx.top/](https://ai.ntlx.top/)
 * 目前本平台仅对 OpenAI 的 API 做代理服务，如需其它大模型可联系管理员 lx3325360@outlook.com
 ## 使用说明
 ### 获取账号
@@ -34,7 +34,7 @@
 * 打开需要使用大模型的工具，这里以本平台集成的大模型聊天客户端为例，在设置界面找到`自定义接口`并启用（在其他工具寻找类似配置项即可），在`接口地址`一栏填上本平台地址，在`API Key`一栏填上你的`令牌`内容即可
 > * 有些工具将`接口地址`称为`代理`或`API Base`，也可能有其他叫法
 > * 有些工具要求的`接口地址`格式可能存在差异，比如在本平台地址后面还需要加上一些字符串，例如`https://api.ntlx.top/v1`，这是仿照 OpenAI 的接口地址规范时形成的一些差异
-![image](https://cdn.jsdelivr.net/gh/NTLx/Pic/PicGo/202403200953065.png)
+> ![image](https://cdn.jsdelivr.net/gh/NTLx/Pic/PicGo/202403200953065.png)
 * 也可以在`令牌`管理界面点击`聊天`按钮后跳转到本平台集成的大模型聊天客户端，此时屏幕上会提示是否填入相应配置，只需点击`确认`按钮即可直接使用该客户端与大模型对话
 ![image](https://cdn.jsdelivr.net/gh/NTLx/Pic/PicGo/202403211118807.jpg)
 ![image](https://cdn.jsdelivr.net/gh/NTLx/Pic/PicGo/202403200954843.png)
