@@ -1,6 +1,6 @@
 * [Home](/)
 * Services
-	* [API Service](API.Service.md)
+	* [LLMs API Service](API.Service.md)
 * System Operation
 	* [Installation Guide of Ubuntu Server](UbuntuServerInstallation.md)
 	* [Installation of Slurm and OpenMPI](InstallSlurmOpenMPI.md)
