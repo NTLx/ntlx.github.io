@@ -10,16 +10,30 @@
       rel="stylesheet"
       href="//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css"
     />
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify/themes/dark.css" />
   </head>
   <body>
     <div id="app">Please wait...</div>
     <script>
       window.$docsify = {
+        repo: 'NTLx/blog',
+        name: 'NTLx\'s Blog',
+        nameLink: '/',
+        search: 'auto',
+        nativeEmoji: true,
+        notFoundPage: true,
+        executeScript: true,
+        auto2top: true,
         loadSidebar: true,
-        subMaxLevel: 2
+        subMaxLevel: 6
       };
     </script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
-		<script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+		<!-- <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script> -->
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/emoji.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/zoom-image.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/docsify-copy-code/dist/docsify-copy-code.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-apacheconf.min.js"></script>
   </body>
 </html>
