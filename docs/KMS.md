@@ -8,8 +8,8 @@ Thanks to [MSGuides.com](https://msguides.com/) provide this method.
 
 > Please go to [this site](https://kms.msguides.com/) check the kms server's status.
 
-
 ## Auto Activate Script
+
 ```powershell
 @echo off
 title Activate Windows 11 (ALL versions) for FREE - MSGuides.com&cls&echo =====================================================================================&echo #Project: Activating Microsoft software products for FREE without additional software&echo =====================================================================================&echo.&echo #Supported products:&echo - Windows 11 Home&echo - Windows 11 Professional&echo - Windows 11 Education&echo - Windows 11 Enterprise&echo.&echo.&echo ============================================================================&echo Activating your Windows...&cscript //nologo slmgr.vbs /ckms >nul&cscript //nologo slmgr.vbs /upk >nul&cscript //nologo slmgr.vbs /cpky >nul&set i=1&wmic os | findstr /I "enterprise" >nul
@@ -38,10 +38,9 @@ pause >nul
 
 > Which used at high frequency.
 
-
 ### Windows 10 & 11 Pro
 
-```bash
+```powershell
 slmgr /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
 slmgr /skms s8.uk.to
 slmgr /ato
@@ -49,7 +48,7 @@ slmgr /ato
 
 ### Windows 10 & 11 Enterprise
 
-```bash
+```powershell
 slmgr /ipk NPPR9-FWDCX-D2C8J-H872K-2YT43
 slmgr /skms s8.uk.to
 slmgr /ato
@@ -64,7 +63,6 @@ Get the right product key from [the official article of Microsoft](https://docs.
 #### Windows 11 & Windows 10
 
 > Semi-Annual Channel versions
-
 
 Windows 11 Home: `TX9XD-98N7V-6WMQ6-BX7FG-H8Q99`
 Windows 11 Home N: `3KHY7-WNT83-DGQKR-F7HPR-844BM`
@@ -86,7 +84,6 @@ Windows 11 Enterprise G N & Windows 10 Enterprise G N: `44RPN-FTY23-9VTTB-MP9BX-
 #### Windows Server
 
 > LTSC versions
-
 
 ##### Windows Server 2022
 
@@ -134,7 +131,9 @@ Finally, use the command `slmgr /ato`to activate your Windows.
 ![](https://raw.githubusercontent.com/NTLx/Pic/master/img/20200921130720.png#id=gatp5&originHeight=318&originWidth=583&originalType=binary&ratio=1&rotation=0&showTitle=false&status=done&style=none&title=)
 
 # Active Microsoft Office
+
 ## Microsoft Office 2021
+
 ```powershell
 @echo off
 title Activate Microsoft Office 2021 (ALL versions) for FREE - MSGuides.com&cls&echo =====================================================================================&echo #Project: Activating Microsoft software products for FREE without additional software&echo =====================================================================================&echo.&echo #Supported products:&echo - Microsoft Office Standard 2021&echo - Microsoft Office Professional Plus 2021&echo.&echo.&(if exist "%ProgramFiles%\Microsoft Office\Office16\ospp.vbs" cd /d "%ProgramFiles%\Microsoft Office\Office16")&(if exist "%ProgramFiles(x86)%\Microsoft Office\Office16\ospp.vbs" cd /d "%ProgramFiles(x86)%\Microsoft Office\Office16")&(for /f %%x in ('dir /b ..\root\Licenses16\ProPlus2021VL_KMS*.xrm-ms') do cscript ospp.vbs /inslic:"..\root\Licenses16\%%x" >nul)&echo.&echo =====================================================================================&echo Activating your product...&cscript //nologo slmgr.vbs /ckms >nul&cscript //nologo ospp.vbs /setprt:1688 >nul&cscript //nologo ospp.vbs /unpkey:6F7TH >nul&set i=1&cscript //nologo ospp.vbs /inpkey:FXYTK-NJJ8C-GB6DW-3DYQT-6F7TH >nul||goto notsupported
@@ -209,7 +208,6 @@ Run this `*.bat` file using administrator, done.
 
 > Key: `YQGTJ-44NB6-KBYR3-388HG-KTQ4K` or `3BP7N-Y28TF-9YMM8-4JY2B-7MKH9` may still available.
 
-
 # Active Microsoft Project
 
 ## Project Professional 2019 VL Activation
@@ -253,6 +251,7 @@ cscript ospp.vbs /dstatus
 ```
 
 Run this `*.bat` file using administrator, done.
+
 # KMS Server
 
 Deploy a KMS Server on Linux:
