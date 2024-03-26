@@ -4,7 +4,7 @@ As described in the title, this is my blog.
 
 Contact me via email lx3325360@outlook.com if you need.
 
-#### Click to change theme
+## Click to change theme
 
 <div class="demo-theme-preview">
   <a data-theme="vue">vue.css</a>
