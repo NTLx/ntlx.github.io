@@ -13,6 +13,7 @@
 		* [Configuration Guide for CentOS 7.6](CentOS76.md)
 		* [Configuration Guide for CentOS 8](CentOS8.md)
 		* [Configuration Guide for Manjaro](Manjaro.md)
+		* [Static IP for Ubuntu 22.04](StaticIP4Ubuntu22.04.md)
 		* [KMS](KMS.md)
 		* [mDNS](mDNS.md)
 		* [Shadowsocks Server](ShadowsocksServer.md)
