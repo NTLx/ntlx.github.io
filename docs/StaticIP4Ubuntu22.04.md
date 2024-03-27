@@ -38,5 +38,5 @@ network:
           via: 192.168.1.1
       nameservers:
         addresses: [1.1.1.1, 8.8.8.8]
- version: 2
+  version: 2
 ```
