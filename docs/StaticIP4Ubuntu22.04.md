@@ -32,7 +32,11 @@ network:
   ethernets:
     ens160:
       addresses:
-      - 192.168.1.2/24
-      gateway4: 192.168.1.1
+        - 192.168.1.2/24
+      routes:
+        - to: default
+          via: 192.168.1.1
+      nameservers:
+        addresses: [1.1.1.1, 8.8.8.8]
  version: 2
 ```
