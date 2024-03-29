@@ -385,7 +385,7 @@ slurmmaster:/shared_workdir /shared_workdir nfs defaults 0 0
 
 ```shell
 # 软件安装
-sudo apt install munge slurmd openmpi-bin openmpi-common libopenmpi-dev
+sudo apt install munge slurm-client slurmd openmpi-bin openmpi-common libopenmpi-dev
 
 # 启动munge服务
 sudo systemctl enable munge
