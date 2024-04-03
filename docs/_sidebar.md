@@ -35,3 +35,5 @@
 		* [Default Configuration for VIM](VIM.Default.Conf.md)
 * Bioinformatics
 	* [Snakemake Benchmark Summarize](benchmark.md)
+* Management
+	* [Editor Config](EditorConfig.md)
