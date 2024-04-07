@@ -3,14 +3,16 @@
 # Configure & Settings
 
 ```bash
-sh -c "$(wget https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh -O -)"
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+git clone https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/themes/powerlevel10k
+
+# For Mac OS:
 cd ~/.oh-my-zsh/custom/plugins
-git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
-cd ~/.oh-my-zsh/custom/themes
-git clone https://github.com/romkatv/powerlevel10k.git
-# You should change ZSH_THEME manually by now
-#echo "ZSH_THEME=powerlevel10k/powerlevel10k" >> ~/.zshrc
-p10k configure
+git clone https://github.com/scriptingosx/mac-zsh-completions.git
+
+#p10k configure
 ```
 
 # Default Settings within Popular OSs
