@@ -19,6 +19,7 @@
 		* [Shadowsocks Server](ShadowsocksServer.md)
 		* [Privoxy Configuration](PrivoxyConf.md)
 		* [Proxychains Configuration](proxychains.md)
+		* [Deploy n8n via docker](n8n.docker.md)
 	* User's Guide
 		* [Usage of Slurm and OpenMPI](UsageSlurmOpenMPI.md)
 		* [Shadowsocks Client](ShadowsocksClient.md)
