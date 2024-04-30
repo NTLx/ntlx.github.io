@@ -15,6 +15,18 @@ git clone https://github.com/scriptingosx/mac-zsh-completions.git
 #p10k configure
 ```
 
+Edit `~/.zshrc` to apply settings:
+
+```shell
+ZSH_THEME=powerlevel10k/powerlevel10k
+plugins=(git zsh-completions zsh-syntax-highlighting bedtools docker-compose extract systemadmin urltools)
+
+# For Mac OS:
+plugins=(... mac-zsh-completions)
+
+#autoload -U compinit && compinit
+```
+
 # Default Settings within Popular OSs
 
 ## Manjaro Architect
