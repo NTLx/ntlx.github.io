@@ -34,6 +34,7 @@
 		* [Beautify VIM](VIM.Beautify.md)
 		* [Plugins for VIM](VIM.plugins.md)
 		* [Default Configuration for VIM](VIM.Default.Conf.md)
+	* [ZeroTier](zerotier.md)
 * Bioinformatics
 	* [Snakemake Benchmark Summarize](benchmark.md)
 * Management
