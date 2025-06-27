@@ -1,7 +1,8 @@
 * [Home](/)
+* [About](README.md)
 * Services
 	* [LLMs API Service](API.Service.md)
-* System Operation
+* System Administration
 	* Administration
 		* [Installation Guide for Slurm and OpenMPI](InstallSlurmOpenMPI.md)
 		* [Installation Guide for Ubuntu Server](UbuntuServerInstallation.md)
@@ -20,7 +21,7 @@
 		* [Privoxy Configuration](PrivoxyConf.md)
 		* [Proxychains Configuration](proxychains.md)
 		* [Deploy n8n via docker](n8n.docker.md)
-	* User's Guide
+	* System Usage
 		* [Usage of Slurm and OpenMPI](UsageSlurmOpenMPI.md)
 		* [Shadowsocks Client](ShadowsocksClient.md)
 		* [Usage of Mac OS](MacOS.md)
