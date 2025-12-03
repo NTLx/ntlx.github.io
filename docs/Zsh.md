@@ -1,43 +1,70 @@
-![](https://upload.wikimedia.org/wikipedia/commons/1/1f/Zsh-agnoster.png?1574734349248)
+# Zsh Configuration Guide
 
-# Configure & Settings
+![Zsh Powerlevel10k](https://upload.wikimedia.org/wikipedia/commons/1/1f/Zsh-agnoster.png?1574734349248)
+
+This guide covers the installation of **Oh My Zsh**, popular plugins, and the **Powerlevel10k** theme.
+
+## 1. Installation
+
+### Install Oh My Zsh
 
 ```bash
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+```
+
+### Install Plugins & Theme
+
+Clone the repositories into your custom directory:
+
+```bash
+# zsh-completions
 git clone https://github.com/zsh-users/zsh-completions ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-completions
+
+# zsh-syntax-highlighting
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+# Powerlevel10k Theme
 git clone https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/themes/powerlevel10k
 
-# For Mac OS:
-cd ~/.oh-my-zsh/custom/plugins
-git clone https://github.com/scriptingosx/mac-zsh-completions.git
-
-#p10k configure
+# macOS specific completions (Optional)
+git clone https://github.com/scriptingosx/mac-zsh-completions.git ${ZSH_CUSTOM:=~/.oh-my-zsh/custom}/plugins/mac-zsh-completions
 ```
 
-Edit `~/.zshrc` to apply settings:
+## 2. Configuration
 
-```shell
-ZSH_THEME=powerlevel10k/powerlevel10k
-plugins=(git zsh-completions zsh-syntax-highlighting bedtools docker-compose extract systemadmin urltools)
+Edit your `~/.zshrc` file to apply the theme and plugins:
 
-# For Mac OS:
-plugins=(... mac-zsh-completions)
+```bash
+# Set Theme
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
-#autoload -U compinit && compinit
+# Enable Plugins
+plugins=(
+  git
+  zsh-completions
+  zsh-syntax-highlighting
+  docker-compose
+  extract
+  # Add other plugins here
+)
+
+# For macOS completions, add 'mac-zsh-completions' to the plugins list
 ```
 
-# Default Settings within Popular OSs
+After saving, restart Zsh or run `source ~/.zshrc`.
+To configure Powerlevel10k, run `p10k configure`.
 
-## Manjaro Architect
+## 3. Reference Configuration (Manjaro)
 
-`/etc/zsh/zprofile`
+The following is the default Zsh configuration from Manjaro Architect, useful for reference.
+
+### `/etc/zsh/zprofile`
 
 ```bash
 emulate sh -c 'source /etc/profile'
 ```
 
-`~/.zshrc`
+### `~/.zshrc`
 
 ```bash
 ## Options section
@@ -62,10 +89,7 @@ zstyle ':completion:*' cache-path ~/.zsh/cache
 HISTFILE=~/.zhistory
 HISTSIZE=1000
 SAVEHIST=500
-#export EDITOR=/usr/bin/nano
-#export VISUAL=/usr/bin/nano
 WORDCHARS=${WORDCHARS//\/[&.;]}                                 # Don't consider certain characters part of the word
-
 
 ## Keybindings section
 bindkey -e
@@ -87,10 +111,10 @@ bindkey '^[[5~' history-beginning-search-backward               # Page up key
 bindkey '^[[6~' history-beginning-search-forward                # Page down key
 
 # Navigate words with ctrl+arrow keys
-bindkey '^[Oc' forward-word                                     #
-bindkey '^[Od' backward-word                                    #
-bindkey '^[[1;5D' backward-word                                 #
-bindkey '^[[1;5C' forward-word                                  #
+bindkey '^[Oc' forward-word
+bindkey '^[Od' backward-word
+bindkey '^[[1;5D' backward-word
+bindkey '^[[1;5C' forward-word
 bindkey '^H' backward-kill-word                                 # delete previous word with ctrl+backspace
 bindkey '^[[Z' undo                                             # Shift+tab undo last action
 
@@ -98,7 +122,6 @@ bindkey '^[[Z' undo                                             # Shift+tab undo
 alias cp="cp -i"                                                # Confirm before overwriting something
 alias df='df -h'                                                # Human-readable sizes
 alias free='free -m'                                            # Show sizes in MB
-alias gitu='git add . && git commit && git push'
 
 # Theming section
 autoload -U compinit colors zcalc
@@ -108,36 +131,26 @@ colors
 # enable substitution for prompt
 setopt prompt_subst
 
-# Prompt (on left side) similar to default bash prompt, or redhat zsh prompt with colors
- #PROMPT="%(!.%{$fg[red]%}[%n@%m %1~]%{$reset_color%}# .%{$fg[green]%}[%n@%m %1~]%{$reset_color%}$ "
 # Maia prompt
-PROMPT="%B%{$fg[cyan]%}%(4~|%-1~/.../%2~|%~)%u%b >%{$fg[cyan]%}>%B%(?.%{$fg[cyan]%}.%{$fg[red]%})>%{$reset_color%}%b " # Print some system information when the shell is first started
-# Print a greeting message when shell is started
+PROMPT="%B%{$fg[cyan]%}%(4~|%-1~/.../%2~|%~)%u%b >%{$fg[cyan]%}>%B%(?.%{$fg[cyan]%}.%{$fg[red]%})>%{$reset_color%}%b "
 echo $USER@$HOST  $(uname -srm) $(lsb_release -rcs)
-## Prompt on right side:
-#  - shows status of git when in git repository (code adapted from https://techanic.net/2012/12/30/my_git_prompt_for_zsh.html)
-#  - shows exit status of previous command (if previous command finished with an error)
-#  - is invisible, if neither is the case
 
-# Modify the colors and symbols in these variables as desired.
-GIT_PROMPT_SYMBOL="%{$fg[blue]%}±"                              # plus/minus     - clean repo
+# Git Prompt Configuration
+GIT_PROMPT_SYMBOL="%{$fg[blue]%}±"
 GIT_PROMPT_PREFIX="%{$fg[green]%}[%{$reset_color%}"
 GIT_PROMPT_SUFFIX="%{$fg[green]%}]%{$reset_color%}"
-GIT_PROMPT_AHEAD="%{$fg[red]%}ANUM%{$reset_color%}"             # A"NUM"         - ahead by "NUM" commits
-GIT_PROMPT_BEHIND="%{$fg[cyan]%}BNUM%{$reset_color%}"           # B"NUM"         - behind by "NUM" commits
-GIT_PROMPT_MERGING="%{$fg_bold[magenta]%}⚡︎%{$reset_color%}"     # lightning bolt - merge conflict
-GIT_PROMPT_UNTRACKED="%{$fg_bold[red]%}●%{$reset_color%}"       # red circle     - untracked files
-GIT_PROMPT_MODIFIED="%{$fg_bold[yellow]%}●%{$reset_color%}"     # yellow circle  - tracked files modified
-GIT_PROMPT_STAGED="%{$fg_bold[green]%}●%{$reset_color%}"        # green circle   - staged changes present = ready for "git push"
+GIT_PROMPT_AHEAD="%{$fg[red]%}ANUM%{$reset_color%}"
+GIT_PROMPT_BEHIND="%{$fg[cyan]%}BNUM%{$reset_color%}"
+GIT_PROMPT_MERGING="%{$fg_bold[magenta]%}⚡︎%{$reset_color%}"
+GIT_PROMPT_UNTRACKED="%{$fg_bold[red]%}●%{$reset_color%}"
+GIT_PROMPT_MODIFIED="%{$fg_bold[yellow]%}●%{$reset_color%}"
+GIT_PROMPT_STAGED="%{$fg_bold[green]%}●%{$reset_color%}"
 
 parse_git_branch() {
-  # Show Git branch/tag, or name-rev if on detached head
   ( git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD ) 2> /dev/null
 }
 
 parse_git_state() {
-  # Show different symbols as appropriate for various Git repository states
-  # Compose this value via multiple conditional appends.
   local GIT_STATE=""
   local NUM_AHEAD="$(git log --oneline @{u}.. 2> /dev/null | wc -l | tr -d ' ')"
   if [ "$NUM_AHEAD" -gt 0 ]; then
@@ -167,19 +180,9 @@ parse_git_state() {
 
 git_prompt_string() {
   local git_where="$(parse_git_branch)"
-
-  # If inside a Git repository, print its branch and state
   [ -n "$git_where" ] && echo "$GIT_PROMPT_SYMBOL$(parse_git_state)$GIT_PROMPT_PREFIX%{$fg[yellow]%}${git_where#(refs/heads/|tags/)}$GIT_PROMPT_SUFFIX"
-
-  # If not inside the Git repo, print exit codes of last command (only if it failed)
   [ ! -n "$git_where" ] && echo "%{$fg[red]%} %(?..[%?])"
 }
-
-# Right prompt with exit status of previous command if not successful
- #RPROMPT="%{$fg[red]%} %(?..[%?])"
-# Right prompt with exit status of previous command marked with ✓ or ✗
- #RPROMPT="%(?.%{$fg[green]%}✓ %{$reset_color%}.%{$fg[red]%}✗ %{$reset_color%})"
-
 
 # Color man pages
 export LESS_TERMCAP_mb=$'\E[01;32m'
@@ -191,49 +194,25 @@ export LESS_TERMCAP_ue=$'\E[0m'
 export LESS_TERMCAP_us=$'\E[01;36m'
 export LESS=-r
 
-
-## Plugins section: Enable fish style features
-# Use syntax highlighting
+## Plugins section
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-# Use history substring search
 source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
-# bind UP and DOWN arrow keys to history substring search
 zmodload zsh/terminfo
 bindkey "$terminfo[kcuu1]" history-substring-search-up
 bindkey "$terminfo[kcud1]" history-substring-search-down
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
-# Apply different settigns for different terminals
 case $(basename "$(cat "/proc/$PPID/comm")") in
   login)
         RPROMPT="%{$fg[red]%} %(?..[%?])"
-        alias x='startx ~/.xinitrc'      # Type name of desired desktop after x, xinitrc is configured for it
+        alias x='startx ~/.xinitrc'
     ;;
-#  'tmux: server')
-#        RPROMPT='$(git_prompt_string)'
-#               ## Base16 Shell color themes.
-#               #possible themes: 3024, apathy, ashes, atelierdune, atelierforest, atelierhearth,
-#               #atelierseaside, bespin, brewer, chalk, codeschool, colors, default, eighties,
-#               #embers, flat, google, grayscale, greenscreen, harmonic16, isotope, londontube,
-#               #marrakesh, mocha, monokai, ocean, paraiso, pop (dark only), railscasts, shapesifter,
-#               #solarized, summerfruit, tomorrow, twilight
-#               #theme="eighties"
-#               #Possible variants: dark and light
-#               #shade="dark"
-#               #BASE16_SHELL="/usr/share/zsh/scripts/base16-shell/base16-$theme.$shade.sh"
-#               #[[ -s $BASE16_SHELL ]] && source $BASE16_SHELL
-#               # Use autosuggestion
-#               source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-#               ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-#               ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
-#     ;;
   *)
         RPROMPT='$(git_prompt_string)'
-                # Use autosuggestion
-                source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-                ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-                ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
+        source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
+        ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+        ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=8'
     ;;
 esac
 ```
