@@ -1,26 +1,27 @@
-# Installation of Slurm and OpenMPI
+# Slurm & OpenMPI Installation Guide
 
-## 说明
+## 1. Introduction
 
-Slurm是一个强大的作业调度和集群管理工具，适用于各种规模的高性能计算环境。
-OpenMPI是一个免费且开源的MPI实现，兼容MPI-1和MPI-2标准。它在大多数高性能计算平台上都有很高的性能表现。
+- **Slurm**: A highly scalable cluster management and job scheduling system.
+- **OpenMPI**: A high-performance message passing library.
 
-* 本文默认使用Ubuntu 22.04版本
-* 本文默认使用Slurm 21.08版本
-* 本文默认使用OpenMPI 版本
-* 本文在服务器根目录下创建`/shared_workdir`作为统一的共享工作目录，通过NFS服务在各服务器间同步
-* 本文服务器配置均为示例（硬件配置完全相同，详见文中配置文件示例）：
-	* `slurmmaster`是服务端服务器
-	* `slurm1`和`slurm2`是客户端服务器
-* 不建议将服务端服务器也用作客户端服务器，有导致整个集群down掉的风险
+> [!NOTE]
+> **Environment Details:**
+> - **OS**: Ubuntu 22.04 LTS
+> - **Slurm Version**: 21.08
+> - **Shared Directory**: `/shared_workdir` (NFS)
+> - **Nodes**:
+>   - `slurmmaster` (192.168.120.133): Controller Node
+>   - `slurm1` (192.168.120.131): Compute Node
+>   - `slurm2` (192.168.120.132): Compute Node
 
-## Slurm+OpenMPI安装&配置
+## 2. Common Configuration (All Nodes)
 
-### 每台服务器上都需要进行的操作
+Perform these steps on **all nodes** (Master and Clients).
 
-#### Host Info 主机信息
+### 2.1 Hostname Resolution
 
-通过`cat >> /etc/hosts`添加主机名与对应IP地址信息:
+Edit `/etc/hosts` to ensure all nodes can resolve each other by name.
 
 ```ini
 192.168.120.133 slurmmaster
@@ -28,303 +29,165 @@ OpenMPI是一个免费且开源的MPI实现，兼容MPI-1和MPI-2标准。它在
 192.168.120.132 slurm2
 ```
 
-#### 生成密钥对
+### 2.2 SSH Keys
 
-```shell
-sudo ssh-keygen
+Generate SSH keys on all nodes.
+
+```bash
+sudo ssh-keygen -t rsa
 ```
 
-#### 允许root用户使用密码通过SSH登录
+### 2.3 Enable Root SSH Login
 
-1. **设置root用户密码**：
+1.  **Set Root Password**:
+    ```bash
+    sudo passwd root
+    ```
+2.  **Configure SSH**:
+    Edit `/etc/ssh/sshd_config` and set:
+    ```ini
+    PermitRootLogin yes
+    ```
+3.  **Restart SSH**:
+    ```bash
+    sudo systemctl restart sshd
+    ```
 
-```shell
-sudo passwd root
-```
+## 3. Master Node Configuration (`slurmmaster`)
 
-这个命令将会提示你输入新的root密码。
+Perform these steps **only on the Master Node**.
 
-2. **修改SSH配置文件**：
+### 3.1 SSH Trust
 
-```shell
-sudo vim /etc/ssh/sshd_config
-```
+Exchange SSH keys to allow passwordless login between nodes.
 
-在`/etc/ssh/sshd_config`文件中，找到`PermitRootLogin`这一行，将其修改为`PermitRootLogin yes`。
-
-3. **重启SSH服务**：
-
-```shell
-sudo systemctl restart sshd
-```
-
-以上步骤完成后，你就可以使用root用户和密码通过SSH登录了。
-
-### 只需要在服务端服务器上进行的操作
-
-#### 主机互通
-
-> 为Slurm和OpenMPI服务的正常运行做准备
-
-```shell
-# 切换为root用户进行操作
+```bash
 sudo su
-# 获取所有节点的公钥
+# Collect public keys
 cp /root/.ssh/id_rsa.pub slurmmaster.pub
 scp root@slurm1:/root/.ssh/id_rsa.pub slurm1.pub
 scp root@slurm2:/root/.ssh/id_rsa.pub slurm2.pub
-# 合并公钥
+
+# Merge keys
 cat slurm*.pub >> /root/.ssh/authorized_keys
-# 将包含所有节点的公钥授权文件分发给所有机器
+
+# Distribute authorized_keys
 scp /root/.ssh/authorized_keys root@slurm1:/root/.ssh/authorized_keys
 scp /root/.ssh/authorized_keys root@slurm2:/root/.ssh/authorized_keys
 ```
 
-#### 安装&配置NFS服务端
+### 3.2 NFS Server
 
-软件安装：
+Install and configure NFS to share the working directory.
 
-```shell
+```bash
+# Install NFS Server
 sudo apt install nfs-kernel-server
-```
 
-创建共享目录：
-
-```shell
-sudo mkdir /shared_workdir
+# Create Shared Directory
+sudo mkdir -p /shared_workdir
 sudo chmod -R 777 /shared_workdir
 ```
 
-编辑配置文件`/etc/exports`:
-
+Edit `/etc/exports`:
 ```ini
 /shared_workdir 192.168.120.0/24(rw,sync,no_root_squash,no_subtree_check)
 ```
 
-重启NFS服务：
-
-```shell
+Restart NFS:
+```bash
 sudo service rpcbind restart
 sudo service nfs-kernel-server restart
 ```
 
-#### 安装&配置Slurm服务端
+### 3.3 Install Slurm & Dependencies
 
-```shell
-# 软件安装
-#sudo apt install munge slurm-client slurm-wlm slurm-wlm-basic-plugins slurmd slurmctld slurmdbd mariadb-server openmpi-bin openmpi-common libopenmpi-dev
+```bash
 sudo apt install mariadb-server munge slurmd slurmctld slurmdbd openmpi-bin openmpi-common libopenmpi-dev
-
-# 启动munge服务
-sudo systemctl enable munge
-sudo systemctl start munge
-sudo systemctl status munge
-
-# 拷贝主节点密钥到其余节点，需在客户端节点安装好软件后执行
-sudo scp /etc/munge/munge.key root@slurm1:/etc/munge/
-sudo scp /etc/munge/munge.key root@slurm2:/etc/munge/
-
-# 启动数据库服务
-sudo systemctl enable mariadb
-sudo systemctl start mariadb
-systemctl status mariadb
 ```
 
-##### Slurm Config File 配置文件
+### 3.4 Configure Munge
 
-```shell
+```bash
+# Enable Munge
+sudo systemctl enable munge
+sudo systemctl start munge
+
+# Distribute Munge Key (Do this AFTER installing munge on clients)
+# sudo scp /etc/munge/munge.key root@slurm1:/etc/munge/
+# sudo scp /etc/munge/munge.key root@slurm2:/etc/munge/
+```
+
+### 3.5 Configure MariaDB
+
+```bash
+sudo systemctl enable mariadb
+sudo systemctl start mariadb
+```
+
+### 3.6 Configure Slurm
+
+Create configuration files:
+```bash
 sudo touch /etc/slurm/cgroup.conf
 sudo touch /etc/slurm/slurm.conf
 sudo touch /etc/slurm/slurmdbd.conf
-chmod 600 /etc/slurm/slurmdbd.conf
+sudo chmod 600 /etc/slurm/slurmdbd.conf
 ```
 
-`cgroup.conf`:
-
+#### `cgroup.conf`
 ```ini
-###
-#
-# Slurm cgroup support configuration file
-#
-# See man slurm.conf and man cgroup.conf for further
-# information on cgroup configuration parameters
-#--
 CgroupAutomount=yes
-
 ConstrainCores=no
 ConstrainRAMSpace=no
-
-#ConstrainCores=yes
-#ConstrainDevices=yes
-#ConstrainRAMSpace=yes
-#ConstrainSwapSpace=yes
 ```
 
-`slurmdbd.conf`:
-
+#### `slurmdbd.conf`
 ```ini
-#
-# slurmdbd.conf file.
-#
-# See the slurmdbd.conf man page for more information.
-#
-# Authentication info
-AuthType=auth/munge     #认证方式，该处采用munge进行认证
-AuthInfo=/var/run/munge/munge.socket.2     #为了与slurmctld控制节点通信的其它认证信息
-#
-# slurmDBD info
-DbdAddr=localhost      #数据库节点名
-DbdHost=localhost     #数据库IP地址
-#DbdPort=6819
-SlurmUser=root     #用户数据库操作的用户
-DebugLevel=verbose     #调试信息级别，quiet：无调试信息；fatal：仅严重错误信息；error：仅错误信息； info：错误与通常信息；verbose：错误和详细信息；debug：错误、详细和调试信息；debug2：错误、详细和更多调试信息；debug3：错误、详细和甚至更多调试信息；debug4：错误、详细和甚至更多调试信息；debug5：错误、详细和甚至更多调试信息。debug数字越大，信息越详细
-PurgeEventAfter=1month
-PurgeJobAfter=12month
-PurgeResvAfter=1month
-PurgeStepAfter=1month
-PurgeSuspendAfter=1month
-PurgeTXNAfter=12month
-PurgeUsageAfter=24month
-LogFile=/var/log/slurm/slurmdbd.log     #slurmdbd守护进程日志文件绝对路径
-PidFile=/var/run/slurmdbd.pid     #slurmdbd守护进程存储进程号文件绝对路径
-#
-# Database info
-StorageType=accounting_storage/mysql     #数据存储类型
-StoragePass=password     #存储数据库密码
-#StoragePort=10001
-StorageUser=root     #存储数据库用户名
-StorageLoc=slurm_acct_db     #数据库名称
+AuthType=auth/munge
+AuthInfo=/var/run/munge/munge.socket.2
+DbdAddr=localhost
+DbdHost=localhost
+SlurmUser=root
+DebugLevel=verbose
+LogFile=/var/log/slurm/slurmdbd.log
+PidFile=/var/run/slurmdbd.pid
+StorageType=accounting_storage/mysql
+StoragePass=password
+StorageUser=root
+StorageLoc=slurm_acct_db
 ```
 
-无GPU的配置`slurm.conf`:
-
+#### `slurm.conf` (CPU Only Example)
 ```ini
-# slurm.conf file generated by configurator easy.html.
-# Put this file on all nodes of your cluster.
-# See the slurm.conf man page for more information.
-#
 ClusterName=cluster
 SlurmctldHost=slurmmaster
-#
-#MailProg=/bin/mail
-MpiDefault=pmi2
-#MpiParams=ports=#-#
-ProctrackType=proctrack/cgroup
-ReturnToService=1
-SlurmctldPidFile=/run/slurmctld.pid
-#SlurmctldPort=6817
-SlurmdPidFile=/run/slurmd.pid
-#SlurmdPort=6818
-SlurmdSpoolDir=/var/lib/slurm/slurmd
-SlurmUser=root
-#SlurmdUser=root
-StateSaveLocation=/var/lib/slurm/slurmctld
-SwitchType=switch/none
-TaskPlugin=task/affinity
-#
-#
-# TIMERS
-#KillWait=30
-#MinJobAge=300
-#SlurmctldTimeout=120
-#SlurmdTimeout=300
-#
-#
-# SCHEDULING
-SchedulerType=sched/backfill
-SelectType=select/cons_tres
-#
-#
-# LOGGING AND ACCOUNTING
-AccountingStorageType=accounting_storage/slurmdbd
-AccountingStorageEnforce=associations,limits,qos
-AccountingStorageHost=localhost
-AccountingStoragePass=/var/run/munge/munge.socket.2
-# AccountingStoragePort=6819
-JobCompHost=localhost
-JobCompLoc=slurm_acct_db
-JobCompPass=password
-#JobCompPort=10001
-JobCompType=jobcomp/mysql
-JobCompUser=root
-JobContainerType=job_container/none
-JobAcctGatherFrequency=30
-JobAcctGatherType=jobacct_gather/cgroup
-#SlurmctldDebug=info
-SlurmctldLogFile=/var/log/slurm/slurmctld.log
-#SlurmdDebug=info
-SlurmdLogFile=/var/log/slurm/slurmd.log
-#
-#
-# COMPUTE NODES
-NodeName=slurm1 CPUs=4 Sockets=2 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=3876 Gres=gpu:0 State=UNKNOWN
-NodeName=slurm2 CPUs=4 Sockets=2 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=3876 Gres=gpu:0 State=UNKNOWN
-PartitionName=compute Nodes=slurm[1-2] Default=YES MaxTime=INFINITE State=UP
-```
-
-有GPU的配置`slurm.conf`:
-
-```ini
-# Example slurm.conf file. Please run configurator.html
-# (in doc/html) to build a configuration file customized
-# for your environment.
-#
-# slurm.conf file generated by configurator.html.
-# Put this file on all nodes of your cluster.
-# See the slurm.conf man page for more information.
-
-ClusterName=hpc01
-SlurmctldHost=slurmmaster
 MpiDefault=pmi2
 ProctrackType=proctrack/cgroup
 ReturnToService=1
 SlurmctldPidFile=/run/slurmctld.pid
-#SlurmctldPort=6817
 SlurmdPidFile=/run/slurmd.pid
-#SlurmdPort=6818
 SlurmdSpoolDir=/var/lib/slurm/slurmd
 SlurmUser=root
-#SlurmdUser=root
 StateSaveLocation=/var/lib/slurm/slurmctld
 SwitchType=switch/none
 TaskPlugin=task/affinity
 
-# TIMERS
-#Waittime=0
-#InactiveLimit=0
-#KillWait=30
-#MinJobAge=300
-#SlurmctldTimeout=120
-#SlurmdTimeout=300
-
-# SCHEDULING
 SchedulerType=sched/backfill
 SelectType=select/cons_tres
-#SelectTypeParameters=CR_Core_Memory
 
-# LOGGING AND ACCOUNTING
-AccountingStorageHost=localhost
-#AccountingStoragePort=6819
 AccountingStorageType=accounting_storage/slurmdbd
 AccountingStorageEnforce=associations,limits,qos
+AccountingStorageHost=localhost
 AccountingStoragePass=/var/run/munge/munge.socket.2
-AccountingStorageTRES=gres/gpu
-GresTypes=gpu
-#SlurmctldDebug=info
-SlurmctldLogFile=/var/log/slurm/slurmctld.log
-#SlurmdDebug=info
-SlurmdLogFile=/var/log/slurm/slurmd.log
-
-# JOB PRIORITY
 JobCompHost=localhost
 JobCompLoc=slurm_acct_db
 JobCompPass=password
-#JobCompPort=10001
 JobCompType=jobcomp/mysql
 JobCompUser=root
-JobAcctGatherFrequency=30
-JobAcctGatherType=jobacct_gather/cgroup
-JobContainerType=job_container/none
+
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
+SlurmdLogFile=/var/log/slurm/slurmd.log
 
 # COMPUTE NODES
 NodeName=slurm1 CPUs=4 Sockets=2 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=3876 Gres=gpu:0 State=UNKNOWN
@@ -332,89 +195,63 @@ NodeName=slurm2 CPUs=4 Sockets=2 CoresPerSocket=2 ThreadsPerCore=1 RealMemory=38
 PartitionName=compute Nodes=slurm[1-2] Default=YES MaxTime=INFINITE State=UP
 ```
 
-##### 启动Slurm服务
+### 3.7 Start Slurm Services
 
-```shell
-# 在服务端只需要启动 slurmdbd slurmctld
+```bash
 sudo systemctl enable slurmdbd
 sudo systemctl start slurmdbd
-systemctl status slurmdbd
-
 sudo systemctl enable slurmctld
 sudo systemctl start slurmctld
-systemctl status slurmctld
 ```
 
-### 只需要在客户端服务器上进行的操作
+## 4. Client Node Configuration (`slurm1`, `slurm2`)
 
-#### 安装&配置NFS客户端
+Perform these steps **only on Client Nodes**.
 
-安装软件：
+### 4.1 NFS Client
 
-```shell
+```bash
 sudo apt install nfs-common
-```
-
-查看NFS服务端的共享目录情况：
-
-```shell
-showmount -e slurmmaster
-```
-
-创建共享目录：
-
-```shell
-sudo mkdir /shared_workdir
+sudo mkdir -p /shared_workdir
 sudo chmod -R 777 /shared_workdir
 ```
 
-临时挂载共享目录：
-
-```shell
+Mount NFS share:
+```bash
 sudo mount -t nfs slurmmaster:/shared_workdir /shared_workdir
 ```
 
-通过`cat >> /etc/fstab`添加以下内容实现系统启动时挂载共享目录：
-
-```conf
+Auto-mount on boot (Add to `/etc/fstab`):
+```ini
 slurmmaster:/shared_workdir /shared_workdir nfs defaults 0 0
 ```
 
+### 4.2 Install Slurm Client
 
-#### 安装&配置Slurm客户端
-
-```shell
-# 软件安装
+```bash
 sudo apt install munge slurm-client slurmd openmpi-bin openmpi-common libopenmpi-dev
-
-# 启动munge服务
-sudo systemctl enable munge
-sudo systemctl start munge
-systemctl status munge
-
-# 服务端将munge.key文件传输到客户端后，需要重启munge服务
-sudo systemctl restart munge
 ```
 
-##### Slurm Config File 配置文件
+### 4.3 Configure Munge
 
-```shell
-sudo touch /etc/slurm/cgroup.conf # 内容同服务端
-sudo touch /etc/slurm/slurm.conf # 内容同服务端
-sudo touch /etc/slurm/gres.conf
-```
+1.  **Receive Key**: Ensure `munge.key` is copied from Master.
+2.  **Restart Munge**:
+    ```bash
+    sudo systemctl restart munge
+    ```
 
-GPU所需额外配置文件`gres.conf`:
+### 4.4 Configure Slurm
 
+Copy `slurm.conf` and `cgroup.conf` from Master to `/etc/slurm/`.
+
+If using GPUs, create `gres.conf`:
 ```ini
 Name=gpu Type=A800 File=/dev/nvidia[0-7]
 ```
 
-##### 启动Slurm服务
+### 4.5 Start Slurm Daemon
 
-```shell
-# 在客户端只需要启动slurmd
+```bash
 sudo systemctl enable slurmd
 sudo systemctl start slurmd
-systemctl status slurmd
 ```
