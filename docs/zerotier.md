@@ -1,38 +1,47 @@
-# 异地组局域网
+# ZeroTier Configuration Guide
 
-* 场景：处于不同网络环境下的小伙伴需要局域网联机打游戏
-* 软件：ZeroTier
-* 示例：下文以Windows系统为例进行简要说明
+ZeroTier allows you to create secure virtual LANs over the internet, which is useful for remote access, gaming, and connecting distributed devices.
 
-## 下载软件
+## 1. Installation
 
-[官网](https://www.zerotier.com/download)
+### Windows / macOS
 
-## 安装软件
+Download the installer from the [official website](https://www.zerotier.com/download) and follow the prompts.
 
-* 运行软件安装包，按照提示点击下一步，最后点击完成即可
+### Linux
 
-## 运行软件
+Run the installation script:
 
-* 安装完后软件应当已经运行，若在任务栏中没有显示ZeroTier的图标，可以从任务栏上的搜索栏搜索并运行
+```bash
+curl -s https://install.zerotier.com | sudo bash
+```
 
-## 配置软件
+## 2. Joining a Network
 
-> 右键点击任务栏上的ZerTier图标可查看设置菜单
+You need a **Network ID** (16-digit alphanumeric code) provided by the network administrator.
 
-### 加入局域网
+### Windows
 
-1. 勾选`Start UI at Login`
-2. 点击`Join New Network...`
-3. 在`Enter 16-digit Network ID to Join:`这一栏内输入需要加入的局域网ID号（这个ID号由局域网管理员提供），点击`Join`
-4. **等待局域网管理员确认状态后，再继续进行网络性能优化操作**
+1.  Right-click the ZeroTier icon in the taskbar.
+2.  Select **Join New Network...**.
+3.  Enter the Network ID and click **Join**.
 
-### 网络性能优化
+### Linux
 
-> 可解决加入局域网后联机界面搜不到主机的问题
+```bash
+sudo zerotier-cli join <NETWORK_ID>
+```
 
-1. 打开（Windows 11）系统设置界面，在`网络和Internet`界面选择`高级网络设置`
-2. 在`网络适配器`栏点击名称以`ZeroTier One`开头的项目最右侧的下拉箭头，在`更多适配器选项`栏点击`编辑`按钮
-3. 在弹出的设置界面点击`Internet协议版本4（TCP/IPv4）`，然后点击下方的`属性`按钮
-4. 在弹出的属性设置界面点击`高级`按钮
-5. 在弹出的高级设置界面的`IP设置`栏取消`自动跃点`前面的对勾，然后将`接口跃点数`改为`1`
+> [!NOTE]
+> After joining, the network administrator must authorize your device in the ZeroTier control panel.
+
+## 3. Network Optimization (Windows)
+
+If you encounter issues discovering games or services on the ZeroTier network, you may need to adjust the interface metric to prioritize the ZeroTier adapter.
+
+1.  Open **Settings** > **Network & Internet** > **Advanced network settings**.
+2.  Find the **ZeroTier One** adapter and click **Edit** (or "More adapter options").
+3.  Select **Internet Protocol Version 4 (TCP/IPv4)** and click **Properties**.
+4.  Click **Advanced**.
+5.  Uncheck **Automatic metric** and set **Interface metric** to `1`.
+6.  Click **OK** to save changes.
