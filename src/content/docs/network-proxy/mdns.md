@@ -71,9 +71,12 @@ sudo apt install avahi-daemon
     sudo systemctl enable --now avahi-daemon.service
     ```
 
-    > [!IMPORTANT]
-    > **Conflict with systemd-resolved:** `systemd-resolved` has a built-in mDNS responder. Ensure you disable it or configure it correctly to avoid conflicts with Avahi.
-    >
-    > To disable `systemd-resolved` mDNS:
-    > Edit `/etc/systemd/resolved.conf` and set `MulticastDNS=no`.
-    > Then restart the service: `sudo systemctl restart systemd-resolved`.
+    :::caution[重要提示]
+    **Conflict with systemd-resolved:** `systemd-resolved` has a built-in mDNS responder. Ensure you disable it or configure it correctly to avoid conflicts with Avahi.
+
+    To disable `systemd-resolved` mDNS:
+    
+    Edit `/etc/systemd/resolved.conf` and set `MulticastDNS=no`.
+    
+    Then restart the service: `sudo systemctl restart systemd-resolved`.
+    :::
