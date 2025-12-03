@@ -1,10 +1,12 @@
 # Welcome to NTLx's Blog
 
-As described in the title, this is my blog.
+This repository serves as a personal knowledge base and blog, covering topics such as Linux configuration, software development, and system administration.
 
-Contact me via email lx3325360@outlook.com if you need.
+## Contact
 
-## Click to change theme
+Feel free to reach out via email: [lx3325360@outlook.com](mailto:lx3325360@outlook.com)
+
+## Theme Selection
 
 <div class="demo-theme-preview">
   <a data-theme="vue">vue.css</a>
