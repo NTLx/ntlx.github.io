@@ -1,6 +1,8 @@
-# Linux
+# mDNS (Avahi) Configuration Guide
 
-## Alpine
+This guide explains how to install and configure mDNS (Multicast DNS) using Avahi on various Linux distributions. This allows you to access devices using `.local` hostnames (e.g., `myserver.local`).
+
+## 1. Alpine Linux
 
 ```bash
 sudo apk add avahi dbus
@@ -8,42 +10,67 @@ sudo rc-update add avahi-daemon
 sudo service avahi-daemon start
 ```
 
-## CentOS
+## 2. CentOS / RHEL
+
+1.  **Install Packages:**
+
+    ```bash
+    sudo yum install avahi avahi-tools nss-mdns
+    ```
+
+2.  **Enable Service:**
+
+    ```bash
+    sudo systemctl start avahi-daemon
+    sudo systemctl enable avahi-daemon
+    ```
+
+3.  **Configure Name Resolution:**
+
+    Edit `/etc/nsswitch.conf` and find the `hosts:` line. Change it from:
+    ```text
+    hosts: files dns
+    ```
+    to:
+    ```text
+    hosts: files mdns_minimal [NOTFOUND=return] dns
+    ```
+
+4.  **Configure Firewall:**
+
+    Allow mDNS traffic through the firewall:
+
+    ```bash
+    sudo firewall-cmd --permanent --add-service=mdns
+    sudo firewall-cmd --reload
+    ```
+
+## 3. Ubuntu / Debian
+
+Ubuntu usually comes with Avahi installed. If not:
 
 ```bash
-sudo yum install avahi
-sudo yum install avahi-tools
-sudo systemctl start avahi-daemon
-sudo systemctl enable avahi-daemon
-sudo yum install -y nss-mdns
-```
-
-then modify `/etc/nsswitch.conf` with root privilege, replace `hosts: files dns` to `hosts: files mdns_minimal [NOTFOUND=return] dns`.
-
-At last, firewall setting must be modified:
-
-```bash
-# sudo firewall-cmd --get-services
-# sudo firewall-cmd --add-service=mdns
-sudo firewall-cmd --permanent --add-service=mdns
-sudo firewall-cmd --reload
-```
-
-## Ubuntu
-
-```bash
+sudo apt update
 sudo apt install avahi-daemon
 ```
 
-## Manjaro or Arch Linux
+## 4. Arch Linux / Manjaro
 
-[Install](https://wiki.archlinux.org/index.php/Install) the [avahi](https://www.archlinux.org/packages/?name=avahi) package.
+1.  **Install Package:**
 
-You can manage the Avahi daemon with `avahi-daemon.service` [using systemd](https://wiki.archlinux.org/index.php/Systemd#Using_units).
+    ```bash
+    sudo pacman -S avahi
+    ```
 
-> **Note:** [systemd-resolved](https://wiki.archlinux.org/index.php/Systemd-resolved) has a built-in multicast DNS service, make sure to disable systemd-resolved's mDNS resolver and responder or [disable](https://wiki.archlinux.org/index.php/Disable) `systemd-resolved.service` entirely before using Avahi. For details, refer to [resolved.conf(5)](https://jlk.fjfi.cvut.cz/arch/manpages/man/resolved.conf.5).
+2.  **Enable Service:**
 
-```bash
-systemctl start avahi-daemon.service
-systemctl enable avahi-daemon.service
-```
+    ```bash
+    sudo systemctl enable --now avahi-daemon.service
+    ```
+
+    > [!IMPORTANT]
+    > **Conflict with systemd-resolved:** `systemd-resolved` has a built-in mDNS responder. Ensure you disable it or configure it correctly to avoid conflicts with Avahi.
+    >
+    > To disable `systemd-resolved` mDNS:
+    > Edit `/etc/systemd/resolved.conf` and set `MulticastDNS=no`.
+    > Then restart the service: `sudo systemctl restart systemd-resolved`.
