@@ -1,6 +1,12 @@
-![](https://upload.wikimedia.org/wikipedia/commons/a/a8/Privoxy_Icon.png?1573631956833)
+# Privoxy Custom Proxy Rules
 
-# for custom proxy rule
+![Privoxy Icon](https://upload.wikimedia.org/wikipedia/commons/a/a8/Privoxy_Icon.png?1573631956833)
+
+This document provides a comprehensive list of domains to be forwarded through a SOCKS5 proxy (e.g., Shadowsocks) running at `127.0.0.1:1080`.
+
+## Usage
+
+Add the following rules to your Privoxy configuration file (typically `/etc/privoxy/config` or a `user.action` file).
 
 ```bash
 forward-socks5 .purepdf.com 127.0.0.1:1080 .
