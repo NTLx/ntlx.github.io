@@ -1,34 +1,28 @@
-# Editor Config
+# EditorConfig Guide
 
-An OS crossed format solution!
+**A solution for consistent coding styles across different editors and IDEs.**
 
-## 前言
+## 1. Introduction
 
-与“规范”相关的一个事情：
+In collaborative development, maintaining a consistent coding style is crucial. Different developers may use different editors with varying default settings (e.g., tabs vs. spaces, indentation size). This can lead to messy code and unnecessary diffs.
 
-在进行脚本开发时，不同的人有不同的书写习惯，比如 python 脚本有用 tab 缩进也有用 space 缩进的、yaml 配置文件有用 2 个 space 也有用 4 个 space 控制格式的。
+**EditorConfig** helps developers define and maintain consistent coding styles between different editors and IDEs. It consists of a file format for defining coding styles and a collection of text editor plugins that enable editors to read the file format and adhere to defined styles.
 
-这个问题在团队开发时更加凸显，尤其大家连编辑器的使用也不相同时。
+## 2. How It Works
 
-为了书写规范化，现有一个简单易上手、跨编辑器且静默生效的代码风格定义和维护工具：EditorConfig，推荐在开发项目（例如 Git 仓库）中使用。
+When opening a file, the EditorConfig plugin looks for a file named `.editorconfig` in the directory of the opened file and in every parent directory. A search for `.editorconfig` files will stop if the root filepath is reached or an EditorConfig file with `root=true` is found.
 
-## EditorConfig 是什么
+EditorConfig files are read from top to bottom and the most recent rules found take precedence. Properties from matching EditorConfig sections are applied in the order they were read, so properties in closer files take precedence.
 
-EditorConfig 是一套用于统一代码格式的解决方案，很多项目都有用到，比如 Bootstrap、jQuery、Underscore 和 Ruby 等等。[官方网站](https://editorconfig.org/)说的很简明，为了方便大家快速上手，这里是简单的翻译。
+## 3. Installation
 
-EditorConfig 可以帮助开发者在不同的编辑器和IDE之间定义和维护一致的代码风格。EditorConfig 包含一个用于定义代码格式的文件和一批编辑器插件，这些插件可以让编辑器读取配置文件并依此格式化代码。EditorConfig 的配置文件十分易读，并且可以很好的在VCS（Version Control System）下工作。
+EditorConfig is supported by many editors and IDEs, including VS Code, Vim, JetBrains IDEs (IntelliJ, PyCharm, etc.), Atom, and more.
 
-## 在哪里存放配置文件
+Check the [Download Page](https://editorconfig.org/#download) to see if your editor requires a plugin or has native support.
 
-当打开一个文件时，EditorConfig 插件会在打开文件的目录和其每一级父目录查找 `.editorconfig` 文件，直到有一个配置文件 `root=true`。
+## 4. Configuration Example
 
-EditorConfig 配置文件从上往下读取，并且路径最近的文件最后被读取。匹配的配置属性按照属性应用在代码上，所以最接近代码文件的属性优先级最高。
-
-## 下载插件
-
-支持 VS Code、Vim、Atom、PyCharm 等众多编辑器/IDE，请去[官网](https://editorconfig.org/#download)查看是否需要安装插件以及下载相关。
-
-## 示例配置文件
+Here is a sample `.editorconfig` file:
 
 ```ini
 # EditorConfig is awesome: https://EditorConfig.org
@@ -46,17 +40,17 @@ insert_final_newline = true
 [*.{js,py,pl,sh,r}]
 charset = utf-8
 
-# 4 space indentation
+# 4 space indentation for Python
 [*.py]
 indent_style = space
 indent_size = 4
 
-# 2 space indentation
+# 2 space indentation for YAML
 [*.{yml,yaml}]
 indent_style = space
 indent_size = 2
 
-# tab indentation (no size specified)
+# Tab indentation for Shell, Perl, R, Makefiles
 [*.{js,pl,sh,r,rule,Makefile}]
 indent_style = tab
 
@@ -71,10 +65,16 @@ indent_style = space
 indent_size = 2
 ```
 
-目前所有的属性名和属性值都是大小写不敏感的。编译时都会将其转为小写。通常，如果没有明确指定某个属性，则会使用编辑器的配置，而 EditorConfig 不会处理。
+## 5. Tips
 
-推荐不要指定某些EditorConfig属性。比如，`tab_width` 不需要特别指定，除非它与 `indent_size` 不同。同样的，当 `indent_style` 设为 `tab` 时，不需要配置 `indent_size`，这样才方便阅读者使用他们习惯的缩进格式。另外，如果某些属性并没有规范化（比如 `end_of_line`），就最好不要设置它。
+- **Case Insensitivity**: All property names and values are case-insensitive. They are parsed as lower-case.
+- **Unspecified Properties**: If a property is not specified, the editor's default setting will be used.
+- **Best Practices**:
+    - Do not specify `tab_width` unless it differs from `indent_size`.
+    - Avoid specifying `indent_size` when `indent_style` is set to `tab`, allowing developers to view code with their preferred tab width.
 
-[这里](https://github.com/editorconfig/editorconfig/wiki/Projects-Using-EditorConfig)是一些使用了 EditorConfig 的示例项目
+## 6. Resources
 
-注意：不是每种插件都支持所有的属性，具体可见[Wiki](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties)。
+- [Official Website](https://editorconfig.org/)
+- [Projects Using EditorConfig](https://github.com/editorconfig/editorconfig/wiki/Projects-Using-EditorConfig)
+- [EditorConfig Properties Wiki](https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties)
