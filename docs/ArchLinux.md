@@ -1,162 +1,205 @@
+# Arch Linux Installation & Configuration Guide
+
 ![](https://img.linux.net.cn/data/attachment/album/201712/25/102349b7keeap433ae5e3j.jpg)
 
-# Configuration Guide for Arch Linux
+> [!NOTE]
+> This guide assumes you are using a **UEFI** system and **GPT** partition table.
 
-> for UEFI boot and GPT partation
+## 1. Pre-installation
 
-## set timezone
+### Set Timezone
+
+Ensure your system time is correct before installation.
 
 ```bash
 timedatectl set-timezone Asia/Shanghai
 ```
 
-## disk partation
+### Disk Partitioning
 
-### set boot partation
+We will use `fdisk` to create a GPT partition table with an EFI System Partition (ESP) and a Root partition.
+
+#### Create Boot Partition (ESP)
 
 ```bash
 fdisk /dev/sda
-g # set a new gpt partation table
-1
-2048
-+512M # add a 512M partation
-t
-1 # set 512M partation to EFT System
-w
+# In fdisk prompt:
+# g     - Create a new empty GPT partition table
+# n     - Add a new partition
+# 1     - Partition number (default 1)
+# 2048  - First sector (default)
+# +512M - Last sector (size 512M)
+# t     - Change partition type
+# 1     - Select partition 1 (if asked)
+# 1     - Set type to 'EFI System' (code 1 in fdisk for GPT)
+# w     - Write changes
+```
+
+Format the ESP partition:
+
+```bash
 mkfs.fat -F32 /dev/sda1
 ```
 
-### set / partation
+#### Create Root Partition
 
 ```bash
 fdisk /dev/sda
-n
-# then use default value (just hit enter)
-w
+# In fdisk prompt:
+# n     - Add a new partition
+#       - Partition number (default 2)
+#       - First sector (default)
+#       - Last sector (default, use remaining space)
+# w     - Write changes
+```
+
+Format the Root partition:
+
+```bash
 mkfs.ext4 /dev/sda2
 ```
 
-## mount
+### Mount Partitions
+
+Mount the root partition to `/mnt` and the boot partition to `/mnt/boot`.
 
 ```bash
 mount /dev/sda2 /mnt
-mkdir /mnt/boot
+mkdir -p /mnt/boot
 mount /dev/sda1 /mnt/boot
 ```
 
-## set mirror
+### Configure Mirror List
 
-Edit `/etc/pacman.d/mirrorlist` and add blow at the top
+Edit `/etc/pacman.d/mirrorlist` to use a fast mirror (e.g., Aliyun). Add the following line to the top of the file:
 
 ```bash
 Server = http://mirrors.aliyun.com/archlinux/$repo/os/$arch
 ```
 
-## basic packages installation
+## 2. Installation
+
+### Install Base System
+
+Install the base system, development tools, kernel, and network manager.
 
 ```bash
 pacstrap /mnt base base-devel linux dhcpcd
 ```
 
-## set Fstab
+### Generate Fstab
+
+Generate the `fstab` file to define how disk partitions should be mounted.
 
 ```bash
 genfstab -L /mnt >> /mnt/etc/fstab
 ```
 
-test result:
+Verify the content:
 
 ```bash
 cat /mnt/etc/fstab
 ```
 
-## Chroot
+## 3. System Configuration
+
+### Chroot into New System
+
+Change root into the new system.
 
 ```bash
 arch-chroot /mnt
 ```
 
-## set timezone for new system
+### Set Timezone
 
 ```bash
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 hwclock --systohc
 ```
 
-## must have packages installation
+### Install Essential Packages
+
+Install common tools like `vim`, `networkmanager`, etc.
 
 ```bash
 pacman -S vim dialog wpa_supplicant ntfs-3g networkmanager
 ```
 
-## Localization
+### Localization
 
-```bash
-vim /etc/locale.gen
-```
+Edit `/etc/locale.gen` and uncomment the following lines:
 
-unset annotation for blow:
-
-```
+```text
 en_US.UTF-8 UTF-8
 zh_CN.UTF-8 UTF-8
 zh_HK.UTF-8 UTF-8
 zh_TW.UTF-8 UTF-8
 ```
 
+Generate locales:
+
 ```bash
 locale-gen
-vim /etc/locale.conf
 ```
 
-add blow to the top:
-
-```
-LANG=en_US.UTF-8
-```
-
-## set server name
+Create `/etc/locale.conf` and set the LANG variable:
 
 ```bash
-vim /etc/hostname
-vim /etc/hosts
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
 ```
 
-add host name in `/etc/hostname` file, add blow to `/etc/hosts` file:
+### Network Configuration
 
-```
-127.0.0.1	localhost
-::1		localhost
-127.0.1.1	ArchLx.localdomain	ArchLx
+Set the hostname (replace `ArchLx` with your desired hostname):
+
+```bash
+echo "ArchLx" > /etc/hostname
 ```
 
-## set root password
+Edit `/etc/hosts`:
+
+```text
+127.0.0.1   localhost
+::1         localhost
+127.0.1.1   ArchLx.localdomain  ArchLx
+```
+
+### Set Root Password
 
 ```bash
 passwd
 ```
 
-## Intel-ucode Installation
+### Microcode (Intel CPU only)
 
-> skip this if not Intel CPU
+If you are using an Intel CPU, install the microcode updates.
 
 ```bash
 pacman -S intel-ucode
 ```
 
-## Bootloader Installation
+## 4. Bootloader Installation
 
-> if installed Grub before, must delete it first
+We will use **GRUB** as the bootloader.
 
 ```bash
-pacman -S os-prober ntfs-3g
-pacman -S grub efibootmgr
+pacman -S os-prober ntfs-3g grub efibootmgr
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=grub
 grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+> [!TIP]
+> If you encounter the error `warning failed to connect to lvmetad，falling back to device scanning`, edit `/etc/lvm/lvm.conf` and set `use_lvmetad = 0`, then regenerate the grub config.
+
+> [!NOTE]
+> If you see `grub-probe: error: cannot find a GRUB drive for /dev/sdb1`, and `sdb1` is your USB installation media, you can safely ignore this error.
+
+## 5. Finish
+
+Exit the chroot environment and reboot.
+
+```bash
 exit
 reboot
 ```
-
-> if report error `warning failed to connect to lvmetad，falling back to device scanning.`, edit `/etc/lvm/lvm.conf`, set `use_lvmetad = 1` to `0`, the reset grub
-
-> if report error like `grub-probe: error: cannot find a GRUB drive for /dev/sdb1, check your device.map`, and this `sdb1` was your USB drive, you can ignore this error
