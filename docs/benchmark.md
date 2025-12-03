@@ -1,31 +1,37 @@
-# Snakemake Benchmark Summarize
+# Snakemake Benchmark Summarizer
 
-## Usage
+## 1. Usage
 
-This script will find file(s) which name match `*.benchmark` for summarize:
-1. Sum time
-2. Sum I/O
-3. Find Max memory consumption
+This script finds files matching `*.benchmark` and summarizes their metrics:
+1.  **Total Execution Time**
+2.  **Total I/O (Input/Output)**
+3.  **Maximum Memory Consumption (Max RSS)**
 
-For example:
+### Example
 
 ```bash
+# Summarize benchmarks in a specific directory
 ❯ workflow/scripts/sum_benchmark.pl benchmark/01.QC
 Finding file(s) named "*.benchmark" under benchmark/01.QC and summarizing...
-Total Execution time: 02 hours 38 minutes 11 seconds
-Total io_in: 182.58G, Total io_out: 43.28G, Total io: 225.86G
+Total Execution Time: 02 hours 38 minutes 11 seconds
+Total I/O In: 182.58G, Total I/O Out: 43.28G, Total I/O: 225.86G
 Max_rss: 2.09G
+
+# Summarize benchmarks in the current directory (default)
 ❯ workflow/scripts/sum_benchmark.pl
 Finding file(s) named "*.benchmark" under current workdir and summarizing...
-Total Execution time: 10 hours 04 minutes 44 seconds
-Total io_in: 315.35G, Total io_out: 178.44G, Total io: 493.80G
+Total Execution Time: 10 hours 04 minutes 44 seconds
+Total I/O In: 315.35G, Total I/O Out: 178.44G, Total I/O: 493.80G
 Max_rss: 21.00G
 ```
 
-> - As you can see, the benchmark file of Snakemake was named `*.benchmark` by default (for me), so you can modify the script to fit your own workflow.
-> - Further more, checking input benchmark file list was suggested.
+> [!NOTE]
+> - By default, Snakemake benchmark files are expected to be named `*.benchmark`. You can modify the script if your naming convention differs.
+> - It is recommended to check the list of input benchmark files to ensure accuracy.
 
-## Source
+## 2. Source Code
+
+Save the following code as `sum_benchmark.pl` and make it executable (`chmod +x sum_benchmark.pl`).
 
 ```perl
 #!/usr/bin/perl
@@ -65,7 +71,7 @@ $total_io=&unit($total_io);
 $max_rss=&unit($max_rss);
 
 if ($total_sec) {
-	printf ("Total Executed Time: %02d hours %02d minutes %02d seconds\n",(gmtime($total_sec))[2,1,0]);
+	printf ("Total Execution Time: %02d hours %02d minutes %02d seconds\n",(gmtime($total_sec))[2,1,0]);
 	print "Total I/O In: $io_in, Total I/O Out: $io_out, Total I/O: $total_io\n";
 	print "Max_rss: $max_rss\n";
 }
