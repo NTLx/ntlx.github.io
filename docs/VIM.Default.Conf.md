@@ -1,8 +1,12 @@
-![](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Vimlogo.svg/640px-Vimlogo.svg.png?1573631685412)
+# Default Vim Configurations
 
-# Within Alpine Linux
+![Vim Logo](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Vimlogo.svg/640px-Vimlogo.svg.png?1573631685412)
 
-```
+This document contains the default `.vimrc` (or system-wide `vimrc`) configurations for various Linux distributions. These can be useful for reference or for restoring default behavior.
+
+## Alpine Linux
+
+```vim
 set nocompatible        " Use Vim defaults (much better!)
 set bs=2                " Allow backspacing over everything in insert mode
 set ai                  " Always set auto-indenting on
@@ -20,9 +24,9 @@ syntax on
 autocmd BufRead APKBUILD set filetype=sh
 ```
 
-# Within CentOS 8
+## CentOS 8
 
-```
+```vim
 if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
    set fileencodings=ucs-bom,utf-8,latin1
 endif
@@ -85,9 +89,9 @@ if &term=="xterm"
 endif
 ```
 
-# Within CentOS 7.6
+## CentOS 7.6
 
-```
+```vim
 if v:lang =~ "utf8$" || v:lang =~ "UTF-8$"
    set fileencodings=ucs-bom,utf-8,latin1
 endif
@@ -154,9 +158,9 @@ endif
 let &guicursor = &guicursor . ",a:blinkon0"
 ```
 
-# Within Fedora
+## Fedora
 
-```
+```vim
 " When started as "evim", evim.vim will already have done these settings.
 if v:progname =~? "evim"
   finish
@@ -283,9 +287,9 @@ endif
 let &guicursor = &guicursor . ",a:blinkon0"
 ```
 
-# Within OpenSUSE
+## OpenSUSE
 
-```
+```vim
 " /etc/vimrc (configuration file for vim only)
 " author: Klaus Franken     <kfr@suse.de>
 " author: Werner Fink       <werner@suse.de>
