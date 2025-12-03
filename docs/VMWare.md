@@ -1,103 +1,73 @@
-![](https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595)
+# VMware ESXi & Workstation Guide
 
-> For v6.7u3 currently
+![VMware Logo](https://junior1104.files.wordpress.com/2010/08/vmware-logo.jpg?w=595)
 
-# Get ESXi
+This guide covers the installation and configuration of VMware ESXi (v6.7u3) and VMware Workstation.
 
-[Read this](https://blog.whsir.com/post-3377.html).
+## 1. VMware ESXi
 
-# Install ESXi
+### Installation
 
-> Using `VMware-VMvisor-Installer-6.7.0.update03-14320388.x86_64.iso`
+1.  **Download:** Get the ESXi installer ISO (e.g., `VMware-VMvisor-Installer-6.7.0.update03-14320388.x86_64.iso`).
+2.  **Create Bootable Media:** Flash the ISO to a USB drive using a tool like Rufus.
+3.  **Install:** Boot the server from the USB drive and follow the on-screen instructions.
+    > [!TIP]
+    > Use `Tab` or arrow keys to navigate the installer menus.
+4.  **Management:** After installation, access the web interface via the IP address displayed on the screen.
 
-Flash iso file to USB drive, then install to server.
+### Configuration
 
-> when setting root password, use `tab` or `direction key` to switch input lines.
-
-After the installation, use web interface to manage.
-
-# Set ESXi
-
-## Key
-
-> Just a free key for test, limits: up to 8 vCPUs per virtual machine.
-
-```
+#### License Key (Trial)
+> Limits: Up to 8 vCPUs per virtual machine.
+```text
 HY0XH-D508H-081U8-JA2GH-CCUM2
 ```
 
-## Add storage
+#### Storage (RDM)
+If you need to pass through physical disks (Raw Device Mapping), refer to online guides for [RDM configuration](https://blog.whsir.com/post-4462.html).
 
-Do this if you have more disks.
+### macOS Virtualization
 
-### RDM
+To run macOS on non-Apple hardware, you need to patch ESXi.
 
-Choose [online method](https://www.jianshu.com/p/9606c9cdfc56) or [offline method](https://blog.whsir.com/post-4462.html).
+1.  **Download Unlocker:** [esxi-unlocker](https://github.com/DrDonk/esxi-unlocker)
+2.  **Install:** Upload the script to ESXi and run `./esxi-install.sh`.
+3.  **Reboot:** Restart the ESXi host.
 
-## Install virtual systems
+**macOS Guest Settings:**
 
-### Mac OS
+*   **Enable HiDPI:**
+    ```bash
+    sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutionEnabled -bool YES
+    sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResolutionDisabled
+    ```
+    Reboot the VM.
 
-> Need to "crack" first.
+*   **Set Resolution:**
+    ```bash
+    /Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
+    ```
 
-Download [esxi-unlocker](https://github.com/DrDonk/esxi-unlocker), extract, then run the script `./esxi-install.sh`.
+### Backup (CBT)
 
-Reboot ESXi after above.
+Enable **Changed Block Tracking (CBT)** to allow incremental backups.
 
-> For VMware Fusion or WorkStation, download [unlocker](https://github.com/DrDonk/unlocker)
+1.  **Power Off:** The VM must be powered off.
+2.  **Edit Settings:** Right-click VM > **Edit Settings** > **VM Options** > **Advanced** > **Edit Configuration**.
+3.  **Add Parameters:**
+    - `ctkEnabled` = `true`
+    - `scsi0:0.ctkEnabled` = `true` (Repeat for each disk, e.g., `scsi0:1.ctkEnabled`)
+4.  **Verify:** Power on the VM and check its directory for `*-ctk.vmdk` files.
 
-#### Setting in virtual Mac
+> [!NOTE]
+> For more details, see [VMware KB 1031873](https://kb.vmware.com/s/article/1031873).
 
-##### Activate HiDPI
+## 2. VMware Workstation
 
-```bash
-sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutionEnabled -bool YES
-sudo defaults delete /Library/Preferences/com.apple.windowserver DisplayResolutionDisabled
-```
+### License Keys (Trial)
 
-then reboot.
-
-##### Change screen resolution
-
-```bash
-/Library/Application\ Support/VMware\ Tools/vmware-resolutionSet 3416 1920
-```
-
-# About Backup
-
-## Virtual Machine
-
-Enable VMware Changed Block Tracking (CBT) to only back up blocks that have changed since last backup time and greatly reduce the transferred data size and time for backup.
-
-This part of content will guide you through the process of enabling CBT manually in VMware vSphere. Please follow the instructions of VMware and perform the following steps.
-
-> Here is the [setting example](https://www.synology.com/en-global/knowledgebase/DSM/tutorial/Backup/How_to_enable_CBT_manually_for_a_virtual_machine) for backing up a virtual machine in ESXi to a Synology NAS
-
-1. **Power off** the virtual machine. You will not be able to successfully complete the setting without powering off the virtual machine.
-2. Right-click the virtual machine and click Edit Settings.
-3. Click VM Options tab.
-4. Click Advanced and then click Edit Configuration next to Configuration Parameters. It will open the Configuration Parameters dialog.
-5. Click Add parameters, add the ctkEnabled parameter, and set its value to true.
-6. Click Add parameters, add scsi0:0.ctkEnabled, and set its value to true.
-
-> - Whenever a hard drive is added to the virtual machine, a SCSI device will be assigned to the hard drive. scsi0:0 in scsi0:0.ctkEnabled represents the SCSI device, while the others display similar to scsi0:1, or scsi 1:1.
-> - You can enable or disable CBT individually on each hard drive.
-
-Then, power on the virtual machine, in the home directory of the virtual machine, verify that each drive having CBT enabled has also a vmname-ctk.vmdk file.
-
-The instruction above is referring to this website: [VMware KB 1031873](https://kb.vmware.com/s/article/1031873). It might be subject to change in different versions of VMware vSphere. You may find more up-to-date details regarding enabling CBT in VMware VMs on [VMware KB 1031873](https://kb.vmware.com/s/article/1031873).
-
-After CBT is enabled, the first backup will still be full backup, and the subsequent backups will be incremental backup.
-
-# About Client
-
-## VMWare WorkStation
-
-> Version 15
-
-Use any key below for test:
-
-```bash
+**Version 15:**
+```text
 ZC10K-8EF57-084QZ-VXYXE-ZF2XF
 UF71K-2TW5J-M88QZ-8WMNT-WKUY4
 AZ7MK-44Y1J-H819Z-WMYNC-N7ATF
