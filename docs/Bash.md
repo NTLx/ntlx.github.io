@@ -1,12 +1,14 @@
+# Bash Configuration Guide
+
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873)
 
-# Bash
+This document collects default Bash configurations from popular Linux distributions and useful snippets.
 
-> Default Settings in popular OSs
+## 1. Manjaro Architect Defaults
 
-## Manjaro Architect
+### System-wide Config (`/etc/bash.bashrc`)
 
-`/etc/bash.bashrc`
+This file contains system-wide settings for interactive shells.
 
 ```bash
 #
@@ -33,7 +35,9 @@ esac
 [ -r /usr/share/bash-completion/bash_completion   ] && . /usr/share/bash-completion/bash_completion
 ```
 
-`~/.bashrc`
+### User Config (`~/.bashrc`)
+
+This file contains user-specific settings, aliases, and functions.
 
 ```bash
 #
@@ -150,7 +154,15 @@ shopt -s expand_aliases
 
 # Enable history appending instead of overwriting.  #139609
 shopt -s histappend
+```
 
+## 2. Useful Snippets
+
+### Archive Extractor (`ex`)
+
+A handy function to extract various archive formats with a single command.
+
+```bash
 #
 # # ex - archive extractor
 # # usage: ex <file>
