@@ -1,105 +1,92 @@
-<span id="top"></span>
-![](https://avatars1.githubusercontent.com/u/3006190?s=200&v=4)
+# Shadowsocks Client Guide
 
-# Shadowsocks
+![Shadowsocks Logo](https://avatars1.githubusercontent.com/u/3006190?s=200&v=4)
 
-Shadowsocks 可以指：一种基于 Socks5 代理方式的加密传输协议，也可以指实现这个协议的各种传输包，并采用 Apache 许可证、GPL、MIT 许可证等多种自由软件许可协议开放源代码。shadowsocks 分为服务器端和客户端，在使用之前，需要先将服务器端部署到服务器上面，然后通过客户端连接并创建本地代理。目前包使用 Python、C、C++、C#、Go 语言等编程语言开发。[Wikipedia](https://zh.wikipedia.org/wiki/Shadowsocks)
+## 1. Introduction
 
-Shadowsocks 的运行原理与其他代理工具基本相同，使用特定的中转服务器完成数据传输。
+**Shadowsocks** refers to a secure split-proxy based on the SOCKS5 protocol. It also refers to the various open-source implementations of this protocol (Python, C, C++, C#, Go, etc.) available under licenses like Apache, GPL, and MIT.
 
-在服务器端部署完成后，用户需要按照指定的密码、加密方式和端口，使用客户端软件与其连接。在成功连接到服务器后，客户端会在用户的电脑上构建一个本地Socks5代理。浏览网络时，网络流量会被分到本地socks5代理，客户端将其加密之后发送到服务器，服务器以同样的加密方式将流量回传给客户端，以此实现代理上网。[维基教科书](https://zh.wikibooks.org/wiki/Shadowsocks)
+Shadowsocks consists of a server and a client. The server component is deployed on a remote server, while the client runs on the user's local device. Once connected, the client creates a local SOCKS5 proxy. Network traffic is then encrypted and forwarded to the server, which decrypts it and sends it to the target destination, effectively bypassing network restrictions.
 
-## Software & App
+## 2. Client Software
 
-Shadowsocks 支持广泛、版本众多，这里仅介绍常用平台客户端。
+Shadowsocks is supported on a wide range of platforms. Below are some popular clients.
 
-> App 安装时请确保系统为当前流行的最新版本，否则可能遇到依赖缺失甚至兼容性问题
+> [!IMPORTANT]
+> Ensure your operating system is up to date to avoid compatibility issues.
 
 ### Windows
 
-[`shadowsocks-windows`](https://github.com/shadowsocks/shadowsocks-windows)
-[`SSR`](https://github.com/shadowsocksr-backup/shadowsocksr-csharp/releases)
+- [Shadowsocks for Windows](https://github.com/shadowsocks/shadowsocks-windows)
+- [ShadowsocksR (SSR)](https://github.com/shadowsocksr-backup/shadowsocksr-csharp/releases)
 
-### Mac OS
+### macOS
 
-[`ShadowsocksX-NG`](https://github.com/shadowsocks/ShadowsocksX-NG)
-[`SSR`](https://github.com/qinyuhang/ShadowsocksX-NG-R)
-[`SSR based on Swift`](https://github.com/wzdnzd/ShadowsocksX-NG-R)
+- [ShadowsocksX-NG](https://github.com/shadowsocks/ShadowsocksX-NG)
+- [ShadowsocksX-NG-R](https://github.com/qinyuhang/ShadowsocksX-NG-R)
 
 ### Android
 
-[`shadowsocks-android`](https://github.com/shadowsocks/shadowsocks-android)
-[`old SSR`](https://github.com/shadowsocksr-backup/shadowsocksr-android/releases)
-[`new SSR`](https://github.com/shadowsocksrr/shadowsocksr-android)
+- [Shadowsocks for Android](https://github.com/shadowsocks/shadowsocks-android)
+- [ShadowsocksR (New)](https://github.com/shadowsocksrr/shadowsocksr-android)
 
 ### iOS
 
-Search in US App Store: `potatso lite`, `Mume(暮梅)`, etc.
-[`ShadowRocket`](https://itunes.apple.com/hk/app/shadowrocket/id932747118?l=en&mt=8)
-> ShadowRocket 已在国区下架，请自行于其他地区 App Store 购买，或寻找其他替代 App
+- **Shadowrocket** (Paid, available in non-China App Stores)
+- **Potatso Lite**
+- **Quantumult**
 
-### 各平台的客户端列表
+### Other Platforms
 
-[`shadowsocks`](https://shadowsocks.org/en/download/clients.html)
+For a complete list of clients, visit the [official website](https://shadowsocks.org/en/download/clients.html).
 
-# Shadowsocks 线路代理商
+## 3. Service Providers
 
-如上所述，Shadowsocks 需要服务器端&客户端的部署+连接才能达到应有的效果，所以我们需要选择各种服务商提供的代理配置。
+To use Shadowsocks, you need a server. You can either:
+1.  **Self-host**: Rent a VPS (Virtual Private Server) and install the Shadowsocks server software.
+2.  **Subscribe**: Purchase a service from a Shadowsocks provider.
 
-供 Shadowsocks 所用的代理有免费的也有付费的。免费的不一定慢，付费的也并不一直稳定。只是付费代理在出现线路问题后会及时调整。
+> [!NOTE]
+> Paid services often provide better stability and multiple server nodes, while self-hosting offers complete control and privacy.
 
-> 由于本文作者使用的代理商有邀请奖励，所以请有需要而且找得到作者的小伙伴来找我要个邀请吧。。。
+## 4. Configuration Guide
 
-# Shadowsocks/ShadowsocksR 客户端添加服务器配置
+This guide demonstrates how to configure the client using a QR code, which is the most common method.
 
-Shadowsocks/ShadowsocksR 客户端使用极其简便，且基本上看选项就能完全明白什么意思。这里仅以作者使用的平台做简要示范。
+### Step 1: Obtain Server Configuration
 
-## 获取服务器代理配置
+Log in to your service provider's website or your own server management panel. Look for a "Subscribe" or "Server List" section.
 
-> 请在各自使用的免费/付费代理商处获得。此处展示二维码添加配置示范。
+You should find an option to **View Configuration** or **Scan QR Code**.
 
-在代理商网站找到类似下图的菜单：
+![Server List Example](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.12.37.png)
 
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.06.38.png)
+Display the QR code on your screen.
 
-点击类似`我的账号`的按钮，进入类似下图的界面：
+### Step 2: Configure the Client
 
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.10.07.png)
+1.  **Install and Run**: Install the Shadowsocks client for your platform and launch it. You should see a paper airplane icon in your system tray or menu bar.
 
-点击类似`查看详细信息（增加服务器节点）`的链接，进入类似下图的界面：
+    ![System Tray Icon](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.14.04.png)
 
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.11.40.png)
+2.  **Scan QR Code**:
+    - Click on the Shadowsocks icon.
+    - Navigate to the **Servers** or **Scan QR Code** menu.
+    - Select **Scan QR Code from Screen**.
 
-点击类似`查看详细信息（扫描二维码）`的链接，进入类似下图的界面：
+    ![Scan Menu](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.15.33.png)
 
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.12.37.png)
+    The client will automatically detect the QR code and add the server configuration.
 
-点击类似`显示XXX二维码`的按钮，屏幕上出现二维码，此时转去操作Shadowsocks/ShadowsocksR客户端。
+3.  **Select Mode**:
+    - **PAC Mode (Auto)**: Only traffic matching the PAC list (blocked sites) goes through the proxy. Recommended for general use.
+    - **Global Mode**: All traffic goes through the proxy.
 
-## Shadowsocks/ShadowsocksR客户端操作
+4.  **Update PAC**:
+    - It is recommended to update the PAC file regularly to ensure new blocked sites are included. Look for **Update PAC from GFWList** in the menu.
 
-安装并运行客户端App后，请在众多状态栏/任务栏图标中找到软件图标（图标形状可理解为三角形、纸飞机等）：
-
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.14.04.png)
-
-鼠标左键或右键单击（请自行尝试）后弹出类似下图的菜单：
-
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.14.29.png)
-
-> 上图所示`PAC模式`为自动代理模式，仅需要代理的流量才走代理服务器；`全局模式`即接管全部流量。
-
-请在类似`服务器配置`的选项中找到类似下图的选项：
-
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.15.33.png)
-
-**扫描屏幕上的二维码即可。**
-
-请自行在菜单中找到类似`更新PAC`的选项，经常更新PAC规则可以保持`智能代理`：
-
-![](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.16.04.png)
+    ![Update PAC](http://lx-public-pic.oss-cn-shanghai.aliyuncs.com/Shadowsocks/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7%202019-03-11%2011.16.04.png)
 
 ---
 
-***请注意本文高频使用的`类似`，意即与各自实际情况类比即可***
-
-[Back to Top](#top)
+[Back to Top](#shadowsocks-client-guide)
