@@ -1,9 +1,15 @@
+# Black DSM (Synology) Installation Guide
+
 ![](https://lx-public-pic.oss-cn-shanghai.aliyuncs.com/PicGo/20200110102039.jpeg)
 
-# Black DSM
+This page collects resources and tips for installing Black DSM (XPEnology).
 
-[黑群晖教程收录](https://www.nas2x.com/threads/2019-3-12.588/)
+## 1. Resources
 
-# Tips
+- **[XPEnology Tutorial Collection](https://www.nas2x.com/threads/2019-3-12.588/)**: A comprehensive collection of guides for installing Black DSM (Chinese).
 
-如使用DS918+的引导无法获得IP，可尝试更换不同型号的引导。
+## 2. Troubleshooting
+
+### DS918+ Boot Issue
+> [!TIP]
+> If you are unable to obtain an IP address when using the **DS918+** bootloader, try switching to a bootloader for a different model (e.g., DS3617xs).
