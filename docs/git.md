@@ -1,34 +1,60 @@
-# Git
+# Git Configuration & Tips
 
-## Using proxy
+## 1. Configuration
+
+### SSH Key Generation
+
+Generate a new SSH key (RSA 4096-bit):
 
 ```bash
-ssh-keygen -t rsa -b 4096 -C "lx3325360@gmail.com"
-git config --global user.name "NTLx"
-git config --global user.email "lx3325360@gmail.com"
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+
+### User Identity
+
+Set your global username and email:
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
+```
+
+### Proxy Settings
+
+Configure Git to use a proxy (e.g., HTTP proxy at 127.0.0.1:8888):
+
+```bash
 git config --global http.proxy http://127.0.0.1:8888
 git config --global https.proxy http://127.0.0.1:8888
 ```
 
-## Modify commit info
-
-### Change Author Info
-
-#### All
-
+To unset:
 ```bash
-git filter-branch --env-filter 'export GIT_AUTHOR_EMAIL=new_author_email' --
+git config --global --unset http.proxy
+git config --global --unset https.proxy
 ```
 
-> `GIT_AUTHOR_NAME`, `GIT_COMMITTER_EMAIL`, `GIT_COMMITTER_NAME` could also be modified
+## 2. Modify Commit History
 
-#### Specific
+> [!WARNING]
+> Rewriting history is destructive. Ensure you have a backup before proceeding. `git filter-branch` is deprecated; consider using [git-filter-repo](https://github.com/newren/git-filter-repo) for better performance and safety.
+
+### Change Author Info (All Commits)
+
+```bash
+git filter-branch --env-filter 'export GIT_AUTHOR_EMAIL=new_email@example.com' --
+```
+
+### Change Specific Author Info
+
+Replace `Old@Email`, `Changed Name`, and `Changed@Email` with actual values.
 
 ```bash
 git filter-branch -f --env-filter '
 OLD_EMAIL="Old@Email"
 CORRECT_NAME="Changed Name"
 CORRECT_EMAIL="Changed@Email"
+
 if [ "$GIT_COMMITTER_EMAIL" = "$OLD_EMAIL" ]
 then
     export GIT_COMMITTER_NAME="$CORRECT_NAME"
@@ -42,14 +68,14 @@ fi
 ' --tag-name-filter cat -- --branches --tags
 ```
 
-## Log
+## 3. Logs
 
-### See Specific Author
+### Filter by Author
 
 ```bash
 git log --author="Author Name"
 ```
 
-## Tips
+## 4. Tips
 
-GitHub上随便点开一个文件，把url的.com替换成.githistory.xyz[有惊喜](https://twitter.com/i/status/1265839242145460224)
+- **Git History Visualization:** Replace `.com` with `.githistory.xyz` in any GitHub file URL to see a visual history of that file.
