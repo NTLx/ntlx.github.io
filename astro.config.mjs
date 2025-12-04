@@ -18,6 +18,23 @@ export default defineConfig({
 			],
 			// SEO 优化
 			head: [
+				// Google Analytics (gtag.js)
+				{
+					tag: 'script',
+					attrs: {
+						async: true,
+						src: 'https://www.googletagmanager.com/gtag/js?id=G-9G66JC6HXW',
+					},
+				},
+				{
+					tag: 'script',
+					content: `
+						window.dataLayer = window.dataLayer || [];
+						function gtag(){dataLayer.push(arguments);}
+						gtag('js', new Date());
+						gtag('config', 'G-9G66JC6HXW');
+					`,
+				},
 				{
 					tag: 'meta',
 					attrs: {
