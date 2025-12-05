@@ -118,6 +118,13 @@ export default defineConfig({
 					collapsed: true,
 					items: [
 						{
+							label: '开发环境',
+							collapsed: true,
+							items: [
+								{ label: '使用 nvm 安装 Node.js', slug: 'devops/nodejs-nvm' },
+							],
+						},
+						{
 							label: 'Shell 与终端',
 							collapsed: true,
 							items: [
