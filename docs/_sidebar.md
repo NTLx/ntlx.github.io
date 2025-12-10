@@ -8,6 +8,7 @@
     * [CentOS 8](CentOS8.md)
     * [Manjaro](Manjaro.md)
     * [Ubuntu Server](UbuntuServerInstallation.md)
+    * [Ubuntu fstab 修复](operating-systems/linux/ubuntu-fstab-repair.md)
     * [Static IP (Ubuntu 22.04)](StaticIP4Ubuntu22.04.md)
   * NAS & Virtualization
     * [UNRAID](UNRAID.md)
