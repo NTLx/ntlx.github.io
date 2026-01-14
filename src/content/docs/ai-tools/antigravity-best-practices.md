@@ -70,6 +70,22 @@ Antigravity 是执行 TDD 的绝佳搭档。
 *   **端到端测试**:
     > "Create a Playwright script that visits the homepage, logs in with test credentials, and adds an item to the cart."
 
+## 常见问题排查：登录卡顿与失败
+
+由于网络环境或账号地区限制，部分用户在登录 Antigravity 时可能会遇到“无限转圈”或“地区不支持”的问题。以下是三种经过验证的解决方案：
+
+1.  **网络层：开启 Tun 模式**
+    *   Antigravity 是独立的应用程序，普通的系统代理可能无法接管其流量。
+    *   请确保你的网络工具开启了 **Tun (虚拟网卡) 模式**，这将强制所有流量（包括非 HTTP 流量）走代理通道。这是最直接有效的方案。
+
+2.  **工具辅助：使用 Antigravity Tools**
+    *   如果网络设置无误但仍无法登录，可以使用开源工具 **Antigravity Tools** (Antigravity-Manager)。
+    *   该工具提供了“强行登录”功能，通过 OAuth 绕过客户端验证。具体操作可参考本站的另一篇指南：[Antigravity Tools 最佳实践](/ai-tools/antigravity-proxy-best-practices)。
+
+3.  **账号层：检查地区设置**
+    *   访问 [Google Terms](https://policies.google.com/terms) 查看账号归属地。如果是中国地区，建议申请更改为其他支持地区（如美、日、新）。
+    *   检查 [Google Pay 设置](https://pay.google.com/gp/w/home/settings)，移除不支持地区的付款资料，确保默认付款资料为支持地区。
+
 ## 成功秘诀
 
 1.  **Review Artifacts**: 永远不要跳过对 Agent 生成的计划（Artifacts）的审查。这是防止 Agent "走偏" 的最好护栏。
