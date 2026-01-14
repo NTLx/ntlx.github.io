@@ -1,64 +1,52 @@
 ---
 title: Antigravity Tools 最佳实践
-description: Antigravity Tools (Antigravity-Manager) 是一款专业的 AI 账号管理与协议反代系统，支持 Gemini、Claude 等多账号调度。本文介绍其核心功能、安装配置及最佳实践。
+description: Antigravity Tools (Antigravity-Manager) 是一款专业的 AI 账号管理与协议反代系统，能够将 Google Antigravity 的免费资源转化为标准 OpenAI/Anthropic 接口。本文介绍其工作原理、安装配置、最佳实践及相关生态工具。
 ---
 
-**Antigravity Tools** (项目原名 Antigravity-Manager) 是一款专为开发者设计的本地 AI 中转站。它不仅是一个账号管理器，更是一个高性能的 API 调度网关，能够将 Google Gemini、Anthropic Claude 等 Web 端 Session 转化为标准化的 API 接口。
+**Antigravity Tools** (项目原名 Antigravity-Manager) 不仅仅是一个账号管理器，它更像是一个本地运行的**“模型路由器”**。它能够将 Antigravity IDE 中的 Web Session 实时转译为标准的 API 接口，让你能够用免费的 Google 资源驱动 Claude Code、CodeBuddy 甚至任何支持 OpenAI 格式的第三方工具。
 
-## 核心功能
+## 核心价值与工作原理
 
-1.  **多账号管理与智能调度**:
-    *   **Smart Dashboard**: 实时监控所有账号（Gemini Pro/Flash, Claude）的剩余配额。
-    *   **智能推荐**: 根据配额冗余度自动推荐最佳账号。
-    *   **OAuth 授权**: 支持一键 OAuth 登录，简化 Session 获取流程。
+### 为什么需要它？
 
-2.  **API 协议反代 (API Proxy)**:
-    *   **OpenAI 格式**: 提供 `/v1/chat/completions`，兼容绝大多数现有 AI 客户端。
-    *   **Anthropic 格式**: 提供 `/v1/messages`，完美支持 **Claude Code CLI**（含思维链、系统提示词）。
-    *   **状态自愈**: 遇到 429/401 错误时，后端毫秒级自动重试并轮换账号，确保服务不中断。
+很多开发者面临着 API 接口混乱、额度管理困难的问题。Antigravity Tools 解决了三个痛点：
+1.  **协议统一**：将 Google Gemini、Anthropic 等不同协议统一封装为标准的 `/v1/chat/completions` (OpenAI 格式) 或 `/v1/messages` (Anthropic 格式)。
+2.  **负载均衡与熔断**：它像“多功能插线板”一样管理你的多个账号。当某个账号触发 429 (Too Many Requests) 或额度耗尽时，系统会毫秒级自动切换到备用账号，前端业务感知不到任何中断。
+3.  **本地安全**：所有 Key 和请求都在本地（或自有 VPS）处理，不经过不可控的第三方中转。
 
-3.  **模型路由 (Model Router)**:
-    *   支持将 `gpt-4` 等请求自动映射到 `gemini-3-pro-high` 等高性能模型。
-    *   支持基于正则的自定义路由规则。
+### 它是如何工作的？
 
-## 安装指南
+*   **登录穿墙**：通过 OAuth 直接获取 Token，绕过 Antigravity 客户端繁琐的验证和地区限制。
+*   **协议转换引擎**：实时将标准 Prompt 转换为目标平台（如 Google）能识别的 JSON 结构。
+*   **智能调度**：根据账号权重（Weight）和剩余配额，自动选择最佳账号进行请求转发。
 
-### macOS & Linux (推荐 Homebrew)
+## 安装与快速开始
 
+### 1. 安装
+
+**macOS & Linux (推荐 Homebrew)**:
 ```bash
-# 1. 订阅 Tap
 brew tap lbjlaq/antigravity-manager https://github.com/lbjlaq/Antigravity-Manager
-
-# 2. 安装应用
 brew install --cask antigravity-tools
-
-# macOS 若提示权限问题，可添加 --no-quarantine
-# brew install --cask --no-quarantine antigravity-tools
+# macOS 权限问题修复: brew install --cask --no-quarantine antigravity-tools
 ```
 
-### Windows & 其他
+**Windows**: 前往 [GitHub Releases](https://github.com/lbjlaq/Antigravity-Manager/releases) 下载 `.msi` 安装包。
 
-请前往 [GitHub Releases](https://github.com/lbjlaq/Antigravity-Manager/releases) 下载对应的 `.msi` 或 `.AppImage` 文件。
+### 2. 添加账号与启动
 
-## 配置与使用
+1.  打开软件，进入“账号 (Accounts)”页面，点击“添加账号” -> “OAuth”，在浏览器中完成 Google 授权。
+2.  进入“API 反代”页面，开启服务（默认端口 `8045`）。
+3.  复制界面上显示的 `sk-antigravity` (API Key)。
 
-### 1. 添加账号
+## 最佳实践场景
 
-1.  打开“账号 (Accounts)”页面，点击“添加账号”。
-2.  选择“OAuth”方式，点击生成的链接在浏览器中登录 Google 账号。
-3.  授权完成后，应用会自动获取 Token 并保存。
+### 场景一：让 Claude Code "满血复活"
 
-### 2. 开启 API 反代
+Claude Code 是极其强大的终端编程 Agent，但官方 API 昂贵。配合 Antigravity Tools，你可以用免费的 Google 算力驱动它。
 
-1.  进入“API 反代”页面。
-2.  点击开启服务（默认端口 8045）。
-3.  复制你的 `sk-antigravity` (API Key)。
-
-## 接入 Claude Code CLI
-
-Antigravity Tools 对 Claude Code 提供了极佳的支持。
-
-在终端中配置环境变量：
+**配置步骤**：
+在终端设置环境变量（Windows PowerShell 用户请使用 `$env:NAME = "VALUE"` 格式）：
 
 ```bash
 export ANTHROPIC_API_KEY="sk-antigravity"
@@ -67,32 +55,41 @@ export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
 claude
 ```
 
-这样，Claude Code 就会通过你的 Antigravity Tools 本地网关进行调用，自动利用你添加的多个 Gemini/Claude 账号池。
+**进阶技巧：专家级重定向**
+Claude Code 默认可能请求 `claude-3-5-sonnet` 等模型。你可以在 Antigravity Tools 的“模型映射”中设置规则，例如将 `claude-3-5-sonnet` 映射到 `gemini-3-pro-high`。这一招“狸猫换太子”能让所有工具瞬间兼容免费的高级模型。
 
-## 接入 Python (OpenAI SDK)
+### 场景二：配合 CC-Switch 管理多源模型
 
-```python
-import openai
+如果你有多个模型来源（例如 Antigravity 的免费池 + 只有少量额度的官方 Key），推荐使用 [CC-Switch](https://github.com/farion1231/cc-switch)。
 
-client = openai.OpenAI(
-    api_key="sk-antigravity",
-    base_url="http://127.0.0.1:8045/v1"
-)
+CC-Switch 作为一个更上层的“API 管家”，可以接收 Antigravity Tools 提供的接口，并允许你快速在不同配置间切换。这让 Antigravity Tools 专注于底层的“模型路由与管控”（处理重试、配额），而 CC-Switch 负责上层的配置管理。
 
-response = client.chat.completions.create(
-    model="gemini-3-flash",
-    messages=[{"role": "user", "content": "你好，请自我介绍"}]
-)
+### 场景三：在 CodeBuddy 中自定义模型
 
-print(response.choices[0].message.content)
+CodeBuddy 是另一款优秀的 AI 编程 IDE。你可以通过修改配置文件接入 Antigravity：
+
+编辑 `~/.codebuddy/models.json`：
+```json
+{
+  "models": [
+    {
+      "id": "gemini-pro-free",
+      "name": "Gemini Pro (AG)",
+      "apiKey": "sk-antigravity",
+      "url": "http://127.0.0.1:8045/v1/chat/completions",
+      "supportsToolCall": true
+    }
+  ]
+}
 ```
 
-## 常见问题与技巧
+## 部署建议
 
-*   **403 封禁检测**: 系统会自动标注并跳过权限异常的账号。
-*   **无头模式部署**: 支持在无界面的 Linux 服务器上通过 Xvfb 运行，适合搭建团队共享的 API 网关。
-*   **Thinking 模型支持**: 最新版本完善了对 Gemini 3 Pro 和 Claude Thinking 模型的支持，修复了思考内容丢失的问题。
+*   **内网共享**：建议在局域网服务器（或常开的 PC/Mac）上部署，并固定内网 IP。这样你家里的手机、平板、笔记本都可以共享这一套 AI 后台。
+*   **Linux Headless**：支持通过 Xvfb 在无界面的 Linux 服务器上运行，适合团队共享使用。
 
----
+## 总结
 
-> **注意**: 本项目基于 CC BY-NC-SA 4.0 许可，严禁用于商业用途。数据存储于本地，安全性高。
+Antigravity Tools 工程化地释放了封闭 IDE 的能力，打通了 Coding Agent 的“最后一公里”。无论你是想低成本运行 Claude Code，还是需要一个稳定的本地模型网关，它都是不可或缺的神器。
+
+> **注意**: 本项目基于 CC BY-NC-SA 4.0 许可，严禁用于商业用途。请合理使用免费资源。
