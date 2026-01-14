@@ -11,14 +11,14 @@ description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持
 
 | 工具名称 | 包名 | 说明 |
 | :--- | :--- | :--- |
-| **Claude Code** | `@anthropic-ai/claude-code` | Anthropic 官方推出的 Claude 命令行助手 |
-| **OpenCode** | `opencode-ai` | 开源 AI 编程助手 |
-| **Oh My OpenCode** | `oh-my-opencode` | OpenCode 的增强配置与扩展 |
-| **iFlow CLI** | `@iflow-ai/iflow-cli` | 智能工作流自动化工具 |
-| **Qwen Code** | `@qwen-code/qwen-code` | 通义千问代码助手 CLI |
-| **Gemini CLI** | `@google/gemini-cli` | Google Gemini 模型命令行工具 |
-| **Codex** | `@openai/codex` | OpenAI Codex 相关工具 |
-| **Happy Coder** | `happy-coder` | 编程效率提升工具 |
+| **Claude Code** | `@anthropic-ai/claude-code` | Anthropic 官方推出的 AI 编程代理工具，直接在终端中运行，支持代码库理解和日常任务自动化。 |
+| **OpenCode** | `opencode-ai` | OpenCode 的官方 Node.js 安装程序，一个开源的终端 AI 编程代理。 |
+| **Oh My OpenCode** | `oh-my-opencode` | OpenCode 的增强插件包，提供多代理编排（如 Sisyphus 代理）、并行处理和增强功能。 |
+| **iFlow CLI** | `@iflow-ai/iflow-cli` | 终端 AI 助手，专注于代码分析、任务自动化和自然语言交互，支持 ACP 协议。 |
+| **Qwen Code** | `@qwen-code/qwen-code` | 基于 Qwen3-Coder 模型优化的开源终端 AI 代理，支持大规模代码库理解和编辑。 |
+| **Gemini CLI** | `@google/gemini-cli` | Google 官方开源 AI 代理，将 Gemini 模型能力带入终端，提供免费层级（60次/分钟）。 |
+| **Codex** | `@openai/codex` | OpenAI 推出的命令行编码代理，支持读取、编辑、运行代码及修复 Bug。 |
+| **Happy Coder** | `happy-coder` | Claude Code 和 Codex 的开源移动端/Web端客户端，支持端到端加密远程控制。 |
 
 ## 📋 前提条件
 
