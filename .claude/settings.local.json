@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(using-superpowers)",
+      "Skill(commit)"
+    ]
+  }
+}

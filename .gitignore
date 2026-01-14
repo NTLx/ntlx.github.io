@@ -1,47 +1,81 @@
-# dependencies
+# ==========================================
+# Dependencies
+# ==========================================
 node_modules/
+package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
 
-# logs
+# ==========================================
+# Build Output
+# ==========================================
+dist/
+.astro/
+.vercel/
+.netlify/
+
+# ==========================================
+# Logs
+# ==========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
-# environment variables
-.env
-.env.production
-
-# macOS-specific files
-.DS_Store
-
-# build output
-dist/
-.astro/
-
-# generated types
-.astro/
-
-# misc
 *.log
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.python-version
+# ==========================================
+# Environment Variables
+# ==========================================
+.env
+.env.production
+.env.local
+.env.*.local
 
-# Astro cache
-.vercel/
-.netlify/
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# IDE
+# ==========================================
+# IDE & Editor
+# ==========================================
 .vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 !.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
 
-# Old Docsify files (keep for reference)
-# docs/
+# ==========================================
+# Python (for migrate_docs.py)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.python-version
+.venv/
+venv/
+ENV/
+env/
+
+# ==========================================
+# Claude Code (Explicitly Tracked)
+# ==========================================
+!.claude/
+!.claude/*
+.claude/memory/
+
+# ==========================================
+# Documentation (Explicitly Tracked)
+# ==========================================
+!docs/
