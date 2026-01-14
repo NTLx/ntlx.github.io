@@ -59,6 +59,13 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'AI 辅助编程',
+					collapsed: true,
+					items: [
+						{ label: 'CLI 工具一键安装', slug: 'ai-tools/install-cli-tools' },
+					],
+				},
+				{
 					label: '操作系统',
 					collapsed: true,
 					items: [
