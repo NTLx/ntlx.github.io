@@ -65,6 +65,8 @@ export default defineConfig({
 					label: 'AI 辅助编程',
 					collapsed: true,
 					items: [
+						{ label: 'Google Antigravity 最佳实践', slug: 'ai-tools/antigravity-best-practices' },
+						{ label: 'Antigravity Tools 最佳实践', slug: 'ai-tools/antigravity-proxy-best-practices' },
 						{ label: 'CLI 工具一键安装', slug: 'ai-tools/install-cli-tools' },
 					],
 				},
