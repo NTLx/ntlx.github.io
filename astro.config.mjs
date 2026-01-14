@@ -4,7 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	// site 将由 GitHub Actions 在构建时设置
+	// site 将由 GitHub Actions 在构建时设置，这里设置默认值以启用 sitemap
+	site: 'https://ntlx.github.io',
 	integrations: [
 		starlight({
 			title: "NTL's Blog",
@@ -51,6 +52,8 @@ export default defineConfig({
 			favicon: '/favicon.ico',
 			// 自定义 CSS(可选)
 			// customCss: ['./src/styles/custom.css'],
+			// 显示最后更新时间
+			lastUpdated: true,
 			sidebar: [
 				{
 					label: '开始',
