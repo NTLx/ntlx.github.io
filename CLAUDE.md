@@ -53,6 +53,9 @@
     - 编辑 `astro.config.mjs` 中的 `sidebar` 来添加新项目。
     - `slug` 使用相对于 `src/content/docs/` 的路径 (不带文件扩展名)。
 
+4.  **语言规范**:
+    - 如未指定，默认使用中文撰写博客文章。
+
 ## 部署
 
 - 部署通过 GitHub Actions 自动化进行。
