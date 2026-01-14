@@ -19,6 +19,8 @@ description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | `@google/gemini-cli` | Google 官方开源 AI 代理，将 Gemini 模型能力带入终端，提供免费层级（60次/分钟）。 |
 | **[Codex](https://github.com/openai/codex)** | `@openai/codex` | OpenAI 推出的命令行编码代理，支持读取、编辑、运行代码及修复 Bug。 |
 | **[Happy Coder](https://happy.engineering)** | `happy-coder` | Claude Code 和 Codex 的开源移动端/Web端客户端，支持端到端加密远程控制。 |
+| **[Qoder CLI](https://qoder.com)** (可选) | `@qoder-ai/qodercli` | Qoder AI 平台的命令行接口，支持多模型和 IDE 集成。 |
+| **[CodeBuddy](https://codebuddy.tencent.com)** (可选) | `@tencent-ai/codebuddy-code` | 腾讯云推出的 AI 编程助手，基于混元大模型，提供代码补全和诊断。 |
 
 ## 📋 前提条件
 
@@ -161,10 +163,11 @@ install_package "@google/gemini-cli" "gemini-cli"
 install_package "@anthropic-ai/claude-code" "claude-code"
 install_package "@openai/codex" "codex"
 install_package "happy-coder" "happy-coder"
-
-# 可选包 (保持注释状态)
 # install_package "@qoder-ai/qodercli" "qodercli"
 # install_package "@tencent-ai/codebuddy-code" "codebuddy-code"
+
+# 可选包 (保持注释状态)
+
 
 # ==========================================
 # 打印汇总报告
@@ -245,7 +248,9 @@ $packages = @(
     @{ Name = "@google/gemini-cli";        Display = "gemini-cli" },
     @{ Name = "@anthropic-ai/claude-code"; Display = "claude-code" },
     @{ Name = "@openai/codex";             Display = "codex" },
-    @{ Name = "happy-coder";               Display = "happy-coder" }
+    @{ Name = "happy-coder";               Display = "happy-coder" },
+    # @{ Name = "@qoder-ai/qodercli";        Display = "qodercli" },
+    # @{ Name = "@tencent-ai/codebuddy-code"; Display = "codebuddy-code" }
     # Add more packages here
 )
 
