@@ -8,7 +8,7 @@ export default defineConfig({
 	site: 'https://ntlx.github.io',
 	integrations: [
 		starlight({
-			title: "NTL's Blog",
+			title: "NTLx's Blog",
 			description: '个人知识库 - 系统管理、软件使用、生物信息学',
 			social: [
 				{
