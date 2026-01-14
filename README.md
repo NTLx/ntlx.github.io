@@ -11,6 +11,7 @@
 
 - **操作系统** - Linux 发行版配置、NAS 与虚拟化、嵌入式系统
 - **HPC 与集群** - Slurm、OpenMPI 等高性能计算工具
+- **AI 辅助编程** - 常用 AI Coding CLI 工具一键安装与配置
 - **网络与代理** - Shadowsocks、Privoxy、ZeroTier 等网络工具
 - **DevOps 工具** - Shell、编辑器、版本控制、服务部署
 - **生物信息学** - Snakemake 流程管理与性能分析
@@ -65,6 +66,7 @@ npm run build
 ├── src/
 │   └── content/
 │       └── docs/           # 所有文档
+│           ├── ai-tools/
 │           ├── operating-systems/
 │           ├── hpc-cluster/
 │           ├── network-proxy/
