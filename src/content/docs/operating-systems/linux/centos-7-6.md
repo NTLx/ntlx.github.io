@@ -127,7 +127,7 @@ sudo vim /etc/privoxy/config
 
 **Configuration**
 Edit `/etc/privoxy/config`:
-```conf
+```ini
 listen-address 127.0.0.1:8118
 listen-address [::1]:8118 # for ipv6
 forward-socks5 / 127.0.0.1:1080 . # global proxy via socks5
@@ -169,7 +169,7 @@ sudo cp gfwlist.action /etc/privoxy/
 ```
 
 Add to `/etc/privoxy/config`:
-```conf
+```ini
 actionsfile gfwlist.action
 ```
 
