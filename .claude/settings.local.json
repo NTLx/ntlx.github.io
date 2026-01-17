@@ -9,7 +9,11 @@
       "mcp__browseros__browser_get_page_content",
       "mcp__browseros__browser_close_tab",
       "mcp__browseros__browser_get_screenshot",
-      "mcp__browseros__browser_list_tabs"
+      "mcp__browseros__browser_list_tabs",
+      "WebFetch(domain:github.com)",
+      "mcp__browseros__browser_get_active_tab",
+      "mcp__browseros__browser_get_load_status",
+      "Bash(npm run dev:*)"
     ]
   }
 }
