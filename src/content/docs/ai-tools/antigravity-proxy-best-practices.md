@@ -50,9 +50,99 @@ Antigravity Tools 提供了一个“移花接木”的高级功能——**专家
 
 ## 实战配置指南
 
-相比于临时设置环境变量，我们更推荐通过修改配置文件的方式来永久生效，这样更加稳定且易于管理。
+Claude Code CLI 支持两种配置方式:**环境变量**和**配置文件**。这两种方式可以单独使用，也可以组合使用，但它们的优先级有所不同。
 
-### 1. Claude Code CLI 配置
+### 配置优先级说明
+
+**重要**: Claude Code 读取配置的优先级为:**环境变量 > settings.json 配置文件**
+
+这意味着:
+- 如果同时设置了环境变量和配置文件，Claude Code 会**优先使用环境变量**中的配置。
+- 环境变量配置是强制性的，可以用来覆盖配置文件中的设置。
+- 如果你在首次启动 Claude Code 时无法跳过登录 Anthropic 账号的步骤，需要:
+  1. 删除已生成的 Claude Code 配置文件(`~/.claude` 目录)
+  2. 先配置环境变量
+  3. 再配合 settings.json 配置文件
+  4. 强制 Claude Code 进入自定义 API 调用模式
+
+### 方式一:环境变量配置(优先级最高)
+
+环境变量配置适合需要快速切换或临时测试的场景。由于其优先级高于配置文件，也常用于强制覆盖默认设置。
+
+#### Linux / macOS 配置
+
+**临时生效(仅当前终端会话)**:
+```bash
+export ANTHROPIC_API_KEY="sk-antigravity"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+claude
+```
+
+**永久生效**:
+
+根据你使用的 Shell，选择对应的配置文件:
+
+```bash
+# 对于 Bash 用户(编辑 ~/.bashrc 或 ~/.bash_profile)
+echo 'export ANTHROPIC_API_KEY="sk-antigravity"' >> ~/.bashrc
+echo 'export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"' >> ~/.bashrc
+source ~/.bashrc
+
+# 对于 Zsh 用户(编辑 ~/.zshrc)
+echo 'export ANTHROPIC_API_KEY="sk-antigravity"' >> ~/.zshrc
+echo 'export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"' >> ~/.zshrc
+source ~/.zshrc
+
+# 对于 Fish 用户
+set -Ux ANTHROPIC_API_KEY "sk-antigravity"
+set -Ux ANTHROPIC_BASE_URL "http://127.0.0.1:8045"
+```
+
+#### Windows 配置
+
+**临时生效(仅当前 PowerShell 会话)**:
+```powershell
+$env:ANTHROPIC_API_KEY="sk-antigravity"
+$env:ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+claude
+```
+
+**永久生效(通过系统环境变量)**:
+
+1. **图形界面方式**:
+   - 右键点击"此电脑"或"我的电脑" → "属性"
+   - 点击"高级系统设置"
+   - 点击"环境变量"按钮
+   - 在"用户变量"区域点击"新建"
+   - 添加两个变量:
+     - 变量名: `ANTHROPIC_API_KEY`, 变量值: `sk-antigravity`
+     - 变量名: `ANTHROPIC_BASE_URL`, 变量值: `http://127.0.0.1:8045`
+   - 点击"确定"保存
+
+2. **PowerShell 命令方式**(需要管理员权限):
+   ```powershell
+   [System.Environment]::SetEnvironmentVariable('ANTHROPIC_API_KEY', 'sk-antigravity', 'User')
+   [System.Environment]::SetEnvironmentVariable('ANTHROPIC_BASE_URL', 'http://127.0.0.1:8045', 'User')
+   ```
+
+3. **PowerShell Profile 方式**(推荐):
+   ```powershell
+   # 编辑 PowerShell 配置文件
+   notepad $PROFILE
+
+   # 在打开的文件中添加以下内容:
+   $env:ANTHROPIC_API_KEY="sk-antigravity"
+   $env:ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+
+   # 保存后重新加载配置
+   . $PROFILE
+   ```
+
+### 方式二:配置文件设置(推荐日常使用)
+
+配置文件方式更适合长期稳定使用，配置集中管理，易于维护。
+
+#### 1. Claude Code CLI 配置
 
 Claude Code 的配置文件通常位于 `~/.claude/settings.json`。
 
@@ -100,6 +190,110 @@ Codex CLI 的配置文件通常位于 `~/.codex/config.toml`。
     ```bash
     codex --provider custom_api "帮我写一个 Python 爬虫"
     ```
+
+### 故障排除：无法跳过登录环节？
+
+如果你在首次运行 Claude Code 时遇到以下情况：
+- 程序强制要求登录 Anthropic 账号
+- 配置文件或环境变量似乎不生效
+- 无法进入自定义 API 调用模式
+
+这通常是因为 Claude Code 已经生成了默认配置文件，导致自定义配置被忽略。按照以下步骤可以强制进入自定义 API 模式：
+
+#### 解决步骤
+
+**步骤 1: 删除现有配置文件**
+
+根据 [Claude Code 官方文档](https://code.claude.com/docs/zh-CN/settings)，Claude Code 的配置文件主要包括：
+
+- `~/.claude/settings.json` - 用户全局设置
+- `~/.claude.json` - OAuth 会话、偏好设置、MCP 配置等
+- `~/.claude/` 目录下的其他配置文件
+
+:::caution[重要提示]
+删除这些文件将清除你的登录会话、个人偏好设置和 MCP 服务器配置。如果你已经配置了 MCP 服务器或其他个性化设置，建议先备份这些文件。
+:::
+
+**完全重置（推荐新手）**：
+
+```bash
+# macOS / Linux - 完全删除 Claude Code 配置目录
+rm -rf ~/.claude ~/.claude.json
+
+# Windows (PowerShell) - 完全删除
+Remove-Item -Recurse -Force "$env:USERPROFILE\.claude"
+Remove-Item -Force "$env:USERPROFILE\.claude.json" -ErrorAction SilentlyContinue
+```
+
+**仅删除设置文件（保留其他配置）**：
+
+如果你想保留 MCP 服务器配置和其他设置，只删除 `settings.json`：
+
+```bash
+# macOS / Linux
+rm -f ~/.claude/settings.json
+
+# Windows (PowerShell)
+Remove-Item -Force "$env:USERPROFILE\.claude\settings.json" -ErrorAction SilentlyContinue
+```
+
+**步骤 2: 先配置环境变量**
+
+在删除配置文件后，**必须先设置环境变量**，然后再运行 Claude Code。这样可以确保 Claude Code 在初始化时就使用自定义 API。
+
+```bash
+# macOS / Linux (Bash/Zsh)
+export ANTHROPIC_API_KEY="sk-antigravity"
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+
+# Windows (PowerShell)
+$env:ANTHROPIC_API_KEY="sk-antigravity"
+$env:ANTHROPIC_BASE_URL="http://127.0.0.1:8045"
+```
+
+**步骤 3: 运行 Claude Code 并跳过登录**
+
+现在运行 Claude Code，它应该会直接使用自定义 API，而不会要求登录 Anthropic 账号：
+
+```bash
+claude
+```
+
+**步骤 4: （可选）创建配置文件**
+
+如果希望将配置永久保存，可以手动创建 `~/.claude/settings.json` 文件：
+
+```bash
+# macOS / Linux
+mkdir -p ~/.claude
+cat > ~/.claude/settings.json << 'EOF'
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8045",
+    "ANTHROPIC_API_KEY": "sk-antigravity"
+  }
+}
+EOF
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude"
+@"
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8045",
+    "ANTHROPIC_API_KEY": "sk-antigravity"
+  }
+}
+"@ | Out-File -FilePath "$env:USERPROFILE\.claude\settings.json" -Encoding utf8
+```
+
+此外，Antigravity Tools 还提供了**自动同步配置功能**，可以一键将正确的配置写入到 Claude Code 的配置文件中。具体操作方法请参考 GitHub 仓库中的说明。
+
+:::tip[为什么环境变量优先级更高？]
+这是 Claude Code 的设计特性。环境变量优先级高于配置文件，允许用户在不修改配置文件的情况下临时覆盖设置。这对于在多个环境间切换、或在 CI/CD 流程中动态配置非常有用。
+
+当你需要**强制**使用自定义 API 时，利用这个优先级特性可以确保配置生效，即使存在其他冲突的配置文件。
+:::
 
 ## 场景化模型推荐配置
 
