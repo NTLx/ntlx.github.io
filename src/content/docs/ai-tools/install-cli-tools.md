@@ -160,14 +160,13 @@ install_package "oh-my-opencode" "oh-my-opencode"
 install_package "@iflow-ai/iflow-cli" "iflow-cli"
 install_package "@qwen-code/qwen-code" "qwen-code"
 install_package "@google/gemini-cli" "gemini-cli"
-install_package "@anthropic-ai/claude-code" "claude-code"
+# 已移除 claude-code
 install_package "@openai/codex" "codex"
 install_package "happy-coder" "happy-coder"
-# install_package "@qoder-ai/qodercli" "qodercli"
-# install_package "@tencent-ai/codebuddy-code" "codebuddy-code"
 
 # 可选包 (保持注释状态)
-
+# install_package "@qoder-ai/qodercli" "qodercli"
+# install_package "@tencent-ai/codebuddy-code" "codebuddy-code"
 
 # ==========================================
 # 打印汇总报告
@@ -246,11 +245,9 @@ $packages = @(
     @{ Name = "@iflow-ai/iflow-cli";       Display = "iflow-cli" },
     @{ Name = "@qwen-code/qwen-code";      Display = "qwen-code" },
     @{ Name = "@google/gemini-cli";        Display = "gemini-cli" },
-    @{ Name = "@anthropic-ai/claude-code"; Display = "claude-code" },
+    # Removed claude-code
     @{ Name = "@openai/codex";             Display = "codex" },
-    @{ Name = "happy-coder";               Display = "happy-coder" },
-    # @{ Name = "@qoder-ai/qodercli";        Display = "qodercli" },
-    # @{ Name = "@tencent-ai/codebuddy-code"; Display = "codebuddy-code" }
+    @{ Name = "happy-coder";               Display = "happy-coder" }
     # Add more packages here
 )
 
@@ -280,23 +277,23 @@ $startTime = Get-Date
 for ($i = 0; $i -lt $packages.Count; $i++) {
     $pkg = $packages[$i]
     $percent = [int](($i / $packages.Count) * 100)
-
+    
     # Update Windows Progress Bar
     Write-Progress -Activity "Installing AICoding Tools" -Status "Processing $($pkg.Display)..." -PercentComplete $percent -CurrentOperation "$($i+1)/$($packages.Count)"
 
     $status = "Unknown"
     $currentVer = Get-NpmPackageVersion -PackageName $pkg.Name
-
+    
     # Try to install
     try {
         # Using Start-Process to verify exit code cleanly, or just Invoke-Expression
         # We redirect output to null to keep console clean, but you can remove "| Out-Null" to debug
         npm install -g $pkg.Name | Out-Null
-
+        
         if ($LASTEXITCODE -ne 0) { throw "NPM Exit Code $LASTEXITCODE" }
-
+        
         $newVer = Get-NpmPackageVersion -PackageName $pkg.Name
-
+        
         # Determine status
         if ($currentVer -eq "Not installed") {
             $status = "New Install"
