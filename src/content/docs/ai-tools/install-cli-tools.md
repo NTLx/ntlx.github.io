@@ -22,6 +22,28 @@ description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持
 | **[Qoder CLI](https://qoder.com)** (可选) | `@qoder-ai/qodercli` | Qoder AI 平台的命令行接口，支持多模型和 IDE 集成。 |
 | **[CodeBuddy](https://codebuddy.tencent.com)** (可选) | `@tencent-ai/codebuddy-code` | 腾讯云推出的 AI 编程助手，基于混元大模型，提供代码补全和诊断。 |
 
+## 🤖 Claude Code 官方安装
+
+Claude Code 官方推荐使用以下原生安装命令（Native Install），该方式支持自动后台更新：
+
+### Linux / macOS / WSL
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+### Windows CMD
+
+```cmd
+curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
 ## 📋 前提条件
 
 所有工具均依赖 Node.js 环境。请确保已安装：
