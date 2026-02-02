@@ -123,24 +123,11 @@ OpenClaw 支持飞书 (Feishu) 消息推送。
 
 ### 4.2 安装常用技能
 
-为了让 OpenClaw 具备完整的编程与自动化能力，建议安装以下官方技能集：
+为了让 OpenClaw 具备完整的编程与自动化能力，请在与 OpenClaw 的对话中直接发送以下指令，让 AI 为你安装这些官方技能：
 
-```bash
-# 核心开发与自动化技能
-openclaw install \
-  tmux \
-  context7 \
-  n8n \
-  n8n-workflow-automation \
-  tavily-search \
-  clawddocs \
-  coding-agent \
-  self-improving-agent \
-  humanizer \
-  auto-updater \
-  marketing-mode \
-  opencode-acp-control
-```
+> "请帮我安装以下技能：tmux, context7, n8n, n8n-workflow-automation, tavily-search, clawddocs, coding-agent, self-improving-agent, humanizer, auto-updater, marketing-mode, opencode-acp-control"
+
+或者你可以根据需要逐个安装。这些技能将大大增强智能体的能力。
 
 ## 5. 故障排除
 
