@@ -87,7 +87,7 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 
 ### 3.1 配置环境变量
 
-如果安装后发现 `claw` 或 `node` 命令无法使用，可能是因为环境变量未生效。
+如果安装后发现 `openclaw` 或 `node` 命令无法使用，可能是因为环境变量未生效。
 
 **临时生效（当前终端）：**
 
@@ -127,7 +127,7 @@ OpenClaw 支持飞书 (Feishu) 消息推送。
 
 ```bash
 # 核心开发与自动化技能
-claw install \
+openclaw install \
   tmux \
   context7 \
   n8n \
