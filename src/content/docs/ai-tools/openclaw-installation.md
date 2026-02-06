@@ -79,6 +79,8 @@ brew install gh rg
 
 ### 2.3 安装 OpenClaw
 
+**方式一：官方一键安装（推荐）**
+
 运行官方一键安装脚本：
 
 ```bash
@@ -88,6 +90,21 @@ curl -fsSL https://openclaw.ai/install.sh | bash
 :::note
 脚本会自动尝试从源码安装 Node.js。如果你习惯使用 `nvm`，也可以预先使用 `nvm` 安装好 Node.js 环境。
 :::
+
+**方式二：使用 nvm 安装 Node.js（可选）**
+
+如果你更习惯使用 `nvm` 管理 Node.js 版本，可以在运行官方安装脚本前先安装 `nvm`：
+
+```bash
+# 1. 安装 nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+
+# 2. 重新加载 shell 配置（或重新打开终端）
+source ~/.bashrc  # 或 source ~/.zshrc
+
+# 3. 安装 Node.js 22
+nvm install 22
+```
 
 ## 3. 环境配置
 
