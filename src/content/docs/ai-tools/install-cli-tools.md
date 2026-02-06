@@ -3,24 +3,28 @@ title: AI Coding CLI 工具一键安装
 description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持 Linux、macOS 和 Windows。
 ---
 
-本文档提供了常用 AI 辅助编程 CLI 工具的批量安装脚本，帮助开发者快速搭建智能编程环境。
+本文档提供了常用 AI 辅助编程 CLI 工具的安装指南。
+
+:::tip[趋势说明]
+当前 AI 编程 CLI 工具（如 Claude Code 和 OpenCode）正从传统的 npm 全局安装向**原生二进制文件（Native Binary）**转变。原生安装方式具有 10-50 倍的启动速度提升，且不依赖本地 Node.js 环境，是目前最推荐的安装方式。
+:::
 
 ## 🛠️ 包含工具列表
 
-脚本将自动安装/更新以下基于 Node.js 的 CLI 工具：
+脚本和指南涵盖以下主流 AI 编程工具：
 
-| 工具名称 | 包名 | 说明 |
+| 工具名称 | 安装建议 | 说明 |
 | :--- | :--- | :--- |
-| **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** | `@anthropic-ai/claude-code` | Anthropic 官方推出的 AI 编程代理工具，直接在终端中运行，支持代码库理解和日常任务自动化。 |
-| **[OpenCode](https://opencode.ai)** | `opencode-ai` | OpenCode 的官方 Node.js 安装程序，一个开源的终端 AI 编程代理。 |
-| **[Oh My OpenCode](https://ohmy.opencode.ai)** | `oh-my-opencode` | OpenCode 的增强插件包，提供多代理编排（如 Sisyphus 代理）、并行处理和增强功能。 |
-| **[iFlow CLI](https://github.com/iflow-ai/iflow-cli)** | `@iflow-ai/iflow-cli` | 终端 AI 助手，专注于代码分析、任务自动化和自然语言交互，支持 ACP 协议。 |
-| **[Qwen Code](https://github.com/QwenLM/qwen-code)** | `@qwen-code/qwen-code` | 基于 Qwen3-Coder 模型优化的开源终端 AI 代理，支持大规模代码库理解和编辑。 |
-| **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | `@google/gemini-cli` | Google 官方开源 AI 代理，将 Gemini 模型能力带入终端，提供免费层级（60次/分钟）。 |
-| **[Codex](https://github.com/openai/codex)** | `@openai/codex` | OpenAI 推出的命令行编码代理，支持读取、编辑、运行代码及修复 Bug。 |
-| **[Happy Coder](https://happy.engineering)** | `happy-coder` | Claude Code 和 Codex 的开源移动端/Web端客户端，支持端到端加密远程控制。 |
-| **[Qoder CLI](https://qoder.com)** (可选) | `@qoder-ai/qodercli` | Qoder AI 平台的命令行接口，支持多模型和 IDE 集成。 |
-| **[CodeBuddy](https://codebuddy.tencent.com)** (可选) | `@tencent-ai/codebuddy-code` | 腾讯云推出的 AI 编程助手，基于混元大模型，提供代码补全和诊断。 |
+| **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** | **推荐原生安装** | Anthropic 官方推出的 AI 编程代理工具，直接在终端中运行，支持代码库理解和日常任务自动化。 |
+| **[OpenCode](https://opencode.ai)** | **推荐原生安装** | 开源的终端 AI 编程代理，提供极速响应和强大的代码操作能力。 |
+| **[Oh My OpenCode](https://ohmy.opencode.ai)** | npm 安装 | OpenCode 的增强插件包，提供多代理编排、并行处理和增强功能。 |
+| **[iFlow CLI](https://github.com/iflow-ai/iflow-cli)** | npm 安装 | 终端 AI 助手，专注于代码分析、任务自动化和自然语言交互，支持 ACP 协议。 |
+| **[Qwen Code](https://github.com/QwenLM/qwen-code)** | npm 安装 | 基于 Qwen3-Coder 模型优化的开源终端 AI 代理。 |
+| **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | npm 安装 | Google 官方开源 AI 代理，将 Gemini 模型能力带入终端。 |
+| **[Codex](https://github.com/openai/codex)** | npm 安装 | OpenAI 推出的命令行编码代理，支持读取、编辑、运行代码及修复 Bug。 |
+| **[Happy Coder](https://happy.engineering)** | npm 安装 | Claude Code 和 Codex 的开源移动端/Web端客户端。 |
+| **[Qoder CLI](https://qoder.com)** (可选) | npm 安装 | Qoder AI 平台的命令行接口。 |
+| **[CodeBuddy](https://codebuddy.tencent.com)** (可选) | npm 安装 | 腾讯云推出的 AI 编程助手，基于混元大模型。 |
 
 ## 🤖 Claude Code 官方安装
 
@@ -44,9 +48,186 @@ irm https://claude.ai/install.ps1 | iex
 curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
 ```
 
+## ⚙️ Claude Code 自定义配置
+
+安装 Claude Code 后，如果需要使用自定义 API 端点（如公司内部部署或第三方代理），可以通过环境变量和配置文件进行配置。
+
+### 配置文件位置
+
+配置文件位于用户家目录：
+
+| 平台 | 配置文件路径 |
+| :--- | :--- |
+| **Linux / macOS / WSL** | `~/.claude/settings.json` |
+| **Windows** | `C:\Users\%USERNAME%\.claude\settings.json` |
+
+### 跳过 Anthropic 账号登录
+
+使用自定义 API 时，需要修改 `~/.claude.json` 文件（**注意：不是 `settings.json`**），添加以下配置以跳过 Anthropic 官方账号登录流程：
+
+```json
+{
+  "hasCompletedOnboarding": true
+}
+```
+
+:::caution[重要提示]
+`~/.claude.json` 和 `~/.claude/settings.json` 是两个不同的文件。`hasCompletedOnboarding` 配置必须放在 `~/.claude.json` 中才能生效。
+:::
+
+### 环境变量配置
+
+可以通过环境变量配置自定义 API 和模型参数。以下环境变量均可写入系统环境变量或 `~/.claude/settings.json` 配置文件。
+
+#### 基础配置
+
+| 环境变量 | 说明 |
+| :--- | :--- |
+| `ANTHROPIC_BASE_URL` | 自定义 API 基础 URL（如 `https://your-api.example.com/v1`） |
+| `ANTHROPIC_API_KEY` | 自定义 API 密钥 |
+| `ANTHROPIC_MODEL` | 默认模型名称 |
+
+#### 进阶模型配置（可选）
+
+如果需要为不同任务类型使用不同模型，可以配置以下环境变量：
+
+| 环境变量 | 适用场景 |
+| :--- | :--- |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | 复杂推理、架构设计、代码审查等高难度任务 |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | 代码编写、功能实现、调试修复等日常任务 |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | 语法检查、文件搜索、格式化等简单任务 |
+
+### 配置优先级
+
+Claude Code 配置的优先级从高到低为：
+
+1. **工作目录配置文件** (`.claude/settings.json` 或 `CLAUDE.md`) - 最高优先级
+2. **系统环境变量**
+3. **用户目录配置文件** (`~/.claude/settings.json`)
+
+:::tip[多项目配置]
+利用优先级机制，可以在不同项目中使用不同的 API 配置或模型，而无需修改全局设置。
+:::
+
+### 配置示例
+
+#### Linux / macOS (Bash/Zsh)
+
+**临时生效（当前会话）**：
+```bash
+export ANTHROPIC_BASE_URL="https://your-api.example.com/v1"
+export ANTHROPIC_API_KEY="your-api-key-here"
+export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+```
+
+**永久生效**（添加到 `~/.zshrc` 或 `~/.bashrc`）：
+```bash
+echo 'export ANTHROPIC_BASE_URL="https://your-api.example.com/v1"' >> ~/.zshrc
+echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.zshrc
+echo 'export ANTHROPIC_MODEL="claude-sonnet-4-20250514"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Linux / macOS (Fish)
+
+**临时生效**：
+```bash
+set -x ANTHROPIC_BASE_URL "https://your-api.example.com/v1"
+set -x ANTHROPIC_API_KEY "your-api-key-here"
+set -x ANTHROPIC_MODEL "claude-sonnet-4-20250514"
+```
+
+**永久生效**（添加到 `~/.config/fish/config.fish`）：
+```bash
+echo 'set -x ANTHROPIC_BASE_URL "https://your-api.example.com/v1"' >> ~/.config/fish/config.fish
+echo 'set -x ANTHROPIC_API_KEY "your-api-key-here"' >> ~/.config/fish/config.fish
+echo 'set -x ANTHROPIC_MODEL "claude-sonnet-4-20250514"' >> ~/.config/fish/config.fish
+```
+
+#### Windows (PowerShell)
+
+**临时生效（当前会话）**：
+```powershell
+$env:ANTHROPIC_BASE_URL = "https://your-api.example.com/v1"
+$env:ANTHROPIC_API_KEY = "your-api-key-here"
+$env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+```
+
+**永久生效（通过 PowerShell Profile）**：
+```powershell
+# 编辑 PowerShell Profile
+notepad $PROFILE
+
+# 添加以下内容到文件
+$env:ANTHROPIC_BASE_URL = "https://your-api.example.com/v1"
+$env:ANTHROPIC_API_KEY = "your-api-key-here"
+$env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+```
+
+**永久生效（通过系统环境变量）**：
+```powershell
+# 以管理员身份运行
+[Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "https://your-api.example.com/v1", "User")
+[Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "your-api-key-here", "User")
+[Environment]::SetEnvironmentVariable("ANTHROPIC_MODEL", "claude-sonnet-4-20250514", "User")
+```
+
+#### Windows (CMD)
+
+**临时生效（当前会话）**：
+```cmd
+set ANTHROPIC_BASE_URL=https://your-api.example.com/v1
+set ANTHROPIC_API_KEY=your-api-key-here
+set ANTHROPIC_MODEL=claude-sonnet-4-20250514
+```
+
+**永久生效（通过 GUI）**：
+1. 按 `Win + R`，输入 `sysdm.cpl`
+2. 点击 **高级** → **环境变量**
+3. 在 **用户变量** 区域点击 **新建**，添加上述变量
+
+#### 使用配置文件
+
+在 `~/.claude/settings.json`（Linux/macOS）或 `C:\Users\%USERNAME%\.claude\settings.json`（Windows）中添加：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://your-api.example.com/v1",
+    "ANTHROPIC_API_KEY": "your-api-key-here",
+    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-20250514",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-20250514",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-20250514"
+  }
+}
+```
+
+:::note[配置文件格式]
+配置文件使用 JSON 格式，注意逗号、引号和大括号的正确性。
+:::
+
+## 🚀 OpenCode 官方安装
+
+OpenCode 同样推荐使用原生安装方式，以获得最佳性能：
+
+### Linux / macOS / WSL
+
+```bash
+curl -fsSL https://opencode.ai/install | bash
+```
+
+### Windows (推荐使用包管理器)
+
+- **Chocolatey**: `choco install opencode`
+- **Scoop**: `scoop install opencode`
+- **Homebrew (macOS/Linux)**: `brew install anomalyco/tap/opencode`
+
 ## 📋 前提条件
 
-所有工具均依赖 Node.js 环境。请确保已安装：
+虽然 Claude Code 和 OpenCode 的主程序已支持原生安装且无需 Node.js，但其**插件（如 oh-my-opencode）以及其他基于 npm 的工具**仍依赖 Node.js 环境。
+
+请确保已安装：
 
 - **Node.js**: v18.0.0 或更高版本
 - **npm**: 通常随 Node.js 一起安装
@@ -177,7 +358,7 @@ fi
 print_header "开始安装 AICoding 相关工具..."
 
 # 工具列表
-install_package "opencode-ai" "opencode-ai"
+# 注意：opencode-ai 已移除，推荐使用原生安装，见上方"OpenCode 官方安装"章节
 install_package "oh-my-opencode" "oh-my-opencode"
 install_package "@iflow-ai/iflow-cli" "iflow-cli"
 install_package "@qwen-code/qwen-code" "qwen-code"
@@ -262,7 +443,7 @@ if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
 
 # Define the package list
 $packages = @(
-    @{ Name = "opencode-ai";               Display = "opencode-ai" },
+    # opencode-ai 已移除，推荐使用原生安装，见上方"OpenCode 官方安装"章节
     @{ Name = "oh-my-opencode";            Display = "oh-my-opencode" },
     @{ Name = "@iflow-ai/iflow-cli";       Display = "iflow-cli" },
     @{ Name = "@qwen-code/qwen-code";      Display = "qwen-code" },
