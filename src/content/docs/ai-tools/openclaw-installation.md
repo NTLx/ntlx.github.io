@@ -63,9 +63,15 @@ OpenClaw 依赖 Homebrew 来管理部分软件包。
 
 根据屏幕提示将 brew 添加到环境变量（通常需要运行安装结束后显示的几行命令）。
 
-### 2.2 安装依赖工具
+### 2.2 安装依赖工具（可选）
 
-使用 Homebrew 安装 GitHub CLI (`gh`) 和 Ripgrep (`rg`)：
+GitHub CLI (`gh`) 和 Ripgrep (`rg`) 是某些插件（如钉钉连接器）可能需要的依赖工具。
+
+:::note
+**安装时机说明**
+- 这两个工具**不是**安装 OpenClaw 的前置条件。
+- 你可以选择现在安装，也可以等日后安装插件时遇到依赖缺失提示再安装。
+:::
 
 ```bash
 brew install gh rg
