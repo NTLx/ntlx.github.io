@@ -192,6 +192,14 @@ set ANTHROPIC_MODEL=claude-sonnet-4-20250514
 
 ```json
 {
+  "language": "chinese",
+  "autoUpdatesChannel": "latest",
+  "terminalProgressBarEnabled": true,
+  "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": 75,
+  "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": 1,
+  "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": 1,
+  "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
+  "CLAUDE_CODE_MAX_OUTPUT_TOKENS": 32000,
   "env": {
     "ANTHROPIC_BASE_URL": "https://your-api.example.com",
     "ANTHROPIC_API_KEY": "your-api-key-here",
@@ -202,6 +210,19 @@ set ANTHROPIC_MODEL=claude-sonnet-4-20250514
   }
 }
 ```
+
+#### 进阶配置项说明
+
+| 配置项 | 说明 |
+| :--- | :--- |
+| `language` | 设置界面语言，推荐设置为 `chinese` 以获得全中文交互体验。 |
+| `autoUpdatesChannel` | 自动更新通道，`latest` 表示始终使用最新的稳定版本。 |
+| `terminalProgressBarEnabled` | 是否在终端显示任务进度的进度条，建议开启。 |
+| `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | 上下文自动压缩阈值（百分比）。设为 `75` 表示当上下文占用达到 75% 时触发压缩，优化长会话性能。 |
+| `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` | 是否禁用实验性功能，设为 `1` 可提升工具运行的稳定性。 |
+| `CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY` | 是否禁用反馈调查弹窗，设为 `1` 可以减少使用中的干扰。 |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 是否禁用非必要的遥感数据和流量，设为 `1` 有利于提升隐私安全性。 |
+| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | 允许 AI 单次输出的最大 Token 数量，设为 `32000` 可以支持更长代码的生成。 |
 
 :::note[配置文件格式]
 配置文件使用 JSON 格式，注意逗号、引号和大括号的正确性。
