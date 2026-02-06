@@ -115,11 +115,11 @@ npm -v
 
 ## 4. 功能扩展
 
-### 4.1 集成飞书通知
+### 4.1 集成钉钉通知 (推荐)
 
-OpenClaw 支持飞书 (Feishu) 消息推送。
+`DingTalk OpenClaw Connector` 是博主目前最推荐的 IM 集成方式。通过该插件，你可以将 OpenClaw 的能力无缝接入钉钉，实现高效的移动端交互。
 
-- 请访问 [第三方项目主页](https://github.com/m1heng/clawdbot-feishu) 查看详细的 Channel 安装与配置说明。
+- 请访问 [DingTalk OpenClaw Connector 官方项目主页](https://github.com/DingTalk-Real-AI/dingtalk-moltbot-connector) 获取详细的安装步骤与配置说明。
 
 ### 4.2 安装常用技能
 
