@@ -17,7 +17,7 @@ description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持
 | :--- | :--- | :--- |
 | **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** | **推荐原生安装** | Anthropic 官方推出的 AI 编程代理工具，直接在终端中运行，支持代码库理解和日常任务自动化。 |
 | **[OpenCode](https://opencode.ai)** | **推荐原生安装** | 开源的终端 AI 编程代理，提供极速响应和强大的代码操作能力。 |
-| **[Oh My OpenCode](https://ohmy.opencode.ai)** | npm 安装 | OpenCode 的增强插件包，提供多代理编排、并行处理和增强功能。 |
+| **[Oh My OpenCode](https://ohmyopencode.com)** | npm 安装 | OpenCode 的增强插件包，提供多代理编排、并行处理和增强功能。 |
 | **[iFlow CLI](https://github.com/iflow-ai/iflow-cli)** | npm 安装 | 终端 AI 助手，专注于代码分析、任务自动化和自然语言交互，支持 ACP 协议。 |
 | **[Qwen Code](https://github.com/QwenLM/qwen-code)** | npm 安装 | 基于 Qwen3-Coder 模型优化的开源终端 AI 代理。 |
 | **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** | npm 安装 | Google 官方开源 AI 代理，将 Gemini 模型能力带入终端。 |
@@ -83,7 +83,7 @@ curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del in
 
 | 环境变量 | 说明 |
 | :--- | :--- |
-| `ANTHROPIC_BASE_URL` | 自定义 API 基础 URL（如 `https://your-api.example.com/v1`） |
+| `ANTHROPIC_BASE_URL` | 自定义 API 基础 URL（如 `https://your-api.example.com`）**注意：无需添加 `/v1` 等版本后缀** |
 | `ANTHROPIC_API_KEY` | 自定义 API 密钥 |
 | `ANTHROPIC_MODEL` | 默认模型名称 |
 
@@ -115,14 +115,14 @@ Claude Code 配置的优先级从高到低为：
 
 **临时生效（当前会话）**：
 ```bash
-export ANTHROPIC_BASE_URL="https://your-api.example.com/v1"
+export ANTHROPIC_BASE_URL="https://your-api.example.com"
 export ANTHROPIC_API_KEY="your-api-key-here"
 export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
 ```
 
 **永久生效**（添加到 `~/.zshrc` 或 `~/.bashrc`）：
 ```bash
-echo 'export ANTHROPIC_BASE_URL="https://your-api.example.com/v1"' >> ~/.zshrc
+echo 'export ANTHROPIC_BASE_URL="https://your-api.example.com"' >> ~/.zshrc
 echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.zshrc
 echo 'export ANTHROPIC_MODEL="claude-sonnet-4-20250514"' >> ~/.zshrc
 source ~/.zshrc
@@ -132,14 +132,14 @@ source ~/.zshrc
 
 **临时生效**：
 ```bash
-set -x ANTHROPIC_BASE_URL "https://your-api.example.com/v1"
+set -x ANTHROPIC_BASE_URL "https://your-api.example.com"
 set -x ANTHROPIC_API_KEY "your-api-key-here"
 set -x ANTHROPIC_MODEL "claude-sonnet-4-20250514"
 ```
 
 **永久生效**（添加到 `~/.config/fish/config.fish`）：
 ```bash
-echo 'set -x ANTHROPIC_BASE_URL "https://your-api.example.com/v1"' >> ~/.config/fish/config.fish
+echo 'set -x ANTHROPIC_BASE_URL "https://your-api.example.com"' >> ~/.config/fish/config.fish
 echo 'set -x ANTHROPIC_API_KEY "your-api-key-here"' >> ~/.config/fish/config.fish
 echo 'set -x ANTHROPIC_MODEL "claude-sonnet-4-20250514"' >> ~/.config/fish/config.fish
 ```
@@ -148,7 +148,7 @@ echo 'set -x ANTHROPIC_MODEL "claude-sonnet-4-20250514"' >> ~/.config/fish/confi
 
 **临时生效（当前会话）**：
 ```powershell
-$env:ANTHROPIC_BASE_URL = "https://your-api.example.com/v1"
+$env:ANTHROPIC_BASE_URL = "https://your-api.example.com"
 $env:ANTHROPIC_API_KEY = "your-api-key-here"
 $env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 ```
@@ -159,7 +159,7 @@ $env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 notepad $PROFILE
 
 # 添加以下内容到文件
-$env:ANTHROPIC_BASE_URL = "https://your-api.example.com/v1"
+$env:ANTHROPIC_BASE_URL = "https://your-api.example.com"
 $env:ANTHROPIC_API_KEY = "your-api-key-here"
 $env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 ```
@@ -167,7 +167,7 @@ $env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 **永久生效（通过系统环境变量）**：
 ```powershell
 # 以管理员身份运行
-[Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "https://your-api.example.com/v1", "User")
+[Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "https://your-api.example.com", "User")
 [Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "your-api-key-here", "User")
 [Environment]::SetEnvironmentVariable("ANTHROPIC_MODEL", "claude-sonnet-4-20250514", "User")
 ```
@@ -176,7 +176,7 @@ $env:ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
 
 **临时生效（当前会话）**：
 ```cmd
-set ANTHROPIC_BASE_URL=https://your-api.example.com/v1
+set ANTHROPIC_BASE_URL=https://your-api.example.com
 set ANTHROPIC_API_KEY=your-api-key-here
 set ANTHROPIC_MODEL=claude-sonnet-4-20250514
 ```
@@ -193,7 +193,7 @@ set ANTHROPIC_MODEL=claude-sonnet-4-20250514
 ```json
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "https://your-api.example.com/v1",
+    "ANTHROPIC_BASE_URL": "https://your-api.example.com",
     "ANTHROPIC_API_KEY": "your-api-key-here",
     "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-20250514",
