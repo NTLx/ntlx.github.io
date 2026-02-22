@@ -451,6 +451,11 @@ install_main() {
         set_firewall
     fi
     cd "${cur_dir}" || exit
+
+    :::caution[清理源代码目录]
+    以下命令将删除 `vlmcsd` 源代码目录。此操作不可逆，但该目录仅用于编译，删除后不影响 KMS 服务运行。
+    :::
+
     rm -rf vlmcsd
     echo
     echo "Install KMS Server success"
@@ -476,6 +481,11 @@ uninstall_kms() {
             /etc/init.d/kms stop
         fi
         boot_stop kms
+
+        :::caution[删除 KMS 服务文件]
+        以下命令将删除 KMS 服务器的可执行文件、启动脚本和日志文件。此操作不可逆，请确认已备份必要配置。
+        :::
+
         # delete kms server
         rm -f /usr/bin/vlmcsd
         rm -f /etc/init.d/kms

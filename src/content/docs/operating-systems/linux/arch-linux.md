@@ -41,6 +41,12 @@ fdisk /dev/sda
 
 Format the ESP partition:
 
+:::caution[数据丢失风险]
+执行 `mkfs.fat` 命令将**格式化分区**，该分区上的所有数据将被永久删除。请务必：
+1. 确认目标分区正确（本例为 `/dev/sda1`）
+2. 如果是重新安装系统，请提前备份重要数据
+:::
+
 ```bash
 mkfs.fat -F32 /dev/sda1
 ```
@@ -58,6 +64,12 @@ fdisk /dev/sda
 ```
 
 Format the Root partition:
+
+:::caution[数据丢失风险]
+执行 `mkfs.ext4` 命令将**格式化分区**，该分区上的所有数据将被永久删除。请务必：
+1. 确认目标分区正确（本例为 `/dev/sda2`）
+2. 如果是重新安装系统，请提前备份重要数据
+:::
 
 ```bash
 mkfs.ext4 /dev/sda2

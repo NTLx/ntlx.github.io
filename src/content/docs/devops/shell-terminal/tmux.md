@@ -9,6 +9,8 @@ This guide recommends using the popular [Oh My Tmux!](https://github.com/gpakosz
 
 ## 1. Installation
 
+### Linux / macOS
+
 To install this configuration:
 
 ```bash
@@ -17,6 +19,42 @@ git clone https://github.com/gpakosz/.tmux.git
 ln -s -f .tmux/.tmux.conf
 cp .tmux/.tmux.conf.local .
 ```
+
+### Windows (WSL)
+
+Tmux runs natively on Linux, so on Windows you need to use **WSL (Windows Subsystem for Linux)**.
+
+1.  **Install WSL** (if not already installed):
+
+    Open PowerShell as Administrator and run:
+
+    ```powershell
+    wsl --install
+    ```
+
+    This installs Ubuntu by default. Restart your computer if prompted.
+
+2.  **Install Tmux inside WSL**:
+
+    Open the WSL terminal and run:
+
+    ```bash
+    sudo apt update
+    sudo apt install tmux
+    ```
+
+3.  **Install Oh My Tmux** (optional but recommended):
+
+    ```bash
+    cd
+    git clone https://github.com/gpakosz/.tmux.git
+    ln -s -f .tmux/.tmux.conf
+    cp .tmux/.tmux.conf.local .
+    ```
+
+:::tip[剪贴板集成]
+在 WSL 中使用 Tmux 时，可能需要额外配置才能与 Windows 剪贴板集成。可以使用 `clip.exe` 命令或安装 `wsl-clipboard` 等工具。
+:::
 
 ## 2. Configuration
 

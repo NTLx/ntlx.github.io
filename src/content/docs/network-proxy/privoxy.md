@@ -7,6 +7,36 @@ description: Privoxy 代理服务器配置
 
 This document provides a comprehensive list of domains to be forwarded through a SOCKS5 proxy (e.g., Shadowsocks) running at `127.0.0.1:1080`.
 
+## Installation
+
+### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install privoxy
+```
+
+### CentOS / RHEL
+
+```bash
+sudo yum install privoxy
+```
+
+### macOS
+
+```bash
+# Using Homebrew
+brew install privoxy
+```
+
+After installation, the config file is located at `/usr/local/etc/privoxy/config`.
+
+### Windows
+
+1.  Download the installer from the [Privoxy website](https://www.privoxy.org/sf-download-mirror/Win32/).
+2.  Run the installer and follow the prompts.
+3.  The config file is typically located at `C:\Program Files (x86)\Privoxy\config.txt`.
+
 ## Usage
 
 Add the following rules to your Privoxy configuration file (typically `/etc/privoxy/config` or a `user.action` file).

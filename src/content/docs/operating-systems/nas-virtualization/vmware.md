@@ -14,8 +14,11 @@ This guide covers the installation and configuration of VMware ESXi (v6.7u3) and
 1.  **Download:** Get the ESXi installer ISO (e.g., `VMware-VMvisor-Installer-6.7.0.update03-14320388.x86_64.iso`).
 2.  **Create Bootable Media:** Flash the ISO to a USB drive using a tool like Rufus.
 3.  **Install:** Boot the server from the USB drive and follow the on-screen instructions.
-    > [!TIP]
-    > Use `Tab` or arrow keys to navigate the installer menus.
+
+    :::tip
+    Use `Tab` or arrow keys to navigate the installer menus.
+    :::
+
 4.  **Management:** After installation, access the web interface via the IP address displayed on the screen.
 
 ### Configuration

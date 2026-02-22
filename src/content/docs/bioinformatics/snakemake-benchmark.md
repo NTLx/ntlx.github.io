@@ -3,7 +3,71 @@ title: Snakemake 性能分析
 description: Snakemake 流程管理和性能分析
 ---
 
-## 1. Usage
+## 1. Prerequisites
+
+### Install Snakemake
+
+Snakemake is primarily used on Linux, but also supports macOS and Windows (via WSL).
+
+#### Linux / macOS
+
+```bash
+# Using pip
+pip install snakemake
+
+# Using conda (recommended for reproducibility)
+conda install -c conda-forge snakemake
+```
+
+#### Windows
+
+Snakemake is not natively supported on Windows. Use **WSL (Windows Subsystem for Linux)**:
+
+1.  Install WSL:
+
+    ```powershell
+    wsl --install
+    ```
+
+2.  Install Snakemake inside WSL:
+
+    ```bash
+    pip install snakemake
+    # or
+    conda install -c conda-forge snakemake
+    ```
+
+### Install Perl (for benchmark script)
+
+The benchmark summary script requires Perl, which is pre-installed on most Unix systems.
+
+#### Linux
+
+```bash
+# Debian / Ubuntu
+sudo apt install perl
+
+# CentOS / RHEL
+sudo yum install perl
+```
+
+#### macOS
+
+Perl is pre-installed on macOS. If needed, you can install via Homebrew:
+
+```bash
+brew install perl
+```
+
+#### Windows (WSL)
+
+Perl is included in most WSL distributions. If not:
+
+```bash
+sudo apt install perl
+```
+
+## 2. Usage
 
 This script finds files matching `*.benchmark` and summarizes their metrics:
 1.  **Total Execution Time**
@@ -30,10 +94,10 @@ Max_rss: 21.00G
 
 :::note
 - By default, Snakemake benchmark files are expected to be named `*.benchmark`. You can modify the script if your naming convention differs.
+- It is recommended to check the list of input benchmark files to ensure accuracy.
 :::
-> - It is recommended to check the list of input benchmark files to ensure accuracy.
 
-## 2. Source Code
+## 3. Source Code
 
 Save the following code as `sum_benchmark.pl` and make it executable (`chmod +x sum_benchmark.pl`).
 
