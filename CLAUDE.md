@@ -87,6 +87,7 @@
    - 技术教程必须同时提供 Linux/macOS/Windows 三个平台的命令示例
    - Windows 命令使用 PowerShell，并添加容错参数（如 `-ErrorAction SilentlyContinue`）
    - 为不同 Shell（Bash/Zsh/Fish）提供对应的配置方法
+   - 对于 Unix-only 工具（如 tmux、proxychains），提供 WSL 安装指南作为 Windows 替代方案
 
 3. **Starlight Asides 组件使用**：
    - `:::tip` - 用于提供额外的上下文或解释设计理念
@@ -131,6 +132,7 @@
 - 使用 `npm run dev` 启动开发服务器（运行在 http://localhost:4321）
 - 可以使用 `run_in_background: true` 参数在后台运行
 - 使用 BrowserOS 工具预览修改效果，而非直接访问文件系统
+- 大型文件（如 privoxy.md）可能超出 token 限制，使用 `limit` 参数分块读取
 
 ### Git 提交规范
 
