@@ -199,6 +199,13 @@ sudo yum install gdisk
 ```
 
 Format and mount:
+
+:::caution[数据丢失风险]
+执行 `mkfs.xfs` 命令将**格式化磁盘**，该磁盘上的所有数据将被永久删除。请务必：
+1. 确认目标磁盘路径正确（本例为 `/dev/sda1`）
+2. 提前备份重要数据
+:::
+
 ```bash
 sudo gdisk /dev/sda
 sudo mkfs.xfs -f -d agcount=8 /dev/sda1

@@ -3,6 +3,8 @@ title: Shadowsocks 服务端配置
 description: Shadowsocks 服务端安装和配置
 ---
 
+Shadowsocks 服务端通常部署在 Linux 服务器上。本文档主要介绍 Linux 环境下的安装配置。
+
 ## 1. Install Shadowsocks (Python)
 
 ### CentOS
@@ -46,8 +48,9 @@ description: Shadowsocks 服务端安装和配置
     }
     ```
 
-    > [!NOTE]
-    > `server` should be `0.0.0.0` to listen on all interfaces. `method` can be `aes-256-cfb`, `chacha20-ietf-poly1305`, etc., depending on support. `rc4-md5` is considered weak.
+    :::note
+    `server` should be `0.0.0.0` to listen on all interfaces. `method` can be `aes-256-cfb`, `chacha20-ietf-poly1305`, etc., depending on support. `rc4-md5` is considered weak.
+    :::
 
 5.  **Start Server:**
 

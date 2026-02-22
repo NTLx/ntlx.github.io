@@ -29,6 +29,12 @@ You need a **Network ID** (16-digit alphanumeric code) provided by the network a
 2.  Select **Join New Network...**.
 3.  Enter the Network ID and click **Join**.
 
+### macOS
+
+1.  Click the ZeroTier icon in the menu bar.
+2.  Select **Join New Network...**.
+3.  Enter the Network ID and click **Join**.
+
 ### Linux
 
 ```bash

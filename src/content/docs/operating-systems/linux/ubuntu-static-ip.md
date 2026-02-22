@@ -71,8 +71,9 @@ Netplan configuration files are located in `/etc/netplan/`. The default file is 
       version: 2
     ```
 
-    > [!IMPORTANT]
-    > YAML is indentation-sensitive. Ensure you use spaces (not tabs) and align the keys correctly.
+    :::caution[YAML 语法敏感]
+    YAML 对缩进非常敏感。请确保使用空格（而非 Tab），并且正确对齐各层级键值。
+    :::
 
 ## 3. Apply Configuration
 
