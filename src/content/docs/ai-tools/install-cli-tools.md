@@ -324,6 +324,142 @@ curl -fsSL https://opencode.ai/install | bash
 - **Scoop**: `scoop install opencode`
 - **Homebrew (macOS/Linux)**: `brew install anomalyco/tap/opencode`
 
+## 🖥️ OpenCode 桌面版（推荐）
+
+:::tip[为什么推荐桌面版]
+OpenCode 桌面版提供了比 CLI 更丰富的用户体验，特别适合以下场景：
+
+| 特性 | 桌面版优势 |
+| :--- | :--- |
+| **图形界面** | 原生 GUI 界面，直观易用，无需记忆命令 |
+| **文件操作** | 系统级文件对话框，快速选择项目目录 |
+| **MCP-UI 渲染** | 支持交互式仪表板、表单、进度条等可视化组件 |
+| **系统通知** | 原生桌面通知，任务完成及时提醒 |
+| **自动更新** | 内置更新检查机制，始终保持最新版本 |
+| **双模式切换** | Plan 模式（只读分析）和 Build 模式（代码修改）一键切换 |
+| **CLI 集成** | 桌面版内置 CLI 引擎，可同步安装命令行工具 |
+
+桌面版底层仍运行 OpenCode CLI 作为核心引擎，因此功能完全一致，只是提供了更友好的交互方式。
+:::
+
+### 下载地址
+
+访问 [OpenCode 官方下载页面](https://opencode.ai/download) 获取最新版本：
+
+| 平台 | 下载方式 |
+| :--- | :--- |
+| **macOS (Apple Silicon)** | 下载 DMG 安装包 |
+| **macOS (Intel)** | 下载 DMG 安装包 |
+| **Windows (x64)** | 下载 EXE 安装程序 |
+| **Linux (Debian/Ubuntu)** | 下载 .deb 包 |
+| **Linux (RHEL/Fedora)** | 下载 .rpm 包 |
+
+### 安装方法
+
+#### macOS
+
+**方式一：Homebrew Cask（推荐）**
+```bash
+brew install --cask opencode-desktop
+```
+
+**方式二：手动安装**
+1. 从官网下载对应架构的 DMG 文件
+2. 双击打开 DMG 文件
+3. 将 OpenCode 图标拖拽到 Applications 文件夹
+
+#### Windows
+
+1. 从官网下载 `opencode-desktop-windows-x64.exe`
+2. 双击运行安装程序
+3. 按提示完成安装
+
+#### Linux
+
+**Debian/Ubuntu：**
+```bash
+# 下载 .deb 包后
+sudo dpkg -i opencode-desktop_*.deb
+sudo apt-get install -f  # 解决依赖问题
+```
+
+**RHEL/Fedora：**
+```bash
+# 下载 .rpm 包后
+sudo rpm -i opencode-desktop_*.rpm
+```
+
+### 首次配置
+
+安装完成后，首次启动需要进行 API 提供商配置：
+
+#### 方式一：使用 `/connect` 命令（推荐）
+
+1. 启动 OpenCode 桌面应用
+2. 在聊天输入框中输入 `/connect`
+3. 从列表中选择 AI 提供商（如 Anthropic、OpenAI、Google 等）
+4. 输入您的 API 密钥
+5. 使用 `/models` 命令选择要使用的模型
+
+:::note[支持的提供商]
+OpenCode 支持 75+ LLM 提供商，包括：
+- **商业 API**：Anthropic (Claude)、OpenAI (GPT)、Google (Gemini)、DeepSeek、Qwen 等
+- **本地模型**：通过 Ollama 运行本地模型
+- **现有订阅**：GitHub Copilot、ChatGPT Plus/Pro 订阅可直接使用
+:::
+
+#### 方式二：环境变量配置
+
+在系统环境变量中设置 API 密钥：
+
+```bash
+# Linux/macOS (添加到 ~/.zshrc 或 ~/.bashrc)
+export ANTHROPIC_API_KEY="your-anthropic-key"
+export OPENAI_API_KEY="your-openai-key"
+
+# Windows PowerShell
+$env:ANTHROPIC_API_KEY = "your-anthropic-key"
+```
+
+#### 方式三：配置文件
+
+编辑配置文件 `~/.config/opencode/opencode.json`：
+
+```json
+{
+  "$schema": "https://opencode.ai/schema.json",
+  "model": "claude-sonnet-4-20250514",
+  "provider": {
+    "anthropic": {
+      "options": {
+        "apiKey": "{env:ANTHROPIC_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Plan 模式与 Build 模式
+
+OpenCode 提供两种工作模式，可通过 `Tab` 键切换：
+
+| 模式 | 说明 | 适用场景 |
+| :--- | :--- | :--- |
+| **Plan 模式** | 只读模式，仅分析代码，不做修改 | 理解代码库、制定实施计划、代码审查 |
+| **Build 模式** | 完整权限，可修改文件和执行命令 | 功能开发、Bug 修复、重构代码 |
+
+:::tip[最佳实践]
+建议先用 Plan 模式分析问题和制定方案，确认无误后切换到 Build 模式执行。这种方式可以避免意外修改，特别适合新手用户。
+:::
+
+### 从桌面版安装 CLI
+
+桌面版支持将 CLI 安装到系统，安装后可在终端直接使用 `opencode` 命令：
+
+1. 打开 OpenCode 桌面应用
+2. 进入设置或使用命令面板
+3. 选择 "Install CLI" 选项
+
 ## 📋 前提条件
 
 虽然 Claude Code 和 OpenCode 的主程序已支持原生安装且无需 Node.js，但其**插件（如 oh-my-opencode）以及其他基于 npm 的工具**仍依赖 Node.js 环境。
