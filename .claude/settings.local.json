@@ -13,7 +13,11 @@
       "WebFetch(domain:github.com)",
       "mcp__browseros__browser_get_active_tab",
       "mcp__browseros__browser_get_load_status",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Skill(commit-commands:commit)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_close"
     ]
-  }
+  },
+  "outputStyle": "Explanatory"
 }

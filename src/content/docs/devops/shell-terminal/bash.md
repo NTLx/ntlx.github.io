@@ -1,13 +1,21 @@
 ---
 title: Bash 使用指南
-description: Bash Shell 脚本和配置
+description: Bash Shell 配置、别名设置和常用技巧
 ---
 
 ![](https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Gnu-bash-logo.svg/320px-Gnu-bash-logo.svg.png?1574734308873)
 
-This document collects default Bash configurations from popular Linux distributions and useful snippets.
+本文收集了主流 Linux 发行版的默认 Bash 配置和实用代码片段，帮助您更好地配置和使用 Bash Shell。
 
-## 1. Manjaro Architect Defaults
+## Bash 简介
+
+Bash（Bourne Again SHell）是 Linux 和 macOS 系统中最常用的 Shell 之一，具有以下特点：
+- 命令行解释器
+- 脚本编程语言
+- 任务自动化
+- 命令历史记录
+
+## Manjaro 默认配置
 
 ### System-wide Config (`/etc/bash.bashrc`)
 
@@ -38,17 +46,19 @@ esac
 [ -r /usr/share/bash-completion/bash_completion   ] && . /usr/share/bash-completion/bash_completion
 ```
 
-### User Config (`~/.bashrc`)
+### 用户配置文件 (`~/.bashrc`)
 
-This file contains user-specific settings, aliases, and functions.
+用户配置文件包含个人特定的设置、别名和函数。
 
 ```bash
 #
 # ~/.bashrc
 #
 
+# 如果不是交互式 Shell，不执行任何操作
 [[ $- != *i* ]] && return
 
+# 颜色配置函数
 colors() {
         local fgc bgc vals seq0
 
@@ -57,9 +67,9 @@ colors() {
         printf "Values 40..47 are \e[43mbackground colors\e[m\n"
         printf "Value  1 gives a  \e[1mbold-faced look\e[m\n\n"
 
-        # foreground colors
+        # 前景颜色
         for fgc in {30..37}; do
-                # background colors
+                # 背景颜色
                 for bgc in {40..47}; do
                         fgc=${fgc#37} # white
                         bgc=${bgc#40} # black
@@ -76,9 +86,10 @@ colors() {
         done
 }
 
+# 加载 Bash 自动补全
 [ -r /usr/share/bash-completion/bash_completion ] && . /usr/share/bash-completion/bash_completion
 
-# Change the window title of X terminals
+# 更改 X 终端的窗口标题
 case ${TERM} in
         xterm*|rxvt*|Eterm*|aterm|kterm|gnome*|interix|konsole*)
                 PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/\~}\007"'
@@ -90,12 +101,8 @@ esac
 
 use_color=true
 
-# Set colorful PS1 only on colorful terminals.
-# dircolors --print-database uses its own built-in database
-# instead of using /etc/DIR_COLORS.  Try to use the external file
-# first to take advantage of user additions.  Use internal bash
-# globbing instead of external grep binary.
-safe_term=${TERM//[^[:alnum:]]/?}   # sanitize TERM
+# 设置彩色 PS1（仅在彩色终端上）
+safe_term=${TERM//[^[:alnum:]]/?}   # 清理 TERM
 match_lhs=""
 [[ -f ~/.dir_colors   ]] && match_lhs="${match_lhs}$(<~/.dir_colors)"
 [[ -f /etc/DIR_COLORS ]] && match_lhs="${match_lhs}$(</etc/DIR_COLORS)"
@@ -105,7 +112,7 @@ match_lhs=""
 [[ $'\n'${match_lhs} == *$'\n'"TERM "${safe_term}* ]] && use_color=true
 
 if ${use_color} ; then
-        # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
+        # 启用 ls 等命令的颜色
         if type -P dircolors >/dev/null ; then
                 if [[ -f ~/.dir_colors ]] ; then
                         eval $(dircolors -b ~/.dir_colors)
@@ -126,7 +133,7 @@ if ${use_color} ; then
         alias fgrep='fgrep --colour=auto'
 else
         if [[ ${EUID} == 0 ]] ; then
-                # show root@ when we don't have colors
+                # 没有颜色时显示 root@
                 PS1='\u@\h \W \$ '
         else
                 PS1='\u@\h \w \$ '
@@ -135,9 +142,10 @@ fi
 
 unset use_color safe_term match_lhs sh
 
-alias cp="cp -i"                          # confirm before overwriting something
-alias df='df -h'                          # human-readable sizes
-alias free='free -m'                      # show sizes in MB
+# 常用别名
+alias cp="cp -i"                          # 覆盖前确认
+alias df='df -h'                          # 人类可读的大小
+alias free='free -m'                      # 以 MB 显示大小
 alias np='nano -w PKGBUILD'
 alias more=less
 
@@ -159,16 +167,16 @@ shopt -s expand_aliases
 shopt -s histappend
 ```
 
-## 2. Useful Snippets
+## 实用代码片段
 
-### Archive Extractor (`ex`)
+### 解压工具函数 (`ex`)
 
-A handy function to extract various archive formats with a single command.
+一个方便的函数，用于使用单个命令解压各种格式的归档文件。
 
 ```bash
 #
-# # ex - archive extractor
-# # usage: ex <file>
+# # ex - 归档解压工具
+# # 用法: ex <文件>
 ex ()
 {
   if [ -f $1 ] ; then
