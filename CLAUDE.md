@@ -13,6 +13,10 @@
 - **构建生产版本**: `npm run build` (输出到 `dist/` 目录)
 - **预览生产构建**: `npm run preview`
 - **Lint/检查**: TypeScript 使用 `astro/tsconfigs/strict` 配置。package.json 中未定义特定的 lint 命令。
+ 
+:::note[测试命令]
+本项目目前没有定义单元测试或端到端测试脚本。如需添加测试，建议使用 Astro 的内置测试支持或 Vitest。
+:::
 
 ## 工具脚本
 
@@ -28,6 +32,8 @@
   - `src/content/docs/`: 包含所有文档页面 (Markdown/MDX)。
   - 目录结构大致对应侧边栏分类 (例如 `operating-systems/`, `hpc-cluster/`, `devops/`)。
   - `src/content.config.ts`: 定义内容集合 (collections) 和 schema。
+- **组件**:
+  - `src/components/`: 自定义 Astro 组件，用于扩展 Starlight 主题功能。
 - **资源**:
   - `public/`: 静态资源，如 `favicon.ico`, `CNAME` 和图片。
 - **部署**:
@@ -39,6 +45,7 @@
     - 在 `src/content/docs/` 下的相应子目录中创建 `.md` 或 `.mdx` 文件。
     - 添加至少包含 `title` 的 frontmatter。
     - **重要**: 你必须手动更新 `astro.config.mjs` 中的 `sidebar` 数组，新页面才会出现在导航菜单中。
+    - **侧边栏分类**: 目前支持的分类包括：AI 辅助编程、操作系统、HPC 与集群、网络与代理、DevOps 与工具、生物信息学、指南。
 
 2.  **Frontmatter 格式**:
     ```yaml
@@ -61,6 +68,15 @@
 - 部署通过 GitHub Actions 自动化进行。
 - 推送到 `main` 分支会触发构建和部署流程。
 - 自定义域名配置通过 `public/CNAME` 处理。
+ 
+**部署流程**:
+1. 推送代码到 `main` 分支
+2. GitHub Actions 自动运行构建任务
+3. 构建产物上传到 GitHub Pages
+4. 网站自动部署到 https://ntlx.github.io/
+
+**手动触发部署**:
+- 在 GitHub 仓库的 Actions 页面手动运行 "Deploy to GitHub Pages" 工作流
 
 ## 文档编写最佳实践
 
