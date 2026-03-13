@@ -84,7 +84,7 @@ curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del in
 | 环境变量 | 说明 |
 | :--- | :--- |
 | `ANTHROPIC_BASE_URL` | 自定义 API 基础 URL（如 `https://your-api.example.com`）**注意：无需添加 `/v1` 等版本后缀** |
-| `ANTHROPIC_API_KEY` | 自定义 API 密钥 |
+| `ANTHROPIC_API_KEY` | 自定义 API 密钥（部分代理服务使用 `ANTHROPIC_AUTH_TOKEN`） |
 | `ANTHROPIC_MODEL` | 默认模型名称 |
 
 #### 进阶模型配置（可选）
@@ -96,6 +96,28 @@ curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del in
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | 复杂推理、架构设计、代码审查等高难度任务 |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | 代码编写、功能实现、调试修复等日常任务 |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | 语法检查、文件搜索、格式化等简单任务 |
+| `ANTHROPIC_REASONING_MODEL` | 专门用于复杂推理任务的模型（如数学推导、逻辑分析） |
+
+#### 性能与行为调优
+
+| 环境变量 | 说明 | 建议值 |
+| :--- | :--- | :--- |
+| `BASH_DEFAULT_TIMEOUT_MS` | Bash 命令默认超时时间（毫秒） | `30000` (30秒) |
+| `MCP_TIMEOUT` | MCP 工具调用超时时间（毫秒） | `60000` (60秒) |
+| `CLAUDE_BASH_NO_LOGIN` | 跳过 Bash 登录 Shell 初始化，加快启动速度 | `1` |
+
+#### 隐私与遥测控制
+
+| 环境变量 | 说明 |
+| :--- | :--- |
+| `DISABLE_TELEMETRY` | 禁用遥测数据收集 |
+| `DISABLE_ERROR_REPORTING` | 禁用错误报告上传 |
+
+#### 实验性功能
+
+| 环境变量 | 说明 |
+| :--- | :--- |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | 启用实验性的多代理协作功能 |
 
 ### 配置优先级
 
@@ -192,40 +214,98 @@ set ANTHROPIC_MODEL=claude-sonnet-4-20250514
 
 ```json
 {
-  "language": "chinese",
-  "autoUpdatesChannel": "latest",
-  "terminalProgressBarEnabled": true,
-  "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": 75,
-  "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": 1,
-  "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": 1,
-  "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
-  "CLAUDE_CODE_MAX_OUTPUT_TOKENS": 32000,
   "env": {
+    "ANTHROPIC_AUTH_TOKEN": "",
     "ANTHROPIC_BASE_URL": "https://your-api.example.com",
-    "ANTHROPIC_API_KEY": "your-api-key-here",
-    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-20250514",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-20250514",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-20250514",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-20250514"
-  }
+    "ANTHROPIC_MODEL": "claude-sonnet-4-20250514",
+    "ANTHROPIC_REASONING_MODEL": "claude-sonnet-4-20250514",
+    "BASH_DEFAULT_TIMEOUT_MS": "30000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "75",
+    "CLAUDE_BASH_NO_LOGIN": "1",
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+    "CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "DISABLE_ERROR_REPORTING": "1",
+    "DISABLE_TELEMETRY": "1",
+    "MCP_TIMEOUT": "60000"
+  },
+  "permissions": {
+    "defaultMode": "plan"
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "document-skills@anthropic-agent-skills": true,
+    "feature-dev@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "qodo-skills@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "language": "中文",
+  "alwaysThinkingEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "terminalProgressBarEnabled": true
 }
 ```
 
-#### 进阶配置项说明
+#### 配置项说明
+
+**基础设置**
 
 | 配置项 | 说明 |
 | :--- | :--- |
-| `language` | 设置界面语言，推荐设置为 `chinese` 以获得全中文交互体验。 |
-| `autoUpdatesChannel` | 自动更新通道，`latest` 表示始终使用最新的稳定版本。 |
-| `terminalProgressBarEnabled` | 是否在终端显示任务进度的进度条，建议开启。 |
+| `language` | 设置界面语言，设为 `中文` 可获得全中文交互体验。 |
+| `terminalProgressBarEnabled` | 是否在终端显示任务进度条，建议开启。 |
+| `alwaysThinkingEnabled` | 是否默认启用思考模式（扩展推理），`false` 表示按需手动开启。 |
+| `skipDangerousModePermissionPrompt` | 跳过危险操作模式的权限提示，设为 `true` 可减少交互中断。 |
+
+**权限配置**
+
+| 配置项 | 说明 |
+| :--- | :--- |
+| `permissions.defaultMode` | 默认权限模式。`plan` 表示先规划后执行，适合谨慎操作；`acceptEdits` 表示自动接受编辑操作。 |
+
+**环境变量（env）**
+
+| 配置项 | 说明 |
+| :--- | :--- |
 | `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | 上下文自动压缩阈值（百分比）。设为 `75` 表示当上下文占用达到 75% 时触发压缩，优化长会话性能。 |
-| `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` | 是否禁用实验性功能，设为 `1` 可提升工具运行的稳定性。 |
-| `CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY` | 是否禁用反馈调查弹窗，设为 `1` 可以减少使用中的干扰。 |
-| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 是否禁用非必要的遥感数据和流量，设为 `1` 有利于提升隐私安全性。 |
-| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | 允许 AI 单次输出的最大 Token 数量，设为 `32000` 可以支持更长代码的生成。 |
+| `CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS` | 是否禁用实验性 Beta 功能，设为 `1` 可提升稳定性。 |
+| `CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY` | 是否禁用反馈调查弹窗，设为 `1` 可减少干扰。 |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | 是否启用实验性的多代理协作功能，设为 `1` 开启。 |
+
+**插件配置（enabledPlugins）**
+
+`enabledPlugins` 对象用于管理 Claude Code 插件的启用状态。每个插件的格式为 `插件名@来源`，值为 `true` 表示启用。
+
+:::tip[常用插件推荐]
+以下是一些实用的官方插件：
+
+| 插件名称 | 功能说明 |
+| :--- | :--- |
+| `superpowers` | 增强工作流，提供计划编写、代码审查、TDD 等技能 |
+| `commit-commands` | Git 提交、推送、创建 PR 的快捷命令 |
+| `code-review` | 代码审查工具 |
+| `pr-review-toolkit` | PR 审查工具集 |
+| `playwright` | 浏览器自动化测试 |
+| `context7` | 快速查询第三方库文档 |
+| `document-skills` | 文档处理技能（PDF、Word、PPT 等） |
+| `skill-creator` | 创建和管理自定义技能 |
+| `typescript-lsp` | TypeScript 语言服务器支持 |
+:::
 
 :::note[配置文件格式]
-配置文件使用 JSON 格式，注意逗号、引号和大括号的正确性。
+配置文件使用 JSON 格式，注意逗号、引号和大括号的正确性。环境变量的值需要用字符串格式（如 `"75"` 而非 `75`）。
 :::
 
 ## 🚀 OpenCode 官方安装
