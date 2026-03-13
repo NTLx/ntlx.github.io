@@ -460,6 +460,134 @@ OpenCode 提供两种工作模式，可通过 `Tab` 键切换：
 2. 进入设置或使用命令面板
 3. 选择 "Install CLI" 选项
 
+## 🔌 Oh My OpenCode 插件（强烈推荐）
+
+:::tip[为什么推荐安装]
+**Oh My OpenCode（OmO）** 是一个多代理编排插件，为 OpenCode 带来 Claude Code 级别的体验。无论你使用 CLI 还是桌面版，都强烈推荐安装此插件。
+
+| 对比项 | 原生 OpenCode | 安装 Oh My OpenCode 后 |
+| :--- | :--- | :--- |
+| **代理数量** | 2 个（Build、Plan） | 10+ 个专业代理协同工作 |
+| **任务处理** | 单一代理处理所有任务 | 按任务类型自动路由到最佳代理 |
+| **模型选择** | 手动切换模型 | 自动为每个代理匹配最佳模型 |
+| **并行执行** | 串行处理 | 5+ 个后台代理并行工作 |
+| **工具支持** | 基础工具 | 内置 LSP、AST-Grep、Tmux、MCP |
+| **持久性** | 可能中途放弃 | Todo Enforcer 确保任务完成 |
+| **代码质量** | 可能产生 AI 风格代码 | Comment Checker 确保代码自然 |
+
+**简单来说**：原生 OpenCode 像是一个能干的助手，安装 OmO 后则是一个完整的 AI 开发团队。
+:::
+
+### 安装方法
+
+#### 前提条件
+
+确保已安装 Node.js 18+ 和包管理器（npm/bun/yarn/pnpm）。
+
+#### 安装命令
+
+```bash
+# 推荐：使用 bunx（最快）
+bunx oh-my-opencode install
+
+# 或使用 npm
+npm install -g oh-my-opencode
+
+# 或使用其他包管理器
+bun install -g oh-my-opencode
+yarn global add oh-my-opencode
+pnpm add -g oh-my-opencode
+```
+
+#### 验证安装
+
+```bash
+# 检查代理是否加载
+opencode agent list
+
+# 应显示类似以下输出：
+# sisyphus (primary)
+# oracle (primary)
+# librarian (primary)
+# explore (subagent)
+# prometheus (primary)
+# ...
+```
+
+### 内置代理简介
+
+Oh My OpenCode 提供 10+ 个专业化代理，每个代理针对特定任务优化：
+
+| 代理 | 推荐模型 | 职责 | 适用场景 |
+| :--- | :--- | :--- | :--- |
+| **Sisyphus** | Claude Opus 4 / Kimi K2.5 | 主编排器，规划任务、委派子任务、驱动完成 | 复杂开发任务、日常编码 |
+| **Hephaestus** | GPT-5 Codex | 自主深度工作者，端到端执行无需手把手指导 | 大型功能开发、架构重构 |
+| **Prometheus** | Claude Opus 4 / Kimi K2.5 | 战略规划师，采访式需求分析后生成计划 | 复杂多日项目、新功能规划 |
+| **Oracle** | GPT-5 | 架构决策、复杂调试、代码审查 | 架构设计、调试失败后求助 |
+| **Librarian** | Grok Code Fast | 文档查询、OSS 实现示例搜索 | 查询第三方库文档、找开源实现 |
+| **Explore** | Gemini Flash | 代码库模式搜索、结构理解 | 理解新代码库、找代码模式 |
+| **Metis** | - | 计划前顾问，分析隐藏意图和失败点 | 复杂任务的范围澄清 |
+| **Momus** | - | 计划审查员，检查计划的完整性和清晰度 | 验证生成计划的质量 |
+| **Multimodal Looker** | Gemini Flash | 图像、PDF、图表分析 | 截图分析、文档解读 |
+
+### 快速上手
+
+#### 使用 ultrawork 命令
+
+安装后，最简单的使用方式是输入 `ultrawork`（或简写 `ulw`）：
+
+```
+ultrawork 实现用户登录功能，包括表单验证和错误处理
+```
+
+这会自动：
+1. 启动 Sisyphus 作为主编排器
+2. 并行委派任务到专业代理
+3. 持续工作直到任务完成
+
+#### 使用特定代理
+
+通过 `@` 符号调用特定代理：
+
+```
+@oracle 为什么这个异步函数会导致竞态条件？
+@librarian 查找 React useEffect 的最佳实践文档
+@explore 找到项目中所有使用 Redux 的地方
+```
+
+#### 规划模式
+
+对于复杂项目，先用 Prometheus 生成计划：
+
+```
+/start-work
+```
+
+这会进入采访模式，Prometheus 会询问需求细节，然后生成详细的实施计划。
+
+### 配置文件位置
+
+Oh My OpenCode 配置文件位于：
+
+| 配置类型 | 路径 |
+| :--- | :--- |
+| **全局配置** | `~/.config/opencode/oh-my-opencode.json` |
+| **项目配置** | `.opencode/oh-my-opencode.json` |
+
+### 卸载方法
+
+如需卸载：
+
+```bash
+# 移除插件配置
+jq '.plugin = [.plugin[] | select(. != "oh-my-opencode")]' \
+    ~/.config/opencode/opencode.json > /tmp/oc.json && \
+    mv /tmp/oc.json ~/.config/opencode/opencode.json
+
+# 删除配置文件（可选）
+rm -f ~/.config/opencode/oh-my-opencode.json
+```
+
 ## 📋 前提条件
 
 虽然 Claude Code 和 OpenCode 的主程序已支持原生安装且无需 Node.js，但其**插件（如 oh-my-opencode）以及其他基于 npm 的工具**仍依赖 Node.js 环境。
