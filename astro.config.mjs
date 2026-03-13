@@ -183,6 +183,13 @@ export default defineConfig({
 						{ label: 'Snakemake 性能分析', slug: 'bioinformatics/snakemake-benchmark' },
 					],
 				},
+				{
+					label: '指南',
+					collapsed: true,
+					items: [
+						{ label: '博客文章质量标准', slug: 'guides/blog-quality-standards' },
+					],
+				},
 			],
 		}),
 	],
