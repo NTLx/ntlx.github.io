@@ -516,19 +516,74 @@ opencode agent list
 
 ### 内置代理简介
 
-Oh My OpenCode 提供 10+ 个专业化代理，每个代理针对特定任务优化：
+Oh My OpenCode 提供 10+ 个专业化代理，每个代理针对特定任务优化。以下是各代理的推荐模型配置：
+
+:::tip[模型选择原则]
+- **Anthropic Claude**: Opus 4.6 适合深度推理和多代理协调；Sonnet 4.6 适合日常编码，性价比高
+- **OpenAI GPT**: GPT-5.3-Codex 是专为代理编码优化的旗舰模型
+- **开源模型**: Qwen3-Coder、Kimi-K2.5、DeepSeek-V3 等提供隐私保护和成本优势
+:::
 
 | 代理 | 推荐模型 | 职责 | 适用场景 |
 | :--- | :--- | :--- | :--- |
-| **Sisyphus** | Claude Opus 4 / Kimi K2.5 | 主编排器，规划任务、委派子任务、驱动完成 | 复杂开发任务、日常编码 |
-| **Hephaestus** | GPT-5 Codex | 自主深度工作者，端到端执行无需手把手指导 | 大型功能开发、架构重构 |
-| **Prometheus** | Claude Opus 4 / Kimi K2.5 | 战略规划师，采访式需求分析后生成计划 | 复杂多日项目、新功能规划 |
-| **Oracle** | GPT-5 | 架构决策、复杂调试、代码审查 | 架构设计、调试失败后求助 |
-| **Librarian** | Grok Code Fast | 文档查询、OSS 实现示例搜索 | 查询第三方库文档、找开源实现 |
-| **Explore** | Gemini Flash | 代码库模式搜索、结构理解 | 理解新代码库、找代码模式 |
-| **Metis** | - | 计划前顾问，分析隐藏意图和失败点 | 复杂任务的范围澄清 |
-| **Momus** | - | 计划审查员，检查计划的完整性和清晰度 | 验证生成计划的质量 |
-| **Multimodal Looker** | Gemini Flash | 图像、PDF、图表分析 | 截图分析、文档解读 |
+| **Sisyphus** | Claude Opus 4.6 / Kimi-K2.5 / GLM-5 | 主编排器，规划任务、委派子任务、驱动完成 | 复杂开发任务、日常编码 |
+| **Hephaestus** | GPT-5.3-Codex / Claude Sonnet 4.6 | 自主深度工作者，端到端执行无需手把手指导 | 大型功能开发、架构重构 |
+| **Prometheus** | Claude Opus 4.6 / Kimi-K2.5 / GLM-5 | 战略规划师，采访式需求分析后生成计划 | 复杂多日项目、新功能规划 |
+| **Oracle** | Claude Opus 4.6 / GPT-5.2 / DeepSeek-V3.2 | 架构决策、复杂调试、代码审查 | 架构设计、调试失败后求助 |
+| **Librarian** | Gemini 3.1 Flash / Grok Code Fast / Qwen3-Coder-Next | 文档查询、OSS 实现示例搜索 | 查询第三方库文档、找开源实现 |
+| **Explore** | Gemini 3.1 Flash / Claude Haiku 4.5 / Qwen3-Coder-Next | 代码库模式搜索、结构理解 | 理解新代码库、找代码模式 |
+| **Metis** | Claude Sonnet 4.6 / GPT-5 | 计划前顾问，分析隐藏意图和失败点 | 复杂任务的范围澄清 |
+| **Momus** | Claude Sonnet 4.6 / GPT-5 | 计划审查员，检查计划的完整性和清晰度 | 验证生成计划的质量 |
+| **Multimodal Looker** | Gemini 3.1 Pro / Claude Sonnet 4.6 | 图像、PDF、图表分析 | 截图分析、文档解读 |
+
+#### 模型推荐详解
+
+**编排与规划类代理**（Sisyphus、Prometheus）
+
+| 优先级 | Anthropic | OpenAI | 开源模型 |
+| :--- | :--- | :--- | :--- |
+| **首选** | Claude Opus 4.6 | - | Kimi-K2.5、GLM-5 |
+| **次选** | Claude Sonnet 4.6 | GPT-5.2 | DeepSeek-V3.2 |
+
+- **Claude Opus 4.6**: SWE-bench Verified 80.8%，最适合多代理协调和深度推理
+- **Kimi-K2.5**: 开源首选，SWE-bench 领先，支持大规模上下文
+- **GLM-5**: 国产开源旗舰，代理编排能力强
+
+**代码生成与深度工作**（Hephaestus）
+
+| 优先级 | Anthropic | OpenAI | 开源模型 |
+| :--- | :--- | :--- | :--- |
+| **首选** | Claude Sonnet 4.6 | GPT-5.3-Codex | Qwen3-Coder-480B |
+| **次选** | Claude Opus 4.6 | GPT-5.2-Codex | DeepSeek-Coder-V2 |
+
+- **GPT-5.3-Codex**: OpenAI 专为代理编码优化的旗舰，Terminal-Bench 77.3%
+- **Claude Sonnet 4.6**: SWE-bench 79.6%，性价比极高（$3/$15 vs Opus $15/$75）
+- **Qwen3-Coder-480B**: 开源最佳，SWE-bench 70.6%，MoE 架构高效
+
+**调试与架构**（Oracle）
+
+| 优先级 | Anthropic | OpenAI | 开源模型 |
+| :--- | :--- | :--- | :--- |
+| **首选** | Claude Opus 4.6 | GPT-5.2 xHigh | DeepSeek-V3.2-Speciale |
+| **次选** | Claude Sonnet 4.6 | GPT-5 | Kimi-Dev-72B |
+
+- **Claude Opus 4.6**: GPQA Diamond 91.3%，最适合复杂推理
+- **DeepSeek-V3.2-Speciale**: 开源最强推理，AIME 2025 87.5%
+
+**快速任务与搜索**（Librarian、Explore）
+
+| 优先级 | Anthropic | OpenAI/Google | 开源模型 |
+| :--- | :--- | :--- | :--- |
+| **首选** | Claude Haiku 4.5 | Gemini 3.1 Flash | Qwen3-Coder-Next |
+| **次选** | Claude Sonnet 4.6 | GPT-5 Nano | Grok Code Fast |
+
+- **Gemini 3.1 Flash**: 最快最便宜，$0.25/$1.50 per 1M tokens
+- **Claude Haiku 4.5**: 高吞吐量低延迟，适合批量任务
+- **Qwen3-Coder-Next**: 仅 3B 活跃参数，本地运行友好
+
+:::note[数据来源]
+模型推荐基于 SWE-bench Verified、LiveCodeBench、Terminal-Bench 等权威基准测试，参考 Anthropic、OpenAI 官方文档以及 Faros AI、Morph 等技术博客的实测数据（2026 年 3 月）。
+:::
 
 ### 快速上手
 
