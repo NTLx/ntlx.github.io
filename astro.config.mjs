@@ -70,6 +70,7 @@ export default defineConfig({
 						{ label: 'CLI 工具一键安装', slug: 'ai-tools/install-cli-tools' },
 						{ label: 'Playwright MCP 配置指南', slug: 'ai-tools/playwright-mcp-setup' },
 						{ label: 'OpenClaw Installation', slug: 'ai-tools/openclaw-installation' },
+						{ label: '微信公众号写作养成记', slug: 'ai-tools/wechat-article-ability-building' },
 					],
 				},
 				{
