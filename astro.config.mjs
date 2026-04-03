@@ -71,6 +71,7 @@ export default defineConfig({
 						{ label: 'Playwright MCP 配置指南', slug: 'ai-tools/playwright-mcp-setup' },
 						{ label: 'OpenClaw Installation', slug: 'ai-tools/openclaw-installation' },
 						{ label: '微信公众号写作养成记', slug: 'ai-tools/wechat-article-ability-building' },
+					{ label: 'AI Agent 赋能生物医学发现：Cell 论文解读', slug: 'ai-tools/biomedical-ai-agents' },
 					],
 				},
 				{
