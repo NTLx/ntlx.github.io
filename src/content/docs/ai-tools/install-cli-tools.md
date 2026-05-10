@@ -241,6 +241,24 @@ rustup component add clippy rustfmt
 安装 LSP 后，Claude Code 和 OpenCode 在分析代码时能获取更精确的类型信息和符号定义，减少猜测，提升代码生成质量。
 :::
 
+### 更新语言服务器
+
+```bash
+# Python (basedpyright)
+uv tool upgrade basedpyright
+
+# TypeScript — 通过 npm 查看过时包后重新安装
+npm outdated -g
+npm i -g typescript-language-server typescript
+
+# Rust (rust-analyzer)
+rustup update
+
+# Bun（如使用 Bun 作为包管理器）
+bun upgrade        # 升级 Bun 本身
+bun update -g      # 升级所有全局包
+```
+
 ## 📋 前提条件
 
 虽然 Claude Code 和 OpenCode 的主程序已支持原生安装且无需 Node.js，但其**插件（如 oh-my-opencode）以及其他基于 npm 的工具**仍依赖 Node.js 环境。
