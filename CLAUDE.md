@@ -121,6 +121,19 @@ sidebar slug：articles/ai-era-company-moat
 常见构建失败原因：
 - sidebar slug 与实际文件名不匹配（大小写、中文）
 - 文章引用了不存在的本地图片
+
+### 正文禁止 H1 标题
+
+Starlight 自动将 frontmatter `title` 渲染为 `<h1>`。正文中**不得**以 `# 标题` 开头，否则页面会出现两个标题。管线 Step 2（创作）和 Step 11（发布）都需要注意这一点。
+
+错误：`# 当写代码不再需要写代码`（正文第一行）
+正确：直接以段落或 `##` 二级标题开始正文
+
+### Git 跟踪规则
+
+- `.agents/skills/` — 技能源文件，**必须入库**
+- `.claude/skills/` — Claude Code 自动生成的符号链接，**已通过 .gitignore 排除**
+- `skills-lock.json` — 技能版本锁文件，**必须入库**
 - frontmatter 格式错误（缺少 `title`）
 
 ### 管线相关踩坑
