@@ -55,7 +55,7 @@
 
 - **输出目录**：中间产物在 `posts/YYYY-MM-DD-slug/`（gitignored），最终文章在 `src/content/docs/articles/`
 - **13 步流水线（Step 0-11，含 Step 4.5）**：依赖预检 → 资料收集 → 创作 → 封面 → 插图 → 信息图 → 图床 → CDN整合 → 去AI痕迹 → 格式化 → HTML → 发布到微信 → 发布到博客
-- **Step 11（发布到博客）**：封面图上传 GitHub 图床 → 复制 article.md 到 `src/content/docs/articles/`（summary→description，封面图 CDN 链接作为首行）→ 更新 astro.config.mjs 侧边栏
+- **Step 11（发布到博客）**：复制 article.md 到 `src/content/docs/articles/`（summary→description，移除 coverImage）→ 更新 astro.config.mjs 侧边栏
 
 ## 内容指南
 
