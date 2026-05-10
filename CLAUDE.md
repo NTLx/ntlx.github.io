@@ -51,28 +51,11 @@
 
 ## wechat-article-write 管线
 
+完整管线定义见 `.agents/skills/wechat-article-write/SKILL.md`。
+
 - **输出目录**：中间产物在 `posts/YYYY-MM-DD-slug/`（gitignored），最终文章在 `src/content/docs/articles/`
 - **13 步流水线（Step 0-11，含 Step 4.5）**：依赖预检 → 资料收集 → 创作 → 封面 → 插图 → 信息图 → 图床 → CDN整合 → 去AI痕迹 → 格式化 → HTML → 发布到微信 → 发布到博客
-- Step 1 联网优先使用 web-access CDP（继承用户 Chrome 登录态），搜索优先 google.com/ncr；bailian MCP 工具仅作补充搜索，不参与 URL 内容提取降级链
-- 封面不上传图床，直接用于公众号素材库；插图走 GitHub 图床 CDN
 - **Step 11（发布到博客）**：封面图上传 GitHub 图床 → 复制 article.md 到 `src/content/docs/articles/`（summary→description，封面图 CDN 链接作为首行）→ 更新 astro.config.mjs 侧边栏
-
-### 文章文件命名规则
-
-管线产出的博客文章文件名必须遵守 Starlight 的 slug 约束：
-- **小写 ASCII kebab-case**：`ai-era-company-moat.md`，不能用中文或大写字母
-- **slug 来源于文件名**：sidebar 中的 `slug: 'articles/xxx'` 必须与文件名（不含 .md）完全一致
-- **中文标题放 frontmatter**：文件名是 URL 路径，标题是显示内容，两者独立
-
-### 运行须知
-
-- **CDN 缓存**：新图上传 jsDelivr 后需 2-3 分钟稳定传播，Step 9 HTML 转换和 Step 10 发布都可能超时——两者均有自动重试 + 本地路径降级策略
-- **Gemini 构图**：16:9 下强制居中，两侧留暗边。prompt 无效，需改用水平分割/左右对比类构图概念（详见 `.agents/skills/wechat-article-write/references/image-backends.md`）
-- **图片后端优先级**：Gemini > Seedream > DashScope。DashScope 审核最严（安全类术语易触发 DataInspectionFailed），失败自动降级
-- **baoyu-fetch**：无扩展名 bash 脚本，必须直接执行（不能 `bun run`）
-- **caption 同步**：插图概念变更时需手动检查文章中的图片说明文字是否匹配
-- **Step 6 自动化**：CDN 路径替换应遍历 image-map.json 键值对依次调用 Edit 工具，不要逐个手动替换
-- **Step 11 frontmatter 转换**：`summary` → `description`，添加 `$schema: starlight`，移除 `coverImage`（封面图已作为正文首行 CDN 链接）
 
 ## 内容指南
 
@@ -97,7 +80,6 @@
     title: 文章标题
     description: 文章摘要
     date: 2026-05-10
-    coverImage: https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/cover.jpg
     ---
     ```
 
@@ -117,7 +99,7 @@
 
 Starlight 的内容集合（content collection）对文件名有严格限制：
 
-- **不支持中文文件名**：包含非 ASCII 字符的文件名不会被内容集合收录，`getEntry` 无法找到对应条目，构建时报 `The slug specified in the Starlight sidebar config does not exist`
+- **不支持中文文件名**：包含非 ASCII 字符的文件名不会被内容集合收录，构建时报 `The slug specified in the Starlight sidebar config does not exist`
 - **slug 自动转小写**：`AI-eval-costs-bottleneck.md` 的 slug 是 `articles/ai-eval-costs-bottleneck`（全小写），sidebar 配置中写大写会导致构建失败
 - **标题可以是中文**：文件名是 URL 的一部分（必须 ASCII），标题只是显示用的标签（可以任意语言）
 
@@ -127,30 +109,6 @@ Starlight 的内容集合（content collection）对文件名有严格限制：
 frontmatter title：产品可以抄，但公司的形状抄不走
 sidebar slug：articles/ai-era-company-moat
 ```
-
-### 图片必须使用 CDN URL，禁止本地路径
-
-文章中的图片引用必须是完整的 CDN URL，不能是相对路径（如 `imgs/xxx.jpg`）。
-
-- 本地路径会导致构建失败：Astro 尝试解析图片时找不到文件，报 `Could not find requested image`
-- 即使图片文件存在于 `posts/` 目录中也不行——`posts/` 被 `.gitignore` 排除，不会进入构建流程
-- 正确的图片 URL 格式：`https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/xxx.jpg`
-
-管线 Step 6（CDN 整合）负责将 `article.md` 中的本地路径替换为 CDN URL。如果发现文章中仍有本地路径，说明 Step 6 未完成，需要手动修复。
-
-### Frontmatter 字段映射
-
-微信管线和 Starlight 使用不同的字段名：
-
-| 微信管线字段 | Starlight 字段 | 说明 |
-|---|---|---|
-| `summary` | `description` | 必须转换，Starlight 不识别 `summary` |
-| `title` | `title` | 一致，无需转换 |
-| `date` | 自定义字段 | Starlight schema 不要求，但保留用于排序 |
-| `coverImage` | 自定义字段 | 用于 OG 标签，Starlight schema 不要求 |
-| — | `$schema: starlight` | 管线文章需手动添加，告知 Starlight 使用其 schema |
-
-管线 Step 11（发布到博客）会自动处理 `summary` → `description` 的转换和 `$schema` 字段的添加。
 
 ### 构建验证检查清单
 
@@ -164,6 +122,10 @@ sidebar slug：articles/ai-era-company-moat
 - sidebar slug 与实际文件名不匹配（大小写、中文）
 - 文章引用了不存在的本地图片
 - frontmatter 格式错误（缺少 `title`）
+
+### 管线相关踩坑
+
+图片 CDN URL 要求、Frontmatter 字段映射、CDN 缓存策略等管线特定约束，详见 `.agents/skills/wechat-article-write/SKILL.md` 的"博客发布约束"章节。
 
 ## 部署
 
