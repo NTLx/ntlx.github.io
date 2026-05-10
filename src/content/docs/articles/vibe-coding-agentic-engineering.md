@@ -6,8 +6,6 @@ description: Simon Willison 发现他不再审查 AI 写的每一行代码了。
 coverImage: cover.png
 ---
 
-# 当 vibe coding 和 agentic engineering 开始模糊，我感到一阵不安
-
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-07-vibe-coding-agentic-img-00.jpg)
 
 昨天读到 Simon Willison 的新博文，标题就让我心里咯噔一下：**「Vibe coding and agentic engineering are getting closer than I'd like」**。这老哥用"upsetting"这个词描述自己的发现，我完全理解。
