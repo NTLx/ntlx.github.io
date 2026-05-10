@@ -210,54 +210,183 @@ OpenCode 提供两种工作模式，可通过 `Tab` 键切换：
 
 ## 🔤 LSP 语言服务器安装（可选）
 
-AI Coding 工具通过 LSP（Language Server Protocol）获得更强的代码理解能力，如类型检查、跳转定义、自动补全等。以下是最常用的语言服务器：
+AI Coding 工具通过 LSP（Language Server Protocol）获得更强的代码理解能力，如类型检查、跳转定义、自动补全等。安装后 Claude Code 和 OpenCode 会自动发现并使用，无需额外配置。
 
-### Python — basedpyright
+### 速查表
+
+| 语言/格式 | LSP 名称 | 安装方式 | 更新方式 |
+| :--- | :--- | :--- | :--- |
+| **Python** | basedpyright | uv | `uv tool upgrade basedpyright` |
+| **TypeScript** | typescript-language-server | npm | `npm outdated -g` 后重装 |
+| **Rust** | rust-analyzer | rustup | `rustup update` |
+| **Bash/Shell** | bash-language-server | bun/npm | `bun update -g` |
+| **Perl** | Perl::LanguageServer | cpanm | `cpanm Perl::LanguageServer` |
+| **SQL** | sql-language-server | bun/npm | `bun update -g` |
+| **Dockerfile** | dockerfile-language-server-nodejs | bun/npm | `bun update -g` |
+| **YAML** | yaml-language-server | bun/npm | `bun update -g` |
+| **JSON/JSONC** | vscode-json-languageservice | bun/npm | `bun update -g` |
+| **HTML** | vscode-html-languageservice | bun/npm | `bun update -g` |
+| **CSS/SCSS/Less** | vscode-css-languageservice | bun/npm | `bun update -g` |
+| **ESLint** | vscode-eslint-language-service | bun/npm | `bun update -g` |
+| **TOML** | taplo-cli | bun/npm | `bun update -g` |
+| **Markdown** | @volar/language-server | bun/npm | `bun update -g` |
+
+### 逐语言安装
+
+#### Python — basedpyright
 
 ```bash
 uv tool install basedpyright
 ```
 
-### TypeScript — typescript-language-server
+#### TypeScript — typescript-language-server
 
 ```bash
 npm i -g typescript-language-server typescript
 ```
 
-### Rust — rust-analyzer
+#### Rust — rust-analyzer
 
 ```bash
-# 安装 rust-analyzer 语言服务器
-rustup component add rust-analyzer
-
-# 安装 Rust 标准库源代码（必须，否则无法进行标准库代码分析）
-rustup component add rust-src
-
-# 安装 clippy 和 rustfmt（可选但强烈推荐，提供代码检查和格式化功能）
-rustup component add clippy rustfmt
+rustup component add rust-analyzer  # 语言服务器
+rustup component add rust-src       # 标准库源码（必须）
+rustup component add clippy rustfmt # 代码检查和格式化（推荐）
 ```
+
+#### Bash/Shell — bash-language-server
+
+```bash
+bun add -g bash-language-server
+```
+
+支持 bash、zsh、fish 等多种 Shell，提供智能补全、语法检查和代码导航。
+
+#### Perl — Perl::LanguageServer
+
+```bash
+brew install cpanminus   # 先安装 cpanm（如果没有）
+cpanm Perl::LanguageServer
+```
+
+:::caution[注意]
+Perl LSP **不能用 Bun/npm 安装**，必须使用 Perl 官方包管理器 cpanm。首次安装可能需要几分钟编译依赖。
+:::
+
+#### SQL — sql-language-server
+
+```bash
+bun add -g sql-language-server
+```
+
+支持 MySQL、PostgreSQL、SQLite、SQL Server 等主流数据库，可连接实际数据库进行 schema 分析。
+
+#### Dockerfile — dockerfile-language-server-nodejs
+
+```bash
+bun add -g dockerfile-language-server-nodejs
+```
+
+Docker 官方维护，同时支持 Dockerfile 和 docker-compose.yml。
+
+#### YAML — yaml-language-server
+
+```bash
+bun add -g yaml-language-server
+```
+
+Red Hat 官方维护，内置 Kubernetes、Docker Compose、GitHub Actions 等数百种 Schema。
+
+#### JSON/JSONC — vscode-json-languageservice
+
+```bash
+bun add -g vscode-json-languageservice
+```
+
+VS Code 官方 JSON 语言服务器，支持带注释的 JSON（JSONC）。
+
+#### HTML / CSS / ESLint
+
+```bash
+bun add -g vscode-html-languageservice vscode-css-languageservice vscode-eslint-language-service
+```
+
+VS Code 官方语言服务器套件，覆盖 HTML、CSS、SCSS、Less 和 ESLint 集成。
+
+#### TOML — taplo-cli
+
+```bash
+bun add -g taplo-cli
+```
+
+Rust 编写，性能极佳，完美支持 Cargo.toml、pyproject.toml 等常用格式。
+
+#### Markdown — @volar/language-server
+
+```bash
+bun add -g @volar/language-server
+```
+
+Volar 团队维护，支持表格格式化、代码块语法高亮和链接检查。
 
 :::tip[为什么推荐安装]
 安装 LSP 后，Claude Code 和 OpenCode 在分析代码时能获取更精确的类型信息和符号定义，减少猜测，提升代码生成质量。
 :::
 
-### 更新语言服务器
+### 一键安装脚本
+
+将以下脚本保存为 `install_lsp.sh`，一键安装所有 LSP：
 
 ```bash
-# Python (basedpyright)
+#!/bin/bash
+echo "开始安装所有推荐的 LSP..."
+
+# 用 Bun 安装的 LSP
+bun add -g \
+  bash-language-server \
+  sql-language-server \
+  dockerfile-language-server-nodejs \
+  yaml-language-server \
+  vscode-json-languageservice \
+  vscode-html-languageservice \
+  vscode-css-languageservice \
+  vscode-eslint-language-service \
+  taplo-cli \
+  @volar/language-server
+
+# Perl LSP（必须用 cpanm）
+if ! command -v cpanm &> /dev/null; then
+  brew install cpanminus
+fi
+cpanm Perl::LanguageServer
+
+echo "所有 LSP 安装完成！请重启 Claude Code/OpenCode 以生效。"
+```
+
+### 更新所有 LSP
+
+```bash
+# Bun 管理的 LSP（批量更新）
+bun update -g
+
+# Perl
+cpanm Perl::LanguageServer
+
+# Python
 uv tool upgrade basedpyright
 
-# TypeScript — 通过 npm 查看过时包后重新安装
+# TypeScript — 查看过时包后重新安装
 npm outdated -g
 npm i -g typescript-language-server typescript
 
-# Rust (rust-analyzer)
+# Rust
 rustup update
-
-# Bun（如使用 Bun 作为包管理器）
-bun upgrade        # 升级 Bun 本身
-bun update -g      # 升级所有全局包
 ```
+
+:::note[注意事项]
+- 安装或更新后，建议**重启 Claude Code/OpenCode** 以确保生效
+- Python、Rust、Perl 有各自的官方包管理器，**不要用 Bun/npm 安装**
+- 如使用 npm 而非 Bun，将上述 `bun add -g` 替换为 `npm i -g`，`bun update -g` 替换为 `npm update -g`
+:::
 
 ## 📋 前提条件
 
