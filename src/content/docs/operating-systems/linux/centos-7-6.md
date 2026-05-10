@@ -1,7 +1,12 @@
 ---
 title: CentOS 7.6 配置指南
 description: CentOS 7.6 系统配置和优化
+deprecated: true
 ---
+
+:::caution[已过时]
+CentOS 7 已于 **2024 年 6 月 30 日** 正式停止维护（EOL）。本文仅作历史参考，建议迁移到 Rocky Linux 或 AlmaLinux。
+:::
 
 ![CentOS](https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg)
 

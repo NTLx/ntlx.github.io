@@ -1,7 +1,12 @@
 ---
 title: CentOS 8 配置指南
 description: CentOS 8 系统配置和优化
+deprecated: true
 ---
+
+:::caution[已过时]
+CentOS 8 已于 **2021 年 12 月 31 日** 正式停止维护（EOL）。本文仅作历史参考，建议迁移到 Rocky Linux 或 AlmaLinux。
+:::
 
 ![CentOS](https://docs.centos.org/en-US/8-docs/managing-userspace-components/_images/title_logo.svg)
 
