@@ -224,12 +224,9 @@ AI Coding 工具通过 LSP（Language Server Protocol）获得更强的代码理
 | **SQL** | sql-language-server | bun/npm | `bun update -g` |
 | **Dockerfile** | dockerfile-language-server-nodejs | bun/npm | `bun update -g` |
 | **YAML** | yaml-language-server | bun/npm | `bun update -g` |
-| **JSON/JSONC** | vscode-json-languageservice | bun/npm | `bun update -g` |
-| **HTML** | vscode-html-languageservice | bun/npm | `bun update -g` |
-| **CSS/SCSS/Less** | vscode-css-languageservice | bun/npm | `bun update -g` |
-| **ESLint** | vscode-eslint-language-service | bun/npm | `bun update -g` |
-| **TOML** | taplo-cli | bun/npm | `bun update -g` |
-| **Markdown** | @volar/language-server | bun/npm | `bun update -g` |
+| **JSON/HTML/CSS/ESLint** | vscode-langservers-extracted | bun/npm | `bun update -g` |
+| **TOML** | @taplo/cli | bun/npm | `bun update -g` |
+| **Vue/Markdown** | @vue/language-server | bun/npm | `bun update -g` |
 
 ### 逐语言安装
 
@@ -296,37 +293,33 @@ bun add -g yaml-language-server
 
 Red Hat 官方维护，内置 Kubernetes、Docker Compose、GitHub Actions 等数百种 Schema。
 
-#### JSON/JSONC — vscode-json-languageservice
+#### JSON / HTML / CSS / ESLint — vscode-langservers-extracted
 
 ```bash
-bun add -g vscode-json-languageservice
+bun add -g vscode-langservers-extracted
 ```
 
-VS Code 官方 JSON 语言服务器，支持带注释的 JSON（JSONC）。
+社区从 VS Code 提取的合集包，一个包同时提供四个语言服务器：
+- `vscode-json-language-server`（JSON/JSONC）
+- `vscode-html-language-server`（HTML）
+- `vscode-css-language-server`（CSS/SCSS/Less）
+- `vscode-eslint-language-server`（ESLint）
 
-#### HTML / CSS / ESLint
-
-```bash
-bun add -g vscode-html-languageservice vscode-css-languageservice vscode-eslint-language-service
-```
-
-VS Code 官方语言服务器套件，覆盖 HTML、CSS、SCSS、Less 和 ESLint 集成。
-
-#### TOML — taplo-cli
+#### TOML — @taplo/cli
 
 ```bash
-bun add -g taplo-cli
+bun add -g @taplo/cli
 ```
 
 Rust 编写，性能极佳，完美支持 Cargo.toml、pyproject.toml 等常用格式。
 
-#### Markdown — @volar/language-server
+#### Vue / Markdown — @vue/language-server
 
 ```bash
-bun add -g @volar/language-server
+bun add -g @vue/language-server
 ```
 
-Volar 团队维护，支持表格格式化、代码块语法高亮和链接检查。
+Vue 官方维护的 LSP（原 Volar），支持 Vue 单文件组件和 Markdown 语法。
 
 :::tip[为什么推荐安装]
 安装 LSP 后，Claude Code 和 OpenCode 在分析代码时能获取更精确的类型信息和符号定义，减少猜测，提升代码生成质量。
@@ -359,22 +352,19 @@ installed=0
 skipped=0
 failed=0
 
-# ---------- Bun 管理的 LSP (10 种) ----------
+# ---------- Bun 管理的 LSP (7 种) ----------
 BUN_PKGS=(
   bash-language-server
   sql-language-server
   dockerfile-language-server-nodejs
   yaml-language-server
-  vscode-json-languageservice
-  vscode-html-languageservice
-  vscode-css-languageservice
-  vscode-eslint-language-service
-  taplo-cli
-  "@volar/language-server"
+  vscode-langservers-extracted
+  "@taplo/cli"
+  "@vue/language-server"
 )
 
 if command -v bun &> /dev/null; then
-  echo "[Bun] 安装 10 种 LSP..."
+  echo "[Bun] 安装 7 种 LSP..."
   for pkg in "${BUN_PKGS[@]}"; do
     if bun add -g "$pkg" > /dev/null; then
       ok "$pkg"
@@ -503,11 +493,11 @@ updated=0
 skipped=0
 failed=0
 
-# ---------- Bun 管理的 LSP (10 种) ----------
+# ---------- Bun 管理的 LSP (7 种) ----------
 if command -v bun &> /dev/null; then
   echo "[Bun] 批量更新所有全局包..."
   if bun update -g; then
-    ok "Bun 管理的 10 种 LSP 已更新"
+    ok "Bun 管理的 7 种 LSP 已更新"
     ((updated++))
   else
     fail "Bun 管理的 LSP"
