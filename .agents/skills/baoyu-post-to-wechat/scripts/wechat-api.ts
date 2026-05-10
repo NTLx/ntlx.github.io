@@ -438,7 +438,14 @@ function renderMarkdownWithPlaceholders(
   const mdToWechatScript = path.join(__dirname, "md-to-wechat.ts");
   const baseDir = path.dirname(markdownPath);
 
-  const result = spawnSync("bun", [mdToWechatScript, markdownPath, ...(title ? ["--title", title] : []), ...(theme ? ["--theme", theme] : []), ...(color ? ["--color", color] : []), ...(citeStatus ? [] : ["--no-cite"])], {
+  const args = ["-y", "bun", mdToWechatScript, markdownPath];
+  if (title) args.push("--title", title);
+  if (theme) args.push("--theme", theme);
+  if (color) args.push("--color", color);
+  if (!citeStatus) args.push("--no-cite");
+
+  console.error(`[wechat-api] Rendering markdown with placeholders via md-to-wechat: ${theme}${color ? `, color: ${color}` : ""}, citeStatus: ${citeStatus}`);
+  const result = spawnSync("npx", args, {
     stdio: ["inherit", "pipe", "pipe"],
     cwd: baseDir,
   });
