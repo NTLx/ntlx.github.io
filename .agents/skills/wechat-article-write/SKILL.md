@@ -8,7 +8,7 @@ description: >
   "wechat article", "wechat-article-write", "公众号", "微信文章", or wants to
   create, illustrate, format, and publish a WeChat Official Account article.
   Automatically orchestrates baoyu-*, ljg-*, github-image-hosting, humanizer-zh,
-  and web-access skills in an 11-step pipeline (Steps 0-10, with Step 4.5 for infographic generation).
+  and web-access skills in a 13-step pipeline (Steps 0-11, with Step 4.5 for infographic generation).
 user_invocable: true
 ---
 
@@ -1037,6 +1037,62 @@ bun run {wechatScriptDir}/scripts/wechat-article.ts \
 
 封面图 `cover.png` 直接上传公众号素材库，不经过图床。
 
+## 博客发布约束
+
+发布到博客前必须了解以下约束，违反会导致构建失败。
+
+### 文件名必须为小写 ASCII kebab-case
+
+Starlight 的内容集合（content collection）对文件名有严格限制：
+
+- **不支持中文文件名**：包含非 ASCII 字符的文件名不会被内容集合收录，构建时报 `The slug specified in the Starlight sidebar config does not exist`
+- **slug 自动转小写**：`AI-eval-costs-bottleneck.md` 的 slug 是 `articles/ai-eval-costs-bottleneck`（全小写），sidebar 配置中写大写会导致构建失败
+- **标题可以是中文**：文件名是 URL 的一部分（必须 ASCII），标题只是显示用的标签（可以任意语言）
+
+正确做法：
+```
+文件名：ai-era-company-moat.md
+frontmatter title：产品可以抄，但公司的形状抄不走
+sidebar slug：articles/ai-era-company-moat
+```
+
+### 图片必须使用 CDN URL，禁止本地路径
+
+文章中的图片引用必须是完整的 CDN URL，不能是相对路径（如 `imgs/xxx.jpg`）。
+
+**原因**：本地路径会导致构建失败——Astro 尝试解析图片时找不到文件（`posts/` 被 `.gitignore` 排除，不会进入构建流程）。即使图片文件存在于 `posts/` 目录中也不行。
+
+正确的图片 URL 格式：`https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/xxx.jpg`
+
+Step 6（CDN 整合）负责将本地路径替换为 CDN URL。如果发现文章中仍有本地路径，说明 Step 6 未完成。
+
+### Frontmatter 字段映射
+
+微信管线和 Starlight 使用不同的字段名：
+
+| 微信管线字段 | Starlight 字段 | 说明 |
+|---|---|---|
+| `summary` | `description` | 必须转换，Starlight 不识别 `summary` |
+| `title` | `title` | 一致，无需转换 |
+| `date` | 自定义字段 | Starlight schema 不要求，但保留用于排序 |
+| `coverImage` | — | 移除，封面图已作为正文首行 CDN 链接 |
+| — | `$schema: starlight` | 必须添加，告知 Starlight 使用其 schema |
+
+Step 11.2 自动处理这些转换。
+
+### 构建验证检查清单
+
+Step 11.4 验证时按顺序执行：
+
+1. `npx astro sync` — 同步内容集合（新增/删除/重命名文件后必须执行）
+2. `npm run build` — 验证构建成功
+3. 如果构建失败且原因不明确，清除缓存重试：`rm -rf .astro/ && npm run build`
+
+常见构建失败原因：
+- sidebar slug 与实际文件名不匹配（大小写、中文）
+- 文章引用了不存在的本地图片
+- frontmatter 格式错误（缺少 `title`）
+
 ## Step 11: 发布到博客
 
 将最终文章同步到博客项目的 `src/content/docs/articles/` 目录，使其自动出现在 GitHub Pages 博客上。
@@ -1109,6 +1165,17 @@ head -7 src/content/docs/articles/{slug}.md
 ```
 
 预期输出应包含 `$schema: starlight`、`title`、`description`、`date` 字段。
+
+然后执行构建验证（按顺序）：
+
+```bash
+npx astro sync && npm run build
+```
+
+如果构建失败，检查：
+- sidebar slug 与文件名是否匹配（大小写、中文）
+- 文章中是否有本地图片路径
+- frontmatter 是否缺少 `title`
 
 ## 最终完成报告
 
