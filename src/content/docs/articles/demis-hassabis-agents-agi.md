@@ -6,7 +6,7 @@ description: 真正在推动前沿的人，不需要画饼。
 coverImage: cover.png
 ---
 
-![全文核心内容导览：诺奖得主Hassabis论AGI的坦诚判断](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-06-demis-hassabis-agi-img-05.jpg)
+![全文核心内容导览：诺奖得主Hassabis论AGI的坦诚判断](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-06-demis-hassabis-agi-infographic.jpg)
 
 ## 50% 的判断
 
