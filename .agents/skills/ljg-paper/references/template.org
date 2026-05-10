@@ -1,4 +1,4 @@
-#+title:      {一句精练语句提炼论文核心思想或发现}
+#+title:      {6-15 字思想骨句，凝练如警句/篇名，零中英混杂；详见 SKILL.md「title 这一句怎么写」}
 #+subtitle:   {论文原始标题，通常英文}
 #+date:       [{YYYY-MM-DD Day HH:MM}]
 #+filetags:   :paper:
