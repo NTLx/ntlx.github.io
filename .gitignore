@@ -69,13 +69,31 @@ ENV/
 env/
 
 # ==========================================
-# Claude Code (Explicitly Tracked)
+# Claude Code
 # ==========================================
-!.claude/
-!.claude/*
+# .claude/ 目录结构保留，但排除自动生成的符号链接和缓存
+.claude/skills/
 .claude/memory/
 
 # ==========================================
 # Documentation (Explicitly Tracked)
 # ==========================================
 !docs/
+
+# ==========================================
+# WeChat Article Pipeline (intermediate artifacts)
+# ==========================================
+posts/
+infographic/
+sources/
+url-to-markdown/
+.playwright-mcp/
+
+# Bun
+bun.lockb
+bun.lock
+
+# Skill scripts node_modules (managed independently)
+.agents/skills/*/scripts/node_modules/
+.agents/skills/*/scripts/bun.lockb
+.agents/skills/*/scripts/bun.lock

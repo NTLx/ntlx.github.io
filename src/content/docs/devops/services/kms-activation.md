@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: KMS 激活服务
 description: KMS 批量激活服务配置
 ---

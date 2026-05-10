@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Ubuntu 配置指南
 description: Ubuntu Server 安装、网络配置和故障排除
 ---

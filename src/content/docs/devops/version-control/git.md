@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Git 配置与使用技巧
 description: Git 全局配置、SSH 密钥设置、代理配置、提交历史修改等实用技巧，适用于 Linux、macOS 和 Windows 平台
 ---

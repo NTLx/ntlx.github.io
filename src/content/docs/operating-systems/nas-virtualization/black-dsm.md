@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 黑群晖 DSM
 description: 黑群晖 DSM 安装配置
 ---

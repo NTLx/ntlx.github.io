@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Playwright MCP 配置指南
 description: 为 Claude Code 配置 Playwright MCP 的最佳实践方案，包含生产级调优、Token 优化和身份验证持久化配置。
 ---

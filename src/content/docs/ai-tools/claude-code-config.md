@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Claude Code 自定义配置
 description: Claude Code 环境变量、配置文件和插件的详细配置指南
 ---

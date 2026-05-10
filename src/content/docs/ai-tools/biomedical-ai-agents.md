@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: AI Agent 赋能生物医学发现：Cell 论文解读
 description: 哈佛医学院 Marinka Zitnik 团队在 Cell 发表重磅前瞻，系统描绘 AI Agents 如何结合大语言模型、机器学习工具与实验平台，赋能生物医学研究的宏大愿景
 ---

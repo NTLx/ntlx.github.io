@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 使用 Slurm 和 OpenMPI
 description: Slurm 和 OpenMPI 使用教程
 ---

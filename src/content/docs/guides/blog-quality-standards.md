@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 博客文章质量标准
 description: 定义博客文章的写作规范、结构要求和质量标准
 ---

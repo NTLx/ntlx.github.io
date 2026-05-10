@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 龙虾微信公众号写作养成记
 description: 记录我帮 OpenClaw（龙虾）建立微信公众号写作能力的完整过程，从工具安装到流程制定
 ---

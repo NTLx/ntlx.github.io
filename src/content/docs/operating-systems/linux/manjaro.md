@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Manjaro 配置指南
 description: Manjaro Linux 系统配置
 ---

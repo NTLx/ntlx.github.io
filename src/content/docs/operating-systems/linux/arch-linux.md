@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Arch Linux 安装配置指南
 description: 详细的 Arch Linux UEFI + GPT 系统安装和配置教程
 ---

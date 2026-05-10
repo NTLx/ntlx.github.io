@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: AI Coding CLI 工具一键安装
 description: 常用 AI 辅助编程命令行工具的一键安装脚本，支持 Linux、macOS 和 Windows。
 ---

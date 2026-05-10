@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Bash 使用指南
 description: Bash Shell 配置、别名设置和常用技巧
 ---

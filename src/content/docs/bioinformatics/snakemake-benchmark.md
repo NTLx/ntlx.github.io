@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Snakemake 性能分析
 description: Snakemake 流程管理和性能分析
 ---

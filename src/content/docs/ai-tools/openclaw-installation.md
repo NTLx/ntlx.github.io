@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: OpenClaw Installation
 description: OpenClaw AI 智能体平台的部署与环境配置完整指南
 ---

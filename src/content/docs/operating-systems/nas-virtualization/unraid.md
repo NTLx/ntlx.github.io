@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: UNRAID 配置指南
 description: UNRAID NAS 系统配置和使用
 ---
