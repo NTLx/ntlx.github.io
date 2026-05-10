@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: ZeroTier 配置
 description: ZeroTier 虚拟局域网配置
 ---

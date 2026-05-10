@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Antigravity Tools 最佳实践
 description: 解锁 Vibe Coding 的无限潜力：Antigravity Tools 深度指南。不仅是账号管理，更是通用的本地 AI 模型路由器。
 ---

@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: VIM 使用指南
 description: VIM 编辑器配置、美化、插件管理和各发行版默认配置参考
 ---

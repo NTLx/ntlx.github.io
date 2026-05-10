@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: n8n Docker 部署
 description: 使用 Docker 部署 n8n 自动化工作流
 ---

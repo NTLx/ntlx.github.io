@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: CLI 工具集
 description: 常用命令行工具
 ---

@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: EditorConfig 配置
 description: EditorConfig 跨编辑器配置
 ---

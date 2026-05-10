@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: CentOS 8 配置指南
 description: CentOS 8 系统配置和优化
 deprecated: true

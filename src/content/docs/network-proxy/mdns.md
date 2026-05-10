@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: mDNS 配置
 description: mDNS 本地网络发现配置
 ---

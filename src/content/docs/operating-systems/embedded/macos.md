@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: MacOS 配置
 description: MacOS 系统配置和工具
 ---

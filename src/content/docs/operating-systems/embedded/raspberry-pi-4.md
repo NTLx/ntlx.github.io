@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Raspberry Pi 4 配置
 description: 树莓派 4 系统配置和应用
 ---

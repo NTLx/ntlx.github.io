@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Proxychains 配置
 description: Proxychains 代理工具使用
 ---

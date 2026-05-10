@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: VMWare 配置指南
 description: VMWare 虚拟化平台配置
 ---

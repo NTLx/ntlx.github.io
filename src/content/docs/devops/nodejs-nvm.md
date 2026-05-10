@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 使用 nvm 安装 Node.js
 description: Windows 11 使用 nvm-windows 安装和管理 Node.js 环境
 ---

@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Tmux 终端复用器使用指南
 description: Tmux 安装、配置、快捷键和实用技巧，提升终端工作效率
 ---

@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: 安装 Slurm 和 OpenMPI
 description: HPC 集群安装 Slurm 和 OpenMPI 指南
 ---

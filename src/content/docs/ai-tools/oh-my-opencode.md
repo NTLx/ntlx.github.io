@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Oh My OpenCode 插件
 description: OpenCode 多代理编排插件，提供 10+ 专业代理协同工作
 ---

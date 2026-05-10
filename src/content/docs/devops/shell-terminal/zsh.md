@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: ZSH 配置指南
 description: ZSH Shell 配置和插件
 ---

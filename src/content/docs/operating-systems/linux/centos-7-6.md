@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: CentOS 7.6 配置指南
 description: CentOS 7.6 系统配置和优化
 deprecated: true

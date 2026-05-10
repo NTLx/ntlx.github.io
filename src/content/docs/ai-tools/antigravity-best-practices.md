@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Google Antigravity 最佳实践
 description: Google Antigravity 也就是现在的 AI-native IDE 的最佳实践指南，包含高效 Prompt 和工作流建议。
 ---

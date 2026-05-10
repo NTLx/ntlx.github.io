@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: LLMs API 服务
 description: 大语言模型 API 服务配置
 ---

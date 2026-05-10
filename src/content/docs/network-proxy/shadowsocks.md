@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Shadowsocks 配置指南
 description: Shadowsocks 服务端部署与客户端配置
 ---

@@ -1,4 +1,5 @@
 ---
+$schema: starlight
 title: Privoxy 代理服务器配置指南
 description: Privoxy 安装、配置和 SOCKS5 代理转发规则设置
 ---
