@@ -224,6 +224,19 @@ uv tool install basedpyright
 npm i -g typescript-language-server typescript
 ```
 
+### Rust — rust-analyzer
+
+```bash
+# 安装 rust-analyzer 语言服务器
+rustup component add rust-analyzer
+
+# 安装 Rust 标准库源代码（必须，否则无法进行标准库代码分析）
+rustup component add rust-src
+
+# 安装 clippy 和 rustfmt（可选但强烈推荐，提供代码检查和格式化功能）
+rustup component add clippy rustfmt
+```
+
 :::tip[为什么推荐安装]
 安装 LSP 后，Claude Code 和 OpenCode 在分析代码时能获取更精确的类型信息和符号定义，减少猜测，提升代码生成质量。
 :::
