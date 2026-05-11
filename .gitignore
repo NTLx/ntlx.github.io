@@ -104,5 +104,4 @@ bun.lock
 # Claude Code local config
 .claude/
 
-# baoyu skills local config
-.baoyu-skills/
+# baoyu skills: EXTEND.md tracked (project-level), .env excluded by root .env rule
