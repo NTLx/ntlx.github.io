@@ -28,7 +28,7 @@
 
 一条命令，同时产出公众号草稿和博客文章。
 
-依赖的技能链：`ljg-writes`（写作）、`baoyu-cover-image`（封面）、`baoyu-infographic`（信息图）、`baoyu-article-illustrator`（插图）、`github-image-hosting`（图床）、`baoyu-markdown-to-html`（HTML）、`baoyu-post-to-wechat`（公众号发布）。
+依赖的外部技能链：`ljg-writes`（写作）、`baoyu-cover-image`（封面）、`baoyu-infographic`（信息图）、`baoyu-article-illustrator`（插图）、`baoyu-markdown-to-html`（HTML）、`baoyu-post-to-wechat`（公众号发布）。
 
 ### 技能管理
 
