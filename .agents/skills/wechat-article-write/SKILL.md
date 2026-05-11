@@ -26,35 +26,41 @@ user_invocable: true
 - **图片后端优先级**：Gemini > Seedream > DashScope。Gemini 稳定可用但 16:9 下构图居中；Seedream 中文友好且审核较宽松；DashScope 中文文本渲染最佳但内容审核最严（安全类术语易触发 DataInspectionFailed）。当某个后端失败时，按此顺序自动降级
 - **Gemini 格式陷阱**：Gemini 后端（gemini-3.1-flash-image-preview）返回 JPEG 内容但保存为 `.png` 扩展名，**每次都发生**。所有图片生成步骤完成后，必须统一执行格式检测修正（`file` 命令检测 → 重命名扩展名 → 更新 draft.md 引用）。不要依赖下游脚本兜底——源头修正成本最低
 - **封面文字约束**：封面图优先不使用文字（纯视觉表达）。若确需文字辅助，封面文字必须与文章标题完全不同——标题已出现在推送卡片中，封面再重复一遍浪费视觉空间。读者在推送卡片中看到标题，点进来再看到封面重复同样文字，双重曝光毫无增量信息
-- **baoyu 配置路径唯一性**：baoyu 系列技能的配置文件（EXTEND.md、.env 等）只能存在于 `~/.baoyu-skills/`（用户家目录下）。**禁止在项目目录、工作目录或任何其他位置创建 `.baoyu-skills/` 文件夹**。所有 Agent 执行 baoyu 技能时，如果需要读取或创建配置文件，路径必须是 `~/.baoyu-skills/{skill-name}/`，不得使用相对路径或项目级路径。违反此约束会导致配置分散、项目目录污染、以及 .gitignore 遗漏风险
+- **baoyu 配置路径分层**：baoyu 系列技能的配置文件按类型分层存放。**EXTEND.md（偏好配置）推荐项目级** `.baoyu-skills/{skill-name}/EXTEND.md`，纳入 git 跟踪，确保偏好可追溯、跨设备同步。**.env（密钥）必须用户级** `~/.baoyu-skills/.env`，不进 git，防止泄露。技能加载时项目级 EXTEND.md 优先于用户级（三级优先级：项目级 > XDG > 用户级）
 
 ## 配置文件路径约定
 
-### ⚠️ 配置路径唯一性约束
+### 配置路径分层约定
 
-baoyu 系列技能的配置文件**只能存在于用户家目录** `~/.baoyu-skills/` 下。
+baoyu 系列技能的配置按类型分层存放，EXTEND.md 和 .env 有不同的安全需求：
 
-**禁止**：在项目目录、工作目录、临时目录或任何非家目录位置创建 `.baoyu-skills/` 文件夹。
+| 配置类型 | 推荐路径 | 原因 |
+|---------|---------|------|
+| EXTEND.md（偏好） | **项目级** `.baoyu-skills/{skill-name}/EXTEND.md` | 纳入 git，可追溯、可同步 |
+| .env（密钥） | **用户级** `~/.baoyu-skills/.env` | 不进 git，防止泄露 |
 
-**原因**：配置文件包含 API key（.env）、用户偏好（EXTEND.md）等个人设置，属于用户级配置而非项目级配置。在项目目录创建会导致：
-- 配置分散在多个项目中，修改时不知道哪个生效
-- 敏感信息（API key）可能被意外提交到 Git
-- 不同项目的配置互相覆盖
+**路径优先级**（技能加载时）：项目级 > XDG > 用户级。项目级 EXTEND.md 存在时优先使用。
 
-**Agent 执行约束**：当 Agent 需要读取或创建 baoyu 技能配置时，路径必须解析为 `~/.baoyu-skills/{skill-name}/`。如果 Agent 尝试在项目目录创建 `.baoyu-skills/`，必须阻止并纠正为家目录路径。
+**Agent 执行约束**：
+- 读取 EXTEND.md 时：优先检查项目级 `.baoyu-skills/{skill-name}/EXTEND.md`，不存在则回退到用户级
+- 读取 .env 时：始终从 `~/.baoyu-skills/.env` 读取，不检查项目级
+- 创建 EXTEND.md 时：默认创建到项目级 `.baoyu-skills/{skill-name}/`
 
 ### EXTEND.md（技能运行时配置）
 
-baoyu 系列技能的 EXTEND.md 位于用户家目录下的 `.baoyu-skills` 文件夹：
+baoyu 系列技能的 EXTEND.md 推荐放在项目级 `.baoyu-skills` 文件夹，纳入 git 跟踪：
 
 ```
-~/.baoyu-skills/{skill-name}/EXTEND.md
+.baoyu-skills/{skill-name}/EXTEND.md    # 项目级（推荐，git 跟踪）
+~/.baoyu-skills/{skill-name}/EXTEND.md  # 用户级（回退）
 ```
 
 例如：
-- `~/.baoyu-skills/baoyu-cover-image/EXTEND.md`
-- `~/.baoyu-skills/baoyu-article-illustrator/EXTEND.md`
-- `~/.baoyu-skills/baoyu-post-to-wechat/EXTEND.md`
+- `.baoyu-skills/baoyu-cover-image/EXTEND.md`
+- `.baoyu-skills/baoyu-article-illustrator/EXTEND.md`
+- `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md`
+
+技能加载时项目级优先。如项目级不存在，回退到用户级。
 
 ### .env（环境变量）
 
@@ -460,7 +466,7 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 
 ### 3.1 前置配置确认
 
-确认 `~/.baoyu-skills/baoyu-cover-image/EXTEND.md` 已配置。如未配置，引导用户完成首次 setup，再继续流水线。
+确认 .baoyu-skills/baoyu-cover-image/EXTEND.md 已配置。如未配置，引导用户完成首次 setup，再继续流水线。
 
 ### 3.2 确定封面参数
 
@@ -546,7 +552,7 @@ mv posts/{date-slug}/cover.png posts/{date-slug}/cover.jpg
 
 ### 4.1 前置配置确认
 
-确认 `~/.baoyu-skills/baoyu-article-illustrator/EXTEND.md` 已配置。如未配置，引导用户完成首次 setup，再继续流水线。
+确认 .baoyu-skills/baoyu-article-illustrator/EXTEND.md 已配置。如未配置，引导用户完成首次 setup，再继续流水线。
 
 **注意**：`preferred_image_backend` 字段由流水线统一控制，不需要在 EXTEND.md 中固定。流水线按核心原则中的优先级（Gemini > Seedream > DashScope）自动选择后端。
 
@@ -623,7 +629,7 @@ rm -f posts/{date-slug}/batch.json posts/{date-slug}/prompts/batch.json
 
 确认 baoyu-infographic 技能可通过 Skill 工具调用加载。baoyu-infographic 是 Skill 工具调用型技能，不要查找 scripts 目录。
 
-确认 `~/.baoyu-skills/baoyu-imagine/EXTEND.md` 已配置（信息图委托 baoyu-imagine 后端生成）。
+确认 .baoyu-skills/baoyu-imagine/EXTEND.md 已配置（信息图委托 baoyu-imagine 后端生成）。
 
 ### 4.5.2 确定信息图参数
 
@@ -922,7 +928,7 @@ Markdown 格式化完成！
 按优先级：
 
 1. **用户本次指定**：对话中用户明确指定 `--theme X` 或 `--color Y`
-2. **EXTEND.md 配置**：读取 `~/.baoyu-skills/baoyu-markdown-to-html/EXTEND.md`
+2. **EXTEND.md 配置**：读取 .baoyu-skills/baoyu-markdown-to-html/EXTEND.md
    - `default_theme:` 行作为主题名
    - `default_color:` 行作为颜色名
 3. **默认值**：主题 `default`，颜色不指定
@@ -1051,13 +1057,13 @@ HTML 转换完成！
 
 **颜色字段**：
 - **颜色来源统一为 baoyu-markdown-to-html 的 EXTEND.md**，确保 HTML 转换和发布使用同一颜色
-- 读取 `~/.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 中的 `default_color`
+- 读取 .baoyu-skills/baoyu-markdown-to-html/EXTEND.md 中的 `default_color`
 - 调用发布脚本时传入 `--color {default_color}`
 - 如用户本次明确指定了 `--color X`，则以用户指定为准
 - ⚠️ **不要从 baoyu-post-to-wechat 的 EXTEND.md 读取颜色**——该技能有自己的 `default_color` 配置（如 `blue`），但这会导致发布时的颜色覆盖 HTML 转换时选择的颜色（如 `vermilion`），造成视觉不一致。颜色是视觉风格的一部分，应由 HTML 转换技能的配置统一控制。
 
 **作者字段**：
-- 读取 `~/.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 中的 `default_author`
+- 读取 .baoyu-skills/baoyu-post-to-wechat/EXTEND.md 中的 `default_author`
 - 调用发布脚本时传入 `--author {default_author}`
 - 如用户本次明确指定了 `--author X`，则以用户指定为准
 
