@@ -194,6 +194,7 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
+					{ label: '代码免费了，然后呢', slug: 'articles/code-is-free-now-what' },
 					{ label: '同一个模型，42% 和 78% 的差距在哪', slug: 'articles/same-model-42-vs-78' },
 					{ label: '1930年的AI不知道互联网，但能写代码', slug: 'articles/1930-ai-model-solves-modern-engineering' },
 					{ label: '让 AI 写代码不再翻车：一个 TypeScript 巫师的 5 个 Agent Skills', slug: 'articles/5-agent-skills-for-ai-coding' },
