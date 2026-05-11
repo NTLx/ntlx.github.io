@@ -103,3 +103,6 @@ bun.lock
 
 # Claude Code local config
 .claude/
+
+# baoyu skills local config
+.baoyu-skills/
