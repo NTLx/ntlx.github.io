@@ -55,6 +55,7 @@ interface ArticleOptions {
   imageMediaIds?: string[];
   needOpenComment?: number;
   onlyFansCanComment?: number;
+  contentSourceUrl?: string;
 }
 
 const TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
@@ -386,6 +387,7 @@ async function publishToDraft(
     };
     if (options.author) article.author = options.author;
     if (options.digest) article.digest = options.digest;
+    if (options.contentSourceUrl) article.content_source_url = options.contentSourceUrl;
   }
 
   const res = await fetch(url, {
@@ -491,6 +493,7 @@ Options:
   --theme <name>      Theme name for markdown (default, grace, simple, modern). Default: default
   --color <name|hex>  Primary color (blue, green, vermilion, etc. or hex)
   --cover <path>      Cover image path (local or URL)
+  --source-url <url>  Original article URL (原文链接, shown at bottom of article)
   --account <alias>   Select account by alias (for multi-account setups)
   --no-cite           Disable bottom citations for ordinary external links in markdown mode
   --dry-run           Parse and render only, don't publish
@@ -539,6 +542,7 @@ interface CliArgs {
   account?: string;
   citeStatus: boolean;
   dryRun: boolean;
+  contentSourceUrl?: string;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -580,6 +584,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.citeStatus = true;
     } else if (arg === "--no-cite") {
       args.citeStatus = false;
+    } else if (arg === "--source-url" && argv[i + 1]) {
+      args.contentSourceUrl = argv[++i];
     } else if (arg === "--dry-run") {
       args.dryRun = true;
     } else if (arg.startsWith("--") && argv[i + 1] && !argv[i + 1]!.startsWith("-")) {
@@ -636,6 +642,7 @@ async function main(): Promise<void> {
       if (!title && frontmatter.title) title = frontmatter.title;
       if (!author) author = frontmatter.author || "";
       if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
+      if (!args.contentSourceUrl) args.contentSourceUrl = frontmatter.sourceUrl || frontmatter.source_url || "";
     }
     if (!title) {
       title = extractHtmlTitle(fs.readFileSync(htmlPath, "utf-8"));
@@ -654,6 +661,7 @@ async function main(): Promise<void> {
     }
     if (!author) author = frontmatter.author || "";
     if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
+    if (!args.contentSourceUrl) args.contentSourceUrl = frontmatter.sourceUrl || frontmatter.source_url || "";
 
     console.error(`[wechat-api] Theme: ${args.theme}${args.color ? `, color: ${args.color}` : ""}, citeStatus: ${args.citeStatus}`);
     const rendered = renderMarkdownWithPlaceholders(filePath, args.theme, args.color, args.citeStatus, args.title);
@@ -768,6 +776,7 @@ async function main(): Promise<void> {
     imageMediaIds: args.articleType === "newspic" ? imageMediaIds : undefined,
     needOpenComment: resolved.need_open_comment,
     onlyFansCanComment: resolved.only_fans_can_comment,
+    contentSourceUrl: args.contentSourceUrl,
   }, accessToken);
 
   console.log(JSON.stringify({
