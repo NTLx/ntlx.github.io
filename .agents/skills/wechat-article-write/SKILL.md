@@ -24,6 +24,7 @@ user_invocable: true
 - **内联插图走 CDN**：文章中的插图上传 GitHub 图床获取 CDN URL
 - **date-slug 必须安全**：从文章标题生成的 slug 必须是合法目录名
 - **图片后端优先级**：Gemini > Seedream > DashScope。Gemini 稳定可用但 16:9 下构图居中；Seedream 中文友好且审核较宽松；DashScope 中文文本渲染最佳但内容审核最严（安全类术语易触发 DataInspectionFailed）。当某个后端失败时，按此顺序自动降级
+- **Gemini 格式陷阱**：Gemini 后端（gemini-3.1-flash-image-preview）返回 JPEG 内容但保存为 `.png` 扩展名，**每次都发生**。所有图片生成步骤完成后，必须统一执行格式检测修正（`file` 命令检测 → 重命名扩展名 → 更新 draft.md 引用）。不要依赖下游脚本兜底——源头修正成本最低
 - **封面文字约束**：封面图优先不使用文字（纯视觉表达）。若确需文字辅助，封面文字必须与文章标题完全不同——标题已出现在推送卡片中，封面再重复一遍浪费视觉空间。读者在推送卡片中看到标题，点进来再看到封面重复同样文字，双重曝光毫无增量信息
 - **baoyu 配置路径唯一性**：baoyu 系列技能的配置文件（EXTEND.md、.env 等）只能存在于 `~/.baoyu-skills/`（用户家目录下）。**禁止在项目目录、工作目录或任何其他位置创建 `.baoyu-skills/` 文件夹**。所有 Agent 执行 baoyu 技能时，如果需要读取或创建配置文件，路径必须是 `~/.baoyu-skills/{skill-name}/`，不得使用相对路径或项目级路径。违反此约束会导致配置分散、项目目录污染、以及 .gitignore 遗漏风险
 
@@ -513,16 +514,22 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 
 **封面图不上传图床**，直接用于 Step 10 的公众号素材库上传。
 
-### 3.4.1 封面格式检测
+### 3.4.1 封面格式检测与修正
 
-封面图可能存在格式不匹配（如 Gemini 后端返回 JPEG 内容但保存为 `.png` 扩展名）。封面不经过图床，但 Step 10 发布脚本会检测格式并自动修正（压缩为 JPEG 上传），无需手动干预。
+封面图几乎必定存在格式不匹配（Gemini 后端返回 JPEG 内容但保存为 `.png` 扩展名）。虽然 Step 10 发布脚本能兜底，但源头修正更干净。
 
-如需确认封面实际格式：
+**检测与修正**（Step 3+4+4.5 全部完成后统一执行，而非分散在各步骤）：
+
 ```bash
 file posts/{date-slug}/cover.png
 ```
 
-输出示例：`cover.png: JPEG image data, ...` → 格式不匹配（不影响流程，发布脚本自动处理）
+输出 `JPEG image data` → 重命名：
+```bash
+mv posts/{date-slug}/cover.png posts/{date-slug}/cover.jpg
+```
+
+同时更新 draft.md frontmatter 中的 `coverImage: cover.png` 为 `coverImage: cover.jpg`，并更新 Step 10 发布命令中的 `--cover` 参数路径。
 
 ### 3.5 完成报告
 
@@ -1324,8 +1331,10 @@ npx astro sync && npm run build
 **原因**：部分图片后端（如 Google Gemini 3.1 Flash Image Preview）默认返回 JPEG 格式。
 
 **影响范围**：
-- **插图**（`imgs/` 目录）：已在 Step 5.2.1 中强制检测并修正——重命名扩展名、更新 draft.md 引用、使用正确文件名创建 image-map.json。
-- **封面**（`cover.png`）：封面不经过图床，格式不匹配在 Step 10 发布时被检测并自动修正（压缩为 JPEG 上传）。Step 3.4.1 提供了可选的格式确认命令。封面格式问题不阻塞流水线。
+- **插图**（`imgs/` 目录）：Step 5.2.1 强制检测并修正——重命名扩展名、更新 draft.md 引用、使用正确文件名创建 image-map.json。
+- **封面**（`cover.png`）：Step 3.4.1 检测并修正——重命名为 `.jpg`、更新 frontmatter `coverImage` 字段、更新 Step 10 发布命令的 `--cover` 参数。虽然 wechat-api.ts 能兜底压缩修正，但源头修正避免了文件名与内容不一致的混淆。
+
+**统一执行**：封面和插图的格式检测应在 Step 3+4+4.5 全部完成后统一执行，而非分散在各步骤。
 
 **兜底**：如果 Step 5.2.1 的检测遗漏了某张插图，baoyu-post-to-wechat 发布脚本仍会检测格式不匹配并自动压缩修正（JPEG 质量 82），不会阻塞流水线。
 
