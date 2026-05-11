@@ -100,3 +100,6 @@ bun.lock
 
 # Qoder local config
 .qoder/
+
+# Claude Code local config
+.claude/
