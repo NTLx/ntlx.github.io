@@ -194,6 +194,9 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
+					{ label: '9 家公司能修漏洞，剩下的人怎么办', slug: 'articles/cybersecurity-openness' },
+					{ label: 'AI 写的 PR 淹没了开源，但有一帮人想出了另一种玩法', slug: 'articles/transformers-to-mlx' },
+					{ label: '不发明轮子的人', slug: 'articles/not-inventing-wheels' },
 					{ label: '笔记本上的21GB模型，画鹈鹕赢了最贵的闭源旗舰', slug: 'articles/qwen-beats-opus-pelican' },
 					{ label: '30秒出报告，但关键不是快——是知道什么时候不用AI', slug: 'articles/machinacheck' },
 					{ label: '代码免费了，然后呢', slug: 'articles/code-is-free-now-what' },
