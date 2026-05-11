@@ -102,16 +102,30 @@ baoyu 系列技能使用的 `.env` 文件位于：
 | 1 | 资料收集 | web-access CDP → baoyu-url-to-markdown → 手动 | materials.md | |
 | 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md | |
 | 2.4.1 | 质量门控 | 自动检查字数/互动/引用/数据点 | draft.md（验证通过） | ⛔ |
-| 3 | 封面图生成 | baoyu-cover-image | cover.png | |
-| 4 | 插图生成 | baoyu-article-illustrator | imgs/01-04*.png | |
-| 4.5 | 信息图生成 | baoyu-infographic（aged-academia） | imgs/00-infographic*.png | ⛔ |
-| 5 | 图片上传图床 | github-image-hosting | image-map.json | |
+| **3+4.5** | **封面图 + 信息图（并行）** | Agent 并行：baoyu-cover-image ∥ baoyu-infographic | cover.png + imgs/00-infographic*.png | |
+| **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator | imgs/01-04*.png | |
+| 5 | 图片上传图床 | github-image-hosting（含格式检测修正） | image-map.json | |
 | 5.6 | CDN 传播等待 | sleep 30 | — | |
 | 6 | Markdown 整合 | 自动替换 CDN 地址 | article.md | |
-| 7 | 去 AI 痕迹 | humanizer-zh | article.md（优化后） | |
+| 7 | 去 AI 痕迹 | humanizer-zh（**必须执行，不可跳过**） | article.md（优化后） | ⛔ |
 | 8 | Markdown 格式化 | baoyu-format-markdown | article.md（排版后） | |
 | 9 | HTML 转换 | baoyu-markdown-to-html | article.html | |
 | 10 | 发布到草稿 | baoyu-post-to-wechat | 公众号草稿 | |
+
+### 并行执行策略
+
+Step 3（封面图）、Step 4（插图）、Step 4.5（信息图）三者之间没有依赖关系，**必须通过 Agent 工具并行执行**以节省时间。具体做法：
+
+```
+在同一个消息中发起三个 Agent 调用：
+1. Agent A：调用 baoyu-cover-image 生成封面 → posts/{date-slug}/cover.png
+2. Agent B：调用 baoyu-infographic 生成信息图 → posts/{date-slug}/imgs/00-infographic-core-summary.png
+3. Agent C：调用 baoyu-article-illustrator 生成插图 → posts/{date-slug}/imgs/01-*.png, 02-*.png, ...
+```
+
+三个 Agent 均设置 `run_in_background: true`，等待全部完成后再进入 Step 5。不要串行执行这三个步骤——串行会多浪费 5-10 分钟。
+
+**为什么必须并行**：图片生成是流水线中最耗时的步骤（每张 1-3 分钟），串行执行封面+信息图+4张插图需要 10-20 分钟，并行只需 3-5 分钟（取决于最慢的那张）。
 
 ## User Input Tools
 
@@ -423,7 +437,9 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 保存位置：posts/{date-slug}/draft.md
 ```
 
-## Step 3: 封面图生成
+## Step 3: 封面图生成（与 Step 4、4.5 并行）
+
+**并行执行**：本步骤与 Step 4（插图）和 Step 4.5（信息图）没有依赖关系，必须通过 Agent 工具并行执行。三个 Agent 在同一消息中发起，均设置 `run_in_background: true`。
 
 使用 Skill 工具调用 baoyu-cover-image 技能生成文章封面（**Skill 工具调用型**，不要查找 scripts 目录）。
 
@@ -501,7 +517,9 @@ file posts/{date-slug}/cover.png
 保存位置：posts/{date-slug}/cover.png
 ```
 
-## Step 4: 插图生成
+## Step 4: 插图生成（与 Step 3、4.5 并行）
+
+**并行执行**：本步骤与 Step 3（封面图）和 Step 4.5（信息图）没有依赖关系，必须通过 Agent 工具并行执行。
 
 使用 baoyu-article-illustrator 技能，分析文章结构并在需要视觉辅助的位置生成插图。
 
@@ -572,7 +590,9 @@ rm -f posts/{date-slug}/batch.json posts/{date-slug}/prompts/batch.json
 提示词：posts/{date-slug}/prompts/
 ```
 
-## Step 4.5: 信息图生成 ⛔ 必须执行
+## Step 4.5: 信息图生成 ⛔ 必须执行（与 Step 3、4 并行）
+
+**并行执行**：本步骤与 Step 3（封面图）和 Step 4（插图）没有依赖关系，必须通过 Agent 工具并行执行。
 
 **硬门控**：信息图是文章的视觉总览，排在所有插图之前。每次文章流水线都必须执行此步骤，不得跳过、不得延后。信息图缺失会导致文章首图空白，影响推送卡片预览和读者第一印象。
 
@@ -787,25 +807,15 @@ Markdown 整合完成！
 封面：posts/{date-slug}/cover.png（不上传图床）
 ```
 
-## Step 7: 去 AI 痕迹（条件执行）
+## Step 7: 去 AI 痕迹 ⛔ 必须执行
 
 使用 humanizer-zh 技能对文章正文进行 AI 痕迹检测与去除。
 
-### 7.0 执行条件判断
+**硬门控**：Step 7 是流水线的必要步骤，每次执行都必须完整运行 humanizer-zh，不允许跳过、不允许自行豁免。
 
-Step 2 必须通过 Skill 工具调用 ljg-writes，其「磨」步骤已内置 AI 痕迹过滤（拐杖词、宣传腔、夸大象征全删）。因此 Step 7 默认可跳过。
+**为什么必须执行而非条件跳过**：ljg-writes 和 humanizer-zh 是两套独立的检测体系。ljg-writes 的「磨」步骤侧重语言质量（口语化、去拐杖词），而 humanizer-zh 是结构性检测流程（18+ 种 AI 痕迹模式，量化评分），两者视角不同、覆盖范围不同。即使 ljg-writes 已经做过一轮过滤，humanizer-zh 仍可能发现 ljg-writes 遗漏的模式（如破折号过度使用、否定式排比、谄媚语气等）。从另一个角度再次修缮文章，是这个步骤存在的意义。
 
-**例外情况**：只有以下场景需要执行 Step 7：
-
-| 场景 | 是否执行 Step 7 |
-|------|----------------|
-| Step 2 正常通过 Skill 工具调用 ljg-writes | **跳过**（ljg-writes 已过滤） |
-| 用户明确要求二次精炼 | 执行（作为补充检查） |
-| 用户提供了现成文本（粘贴文本/文件输入，不经过 ljg-writes） | **必须执行** |
-
-**⚠️ 禁止自行豁免**：如果 Step 7 的判断结果为「必须执行」（如用户提供了现成文本），agent 不可因主观认为"文章已足够人味"而跳过。humanizer-zh 是结构性检测流程（18+ 种模式，量化评分），即使文章看起来没问题也必须完整执行。
-
-**跳过时的处理**：报告「Step 7 已跳过——ljg-writes 内置 AI 痕迹过滤」，继续 Step 8。
+**⚠️ 禁止跳过**：agent 不可因任何理由跳过 Step 7，包括但不限于："文章已经够人味了"、"ljg-writes 已经过滤过了"、"用户没要求"。每次流水线都必须执行。
 
 ### 7.1 确定处理范围
 
@@ -1266,8 +1276,10 @@ npx astro sync && npm run build
    - Step 5 图片上传失败：重试 1 次
    - Step 4/4.5 图片后端失败：按 Gemini > Seedream > DashScope 自动降级
 3. **询问继续**：重试耗尽后，询问用户「是否跳过此步继续执行后续步骤？」
-4. **用户选择继续**：标记该步为 SKIPPED，继续下一步
+4. **用户选择继续**：标记该步为 SKIPPED，继续下一步（**例外：Step 7 不可跳过**）
 5. **用户选择停止**：保存当前所有中间结果，报告进度
+
+**Step 7 特殊处理**：Step 7（去 AI 痕迹）是硬门控步骤，即使前面的步骤失败或被跳过，Step 7 仍必须对已有内容执行。如果 Step 6 产出的 article.md 内容完整，Step 7 就必须运行。
 
 ## 已知问题与解决方案
 
