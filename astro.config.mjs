@@ -194,6 +194,7 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
+					{ label: '30秒出报告，但关键不是快——是知道什么时候不用AI', slug: 'articles/machinacheck' },
 					{ label: '代码免费了，然后呢', slug: 'articles/code-is-free-now-what' },
 					{ label: '同一个模型，42% 和 78% 的差距在哪', slug: 'articles/same-model-42-vs-78' },
 					{ label: '1930年的AI不知道互联网，但能写代码', slug: 'articles/1930-ai-model-solves-modern-engineering' },
