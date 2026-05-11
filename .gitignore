@@ -97,3 +97,6 @@ bun.lock
 .agents/skills/*/scripts/node_modules/
 .agents/skills/*/scripts/bun.lockb
 .agents/skills/*/scripts/bun.lock
+
+# Qoder local config
+.qoder/
