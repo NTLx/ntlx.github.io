@@ -124,7 +124,7 @@ baoyu 系列技能使用的 `.env` 文件位于：
 | 1 | 资料收集 | web-access CDP → baoyu-url-to-markdown → 手动 | materials.md | |
 | 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md | |
 | 2.4.1 | 质量门控 | 自动检查字数/互动/引用/数据点 | draft.md（验证通过） | ⛔ |
-| **3+4.5** | **封面图 + 信息图（并行）** | Agent 并行：baoyu-cover-image ∥ baoyu-infographic | cover.png + imgs/00-infographic*.png | |
+| **3+4.5** | **封面图 + 信息图（并行）** | Agent 并行：baoyu-cover-image ∥ baoyu-infographic | cover.png + imgs/00-infographic*.png | ⛔ |
 | **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator | imgs/01-04*.png | |
 | 5 | 图片上传图床 | github-image-hosting（含格式检测修正） | image-map.json | |
 | 5.6 | CDN 传播等待 | sleep 30 | — | |
@@ -401,10 +401,10 @@ ljg-writes 的「磨」步骤完成后、保存 draft.md 之前，**必须执行
 | 字数 | ≥ 2500 字（扩展模式）或 ≥ 1000 字（默认模式） | 回到 ljg-writes 补充内容，或手动扩展关键段落 |
 | 文末互动 | 正文末尾必须有 `*...*` 格式的互动问题 | 手动补写互动问题 |
 | 原文参考 | 必须有 `## 原文参考` 区块，包含来源 URL | 手动补写原文参考 |
-| 信息图引用 | 扩展模式下，draft.md 开头应有 `![](imgs/00-infographic*.png)` 引用 | Step 4.5 会补充，此处可标记 TODO |
+| 信息图引用 | 确认 draft.md 在 frontmatter 之后、第一个 `##` 标题之前预留了信息图位置（可标记 TODO） | Step 4.5.5 会验证实际插入是否生效 |
 | 数据点覆盖 | 扩展模式下，调研材料中的关键数据点至少覆盖 5 个 | 回到 ljg-writes 补充遗漏的数据点 |
 
-**为什么需要这个门控**：ljg-writes 的「磨」步骤专注于语言质量（去 AI 痕迹、口语化），但不检查公众号特有的格式要求（互动、引用、字数）。调度层必须补这个检查，否则 Step 10 发布时会发现格式缺失，被迫返工。
+**为什么需要这个门控**：ljg-writes 的「磨」步骤专注于语言质量（去 AI 痕迹、口语化），但不检查公众号特有的格式要求（互动、引用、字数、信息图）。调度层必须补这个检查，否则 Step 10 发布时会发现格式缺失，被迫返工。**注意**：信息图引用检查在 Step 2.4.1 仅做标记（此时信息图尚未生成），实际验证在 Step 4.5.5 执行。如果 Step 4.5.5 验证失败，流水线不得进入 Step 5。
 
 **执行方式**：读取 ljg-writes 输出的 draft.md，逐项检查。不通过的项直接修改（如补写互动问题），不需要重新调用 ljg-writes。
 
@@ -443,7 +443,7 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 | 正文无 H1 标题 | ✅ | Starlight 自动渲染 title 为 H1，正文再写 H1 会重复 |
 | 文末互动问题 | ✅ | 正文末尾、原文参考之前，`*斜体*` 格式 |
 | `## 原文参考` 区块 | ✅（读后感类） | 包含作者、标题、来源 URL |
-| 信息图引用 | 扩展模式 | 开头应有 `![](imgs/00-infographic*.png)` |
+| 信息图引用 | — | Step 4.5 生成并插入，Step 4.5.5 验证。此处确认正文开头位置未被其他内容占用即可 |
 
 保存为 `posts/{date-slug}/draft.md`
 
@@ -660,23 +660,47 @@ rm -f posts/{date-slug}/batch.json posts/{date-slug}/prompts/batch.json
 
 ### 4.5.4 插入到文章
 
-信息图生成后，在 `posts/{date-slug}/draft.md` 中自动插入：
+信息图生成后，**立即**在 `posts/{date-slug}/draft.md` 中自动插入引用——不要延迟到后续步骤：
 
 - **位置**：文章正文开头（frontmatter 结束后的第一段之前），或第一个二级标题之前
 - **格式**：`![](imgs/00-infographic-core-summary.png)`
 - 插入后不需要额外说明文字——信息图本身就是视觉总览
 
-### 4.5.5 信息图与其他插图的关系
+**注意**：插入完成后必须执行 **4.5.5 插入验证**，确认引用已正确写入文件。不得跳过验证直接进入下一步。
+
+### 4.5.5 插入验证 ⛔ BLOCKING
+
+**问题**：Step 4.5.4 的插入动作和 Step 2.4.1 的质量门控之间没有闭环。图片生成成功不等于引用被写入——agent 可能完成了生成但跳过了插入步骤，导致文章首图空白。
+
+**验证方式**（Step 4.5.4 之后立即执行，不得跳过）：
+
+```bash
+# 检查文件存在
+test -f posts/{date-slug}/imgs/00-infographic-core-summary.* || echo "MISSING"
+
+# 检查 draft.md 中是否存在引用
+grep -q '![](imgs/00-infographic' posts/{date-slug}/draft.md && echo "OK" || echo "MISSING_REF"
+```
+
+**判定规则**：
+- 两项均为 OK → 通过，进入 Step 5
+- 文件存在但引用缺失 → **手动在 draft.md frontmatter 之后、第一个 `##` 标题之前插入** `![](imgs/00-infographic-core-summary.{ext})`，然后重新验证
+- 文件缺失 → 信息图生成步骤失败，不得继续
+
+**为什么必须在 4.5 内验证**：等到 Step 6（CDN 整合）或 Step 7（去 AI 痕迹）才发现缺少信息图，返工成本更高。在 Step 4.5 内部闭环验证，确保「生成 → 插入 → 验证」三步在同一上下文中完成。
+
+### 4.5.6 信息图与其他插图的关系
 
 信息图编号为 `00`，插图从 `01` 开始。两者在同一 `imgs/` 目录下，统一走 Step 5 图床上传和 Step 6 CDN 替换。
 
-### 4.5.6 完成报告
+### 4.5.7 完成报告
 
 ```
 信息图生成完成！
 保存位置：posts/{date-slug}/imgs/00-infographic-core-summary.png
 风格：aged-academia | 布局：bento-grid | 宽高比：16:9
 已插入到文章正文顶部
+插入验证：✓ 文件存在，✓ draft.md 引用已写入
 ```
 
 ## Step 5: 图片上传图床
