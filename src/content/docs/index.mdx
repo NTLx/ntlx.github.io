@@ -1,42 +1,37 @@
 ---
 title: 欢迎来到 NTLx's Blog
-description: 个人知识库 - 系统管理、软件使用、生物信息学
+description: 技术洞察与实践笔记 — AI、系统运维、生物信息学
 template: splash
+lastUpdated: false
 hero:
   title: "NTLx's Blog"
-  tagline: 个人知识库 - 记录和分享技术笔记
+  tagline: 不写废话，只写算过账的结论
   actions:
-    - text: 开始阅读
-      link: /ai-tools/install-cli-tools/
+    - text: 浏览文章
+      link: /articles/code-cheaper-taste-pricier/
       icon: right-arrow
       variant: primary
-    - text: 访问 GitHub
+    - text: AI 工具指南
+      link: /ai-tools/install-cli-tools/
+      icon: laptop
+      variant: secondary
+    - text: GitHub
       link: https://github.com/NTLx/ntlx.github.io
       icon: external
       variant: minimal
 ---
 
-## 📚 内容概览
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 
-这是一个基于 Astro Starlight 构建的个人知识库,主要记录以下内容:
+## 内容导航
 
-- **AI 辅助编程** - 常用 AI Coding CLI 工具一键安装与配置
-- **操作系统** - Linux 发行版配置、NAS 与虚拟化
-- **HPC 与集群** - Slurm、OpenMPI 等高性能计算工具
-- **网络与代理** - Shadowsocks、Privoxy、ZeroTier 等工具
-- **DevOps 工具** - Shell、编辑器、版本控制、服务部署
-- **生物信息学** - Snakemake 流程管理
-
-## ✨ 关于本站
-
-本站采用 [Astro Starlight](https://starlight.astro.build/) 构建,具有以下特性:
-
-- ⚡️ 快速的页面加载
-- 🔍 强大的全文搜索
-- 📱 响应式设计
-- 🌙 深色模式支持
-- ♿ 无障碍访问
-
-## 📄 许可协议
-
-采用 **[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)** 协议
+<CardGrid>
+	<LinkCard title="AI 辅助编程" href="/ai-tools/install-cli-tools/" description="AI Coding 工具安装配置、Agent 实践、MCP 与 Skills 开发" />
+	<LinkCard title="技术评论" href="/articles/code-cheaper-taste-pricier/" description="AI 行业深度解读——不是新闻搬运，是算账和下判断" />
+	<LinkCard title="操作系统" href="/operating-systems/linux/arch-linux/" description="Linux 发行版配置、NAS 与虚拟化、树莓派与 macOS" />
+	<LinkCard title="HPC 与集群" href="/hpc-cluster/install-slurm-openmpi/" description="Slurm、OpenMPI 等高性能计算工具部署与使用" />
+	<LinkCard title="网络与代理" href="/network-proxy/shadowsocks/" description="Shadowsocks、Privoxy、ZeroTier 等网络工具" />
+	<LinkCard title="DevOps 工具" href="/devops/shell-terminal/bash/" description="Shell、编辑器、Git、n8n、LLMs API" />
+	<LinkCard title="生物信息学" href="/bioinformatics/snakemake-benchmark/" description="Snakemake 流程管理与性能分析" />
+	<LinkCard title="关于本站" href="/about/" description="站点说明、写作原则与联系方式" />
+</CardGrid>
