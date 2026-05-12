@@ -1,6 +1,7 @@
 ---
 title: AI agent 拒绝私信之后
 date: 2026-05-12
+description: Shopify 的 AI agent 只在公开频道工作，拒绝私信。这个反直觉的设计让代码合并率从 36% 涨到 77%——不是因为模型更好，是因为人变聪明了。
 summary: Shopify 的 AI agent 只在公开频道工作，拒绝私信。这个反直觉的设计让代码合并率从 36% 涨到 77%——不是因为模型更好，是因为人变聪明了。
 coverImage: cover.jpg
 sourceUrl: https://ntlx.github.io/articles/ai-agent-refuses-dms

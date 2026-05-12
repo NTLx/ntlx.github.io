@@ -9,7 +9,14 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: "NTLx's Blog",
-			description: '个人知识库 - 系统管理、软件使用、生物信息学',
+			description: '技术洞察与实践笔记 — AI、系统运维、生物信息学',
+			defaultLocale: 'root',
+			locales: {
+				root: {
+					label: '简体中文',
+					lang: 'zh-CN',
+				},
+			},
 			social: [
 				{
 					icon: 'github',
@@ -43,6 +50,16 @@ export default defineConfig({
 						content: 'https://ntlx.github.io/og-image.png',
 					},
 				},
+				// RSS Autodiscovery
+				{
+					tag: 'link',
+					attrs: {
+						rel: 'alternate',
+						type: 'application/rss+xml',
+						title: "NTLx's Blog RSS Feed",
+						href: '/rss.xml',
+					},
+				},
 			],
 			// 编辑此页链接
 			editLink: {
@@ -58,7 +75,7 @@ export default defineConfig({
 				{
 					label: '开始',
 					items: [
-						{ label: '关于', slug: 'index' },
+						{ label: '关于', slug: 'about' },
 					],
 				},
 				{
