@@ -5,6 +5,8 @@ date: 2026-05-12
 description: 所有人都在比谁写代码快，James Shore 算了一笔没人敢算的账——维护成本
 ---
 
+![AI 编码与维护成本核心摘要](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-12-ai-maintenance-costs-img-00.jpg)
+
 ## 速度是一笔贷款
 
 写代码变快这件事，所有人都兴奋，除了一个人——James Shore。
