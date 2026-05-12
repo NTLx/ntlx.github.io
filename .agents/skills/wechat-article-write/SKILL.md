@@ -125,10 +125,11 @@ baoyu 系列技能使用的 `.env` 文件位于：
 | 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md | |
 | 2.4.1 | 质量门控 | 自动检查字数/互动/引用/数据点 | draft.md（验证通过） | ⛔ |
 | **3+4.5** | **封面图 + 信息图（并行）** | Agent 并行：baoyu-cover-image ∥ baoyu-infographic | cover.png + imgs/00-infographic*.png | ⛔ |
-| **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator | imgs/01-04*.png | |
-| 5 | 图片上传图床 | github-image-hosting（含格式检测修正） | image-map.json | |
+| **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator + 引用验证 | imgs/01-04*.png + draft.md 引用 | ⛔ |
+| **3.4.2** | **统一格式检测** | file 命令检测 + 扩展名修正 | imgs/*.jpg, cover.jpg | ⛔ |
+| 5 | 图片上传图床 | github-image-hosting（含格式检测修正） | image-map.json | ⛔ |
 | 5.6 | CDN 传播等待 | sleep 30 | — | |
-| 6 | Markdown 整合 | 自动替换 CDN 地址 | article.md | |
+| 6 | Markdown 整合 | 自动替换 CDN 地址 + 替换验证 | article.md | ⛔ |
 | 7 | 去 AI 痕迹 | humanizer-zh（**必须执行，不可跳过**） | article.md（优化后） | ⛔ |
 | 8 | Markdown 格式化 | baoyu-format-markdown | article.md（排版后） | |
 | 9 | HTML 转换 | baoyu-markdown-to-html | article.html | |
@@ -145,7 +146,12 @@ Step 3（封面图）、Step 4（插图）、Step 4.5（信息图）三者之间
 3. Agent C：调用 baoyu-article-illustrator 生成插图 → posts/{date-slug}/imgs/01-*.png, 02-*.png, ...
 ```
 
-三个 Agent 均设置 `run_in_background: true`，等待全部完成后再进入 Step 5。不要串行执行这三个步骤——串行会多浪费 5-10 分钟。
+三个 Agent 均设置 `run_in_background: true`，等待全部完成后再执行 **Step 3.4.2 统一格式检测**，然后进入 Step 5。不要串行执行这三个步骤——串行会多浪费 5-10 分钟。
+
+**并行完成后的强制序列**（不得跳过）：
+1. Step 4.5 插图引用验证（确认 imgs/ 中图片数 = draft.md 中引用数）
+2. Step 3.4.2 统一格式检测（file 命令检测所有图片，修正 .png → .jpg）
+3. 两项均通过后，才进入 Step 5 上传图床
 
 **为什么必须并行**：图片生成是流水线中最耗时的步骤（每张 1-3 分钟），串行执行封面+信息图+4张插图需要 10-20 分钟，并行只需 3-5 分钟（取决于最慢的那张）。
 
@@ -536,6 +542,27 @@ mv posts/{date-slug}/cover.png posts/{date-slug}/cover.jpg
 
 同时更新 draft.md frontmatter 中的 `coverImage: cover.png` 为 `coverImage: cover.jpg`，并更新 Step 10 发布命令中的 `--cover` 参数路径。
 
+### 3.4.2 统一格式检测（封面+信息图+插图）⛔ 必须执行
+
+Step 3（封面）、Step 4（插图）、Step 4.5（信息图）全部完成后，**必须统一执行**格式检测修正，不得遗漏任何一张：
+
+```bash
+# 检测 imgs/ 目录下所有图片
+for img in posts/{date-slug}/imgs/*; do
+  actual_type=$(file -b "$img" | head -c 10)
+  ext="${img##*.}"
+  if [[ "$actual_type" == *"JPEG"* && "$ext" == "png" ]]; then
+    new_name="${img%.png}.jpg"
+    mv "$img" "$new_name"
+    # 联动更新 draft.md 中的引用
+    sed -i '' "s|$(basename "$img")|$(basename "$new_name")|g" posts/{date-slug}/draft.md
+    echo "修正: $(basename "$img") → $(basename "$new_name")"
+  fi
+done
+```
+
+**为什么统一执行而非分散在各步骤**：三个步骤并行执行，各自完成后立即做格式检测容易出现遗漏（比如只做了封面忘了插图）。统一在 Step 5 之前集中执行一次，用同一个循环处理所有图片，确保零遗漏。
+
 ### 3.5 完成报告
 
 ```
@@ -606,11 +633,31 @@ rm -f batch.json
 rm -f posts/{date-slug}/batch.json posts/{date-slug}/prompts/batch.json
 ```
 
-### 4.5 完成报告
+### 4.5 完成报告与验证 ⛔ BLOCKING
+
+**插图引用验证**（插图生成完成后、进入 Step 5 之前，**必须执行**）：
+
+```bash
+# 统计 imgs/ 目录中的图片数量（排除 00 信息图）
+img_count=$(ls posts/{date-slug}/imgs/ | grep -v '^00-' | wc -l)
+
+# 检查 draft.md 中是否存在对应的插图引用
+ref_count=$(grep -c '![](imgs/0[1-9]-' posts/{date-slug}/draft.md)
+```
+
+**判定规则**：
+- `img_count == ref_count` → 通过，图片数与引用数一致
+- `img_count > 0 且 ref_count == 0` → **失败**：图片已生成但引用未写入文章。立即在 draft.md 中合适位置手动插入 `![](imgs/NN-xxx.{ext})` 引用（每张图一个），插入后重新验证
+- `img_count == 0 且 ref_count == 0` → 通过（文章太短不需要插图，或 baoyu-article-illustrator 判定无需插图）
+- `img_count != ref_count` → 警告：部分图片缺少引用，手动补写缺失的引用
+
+**为什么必须在 Step 4 内验证**：本次会话的根因就是 baoyu-article-illustrator 的 Step 6 (Finalize) 没有执行插图引用插入，但流水线毫无察觉地进入了后续步骤。图片文件存在不等于文章中有引用——必须在生成后立即验证引用是否已写入 draft.md，否则 Step 5/6 对不存在的引用做映射和替换，最终文章一片空白。
 
 ```
 插图生成完成！
-数量：N 张
+数量：N 张（imgs/ 目录）
+引用数：M 处（draft.md 正文）
+验证：✓ 图片与引用一致 / ✗ 缺失引用（已补写）
 保存位置：posts/{date-slug}/imgs/
 大纲：posts/{date-slug}/outline.md
 提示词：posts/{date-slug}/prompts/
@@ -703,7 +750,13 @@ grep -q '![](imgs/00-infographic' posts/{date-slug}/draft.md && echo "OK" || ech
 插入验证：✓ 文件存在，✓ draft.md 引用已写入
 ```
 
-## Step 5: 图片上传图床
+## Step 5: 图片上传图床 ⛔ BLOCKING
+
+**前置门控**：进入 Step 5 之前，**必须先确认**：
+1. Step 4.5 插图引用验证已通过（draft.md 中 `![](imgs/0[1-9]-` 引用数与 imgs/ 目录中图片数一致）
+2. Step 3.4.2 统一格式检测已执行（所有 `.png` 但实际为 JPEG 的文件已修正扩展名，draft.md 引用已同步更新）
+
+两项均未执行则不得启动 Step 5——格式不对会导致 CDN URL 后缀错误，引用缺失会导致文章空白。
 
 将文章中的插图（非封面）上传到 GitHub 图床，获取 jsDelivr CDN URL。
 
@@ -777,14 +830,31 @@ bun run {uploadScript} <image-path> \
 
 ### 5.4 记录映射
 
+**⚠️ 关键约束**：`image-map.json` 中的 CDN URL **必须在对应图片实际上传成功后才能写入映射文件**。禁止预生成 URL 到映射文件——预生成的 URL 如果文件未实际上传，会导致 CDN 404（本次会话根因）。
+
 创建 `posts/{date-slug}/image-map.json`：
 
 ```json
 {
-  "01-infographic-xxx.png": "https://cdn.jsdelivr.net/gh/.../01-xxx.png",
-  "02-scene-yyy.png": "https://cdn.jsdelivr.net/gh/.../02-yyy.png"
+  "01-infographic-xxx.jpg": "https://cdn.jsdelivr.net/gh/.../01-xxx.jpg",
+  "02-scene-yyy.jpg": "https://cdn.jsdelivr.net/gh/.../02-yyy.jpg"
 }
 ```
+
+**写入规则**：
+- 每张图片上传成功后（`success: true`），立即将其写入 `image-map.json`
+- 上传失败则不写入，该图片不出现在映射中
+- 映射文件的键名必须使用 Step 5.2.1 格式修正后的文件名（`.jpg` 而非 `.png`）
+- **完成验证**（写入完成后立即执行）：
+  ```bash
+  # 映射中的文件数应与 imgs/ 目录中的文件数一致
+  map_count=$(python3 -c "import json; print(len(json.load(open('posts/{date-slug}/image-map.json'))))")
+  img_count=$(ls posts/{date-slug}/imgs/ | wc -l)
+  if [ "$map_count" != "$img_count" ]; then
+    echo "WARNING: image-map.json 有 $map_count 条映射，但 imgs/ 目录有 $img_count 张图片"
+    echo "缺失的图片未上传到图床，文章中将无法显示这些图片"
+  fi
+  ```
 
 ### 5.4.1 重传检测与同步
 
@@ -830,12 +900,30 @@ echo "等待 CDN 传播（30 秒）..." && sleep 30
 
 - 读取 `posts/{date-slug}/draft.md`
 - 读取 `posts/{date-slug}/image-map.json`
-- 将每个本地路径（`imgs/xxx.png` 或 `./imgs/xxx.png`）替换为对应的 CDN URL
+- 将每个本地路径（`imgs/xxx.png` 或 `./imgs/xxx.png` 或 `imgs/xxx.jpg`）替换为对应的 CDN URL
 - 保存为 `posts/{date-slug}/article.md`
 
 **必须先 Read article.md 再 Edit**：从 draft.md 复制或生成 article.md 后，必须先用 Read 工具读取文件内容，然后才能用 Edit 工具的 `replace_all` 替换本地路径为 CDN URL。不先 Read 直接 Edit 会报错。
 
 **自动化执行**：对 image-map.json 中的每个映射项，用 Edit 工具的 `replace_all` 依次替换本地路径为 CDN URL。使用绝对路径（`/Users/.../posts/.../article.md`）避免 CWD 不一致问题。
+
+### 6.1.1 替换后验证 ⛔ 必须执行
+
+CDN 替换完成后，**必须验证**所有本地路径已被替换：
+
+```bash
+# 检查 article.md 中是否还有 imgs/ 本地路径
+grep -n 'imgs/0[0-9]-' posts/{date-slug}/article.md && echo "FAIL: 仍有本地路径未替换" || echo "OK"
+# 检查 CDN URL 数量是否与 image-map.json 映射数一致
+cdn_count=$(grep -o 'cdn\.jsdelivr\.net' posts/{date-slug}/article.md | wc -l)
+map_count=$(python3 -c "import json; print(len(json.load(open('posts/{date-slug}/image-map.json'))))")
+echo "CDN 引用数: $cdn_count, 映射数: $map_count"
+```
+
+**判定规则**：
+- 无本地路径残留 且 `cdn_count == map_count` → 通过
+- 有本地路径残留 → **手动补替换**：对残留的 `imgs/xxx` 路径用 Edit 工具逐个替换为 CDN URL
+- `cdn_count < map_count` → 部分映射未被引用到文章中（可能是 Step 4 遗漏了插图引用，回到 Step 4.5 的验证检查）
 
 ### 6.2 Frontmatter 确认
 
@@ -1417,6 +1505,14 @@ sed -i '' -e 's|a|b|g' -e 's|c|d|g' article.html
 - Edit 工具始终使用绝对路径（`/Users/lx/Projects/ntlx.github.io/posts/.../file.md`）
 - 运行脚本前先 `cd` 回项目根目录，或用绝对路径传参
 - 避免在脚本调用链中间 `cd` 到子目录
+
+### 插图生成成功但引用未写入文章
+
+**现象**：imgs/ 目录中有图片文件，但 draft.md/article.md 正文中没有对应的 `![](imgs/NN-xxx)` 引用，最终文章只有顶部信息图没有正文插图。
+
+**原因**：baoyu-article-illustrator 的 Step 6 (Finalize) 负责将插图引用插入文章正文，但在流水线并行执行中可能被跳过或遗漏。
+
+**解决**：Step 4.5 完成报告中新增了插图引用验证（见 Step 4.5 完成报告与验证），强制比对 imgs/ 目录文件数与 draft.md 中的引用数。不一致则立即手动补写引用，不得进入 Step 5。
 
 ### 图片后端选择策略
 
