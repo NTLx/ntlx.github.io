@@ -194,6 +194,12 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
+						{ label: '缩放定律变成三条之后', slug: 'articles/2026-05-12-amazon-foundation-model-building-blocks' },
+						{ label: 'AI 编码越快，你死得越早', slug: 'articles/ai-maintenance-costs-trap' },
+						{ label: 'Agent 能跑 demo 不算本事，能跑一年才是', slug: 'articles/agent-development-lifecycle' },
+						{ label: 'AI agent 拒绝私信之后', slug: 'articles/ai-agent-refuses-dms-after' },
+						{ label: 'MCP 不是 USB-C，Pinterest 告诉你真正的门槛在哪', slug: 'articles/building-mcp-ecosystem-pinterest' },
+						{ label: 'GitLab 砍掉三层管理层、退役价值观：一个 $10 亿公司在赌什么', slug: 'articles/gitlab-act-2' },
 					{ label: '9 家公司能修漏洞，剩下的人怎么办', slug: 'articles/cybersecurity-openness' },
 					{ label: 'AI 写的 PR 淹没了开源，但有一帮人想出了另一种玩法', slug: 'articles/transformers-to-mlx' },
 					{ label: '不发明轮子的人', slug: 'articles/not-inventing-wheels' },
