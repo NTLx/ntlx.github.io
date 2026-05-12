@@ -27,6 +27,7 @@ user_invocable: true
 - **Gemini 格式陷阱**：Gemini 后端（gemini-3.1-flash-image-preview）返回 JPEG 内容但保存为 `.png` 扩展名，**每次都发生**。所有图片生成步骤完成后，必须统一执行格式检测修正（`file` 命令检测 → 重命名扩展名 → 更新 draft.md 引用）。不要依赖下游脚本兜底——源头修正成本最低
 - **封面文字约束**：封面图优先不使用文字（纯视觉表达）。若确需文字辅助，封面文字必须与文章标题完全不同——标题已出现在推送卡片中，封面再重复一遍浪费视觉空间。读者在推送卡片中看到标题，点进来再看到封面重复同样文字，双重曝光毫无增量信息
 - **baoyu 配置路径分层**：baoyu 系列技能的配置文件按类型分层存放。**EXTEND.md（偏好配置）推荐项目级** `.baoyu-skills/{skill-name}/EXTEND.md`，纳入 git 跟踪，确保偏好可追溯、跨设备同步。**.env（密钥）必须用户级** `~/.baoyu-skills/.env`，不进 git，防止泄露。技能加载时项目级 EXTEND.md 优先于用户级（三级优先级：项目级 > XDG > 用户级）
+- **联网操作唯一入口 web-access**：流水线中**所有需要联网的操作**（URL 内容获取、联网搜索、背景资料查询、作者/公司背景调研等）**只能通过 web-access 技能完成**。禁止使用任何 MCP 搜索工具、WebFetch、WebParser 或其他网络工具。web-access 通过 CDP 浏览器直连用户 Chrome，天然携带登录态，能处理动态渲染和反爬拦截。搜索时**始终访问 google.com/ncr** 作为搜索引擎。
 
 ## 配置文件路径约定
 
@@ -239,11 +240,9 @@ bun install --cwd {skillDir}/scripts
 
 对每个 URL **严格按顺序**尝试，不得跳级或混用其他工具：
 
-**⚠️ 排除工具**：bailian_web_parser、bailian_web_search 等 bailian MCP 工具**不属于**三级降级体系。它们受 429 限速影响且对 GitHub 等站点可能被安全策略拦截，不得用于 URL 内容提取。bailian 工具仅可用于补充性搜索（如查作者背景），不可替代任何降级工具。
-
 **第一级：web-access CDP**
 
-优先使用 web-access 技能的 CDP 浏览器方案。CDP 直连用户日常 Chrome，天然携带登录态，能处理大多数其他工具无法访问的场景（需要登录的站点、动态渲染页面、反爬拦截等）。
+使用 web-access 技能的 CDP 浏览器方案。CDP 直连用户日常 Chrome，天然携带登录态，能处理大多数需要登录的站点、动态渲染页面和反爬拦截。
 
 - 执行前置检查：`node "{web-access-skill-dir}/scripts/check-deps.mjs"`，确认 CDP 可用
 - 在后台 tab 打开目标 URL，用 `/eval` 提取页面内容，整理为 Markdown
@@ -251,7 +250,7 @@ bun install --cwd {skillDir}/scripts
 - 失败（Chrome 未开启调试端口、CDP 代理启动失败） → 进入第二级
 - 如果页面需要登录且当前未登录 → **暂停，告知用户**：「页面需要登录，请在 Chrome 中登录 {网站名}，完成后告诉我继续。」登录完成后直接刷新页面继续，无需重启任何组件
 
-**为什么 CDP 优先**：用户日常 Chrome 天然携带登录态，遇到需要登录的页面可以暂停让用户手动登录后继续。这比无登录态的工具（baoyu-fetch、bailian 等）多了一层容错能力。即使登录失败，也不会死循环——停下来让用户帮忙即可。
+**为什么 CDP 优先**：用户日常 Chrome 天然携带登录态，遇到需要登录的页面可以暂停让用户手动登录后继续。这比无登录态的抓取工具多了一层容错能力。即使登录失败，也不会死循环——停下来让用户帮忙即可。
 
 **第二级：baoyu-url-to-markdown**
 - 使用 baoyu-url-to-markdown 技能抓取网页
@@ -269,12 +268,12 @@ bun install --cwd {skillDir}/scripts
 
 当需要搜索信息（无明确 URL，需要先发现来源）时：
 
-**优先使用 web-access CDP 搜索**：
-- 通过 web-access 技能在浏览器中打开 `google.com/ncr` 进行搜索
+**唯一方式：web-access CDP 搜索 google.com/ncr**：
+- 通过 web-access 技能在浏览器中打开 **google.com/ncr**（Google 无重定向版，强制返回全球搜索结果）
 - CDP 方式继承用户 Chrome 的 Google 登录态，搜索结果更完整，且不会被搜索引擎反爬拦截
 - 搜索结果页面中的链接可直接在浏览器中打开获取全文
 
-**备选**：如果 CDP 不可用（Chrome 未开启调试端口），可使用 WebSearch 或 bailian_web_search 进行搜索，但搜索结果中的 URL 仍需通过 1.2 的三级降级获取全文内容。
+**为什么必须用 google.com/ncr**：`/ncr` 强制 Google 不根据国家 IP 重定向到本地版本（如 google.com.hk、google.co.jp），确保搜索结果的全球覆盖和一致性。
 
 ### 1.4 资料合并
 
@@ -1344,13 +1343,18 @@ npx astro sync && npm run build
 
 **兜底**：如果 Step 5.2.1 的检测遗漏了某张插图，baoyu-post-to-wechat 发布脚本仍会检测格式不匹配并自动压缩修正（JPEG 质量 82），不会阻塞流水线。
 
-### bailian MCP 工具不适用于 URL 内容提取
+### 联网操作强制使用 web-access
 
-**现象**：Step 1 使用 bailian_web_parser 抓取 GitHub 等站点时返回安全拦截（"不符合相关安全规定"）或 HTTP 429 限速。
+**规则**：流水线中所有需要联网的操作（包括但不限于 URL 内容获取、联网搜索、背景资料查询、作者/公司/概念背景调研等）**只能通过 web-access 技能完成**。
 
-**原因**：bailian MCP 工具受目标站点安全策略和速率限制双重约束，不适合作为 URL 内容提取的主要工具。
+**适用场景**：
+- Step 1 资料收集：URL 内容获取（第一级）、联网搜索
+- Step 2 文章创作前的背景调研（如有需要）
+- 任何其他需要访问互联网的操作
 
-**解决**：Step 1 三级降级体系明确排除 bailian 工具：web-access CDP → baoyu-url-to-markdown → 用户手动提供。bailian 工具仅可用于补充性搜索（如查作者背景信息），不得替代任何降级工具。429 或安全拦截错误直接进入下一级，不要重试同一工具。
+**搜索引擎**：所有搜索操作**始终访问 google.com/ncr**，不得跳过或替换。
+
+**禁止**：使用任何 MCP 搜索工具、WebFetch、WebParser、WebSearch 或其他网络工具替代 web-access。
 
 ### Gemini 后端强制居中构图
 

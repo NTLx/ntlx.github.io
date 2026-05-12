@@ -222,6 +222,12 @@
       "sourceType": "github",
       "skillPath": "skills/ljg-writes/SKILL.md",
       "computedHash": "da9385403dc10824b6872ad4b2704734bf6a44ba372f59e4385e5bf0be16a4ff"
+    },
+    "web-access": {
+      "source": "eze-is/web-access",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "c5c041ef928394633713f4cd0a397bd631da7bbc6b42f8afc791298bc5bfe6ce"
     }
   }
 }
