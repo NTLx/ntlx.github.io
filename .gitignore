@@ -98,8 +98,6 @@ bun.lock
 .agents/skills/*/scripts/bun.lockb
 .agents/skills/*/scripts/bun.lock
 
-# Qoder local config
-.qoder/
 
 # Claude Code local config
 .claude/
