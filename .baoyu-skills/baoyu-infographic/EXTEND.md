@@ -1,10 +1,3 @@
----
-version: 1
-
-preferred_layout: dense-modules
+preferred_image_backend: baoyu-imagine
 preferred_style: craft-handmade
-preferred_aspect: portrait
-
-language: zh
-preferred_image_backend: auto
----
+preferred_layout: bento-grid
