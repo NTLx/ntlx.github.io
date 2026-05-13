@@ -211,7 +211,7 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
-						{ label: '别再只顾着跑代码了，你在背负「认知债」吗？', slug: 'articles/what-is-code' },
+						{ label: '造轮子还是买轮子？Figma 数据管线重构背后的账本', slug: 'articles/how-figma-upgraded-data-pipeline' },
 						{ label: '别再只顾着跑代码了，你在背负「认知债」吗？', slug: 'articles/what-is-code' },
 						{ label: '缩放定律变成三条之后', slug: 'articles/2026-05-12-amazon-foundation-model-building-blocks' },
 						{ label: 'AI 编码越快，你死得越早', slug: 'articles/ai-maintenance-costs-trap' },
