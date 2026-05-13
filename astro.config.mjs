@@ -23,6 +23,11 @@ export default defineConfig({
 					label: 'GitHub',
 					href: 'https://github.com/NTLx/ntlx.github.io',
 				},
+				{
+					icon: 'rss',
+					label: 'RSS 订阅',
+					href: '/rss.xml',
+				},
 			],
 			// SEO 优化
 			head: [
