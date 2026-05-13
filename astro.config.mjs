@@ -72,8 +72,8 @@ export default defineConfig({
 			},
 			// Favicon
 			favicon: '/favicon.ico',
-			// 自定义 CSS(可选)
-			// customCss: ['./src/styles/custom.css'],
+			// 自定义 CSS：引入霞鹜文楷 Screen，仅作用于文章正文
+			customCss: ['./src/styles/fonts.css'],
 			// 显示最后更新时间
 			lastUpdated: true,
 			sidebar: [
