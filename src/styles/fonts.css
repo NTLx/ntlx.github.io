@@ -1,16 +1,20 @@
 /*
- * 霞鹜文楷 Screen 自托管字体引入。
- * 分片来自 lxgw-wenkai-screen-webfont@1.1.0（基于 unicode-range 按需加载）。
- * woff2 文件位于 public/fonts/lxgw/，由 GitHub Pages 直接分发。
+ * 字体自托管汇总：
+ * - 正文：LXGW WenKai Screen（lxgw-wenkai-screen-webfont@1.1.0，public/fonts/lxgw/）
+ * - 代码块：Fira Code 400/500（@fontsource/fira-code，public/fonts/fira-code/）
+ * 均通过 unicode-range 按需加载，由 GitHub Pages 直接分发。
  */
 @import './lxgw-font-face.css';
+@import './fira-code-font-face.css';
 
 /* 仅作用于文章正文，避免导航/侧边栏发生字体跳变 */
 .sl-markdown-content {
   font-family: "LXGW WenKai Screen", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-/* 代码块保留等宽字体 */
+/* 代码块使用 Fira Code + contextual 连字（!= → ≠、-> → 箭头等） */
 .sl-markdown-content :is(code, pre, kbd, samp) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-ligatures: contextual;
+  font-feature-settings: "calt" 1;
 }
