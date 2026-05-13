@@ -122,18 +122,18 @@ baoyu 系列技能使用的 `.env` 文件位于：
 |------|------|---------|------|------|
 | 0 | 依赖预检 | 自动检查 + bun install | 就绪环境 | ⛔ |
 | 1 | 资料收集 | web-access CDP → baoyu-url-to-markdown → 手动 | materials.md | |
-| 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md | |
+| 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md (含语义占位符) | |
 | 2.4.1 | 质量门控 | 自动检查字数/互动/引用/数据点 | draft.md（验证通过） | ⛔ |
 | **3+4.5** | **封面图 + 信息图（并行）** | Agent 并行：baoyu-cover-image ∥ baoyu-infographic | cover.png + imgs/00-infographic*.png | ⛔ |
-| **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator + 引用验证 | imgs/01-04*.png + draft.md 引用 | ⛔ |
+| **4** | **插图生成（可与 3+4.5 并行）** | Agent：baoyu-article-illustrator | imgs/01-04*.png | ⛔ |
 | **3.4.2** | **统一格式检测** | file 命令检测 + 扩展名修正 | imgs/*.jpg, cover.jpg | ⛔ |
-| 5 | 图片上传图床 | github-image-hosting（含格式检测修正） | image-map.json | ⛔ |
-| 5.6 | CDN 传播等待 | sleep 30 | — | |
-| 6 | Markdown 整合 | 自动替换 CDN 地址 + 替换验证 | article.md | ⛔ |
-| 7 | 去 AI 痕迹 | humanizer-zh（**必须执行，不可跳过**） | article.md（优化后） | ⛔ |
-| 8 | Markdown 格式化 | baoyu-format-markdown | article.md（排版后） | |
-| 9 | HTML 转换 | baoyu-markdown-to-html | article.html | |
-| 10 | 发布到草稿 | baoyu-post-to-wechat | 公众号草稿 | |
+| 5 | 图片本地整合 | 将语义占位符替换为本地路径 | article.md (本地版) | ⛔ |
+| 6 | 去 AI 痕迹 | humanizer-zh（**必须执行，不可跳过**） | article.md（优化后） | ⛔ |
+| 7 | Markdown 格式化 | baoyu-format-markdown | article.md（排版后） | |
+| 8 | HTML 转换 | baoyu-markdown-to-html | article.html | |
+| 9 | 发布前校验 | 校验 sourceUrl, coverImage 等元数据 | | ⛔ |
+| 10 | 发布到草稿 | baoyu-post-to-wechat (本地图片直传微信) | 公众号草稿 | |
+| 11 | 博客发布轨 | github-image-hosting + Astro 侧边栏更新 | 博客页面 (含 CDN 图片) | |
 
 ### 并行执行策略
 
@@ -306,7 +306,7 @@ mkdir -p posts/{date-slug}/
 
 ## Step 2: 文章创作
 
-**必须通过 Skill 工具调用 ljg-writes 技能完成写作。** 不允许 agent 手动写作替代——ljg-writes 的完整流程（观点→切→磨）是流水线质量控制的起点，跳过它意味着 Step 7 的去 AI 痕迹判断逻辑失效。
+**必须通过 Skill 工具调用 ljg-writes 技能完成写作。** 不允许 agent 手动写作替代——ljg-writes 的完整流程（观点→切→磨）是流水线质量控制的起点，跳过它意味着 Step 6 的去 AI 痕迹判断逻辑失效。
 
 ### 2.1 准备工作
 
@@ -410,15 +410,15 @@ ljg-writes 的「磨」步骤完成后、保存 draft.md 之前，**必须执行
 | 信息图引用 | 确认 draft.md 在 frontmatter 之后、第一个 `##` 标题之前预留了信息图位置（可标记 TODO） | Step 4.5.5 会验证实际插入是否生效 |
 | 数据点覆盖 | 扩展模式下，调研材料中的关键数据点至少覆盖 5 个 | 回到 ljg-writes 补充遗漏的数据点 |
 
-**为什么需要这个门控**：ljg-writes 的「磨」步骤专注于语言质量（去 AI 痕迹、口语化），但不检查公众号特有的格式要求（互动、引用、字数、信息图）。调度层必须补这个检查，否则 Step 10 发布时会发现格式缺失，被迫返工。**注意**：信息图引用检查在 Step 2.4.1 仅做标记（此时信息图尚未生成），实际验证在 Step 4.5.5 执行。如果 Step 4.5.5 验证失败，流水线不得进入 Step 5。
+**为什么需要这个门控**：ljg-writes 的「磨」步骤专注于语言质量（去 AI 痕迹、口语化），但不检查公众号特有的格式要求（互动、引用、字数、信息图）。调度层必须补这个检查，否则 Step 9 发布时会发现格式缺失，被迫返工。**注意**：信息图引用检查在 Step 2.4.1 仅做标记（此时信息图尚未生成），实际验证在 Step 4.5.5 执行。如果 Step 4.5.5 验证失败，流水线不得进入 Step 5。
 
 **执行方式**：读取 ljg-writes 输出的 draft.md，逐项检查。不通过的项直接修改（如补写互动问题），不需要重新调用 ljg-writes。
 
 ### 2.5 保存文章
 
-保存前，对照以下模板逐项检查 draft.md 内容。任何「必须」项缺失，立即补写——不要等到 Step 10 发布时才发现。
+保存前，对照以下模板逐项检查 draft.md 内容。任何「必须」项缺失，立即补写——不要等到 Step 9 发布时才发现。
 
-**保存模板**：
+**保存模板**（强制使用语义占位符，禁止生成任何本地或 CDN 的 markdown 图片链接）：
 ```markdown
 ---
 title: {标题}
@@ -428,7 +428,13 @@ coverImage: cover.png
 sourceUrl: https://ntlx.github.io/articles/{slug}
 ---
 
-{正文}
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+{正文段落1}
+
+<!-- SLOT_IMG_01_SCENE -->
+
+{正文段落2}
 
 {文末互动问题}
 
@@ -446,10 +452,11 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 | frontmatter `summary` | ✅ | 一句话，≤ 60 字 |
 | frontmatter `coverImage` | ✅ | 固定为 `cover.png` |
 | frontmatter `sourceUrl` | ✅ | 博客文章 URL，用于公众号"阅读原文"链接。格式：`https://ntlx.github.io/articles/{slug}` |
+| 语义图片占位符 | ✅ | 严禁使用 `![](imgs/...)` 或 `![](https://...)`，必须使用 `<!-- SLOT_IMG_NN_描述 -->` |
 | 正文无 H1 标题 | ✅ | Starlight 自动渲染 title 为 H1，正文再写 H1 会重复 |
 | 文末互动问题 | ✅ | 正文末尾、原文参考之前，`*斜体*` 格式 |
 | `## 原文参考` 区块 | ✅（读后感类） | 包含作者、标题、来源 URL |
-| 信息图引用 | — | Step 4.5 生成并插入，Step 4.5.5 验证。此处确认正文开头位置未被其他内容占用即可 |
+| 信息图引用 | — | Step 4.5 生成，确认正文开头位置留有 `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 即可 |
 
 保存为 `posts/{date-slug}/draft.md`
 
@@ -523,11 +530,11 @@ sourceUrl: https://ntlx.github.io/articles/{slug}
 
 ### 3.4 封面图说明
 
-**封面图不上传图床**，直接用于 Step 10 的公众号素材库上传。
+**封面图不上传图床**，直接用于 Step 9 的公众号素材库上传。
 
 ### 3.4.1 封面格式检测与修正
 
-封面图几乎必定存在格式不匹配（Gemini 后端返回 JPEG 内容但保存为 `.png` 扩展名）。虽然 Step 10 发布脚本能兜底，但源头修正更干净。
+封面图几乎必定存在格式不匹配（Gemini 后端返回 JPEG 内容但保存为 `.png` 扩展名）。虽然 Step 9 发布脚本能兜底，但源头修正更干净。
 
 **检测与修正**（Step 3+4+4.5 全部完成后统一执行，而非分散在各步骤）：
 
@@ -540,7 +547,7 @@ file posts/{date-slug}/cover.png
 mv posts/{date-slug}/cover.png posts/{date-slug}/cover.jpg
 ```
 
-同时更新 draft.md frontmatter 中的 `coverImage: cover.png` 为 `coverImage: cover.jpg`，并更新 Step 10 发布命令中的 `--cover` 参数路径。
+同时更新 draft.md frontmatter 中的 `coverImage: cover.png` 为 `coverImage: cover.jpg`，并更新 Step 9 发布命令中的 `--cover` 参数路径。
 
 ### 3.4.2 统一格式检测（封面+信息图+插图）⛔ 必须执行
 
@@ -734,7 +741,7 @@ grep -q '![](imgs/00-infographic' posts/{date-slug}/draft.md && echo "OK" || ech
 - 文件存在但引用缺失 → **手动在 draft.md frontmatter 之后、第一个 `##` 标题之前插入** `![](imgs/00-infographic-core-summary.{ext})`，然后重新验证
 - 文件缺失 → 信息图生成步骤失败，不得继续
 
-**为什么必须在 4.5 内验证**：等到 Step 6（CDN 整合）或 Step 7（去 AI 痕迹）才发现缺少信息图，返工成本更高。在 Step 4.5 内部闭环验证，确保「生成 → 插入 → 验证」三步在同一上下文中完成。
+**为什么必须在 4.5 内验证**：等到 Step 6（CDN 整合）或 Step 6（去 AI 痕迹）才发现缺少信息图，返工成本更高。在 Step 4.5 内部闭环验证，确保「生成 → 插入 → 验证」三步在同一上下文中完成。
 
 ### 4.5.6 信息图与其他插图的关系
 
@@ -750,212 +757,39 @@ grep -q '![](imgs/00-infographic' posts/{date-slug}/draft.md && echo "OK" || ech
 插入验证：✓ 文件存在，✓ draft.md 引用已写入
 ```
 
-## Step 5: 图片上传图床 ⛔ BLOCKING
+## Step 5: 图片本地整合（微信轨） ⛔ BLOCKING
 
 **前置门控**：进入 Step 5 之前，**必须先确认**：
-1. Step 4.5 插图引用验证已通过（draft.md 中 `![](imgs/0[1-9]-` 引用数与 imgs/ 目录中图片数一致）
-2. Step 3.4.2 统一格式检测已执行（所有 `.png` 但实际为 JPEG 的文件已修正扩展名，draft.md 引用已同步更新）
+1. Step 3.4.2 统一格式检测已执行（所有 `.png` 但实际为 JPEG 的文件已修正扩展名）
 
-两项均未执行则不得启动 Step 5——格式不对会导致 CDN URL 后缀错误，引用缺失会导致文章空白。
+将文章中的语义占位符（如 `<!-- SLOT_IMG_00_INFOGRAPHIC -->`）替换为本地图片路径，生成用于微信发布的 `article.md`。
+**注意：本阶段绝不将图片上传至图床，彻底剥离对 CDN 的依赖，避免 503 错误。**
 
-将文章中的插图（非封面）上传到 GitHub 图床，获取 jsDelivr CDN URL。
+### 5.1 生成本地版 Markdown
 
-### 5.1 查找上传脚本路径
+1. 复制 `draft.md` 为 `article.md`。
+2. 扫描 `imgs/` 目录，将 `article.md` 中的各个 `<!-- SLOT_IMG_NN_xxx -->` 占位符替换为 Markdown 本地图片引用语法 `![图片描述](imgs/NN-xxx.jpg)`。
 
-按优先级查找 `github-image-hosting` 的脚本目录：
+### 5.2 验证整合 ⛔ 必须执行
 
-1. `.agents/skills/github-image-hosting/scripts/upload.ts`
-2. `~/.claude/skills/github-image-hosting/scripts/upload.ts`
-3. `~/.claude/plugins/cache/claude-plugins-official/*/skills/github-image-hosting/scripts/upload.ts`
-
-使用最先找到的路径作为 `{uploadScript}`。
-
-### 5.2 扫描插图
-
-- 扫描 `posts/{date-slug}/imgs/` 目录
-- 获取所有图片文件列表（`.png`、`.jpg`、`.jpeg`、`.webp`）
-
-### 5.2.1 格式检测与修正 ⛔ 必须执行
-
-某些图片后端（如 Gemini）返回 JPEG 内容但保存为 `.png` 扩展名。上传前**必须实际执行**格式检测并修正，不要只记录日志——格式不匹配会导致 CDN URL 后缀与实际内容不一致，影响后续步骤。
-
-**检测步骤**（对每张图片逐一执行）：
-
-1. **运行 `file` 命令检测实际格式**：
-   ```bash
-   file posts/{date-slug}/imgs/{filename}
-   ```
-   输出示例：`01-scene-virtual-entry.png: JPEG image data, 3200x1800, ...` → 格式不匹配
-
-2. **如果检测到格式不匹配**（扩展名 `.png` 但实际为 JPEG），执行方案 A：
-   ```bash
-   mv posts/{date-slug}/imgs/01-scene-xxx.png posts/{date-slug}/imgs/01-scene-xxx.jpg
-   ```
-
-3. **联动更新 draft.md 中的引用路径**：
-   在 `posts/{date-slug}/draft.md` 中，将所有 `imgs/01-scene-xxx.png` 替换为 `imgs/01-scene-xxx.jpg`。
-
-4. **联动更新 image-map.json 的键名**（Step 5.4 创建映射时使用修正后的文件名）。
-
-**为什么必须执行**：Gemini 后端是目前默认图片后端，几乎每次运行都会产生格式不匹配。如果不修正，CDN URL 后缀（`.png`）与实际内容（JPEG）不一致，虽然发布脚本能自动压缩修正，但会造成不必要的混淆和额外处理时间。修正扩展名是成本最低的解决方案。
-
-**检测报告**：将检测结果纳入 Step 5.5 完成报告：
-```
-格式检测：N 张图片检测完成
-  - X 张格式不匹配，扩展名已修正（如 01-scene-virtual-entry.png → .jpg）
-  - Y 张格式正常
-```
-
-### 5.3 逐张上传
-
-对每张插图执行：
-
+替换完成后，**必须验证**：
 ```bash
-bun run {uploadScript} <image-path> \
-  --folder wechat-articles \
-  --name 2026-05-04-talkie-1930-img-{NN}
+# 检查是否还有未被替换的占位符
+grep -n 'SLOT_IMG_' posts/{date-slug}/article.md && echo "FAIL: 存在未替换的占位符" || echo "OK"
 ```
+如存在未替换的占位符，必须人工检查 `imgs/` 目录下是否缺失对应图片，或占位符拼写是否错误。验证通过后方可进入下一步。
 
-**⚠️ `--name` 参数必须使用纯 ASCII 字符**：GitHub API 无法处理中文文件名（会导致 `unexpected end of JSON input` 错误）。使用 ASCII-only 的 slug 格式，例如 `2026-05-04-{topic-keywords}-img-{NN}`，其中 `{topic-keywords}` 是文章主题的英文或拼音关键词。
-
-`{NN}` 为零填充序号，如 `01`、`02`。
-
-返回结果：
-```json
-{
-  "success": true,
-  "cdnUrl": "https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/{slug}.png"
-}
-```
-
-### 5.4 记录映射
-
-**⚠️ 关键约束**：`image-map.json` 中的 CDN URL **必须在对应图片实际上传成功后才能写入映射文件**。禁止预生成 URL 到映射文件——预生成的 URL 如果文件未实际上传，会导致 CDN 404（本次会话根因）。
-
-创建 `posts/{date-slug}/image-map.json`：
-
-```json
-{
-  "01-infographic-xxx.jpg": "https://cdn.jsdelivr.net/gh/.../01-xxx.jpg",
-  "02-scene-yyy.jpg": "https://cdn.jsdelivr.net/gh/.../02-yyy.jpg"
-}
-```
-
-**写入规则**：
-- 每张图片上传成功后（`success: true`），立即将其写入 `image-map.json`
-- 上传失败则不写入，该图片不出现在映射中
-- 映射文件的键名必须使用 Step 5.2.1 格式修正后的文件名（`.jpg` 而非 `.png`）
-- **完成验证**（写入完成后立即执行）：
-  ```bash
-  # 映射中的文件数应与 imgs/ 目录中的文件数一致
-  map_count=$(python3 -c "import json; print(len(json.load(open('posts/{date-slug}/image-map.json'))))")
-  img_count=$(ls posts/{date-slug}/imgs/ | wc -l)
-  if [ "$map_count" != "$img_count" ]; then
-    echo "WARNING: image-map.json 有 $map_count 条映射，但 imgs/ 目录有 $img_count 张图片"
-    echo "缺失的图片未上传到图床，文章中将无法显示这些图片"
-  fi
-  ```
-
-### 5.4.1 重传检测与同步
-
-如果 `image-map.json` 已存在（说明是重传或重新生成插图）：
-
-1. **读取旧映射**：读取现有的 `image-map.json`
-2. **对比变化**：逐张对比新旧 CDN URL 是否不同
-3. **自动更新引用**：对每个 URL 变化，在以下文件中替换旧 URL → 新 URL：
-   - `posts/{date-slug}/article.md`
-   - `posts/{date-slug}/draft.md`
-4. **提示检查文案**：满足以下任一条件时，提示用户检查图片说明：
-   - 插图文件名发生变化（如从 `iceberg` 改为 `split-layout`）
-   - prompt 文件中 `caption_hint` 值发生变化（概念变了）
-   提示语：「插图 {filename} 概念已变更（{old_hint} → {new_hint}），请确认对应的图片说明文案是否需要同步更新。」
-
-### 5.5 完成报告
-
-```
-图片上传完成！
-上传：N 张
-映射文件：posts/{date-slug}/image-map.json
-[如有重传] CDN URL 已同步更新到 article.md 和 draft.md
-[如有文件名或 caption_hint 变化] 提示：请检查图片说明文案
-```
-
-### 5.6 CDN 传播等待
-
-图片上传到 GitHub 图床后，jsDelivr CDN 需要 2-3 分钟才能稳定访问。Step 9（HTML 转换）和 Step 10（发布到公众号）都需要从 CDN 下载图片，如果 CDN 未传播完成，会反复超时并走本地路径降级——虽然能工作，但增加了不必要的复杂度和处理时间。
-
-**主动等待 30 秒**：Step 5 完成后，等待 30 秒再进入 Step 6。这比在 Step 9/10 内部反复重试更高效——等一次比重试三次省时间。
-
-```bash
-echo "等待 CDN 传播（30 秒）..." && sleep 30
-```
-
-**为什么是 30 秒而非更长**：30 秒是 CDN 传播的最低保障时间，加上 Step 6-8 的执行时间（约 1-2 分钟），到 Step 9 时 CDN 大概率已就绪。如果仍超时，Step 9.4.1 的本地路径降级是兜底方案。
-
-## Step 6: Markdown 整合
-
-将文章中的插图引用替换为 CDN 地址。
-
-### 6.1 替换规则
-
-- 读取 `posts/{date-slug}/draft.md`
-- 读取 `posts/{date-slug}/image-map.json`
-- 将每个本地路径（`imgs/xxx.png` 或 `./imgs/xxx.png` 或 `imgs/xxx.jpg`）替换为对应的 CDN URL
-- 保存为 `posts/{date-slug}/article.md`
-
-**必须先 Read article.md 再 Edit**：从 draft.md 复制或生成 article.md 后，必须先用 Read 工具读取文件内容，然后才能用 Edit 工具的 `replace_all` 替换本地路径为 CDN URL。不先 Read 直接 Edit 会报错。
-
-**自动化执行**：对 image-map.json 中的每个映射项，用 Edit 工具的 `replace_all` 依次替换本地路径为 CDN URL。使用绝对路径（`/Users/.../posts/.../article.md`）避免 CWD 不一致问题。
-
-### 6.1.1 替换后验证 ⛔ 必须执行
-
-CDN 替换完成后，**必须验证**所有本地路径已被替换：
-
-```bash
-# 检查 article.md 中是否还有 imgs/ 本地路径
-grep -n 'imgs/0[0-9]-' posts/{date-slug}/article.md && echo "FAIL: 仍有本地路径未替换" || echo "OK"
-# 检查 CDN URL 数量是否与 image-map.json 映射数一致
-cdn_count=$(grep -o 'cdn\.jsdelivr\.net' posts/{date-slug}/article.md | wc -l)
-map_count=$(python3 -c "import json; print(len(json.load(open('posts/{date-slug}/image-map.json'))))")
-echo "CDN 引用数: $cdn_count, 映射数: $map_count"
-```
-
-**判定规则**：
-- 无本地路径残留 且 `cdn_count == map_count` → 通过
-- 有本地路径残留 → **手动补替换**：对残留的 `imgs/xxx` 路径用 Edit 工具逐个替换为 CDN URL
-- `cdn_count < map_count` → 部分映射未被引用到文章中（可能是 Step 4 遗漏了插图引用，回到 Step 4.5 的验证检查）
-
-### 6.2 Frontmatter 确认
-
-确认 `article.md` 包含完整的 frontmatter：
-```yaml
----
-title: {标题}
-date: {YYYY-MM-DD}
-summary: {摘要}
-coverImage: cover.png
----
-```
-
-### 6.3 完成报告
-
-```
-Markdown 整合完成！
-文章：posts/{date-slug}/article.md（含CDN图片链接）
-封面：posts/{date-slug}/cover.png（不上传图床）
-```
-
-## Step 7: 去 AI 痕迹 ⛔ 必须执行
+## Step 6: 去 AI 痕迹 ⛔ 必须执行
 
 使用 humanizer-zh 技能对文章正文进行 AI 痕迹检测与去除。
 
-**硬门控**：Step 7 是流水线的必要步骤，每次执行都必须完整运行 humanizer-zh，不允许跳过、不允许自行豁免。
+**硬门控**：Step 6 是流水线的必要步骤，每次执行都必须完整运行 humanizer-zh，不允许跳过、不允许自行豁免。
 
 **为什么必须执行而非条件跳过**：ljg-writes 和 humanizer-zh 是两套独立的检测体系。ljg-writes 的「磨」步骤侧重语言质量（口语化、去拐杖词），而 humanizer-zh 是结构性检测流程（18+ 种 AI 痕迹模式，量化评分），两者视角不同、覆盖范围不同。即使 ljg-writes 已经做过一轮过滤，humanizer-zh 仍可能发现 ljg-writes 遗漏的模式（如破折号过度使用、否定式排比、谄媚语气等）。从另一个角度再次修缮文章，是这个步骤存在的意义。
 
-**⚠️ 禁止跳过**：agent 不可因任何理由跳过 Step 7，包括但不限于："文章已经够人味了"、"ljg-writes 已经过滤过了"、"用户没要求"。每次流水线都必须执行。
+**⚠️ 禁止跳过**：agent 不可因任何理由跳过 Step 6，包括但不限于："文章已经够人味了"、"ljg-writes 已经过滤过了"、"用户没要求"。每次流水线都必须执行。
 
-### 7.1 确定处理范围
+### 6.1 确定处理范围
 
 **处理**：正文内容（frontmatter 之后、文末互动之前）
 
@@ -969,7 +803,7 @@ Markdown 整合完成！
 - 正文起始：frontmatter 结束标记 `---` 之后的第一行
 - 正文结束：从文件末尾往前找，第一个（即最后一个）`## ` 标题之前的内容。如果文件中有 `## 原文参考` 或 `## 参考资料` 等区块，以其为分界。若无法精确定位，则保守处理——仅对 frontmatter 之后到文末互动问题之间的内容进行去痕处理。
 
-### 7.2 调用 humanizer-zh
+### 6.2 调用 humanizer-zh
 
 调用方式：使用 humanizer-zh 技能，将正文内容提供给该技能。
 
@@ -985,22 +819,22 @@ Markdown 整合完成！
 - 谄媚语气
 - 填充短语
 
-### 7.3 保存
+### 6.3 保存
 
 将去痕迹后的正文写回 `posts/{date-slug}/article.md`（覆盖原文件，保留 frontmatter 和文末互动）。
 
-### 7.4 完成报告
+### 6.4 完成报告
 
 ```
 去 AI 痕迹完成！
 文章：posts/{date-slug}/article.md
 ```
 
-## Step 8: Markdown 格式化
+## Step 6: Markdown 格式化
 
 使用 baoyu-format-markdown 技能对文章进行结构化排版。
 
-### 8.1 调用 baoyu-format-markdown
+### 7.1 调用 baoyu-format-markdown
 
 - 输入：`posts/{date-slug}/article.md`
 - 处理：
@@ -1011,30 +845,30 @@ Markdown 整合完成！
   - CJK/English 间距修正
 - 输出：`posts/{date-slug}/article.md`（覆盖原文件）
 
-### 8.2 注意事项
+### 7.2 注意事项
 
 - 不添加、删除或改写内容
 - 只调整格式和修复明显错字
 - 保留作者语气和风格
 
-### 8.3 完成报告
+### 7.3 完成报告
 
 ```
 Markdown 格式化完成！
 文章：posts/{date-slug}/article.md
 ```
 
-## Step 9: HTML 转换
+## Step 7: HTML 转换
 
 使用 baoyu-markdown-to-html 技能将 Markdown 转换为微信公众号兼容的 HTML。
 
-**注意**：Step 9 生成的 `article.html` 仅供本地预览和存档。Step 10 的 `wechat-api.ts` 会独立重新渲染 HTML 用于公众号发布——这是因为发布脚本需要将图片下载后上传到微信素材库并替换 placeholder，流程与本地 HTML 不同。两者使用相同的 theme/color 配置以保证视觉一致性。
+**注意**：Step 8 生成的 `article.html` 仅供本地预览和存档。Step 9 的 `wechat-api.ts` 会独立重新渲染 HTML 用于公众号发布——这是因为发布脚本需要将图片下载后上传到微信素材库并替换 placeholder，流程与本地 HTML 不同。两者使用相同的 theme/color 配置以保证视觉一致性。
 
-### 9.1 查找脚本路径
+### 8.1 查找脚本路径
 
 按优先级查找 `baoyu-markdown-to-html` 的脚本目录，使用最先找到的路径作为 `{htmlScriptDir}`。
 
-### 9.2 确定主题与颜色
+### 8.2 确定主题与颜色
 
 按优先级：
 
@@ -1044,7 +878,7 @@ Markdown 格式化完成！
    - `default_color:` 行作为颜色名
 3. **默认值**：主题 `default`，颜色不指定
 
-### 9.3 增量更新检测
+### 8.3 增量更新检测
 
 在调用脚本重新生成 HTML 之前，检测变更范围，决定是增量更新还是全量重生成。
 
@@ -1059,7 +893,7 @@ Markdown 格式化完成！
 
 **经验法则**：如果变更只涉及图片链接和对应的 caption 文字，不需要重新走完整的 HTML 生成流程。
 
-### 9.3.1 增量更新模式
+### 8.3.1 增量更新模式
 
 当检测到微小变更时，直接编辑现有的 `article.html` 文件：
 
@@ -1078,7 +912,7 @@ Markdown 格式化完成！
 
 **优势**：避免因 CDN 缓存未传播导致的 HTML 重生成超时，且速度更快。
 
-### 9.4 调用脚本
+### 8.4 调用脚本
 
 当检测到内容变更时，执行完整的 HTML 重新生成：
 
@@ -1090,9 +924,9 @@ bun run {htmlScriptDir}/scripts/main.ts posts/{date-slug}/article.md \
 
 输出：`posts/{date-slug}/article.html`
 
-### 9.4.1 CDN 下载失败处理
+### 8.4.1 CDN 下载失败处理
 
-Step 5.6 已主动等待 30 秒，加上 Step 6-8 的执行时间（约 1-2 分钟），到 Step 9 时 CDN 大概率已就绪。如果仍超时，走本地路径降级。
+Step 5.6 已主动等待 30 秒，加上 Step 6-8 的执行时间（约 1-2 分钟），到 Step 8 时 CDN 大概率已就绪。如果仍超时，走本地路径降级。
 
 **策略**：
 1. 直接尝试 CDN 直连（Step 5.6 已等待，无需再预防性等待）
@@ -1135,13 +969,13 @@ CDN 传播延迟是 jsDelivr 的固有特性，当重试耗尽后，使用本地
    rm posts/{date-slug}/article-cdn.md
    ```
 
-### 9.5 验证输出
+### 8.5 验证输出
 
 - 确认 HTML 文件存在且非空
 - 确认包含完整的 inline CSS
 - 确认图片引用为 CDN URL（已替换）
 
-### 9.6 完成报告
+### 8.6 完成报告
 
 ```
 HTML 转换完成！
@@ -1150,15 +984,15 @@ HTML 转换完成！
 [如增量更新] 模式：增量更新（仅替换图片 URL/caption）
 ```
 
-## Step 10: 发布到公众号草稿
+## Step 8: 发布到公众号草稿
 
 使用 baoyu-post-to-wechat 技能将文章发布到微信公众号草稿箱。
 
-### 10.1 查找脚本路径
+### 9.1 查找脚本路径
 
 按优先级查找 `baoyu-post-to-wechat` 的脚本目录，使用最先找到的路径作为 `{wechatScriptDir}`。
 
-### 10.2 准备发布参数
+### 9.2 准备发布参数
 
 从 `posts/{date-slug}/article.md` frontmatter 读取：
 - `title` → 文章标题
@@ -1178,14 +1012,26 @@ HTML 转换完成！
 - 调用发布脚本时传入 `--author {default_author}`
 - 如用户本次明确指定了 `--author X`，则以用户指定为准
 
-### 10.3 选择发布方法
+### 9.2.1 强制发版前检查 (Pre-flight Check) ⛔ BLOCKING
+
+在调用任何发布脚本之前，**必须**检查元数据完整性。若任何一项缺失，必须报错中断，严禁发布。
+```bash
+# 检查封面图片是否存在
+test -f posts/{date-slug}/cover.png || echo "FAIL: 封面图片缺失"
+
+# 检查 sourceUrl 是否在 article.md 中定义
+grep -q '^sourceUrl:' posts/{date-slug}/article.md || echo "FAIL: 缺失 sourceUrl（阅读原文链接）"
+```
+一旦失败，立即排查前序步骤（尤其是 2.5 保存文章）。
+
+### 9.3 选择发布方法
 
 按优先级：
 1. EXTEND.md 中 `default_publish_method`
 2. `api`（推荐，更快）
 3. `browser`（备选，需要 Chrome 登录）
 
-### 10.4 调用发布脚本
+### 9.4 调用发布脚本
 
 **API 方式**（推荐，支持 `--cover`）：
 ```bash
@@ -1205,7 +1051,7 @@ bun run {wechatScriptDir}/scripts/wechat-article.ts \
   --theme {theme}
 ```
 
-### 10.4.1 CDN 下载失败处理
+### 9.4.1 CDN 下载失败处理
 
 发布脚本从 jsDelivr CDN 下载文章插图时，可能因 CDN 缓存未传播而超时（新上传的图片尤其常见）。
 
@@ -1244,7 +1090,7 @@ bun run {wechatScriptDir}/scripts/wechat-article.ts \
 
 5. **恢复后验证**：确认 `article.md` 中的图片链接已恢复为 CDN URL
 
-### 10.5 确认封面
+### 9.5 确认封面
 
 封面图 `cover.png` 直接上传公众号素材库，不经过图床。
 
@@ -1305,40 +1151,24 @@ Step 11.3 验证时按顺序执行：
 - 文章引用了不存在的本地图片
 - frontmatter 格式错误（缺少 `title`）
 
-## Step 11: 发布到博客
+## Step 9: 博客发布轨（CDN替换）
 
-将最终文章同步到博客项目的 `src/content/docs/articles/` 目录，使其自动出现在 GitHub Pages 博客上。
+将最终文章同步到博客项目的 `src/content/docs/articles/` 目录，并将其中的本地图片上传至 GitHub 转换为 CDN 链接。
 
-**为什么不需要单独上传封面图**：文章的第一张图通常是信息图（infographic），浓缩了全文核心信息。这张图已经通过 Step 5 上传到 GitHub 图床，在文章中以 CDN URL 引用。RSS 阅读器和社交分享平台会自动抓取首图作为预览，因此封面图不需要额外处理。
+### 10.1 图床上传与 Markdown 转换
 
-### 11.1 复制文章到博客目录
+博客要求所有图片必须使用 CDN 链接，严禁使用相对路径。
 
-从 `posts/{date-slug}/article.md` 复制到 `src/content/docs/articles/{slug}.md`：
+1. **上传图片**：遍历 `posts/{date-slug}/imgs/` 目录下的所有图片（包括 00-infographic），调用 `github-image-hosting` 技能将其上传，获得 CDN URL 映射关系。
+2. **提取 slug**：去掉日期前缀作为博客文章的文件名 slug。
+3. **内容转换**：
+   - 将 `article.md` 中的所有本地路径（`imgs/xxx.jpg`）替换为对应的 CDN URL。
+   - `summary` 字段改为 `description`。
+   - 增加 `$schema: starlight`。
+   - 删除 `coverImage` 和 `sourceUrl`。
+4. 保存到 `src/content/docs/articles/{slug}.md`。
 
-```bash
-# 提取 slug（去掉日期前缀）
-slug=$(echo "{date-slug}" | sed 's/^[0-9]*-[0-9]*-[0-9]*-//')
-
-# 复制并转换 frontmatter
-python3 -c "
-import re
-with open('posts/{date-slug}/article.md', 'r') as f:
-    content = f.read()
-# summary → description
-content = re.sub(r'^summary:', 'description:', content, flags=re.MULTILINE)
-# 添加 \$schema
-if '\$schema:' not in content:
-    content = content.replace('---\n', '---\n\$schema: starlight\n', 1)
-# 移除 coverImage 字段（博客不需要，首图已是信息图）
-content = re.sub(r'^coverImage:.*\n', '', content, flags=re.MULTILINE)
-# 移除 sourceUrl 字段（博客不需要，仅用于公众号"阅读原文"链接）
-content = re.sub(r'^sourceUrl:.*\n', '', content, flags=re.MULTILINE)
-with open('src/content/docs/articles/${slug}.md', 'w') as f:
-    f.write(content)
-"
-```
-
-### 11.2 更新侧边栏
+### 10.2 更新侧边栏
 
 在 `astro.config.mjs` 的 `sidebar` 数组中，找到 `label: '文章'` 的分类，在 `items` 数组中添加新条目：
 
@@ -1351,7 +1181,7 @@ with open('src/content/docs/articles/${slug}.md', 'w') as f:
 
 **排序**：新文章添加到 items 数组的开头（最新的在最前面）。
 
-### 11.3 验证
+### 10.3 验证
 
 确认文件已正确复制且 frontmatter 格式正确：
 
@@ -1409,15 +1239,15 @@ npx astro sync && npm run build
 
 1. **报告错误**：清晰说明哪一步失败、错误原因
 2. **自动重试**：以下场景自动重试（不需要用户确认）：
-   - Step 9 CDN 下载超时：等待 20-45 秒，最多 3 次，之后走本地路径降级（见 Step 9.4.1）
-   - Step 10 CDN 下载超时：等待 20-45 秒，最多 3 次，之后走本地路径降级（见 Step 10.4.1）
+   - Step 8 CDN 下载超时：等待 20-45 秒，最多 3 次，之后走本地路径降级（见 Step 9.4.1）
+   - Step 9 CDN 下载超时：等待 20-45 秒，最多 3 次，之后走本地路径降级（见 Step 10.4.1）
    - Step 5 图片上传失败：重试 1 次
    - Step 4/4.5 图片后端失败：按 Gemini > Seedream > DashScope 自动降级
 3. **询问继续**：重试耗尽后，询问用户「是否跳过此步继续执行后续步骤？」
-4. **用户选择继续**：标记该步为 SKIPPED，继续下一步（**例外：Step 7 不可跳过**）
+4. **用户选择继续**：标记该步为 SKIPPED，继续下一步（**例外：Step 6 不可跳过**）
 5. **用户选择停止**：保存当前所有中间结果，报告进度
 
-**Step 7 特殊处理**：Step 7（去 AI 痕迹）是硬门控步骤，即使前面的步骤失败或被跳过，Step 7 仍必须对已有内容执行。如果 Step 6 产出的 article.md 内容完整，Step 7 就必须运行。
+**Step 6 特殊处理**：Step 6（去 AI 痕迹）是硬门控步骤，即使前面的步骤失败或被跳过，Step 6 仍必须对已有内容执行。如果 Step 6 产出的 article.md 内容完整，Step 6 就必须运行。
 
 ## 已知问题与解决方案
 
@@ -1433,13 +1263,13 @@ npx astro sync && npm run build
 
 ### CDN 传播延迟
 
-**现象**：Step 9 HTML 转换或 Step 10 发布时报 "Download timeout" / "ETIMEDOUT"。
+**现象**：Step 8 HTML 转换或 Step 9 发布时报 "Download timeout" / "ETIMEDOUT"。
 
 **原因**：新上传的图片传播到 jsDelivr CDN 需要 2-3 分钟才能稳定访问。
 
 **解决**：
-- **Step 9**：采用缩减版策略——15s 预防性等待 → 1 次重试（30s）→ 本地路径降级（详见 Step 9.4.1）。几乎必定走本地路径，不要在重试上浪费时间。
-- **Step 10**：保留完整三级应对策略——预防性等待 + 重试 + 本地路径降级（详见 Step 10.4.1）。Step 10 在 Step 9 之后执行，多出约 1 分钟传播时间，CDN 大概率已就绪。
+- **Step 8**：采用缩减版策略——15s 预防性等待 → 1 次重试（30s）→ 本地路径降级（详见 Step 9.4.1）。几乎必定走本地路径，不要在重试上浪费时间。
+- **Step 9**：保留完整三级应对策略——预防性等待 + 重试 + 本地路径降级（详见 Step 10.4.1）。Step 9 在 Step 8 之后执行，多出约 1 分钟传播时间，CDN 大概率已就绪。
 
 ### 图片格式与扩展名不匹配
 
@@ -1449,7 +1279,7 @@ npx astro sync && npm run build
 
 **影响范围**：
 - **插图**（`imgs/` 目录）：Step 5.2.1 强制检测并修正——重命名扩展名、更新 draft.md 引用、使用正确文件名创建 image-map.json。
-- **封面**（`cover.png`）：Step 3.4.1 检测并修正——重命名为 `.jpg`、更新 frontmatter `coverImage` 字段、更新 Step 10 发布命令的 `--cover` 参数。虽然 wechat-api.ts 能兜底压缩修正，但源头修正避免了文件名与内容不一致的混淆。
+- **封面**（`cover.png`）：Step 3.4.1 检测并修正——重命名为 `.jpg`、更新 frontmatter `coverImage` 字段、更新 Step 9 发布命令的 `--cover` 参数。虽然 wechat-api.ts 能兜底压缩修正，但源头修正避免了文件名与内容不一致的混淆。
 
 **统一执行**：封面和插图的格式检测应在 Step 3+4+4.5 全部完成后统一执行，而非分散在各步骤。
 

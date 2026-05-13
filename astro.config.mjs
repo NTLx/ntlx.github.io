@@ -211,6 +211,8 @@ export default defineConfig({
 					label: '文章',
 					collapsed: true,
 					items: [
+						{ label: '别再只顾着跑代码了，你在背负「认知债」吗？', slug: 'articles/what-is-code' },
+						{ label: '别再只顾着跑代码了，你在背负「认知债」吗？', slug: 'articles/what-is-code' },
 						{ label: '缩放定律变成三条之后', slug: 'articles/2026-05-12-amazon-foundation-model-building-blocks' },
 						{ label: 'AI 编码越快，你死得越早', slug: 'articles/ai-maintenance-costs-trap' },
 						{ label: 'Agent 能跑 demo 不算本事，能跑一年才是', slug: 'articles/agent-development-lifecycle' },
