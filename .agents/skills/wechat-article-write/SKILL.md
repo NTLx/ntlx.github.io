@@ -1166,7 +1166,10 @@ Step 11.3 验证时按顺序执行：
    - `summary` 字段改为 `description`。
    - 增加 `$schema: starlight`。
    - 删除 `coverImage` 和 `sourceUrl`。
+   - **新文章只写 `date`，不要预填 `updated`**。`updated` 字段仅在“修订已发布文章”时追加，用于 RSS 输出 `<atom:updated>` 与 feed 顶层 `<lastBuildDate>`。
 4. 保存到 `src/content/docs/articles/{slug}.md`。
+
+> RSS 排序使用 `date` 降序，不会因为修改 `updated` 而把老文章顶上去；订阅端通过 `<atom:updated>` 感知修订。
 
 ### 10.2 更新侧边栏
 
