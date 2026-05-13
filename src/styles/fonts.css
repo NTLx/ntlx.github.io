@@ -1,0 +1,16 @@
+/*
+ * 霞鹜文楷 Screen 自托管字体引入。
+ * 分片来自 lxgw-wenkai-screen-webfont@1.1.0（基于 unicode-range 按需加载）。
+ * woff2 文件位于 public/fonts/lxgw/，由 GitHub Pages 直接分发。
+ */
+@import './lxgw-font-face.css';
+
+/* 仅作用于文章正文，避免导航/侧边栏发生字体跳变 */
+.sl-markdown-content {
+  font-family: "LXGW WenKai Screen", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+/* 代码块保留等宽字体 */
+.sl-markdown-content :is(code, pre, kbd, samp) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
