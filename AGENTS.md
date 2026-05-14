@@ -24,7 +24,7 @@
 
 ## 架构与结构
 
-- **框架**: Astro v5 + Starlight v0.37
+- **框架**: Astro v6 + Starlight v0.39
 - **配置**:
   - `astro.config.mjs`: 主配置文件。定义了网站标题、集成、Google Analytics 以及**侧边栏导航结构**。
   - `package.json`: 依赖和脚本。
@@ -32,6 +32,7 @@
   - `src/content/docs/`: 包含所有文档页面 (Markdown/MDX)。
   - 目录结构大致对应侧边栏分类 (例如 `operating-systems/`, `hpc-cluster/`, `devops/`)。
   - `src/content/docs/articles/`: 微信公众号文章写作管线产出的文章。
+  - `src/content/docs/articles/*.mdx`: 6 个分类索引页（ai-coding、ai-agents、ai-industry、ai-models、security、engineering），用 `<LinkCard>` 聚合同类文章链接。
   - `src/content.config.ts`: 定义内容集合 (collections) 和 schema。
 - **组件**:
   - `src/components/`: 自定义 Astro 组件，用于扩展 Starlight 主题功能。
@@ -55,17 +56,29 @@
 
 - **输出目录**：中间产物在 `posts/YYYY-MM-DD-slug/`（gitignored），最终文章在 `src/content/docs/articles/`
 - **13 步流水线（Step 0-11，含 Step 4.5）**：依赖预检 → 资料收集 → 创作 → 封面 → 插图 → 信息图 → 图床 → CDN整合 → 去AI痕迹 → 格式化 → HTML → 发布到微信 → 发布到博客
-- **Step 11（发布到博客）**：复制 article.md 到 `src/content/docs/articles/`（summary→description，移除 coverImage）→ 更新 astro.config.mjs 侧边栏
+- **Step 11（发布到博客）**：复制 article.md 到 `src/content/docs/articles/`（summary→description，移除 coverImage）→ 在对应分类索引页添加 `<LinkCard>` 条目
 
 ## 内容指南
 
-1.  **添加新页面**:
+1. **添加新页面**:
     - 在 `src/content/docs/` 下的相应子目录中创建 `.md` 或 `.mdx` 文件。
     - 添加至少包含 `title` 的 frontmatter。
-    - **重要**: 你必须手动更新 `astro.config.mjs` 中的 `sidebar` 数组，新页面才会出现在导航菜单中。
-    - **侧边栏分类**: 目前支持的分类包括：AI 辅助编程、操作系统、HPC 与集群、网络与代理、DevOps 与工具、生物信息学、指南、文章。
+    - **侧边栏已自动化**：`astro.config.mjs` 使用 `autogenerate` 按目录自动生成侧边栏，新增文章无需手动修改配置。
+    - 新增 `articles/` 下的文章后，需手动在对应分类索引页（如 `articles/ai-coding.mdx`）中添加一行 `<LinkCard>`。
 
-2.  **Frontmatter 格式**:
+2. **添加新文章的完整流程**:
+    1. 将 `.md` 文件放入 `src/content/docs/articles/`（扁平结构，不建子目录）
+    2. 确定文章属于哪个分类（ai-coding / ai-agents / ai-industry / ai-models / security / engineering）
+    3. 在对应的 `articles/<分类>.mdx` 索引页中，按日期降序插入一行：
+       ```mdx
+       <LinkCard title="(YYYY-MM-DD) 文章标题" href="/articles/slug/" />
+       ```
+    4. 如果标题含特殊字符（中文引号 `""` 等），使用模板字符串语法：
+       ```mdx
+       <LinkCard title={`(YYYY-MM-DD) 含"特殊字符"的标题`} href="/articles/slug/" />
+       ```
+
+3. **Frontmatter 格式**:
     ```yaml
     ---
     title: 页面标题
@@ -83,17 +96,48 @@
     ---
     ```
 
-3.  **侧边栏配置**:
-    - 导航栏**不会**自动生成。
-    - 编辑 `astro.config.mjs` 中的 `sidebar` 来添加新项目。
-    - `slug` 使用相对于 `src/content/docs/` 的路径 (不带文件扩展名)。
-
 4.  **语言规范**:
     - 如未指定，默认使用中文撰写博客文章。
 
 ## 踩坑记录
 
 从实际开发中总结的关键约束，违反会导致构建失败或内容丢失。
+
+### URL 稳定性原则（极其重要）
+
+**绝对不能移动 `articles/` 下已有文章的文件路径。** 文章一旦发布，其 URL（如 `ntlx.github.io/articles/slug/`）就会在互联网上被引用（社交媒体、搜索引擎、RSS 订阅者）。移动文件 = 所有外部链接 404。
+
+如需做分类导航，正确做法是：
+- ✅ 创建分类索引页（`.mdx`），用 `<LinkCard>` 链接到文章
+- ✅ 在首页用 `<CardGrid>` 做分类卡片入口
+- ❌ 将文章移动到子目录（如 `articles/ai-coding/xxx.md`）
+- ❌ 重命名已有文章文件
+
+### Starlight v0.39 Sidebar API 变更
+
+`autogenerate` **不再是** sidebar group 的顶层属性。必须嵌套在 `items` 数组内：
+
+```js
+// ❌ 旧写法（v0.38 及以前）— v0.39 会报 AstroUserError
+{ label: '文章', collapsed: true, autogenerate: { directory: 'articles' } }
+
+// ✅ 新写法（v0.39+）
+{ label: '文章', collapsed: true, items: [{ autogenerate: { directory: 'articles' } }] }
+```
+
+### MDX 中 JSX 属性的特殊字符
+
+MDX 文件中的 JSX 组件属性值如果包含中文引号 `""`、`<`、`>` 等字符，会导致 MDX 解析器报错（`Unexpected character in attribute name`）。
+
+解决方案：将 `title="..."` 改为模板字符串 `title={`...`}`：
+
+```mdx
+// ❌ 会报错
+<LinkCard title="含"中文引号"的标题" href="/articles/slug/" />
+
+// ✅ 正确
+<LinkCard title={`含"中文引号"的标题`} href="/articles/slug/" />
+```
 
 ### 文件名必须为小写 ASCII kebab-case
 
