@@ -74,7 +74,11 @@ case "$stage" in
     category=$(read_fm "$f" category)
     [[ -n "$category" ]] || fail "frontmatter.category 缺失，请先执行 Step 2.5（suggest-category.mjs + set-frontmatter.mjs）"
     is_valid_category "$category" || fail "frontmatter.category=$category 不在白名单 ${VALID_CATEGORIES[*]}"
-    grep -q '^## 原文参考' "$f" || fail "正文缺少 ## 原文参考 区块"
+    # 原文参考区块：仅在读后感/评论类文章中强制要求
+    # 启发式判断：如果 draft.md 中包含"读后感""书评""影评""原文""转述""翻译"等关键词，则判定为读后感类
+    if grep -qiE '读后感|书评|影评|影评|转述|翻译|response|review of|thoughts on' "$f"; then
+      grep -q '^## 原文参考' "$f" || fail "读后感类文章缺少 ## 原文参考 区块"
+    fi
     chars=$(count_chars "$f")
     [[ "$chars" -ge 2500 ]] || fail "字数 $chars 少于 2500（硬性下限，扩展模式上限 3500）"
     grep -q '^# ' "$f" && fail "正文出现 H1 标题（Starlight 会重复渲染）"

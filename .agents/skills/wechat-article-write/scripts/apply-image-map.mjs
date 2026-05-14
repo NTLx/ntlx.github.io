@@ -28,6 +28,7 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { writeStep } from "./state-lib.mjs";
 
 function postsRoot() {
   return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
@@ -167,3 +168,6 @@ process.stdout.write(JSON.stringify({
   article_local_md: "article-local.md",
   image_count: Object.keys(map).length,
 }) + "\n");
+
+// 自动写 Step 5 状态
+writeStep(slug, "5", "done", { article_md: "article.md", article_local_md: "article-local.md", image_count: Object.keys(map).length });

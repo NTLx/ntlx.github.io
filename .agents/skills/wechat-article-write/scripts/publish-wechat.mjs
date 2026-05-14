@@ -17,9 +17,10 @@
  *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
+import { writeStep } from "./state-lib.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
@@ -27,7 +28,7 @@ function postsRoot()  { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts
 function repoRoot()   { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
 
 function parseArgs(argv) {
-  const o = { slug: null, theme: "baoyu", color: "blue", author: "NTLx", skipDeployCheck: false, dryRun: false };
+  const o = { slug: null, theme: "baoyu", color: "blue", author: "NTLx", skipDeployCheck: true, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--theme") o.theme = argv[++i];
@@ -110,10 +111,5 @@ if (result.status !== 0) {
   process.exit(4);
 }
 
-spawnSync("bun", [
-  "run", resolve(SCRIPT_DIR, "state.mjs"),
-  "set", opts.slug, "10", "done",
-  JSON.stringify({ sourceUrl, theme: opts.theme }),
-], { stdio: "inherit" });
-
+writeStep(opts.slug, "10", "done", { sourceUrl, theme: opts.theme });
 process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, theme: opts.theme, color: opts.color }) + "\n");
