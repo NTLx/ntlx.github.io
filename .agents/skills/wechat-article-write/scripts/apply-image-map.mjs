@@ -3,6 +3,11 @@
  * 将 draft.md 中的语义占位符替换为 CDN URL（产出 article.md）和本地路径（产出 article-local.md）。
  * 同时支持把已生成的 article.html 中的本地路径回写为 CDN URL。
  *
+ * 替换覆盖两类引用（CDN 输出端）：
+ *   1. 注释占位符: `<!-- SLOT_IMG_NN_DESC -->`
+ *   2. 已经被插图 agent 提前替换为 markdown 图片语法: `![alt](imgs/NN-xxx.{ext})`
+ *      —— 防止"占位符已消失但本地路径未替换"的中间态遗漏（参考 复盘文档 P0-3）。
+ *
  * 用法:
  *   bun run apply-image-map.mjs <date-slug>
  *     -> 读 posts/<date-slug>/draft.md  + image-map.json
@@ -15,8 +20,10 @@
  *   { "00-infographic-core-summary.png": "https://cdn.jsdelivr.net/.../00-infographic-core-summary.png",
  *     "01-scene.png": "https://cdn.jsdelivr.net/.../01-scene.png", ... }
  *   或 { "files": { ...同上 } }
+ *   key 必须是 imgs/ 下的文件名（含正确扩展名，如 .jpg/.png/.webp），不要带 imgs/ 前缀，
+ *   也不要重复扩展名（不要写成 01-scene.jpg.jpg —— 这是 github-image-hosting --name 的已知坑）。
  *
- * 退出码: 0 成功；1 参数错误；2 输入缺失；3 占位符未全部消解
+ * 退出码: 0 成功；1 参数错误；2 输入缺失；3 占位符或本地路径未全部消解
  */
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
@@ -57,15 +64,26 @@ function buildResolver(map, imgsDir) {
   };
 }
 
-function replaceWithCdn(md, resolver) {
-  return md.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
+function replaceWithCdn(md, resolver, map) {
+  // 1) 替换注释占位符 <!-- SLOT_IMG_NN_xxx -->
+  let out = md.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
     const r = resolver(raw);
     if (!r || !r.cdn) return _full; // 留着触发后续 grep 校验
     return `![](${r.cdn})`;
   });
+  // 2) 兼容：插图 agent 已经把占位符提前替换为 markdown 图片语法
+  //    形如 `![alt](imgs/01-xxx.jpg)` / `![](./imgs/00-xxx.png)`，本步把本地路径换成 CDN URL。
+  //    若 image-map.json 没有对应 key 则保留原样，由 cdn 阶段的 grep 出口校验拦截。
+  out = out.replace(/!\[([^\]]*)\]\((?:\.\/)?imgs\/([^)\s]+)\)/g, (_full, alt, file) => {
+    const cdn = map[file];
+    if (!cdn) return _full;
+    return `![${alt}](${cdn})`;
+  });
+  return out;
 }
 
 function replaceWithLocal(md, resolver) {
+  // article-local.md 用于 CDN 不可达时的降级渲染，保留本地路径即可
   return md.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
     const r = resolver(raw);
     if (!r) return _full;
@@ -119,17 +137,27 @@ const map = loadMap(mapPath);
 const draft = readFileSync(draftPath, "utf8");
 const resolver = buildResolver(map, imgsDir);
 
-const cdnMd = replaceWithCdn(draft, resolver);
+const cdnMd = replaceWithCdn(draft, resolver, map);
 const localMd = replaceWithLocal(draft, resolver);
 
+// article-local.md 是 CDN 降级备份，包含本地路径引用，不可直接用于发布
+const localWarning = `<!-- ⚠️ 警告：此文件是 CDN 降级备份，包含本地 imgs/ 路径。仅当 CDN 不可达时作为输入源使用。不要将此文件用于 Step 9 博客发布或 Step 10 微信发布——那些步骤必须使用 article.md（CDN 版）。 -->\n\n`;
+
 writeFileSync(resolve(baseDir, "article.md"), cdnMd);
-writeFileSync(resolve(baseDir, "article-local.md"), localMd);
+writeFileSync(resolve(baseDir, "article-local.md"), localWarning + localMd);
 
 const stillHasSlot = /<!--\s*SLOT_IMG_/.test(cdnMd);
-if (stillHasSlot) {
-  process.stderr.write("apply-image-map.mjs: 仍有未消解的占位符，请检查 image-map.json 或 imgs/\n");
-  const leftovers = [...cdnMd.matchAll(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g)].map((m) => m[1]);
-  process.stderr.write("  unresolved: " + leftovers.join(", ") + "\n");
+const stillHasLocal = /!\[[^\]]*\]\((?:\.\/)?imgs\//.test(cdnMd);
+if (stillHasSlot || stillHasLocal) {
+  process.stderr.write("apply-image-map.mjs: 仍有未消解的占位符或本地路径，请检查 image-map.json 或 imgs/\n");
+  if (stillHasSlot) {
+    const leftovers = [...cdnMd.matchAll(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g)].map((m) => m[1]);
+    process.stderr.write("  unresolved SLOT placeholders: " + leftovers.join(", ") + "\n");
+  }
+  if (stillHasLocal) {
+    const localLeft = [...cdnMd.matchAll(/!\[[^\]]*\]\((?:\.\/)?imgs\/([^)\s]+)\)/g)].map((m) => m[1]);
+    process.stderr.write("  unresolved local image refs: " + localLeft.join(", ") + "\n");
+  }
   process.exit(3);
 }
 

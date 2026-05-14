@@ -44,14 +44,22 @@ read_fm() {
 }
 
 count_chars() {
-  # 粗略中文字符数：去掉 frontmatter 与代码块、空白后 wc -m
+  # 中文字符数：去掉 frontmatter 与代码块后，使用 Python 按 Unicode 码点计数。
+  # 不再使用 `tr -d '[:space:]' | wc -m`：在 macOS 默认 locale 下 tr 会按字节切分 UTF-8
+  # 多字节序列，导致中文字符被严重低估（实测 2250 字 → 210 字）。
   local file="$1"
   awk '
     /^---$/ { fm = !fm; next }
     fm { next }
     /^```/ { code = !code; next }
     !code { print }
-  ' "$file" | tr -d '[:space:]' | wc -m | tr -d ' '
+  ' "$file" | python3 -c '
+import sys, re
+text = sys.stdin.read()
+# 去掉所有空白字符（含全角空格、零宽字符等），再按 Unicode 码点计数
+text = re.sub(r"\s+", "", text)
+print(len(text))
+'
 }
 
 case "$stage" in
@@ -68,7 +76,7 @@ case "$stage" in
     is_valid_category "$category" || fail "frontmatter.category=$category 不在白名单 ${VALID_CATEGORIES[*]}"
     grep -q '^## 原文参考' "$f" || fail "正文缺少 ## 原文参考 区块"
     chars=$(count_chars "$f")
-    [[ "$chars" -ge 1000 ]] || fail "字数 $chars 少于 1000"
+    [[ "$chars" -ge 2500 ]] || fail "字数 $chars 少于 2500（硬性下限，扩展模式上限 3500）"
     grep -q '^# ' "$f" && fail "正文出现 H1 标题（Starlight 会重复渲染）"
     ok "draft 通过：title='$title' date=$date category=$category 字数≈$chars"
     ;;

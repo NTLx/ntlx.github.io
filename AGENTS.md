@@ -43,10 +43,13 @@
 
 完整 15 阶段流水线（Step 0–10，含 2.5 / 4.5 / 4.6 / 9.5）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，关键事实：
 
-- **发布顺序**：博客先发（Step 9）→ 等 Pages 部署（Step 9.5）→ 微信草稿（Step 10），保证微信"阅读原文"链接 200
+- **发布顺序**：博客先发（Step 9）→ 等 Pages 部署（Step 9.5）→ 微信草稿（Step 10），保证微信"阅读原文"链接 HTTP 200
 - **图床前置**：Step 4.6 在生成 HTML 前先把图片上传图床并产出 `image-map.json`，Step 5 同时生成 `article.md`（CDN 版）/ `article-local.md`（降级备份）
 - **CDN 降级**：Step 8 / Step 10 通过 `scripts/run-with-cdn-fallback.sh` 自动切换，详见 [`references/cdn-fallback.md`](.agents/skills/wechat-article-write/references/cdn-fallback.md)
-- **状态化**：每步状态写入 `posts/<slug>/.pipeline-state.json`，便于断点续跑
+- **状态写入强制**：每步完成后必须写入 `posts/<slug>/.pipeline-state.json`（通过 `state.mjs set`），断点续跑依赖此文件——状态写入不是可选的
+- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下的本地目录名（可含中文）；blog-slug 是 `articles/` 下的 URL 文件名（必须纯 ASCII kebab-case，`^[a-z][a-z0-9-]*[a-z0-9]$`）。当 date-slug 含中文时，Step 2.5 写入 `blogSlug` 到 frontmatter，Step 9 通过 `--blog-slug` 显式传入
+- **阅读原文链接**：`--source-url` 从 Step 10 全链贯通（publish-wechat → post-draft → wechat-api → 微信 `content_source_url`），必须传入博客文章 URL
+- **article-local.md 禁用于发布**：该文件仅是 CDN 降级备份，Step 9 博客发布和 Step 10 微信发布必须使用 `article.md`（CDN 版）
 - 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 不必再手写 frontmatter / sed / curl 轮询
 
 ## 硬规则
@@ -59,6 +62,8 @@
 | **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
 | **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
 | **Git 跟踪** | `.agents/skills/` ✅ 入库；`.claude/skills/` ❌（gitignore，符号链接）；`skills-lock.json` ✅；`posts/` ❌（gitignore） |
+| **Pipeline state 强制写入** | 管线每步完成后必须 `state.mjs set`，断点续跑和失败恢复依赖 `.pipeline-state.json`——跳过状态写入 = 断点续跑失效 |
+| **article-local.md 禁发布** | `article-local.md` 仅作 CDN 降级备份，禁止用于 Step 9（博客）或 Step 10（微信）发布，必须用 `article.md`（CDN 版） |
 
 ## 部署
 
@@ -78,6 +83,8 @@
    - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作（管线已通过 `validate-pipeline.sh` 提供阶段化校验）
 
 3. **路径绝对化**：跨脚本 / 跨目录工具链统一用绝对路径，**严禁**基于直觉猜测 CWD 行为；批量处理工具运行前先验证目录层级。
+
+4. **发布输入源校验**：Step 9（博客）和 Step 10（微信）的输入文件必须是 `article.md`（CDN URL 版），**严禁**使用 `article-local.md`（本地路径降级备份）作为发布输入——该文件头已标注警告，但脚本层不拦截，靠 agent 自觉遵守。
 
 ## 技术博文编写规范
 
