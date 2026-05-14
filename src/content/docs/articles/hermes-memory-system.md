@@ -4,6 +4,7 @@ title: 我读了 Hermes 的记忆系统，发现 AI 记性好不是好事
 date: 2026-05-01
 description: 最好的记忆不是记住更多，而是知道什么该忘。
 coverImage: cover.png
+category: ai-agents
 ---
 
 凌晨翻到一篇长文，Manthan Gupta 写的，讲 Hermes Agent 的记忆系统。

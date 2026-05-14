@@ -3,6 +3,7 @@ $schema: starlight
 title: 9 家公司能修漏洞，剩下的人怎么办
 date: 2026-05-11
 description: 当 AI 让漏洞发现速度翻倍，封闭式防御在结构上就跑不赢——开放不是理想主义，是活下来的策略。
+category: security
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-cybersec-openness-img-00.jpg)

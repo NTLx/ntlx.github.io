@@ -7,30 +7,25 @@ sidebar:
   order: 0
 ---
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { getCollection } from 'astro:content';
+
+export const fmtDate = (d) =>
+	d
+		? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+		: '';
+
+export const posts = (await getCollection('docs'))
+	.filter((p) => p.data.category === 'ai-agents')
+	.sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
 
 > Agent 架构设计、MCP 协议、测试验证、记忆系统
 
-<LinkCard title="(2026-05-12) Agent 能跑 demo 不算本事，能跑一年才是" href="/articles/agent-development-lifecycle/" />
-
-<LinkCard title="(2026-05-12) AI agent 拒绝私信之后" href="/articles/ai-agent-refuses-dms-after/" />
-
-<LinkCard title="(2026-05-12) MCP 不是 USB-C，Pinterest 告诉你真正的门槛在哪" href="/articles/building-mcp-ecosystem-pinterest/" />
-
-<LinkCard title="(2026-05-08) AI 写的代码，谁来审？" href="/articles/agent-pr-review/" />
-
-<LinkCard title="(2026-05-08) AI在斯德哥尔摩开了家咖啡馆，然后被现实暴打了一顿" href="/articles/ai-cafe-stockholm/" />
-
-<LinkCard title="(2026-05-07) Agent 没挂，是你的测试挂了" href="/articles/validating-agentic-behavior/" />
-
-<LinkCard title="(2026-05-06) AI 时代最稀缺的能力：干就完了" href="/articles/anthropic-product-team-ships-fast/" />
-
-<LinkCard title="(2026-05-05) AI 什么都做不了，除非你让它做" href="/articles/connecting-llms-to-the-real-world-t/" />
-
-<LinkCard title="(2026-05-04) MCP 和 Skills：给 AI 装手还是装脑子" href="/articles/mcpvsskillsclearlyexplained/" />
-
-<LinkCard title="(2026-05-02) 别管 AI 能不能写代码了，你管理任务的方式才是问题" href="/articles/openai-symphony-linear-ai-conductor/" />
-
-<LinkCard title="(2026-05-02) AI 的规模之痛：当模型变强时，系统却在偷偷出错" href="/articles/scalingpainofcodingagent/" />
-
-<LinkCard title="(2026-05-01) 我读了 Hermes 的记忆系统，发现 AI 记性好不是好事" href="/articles/hermes-memory-system/" />
+<CardGrid>
+	{posts.map((p) => (
+		<LinkCard
+			title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
+			href={`/${p.id}/`}
+		/>
+	))}
+</CardGrid>

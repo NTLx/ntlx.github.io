@@ -7,6 +7,7 @@ tags: [ write ]
 identifier: 20260504T184405
 author: 李继刚
 coverImage: cover.png
+category: ai-agents
 ---
 
 ## MCP 和 Skills：给 AI 装手还是装脑子

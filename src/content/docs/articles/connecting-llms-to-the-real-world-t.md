@@ -5,6 +5,7 @@ date: 2026-05-05
 description: LLM 连查天气都做不到。所有「AI 能做某事」的背后，都是一整套人建的基础设施和人攥着的控制权。
 coverImage: cover.png
 tags: [ write ]
+category: ai-agents
 ---
 
 今天看到 ByteByteGo 一篇文章，讲 LLM 怎么连接现实世界。标题很体面——「Connecting LLMs to the Real World」。看完之后我脑子里冒出来的第一件事是：

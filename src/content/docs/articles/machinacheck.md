@@ -3,6 +3,7 @@ $schema: starlight
 title: 30秒出报告，但关键不是快——是知道什么时候不用AI
 date: 2026-05-11
 description: 大部分AI项目在比"用了多牛的模型"，真正能落地的比的是"在哪里没用模型"。
+category: engineering
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-machinacheck-img-00.jpg)

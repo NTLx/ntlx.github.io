@@ -4,6 +4,7 @@ title: AI 给肿瘤病人开处方，谁来兜底？
 date: 2026-05-10
 description: OncoAgent 最值钱的不是 27B 模型，是包裹模型的那层工程骨架——安全兜底用代码，不用另一个 AI。
 coverImage: cover.png
+category: ai-models
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-10-oncoagent-img-00.jpg)

@@ -7,38 +7,25 @@ sidebar:
   order: 0
 ---
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { getCollection } from 'astro:content';
+
+export const fmtDate = (d) =>
+	d
+		? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+		: '';
+
+export const posts = (await getCollection('docs'))
+	.filter((p) => p.data.category === 'ai-coding')
+	.sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
 
 > AI 编码工具、工程方法论、开发提效与技术债务
 
-<LinkCard title="(2026-05-12) AI 编码越快，你死得越早" href="/articles/ai-maintenance-costs-trap/" />
-
-<LinkCard title="(2026-05-11) 同一个模型，42% 和 78% 的差距在哪" href="/articles/same-model-42-vs-78/" />
-
-<LinkCard title="(2026-05-11) 代码免费了，然后呢" href="/articles/code-is-free-now-what/" />
-
-<LinkCard title="(2026-05-10) 给你的 AI 编程工具装上「眼睛」：LSP 语言服务器完全安装指南" href="/articles/lsp-language-server-setup-guide/" />
-
-<LinkCard title="(2026-05-09) 当 90% 代码由 AI 生成，经验还剩什么？" href="/articles/when-90-pct-code-by-ai/" />
-
-<LinkCard title="(2026-05-09) 当你的 AI 同事开始用 HTML 跟你说话" href="/articles/ai-colleague-speaks-html/" />
-
-<LinkCard title="(2026-05-08) Agentic Workflow 烧掉的钱去哪了？GitHub 用 Agent 优化 Agent 的实战复盘" href="/articles/token-efficiency/" />
-
-<LinkCard title="(2026-05-07) 当 vibe coding 和 agentic engineering 开始模糊，我感到一阵不安" href="/articles/vibe-coding-agentic-engineering/" />
-
-<LinkCard title="(2026-05-06) 当编程变成管理 Agent，非科班程序员的窗口才真正打开了" href="/articles/andrej-karpathy-agentic-engineering/" />
-
-<LinkCard title="(2026-05-06) 编程没有被解决，只是被解决的那部分恰好最不重要" href="/articles/coding-not-solved-least-important-part/" />
-
-<LinkCard title="(2026-05-06) 更强的模型只会让你陷得更快" href="/articles/martin-fowler-may-fragments/" />
-
-<LinkCard title="(2026-05-06) 代码越来越便宜，品味越来越贵" href="/articles/code-cheaper-taste-pricier/" />
-
-<LinkCard title="(2026-05-05) 让 AI 写代码不再翻车：一个 TypeScript 巫师的 5 个 Agent Skills" href="/articles/5-agent-skills-for-ai-coding/" />
-
-<LinkCard title="(2026-05-01) 当写代码不再需要写代码" href="/articles/martin-fowler-fragments-april-2026/" />
-
-<LinkCard title="(2026-04-30) 用了三年 AI 编程工具后，我发现瓶颈从来不是工具" href="/articles/structured-prompt-driven-development/" />
-
-<LinkCard title="(2025-05-14) 别再只顾着跑代码了，你在背负「认知债」吗？" href="/articles/what-is-code/" />
+<CardGrid>
+	{posts.map((p) => (
+		<LinkCard
+			title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
+			href={`/${p.id}/`}
+		/>
+	))}
+</CardGrid>

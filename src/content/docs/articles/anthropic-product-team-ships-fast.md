@@ -4,6 +4,7 @@ title: AI 时代最稀缺的能力：干就完了
 date: 2026-05-06
 description: 当执行成本趋近于零，行动本身就是最好的规划
 coverImage: cover.png
+category: ai-agents
 ---
 
 看完 Cat Wu 在 Lenny's Podcast 上的采访，我脑子里只剩四个字：干就完了。

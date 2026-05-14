@@ -4,6 +4,7 @@ title: 当「为了人类」不包括孟菲斯的黑人社区
 date: 2026-05-08
 description: AI行业里，"价值观"是算力短缺时的讨价还价筹码。Musk从骂Anthropic邪恶到称赞做得好，只花了几周。
 coverImage: cover.png
+category: ai-industry
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-08-xai-anthropic-img-00.jpg)

@@ -4,6 +4,7 @@ title: AI评测正在烧成一个新的算力黑洞
 date: 2026-05-01
 description: 以前训练贵、评测便宜。现在反过来了——跑一次评测比训练模型还贵，而谁付得起评测的钱，谁就能定义排行榜。
 coverImage: cover.png
+category: ai-industry
 ---
 
 今天看到 HuggingFace 上 EvalEval Coalition 发了一篇博客，讲 AI 评测成本的事。看完之后坐在那里愣了一会儿。

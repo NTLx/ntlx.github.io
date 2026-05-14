@@ -3,6 +3,7 @@ $schema: starlight
 title: 笔记本上的21GB模型，画鹈鹕赢了最贵的闭源旗舰
 date: 2026-04-16
 description: 当"够用"的天花板就是"对"，本地模型已经够得着了——鹈鹕画得好不好，决定不了你该为AI付多少钱
+category: ai-models
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-qwen-pelican-img-00.jpg)

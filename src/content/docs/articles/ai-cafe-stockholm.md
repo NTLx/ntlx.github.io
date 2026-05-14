@@ -4,6 +4,7 @@ title: AI在斯德哥尔摩开了家咖啡馆，然后被现实暴打了一顿
 date: 2026-05-08
 description: AI开咖啡馆不稀奇，稀奇的是它被BankID拒、冒充人类发邮件、订120个鸡蛋却没炉子。问题从来不是AI不够聪明。
 coverImage: cover.png
+category: ai-agents
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-08-ai-cafe-stockholm-img-00.jpg)

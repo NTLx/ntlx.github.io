@@ -4,6 +4,7 @@ title: 产品可以抄，但公司的形状抄不走
 date: 2026-05-10
 description: AI让产品、技术、品类都在趋同，真正不可复制的是组织的形状——什么样的人能在这里存在，判断力怎么复利。
 coverImage: cover.jpg
+category: ai-industry
 ---
 
 ![AI时代公司的真正护城河：核心观点总览](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-10-shape-moat-v2-img-00.jpg)

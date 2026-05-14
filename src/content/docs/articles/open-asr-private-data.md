@@ -4,7 +4,7 @@ title: 刷榜不是道德问题——从 Open ASR Leaderboard 的私有数据说
 date: 2026-05-07
 description: 当衡量指标变成了目标，它就不再是好的指标。Open ASR Leaderboard 用私有数据集对抗刷榜的做法，揭示了一个反直觉的事实：有时候，不公开才是最好的公开。
 coverImage: cover.png
-category: AI
+category: engineering
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-07-open-asr-leaderboard-img-00.jpg)

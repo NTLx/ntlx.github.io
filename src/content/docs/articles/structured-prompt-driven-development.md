@@ -6,6 +6,7 @@ date: 2026-04-30
 tags: [write]
 identifier: 20260430T112029
 author: 李继刚
+category: ai-coding
 ---
 
 Martin Fowler 的网站上最近发了一篇文章，讲一个叫 SPDD 的东西——结构化提示词驱动开发。我读完第一遍，合上浏览器，脑子里只有一个念头：

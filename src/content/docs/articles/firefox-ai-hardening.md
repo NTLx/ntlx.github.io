@@ -4,6 +4,7 @@ title: Firefox 默默修了 423 个安全漏洞，而我还在用 Chrome
 date: 2026-05-08
 description: 一张图里 423 个安全修复和 31 的对比，不只是一个浏览器的故事，更是 AI 改写攻防规则的信号。
 coverImage: cover.png
+category: security
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-08-firefox-hardening-img-00.jpg)

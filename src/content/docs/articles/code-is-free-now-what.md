@@ -3,6 +3,7 @@ $schema: starlight
 title: 代码免费了，然后呢
 date: 2026-05-11
 description: AI 把写代码变成了最便宜的事，但公司裁人的速度比涨薪快——因为便宜的代码不会自动变成用户付费。
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-ai-layoffs-00-infographic.jpg)

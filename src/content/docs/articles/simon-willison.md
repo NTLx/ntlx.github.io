@@ -4,6 +4,7 @@ title: 开源社区最硬的 AI 禁令：代码再完美，也不收
 date: 2026-05-01
 description: 你写的 PR 再完美也没用——Zig 要的不是代码，是人。
 coverImage: cover.png
+category: ai-industry
 ---
 
 今天刷到 Simon Willison 博客上的一条短讯，愣了好几秒。

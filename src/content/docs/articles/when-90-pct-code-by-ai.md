@@ -4,6 +4,7 @@ title: 当 90% 代码由 AI 生成，经验还剩什么？
 date: 2026-05-09
 description: AI 帮你看全所有代码，但判断什么值得修，才是人最后的护城河。
 coverImage: cover.png
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-agent-coding-infographic-00.jpg)

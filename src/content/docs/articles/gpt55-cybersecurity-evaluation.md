@@ -3,6 +3,7 @@ $schema: starlight
 title: GPT-5.5 网络能力评估：第二个了，这才是最可怕的
 date: 2026-05-01
 description: 当一个能力不再是「孤例」，它就变成了趋势。
+category: security
 ---
 
 英国政府的人工智能安全研究所（AISI）昨天发了一篇博客，评估 OpenAI GPT-5.5 的网络安全能力。我读完之后，后背有点凉。

@@ -3,6 +3,7 @@ $schema: starlight
 title: 造轮子还是买轮子？Figma 数据管线重构背后的账本
 date: 2025-02-12
 description: 当数据同步从几小时拖延到几天，连现成的商业方案也买不起时，Figma 被迫走上自建增量同步的硬核之路。
+category: engineering
 ---
 
 ![00\_infographic](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/figma-data-pipeline/00-infographic-core-summary.jpg)

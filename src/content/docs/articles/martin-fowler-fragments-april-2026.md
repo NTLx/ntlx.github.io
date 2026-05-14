@@ -3,6 +3,7 @@ $schema: starlight
 title: 当写代码不再需要写代码
 date: 2026-05-01
 description: 游戏已经不是"谁建得快"了，而是"谁判断得准"。但更深的焦虑是：当你把自己变得对AI可读时，你还是你吗？
+category: ai-coding
 ---
 
 今天读到 Martin Fowler 四月底的一篇随笔，他叫 Fragments——碎片。不是那种体系化的大文章，而是他这段时间看到的、想到的、跟人聊到的几件事，串在一起。

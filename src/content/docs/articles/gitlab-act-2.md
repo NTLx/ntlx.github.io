@@ -3,6 +3,7 @@ $schema: starlight
 title: GitLab 砍掉三层管理层、退役价值观：一个 $10 亿公司在赌什么
 date: 2026-05-12
 description: 当一个公司的"最佳实践"变成下一轮的枷锁，断舍离的狠劲比技术选型更说明问题。
+category: ai-industry
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-12-gitlab-act2-img-00.jpg)

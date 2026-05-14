@@ -3,6 +3,7 @@ $schema: starlight
 title: 同一个模型，42% 和 78% 的差距在哪
 date: 2026-05-11
 description: LangChain 用同一个模型只改了 harness 就从 30 名开外冲到第 5——你以为的模型瓶颈，其实是 harness 瓶颈。
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-agent-harness-00-infographic.png)

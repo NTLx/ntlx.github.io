@@ -3,6 +3,7 @@ $schema: starlight
 title: pip 26.1 终于有了锁文件，但 Python 包管理的仗还没打完
 date: 2026-05-01
 description: pip 花了十年才学会做锁文件和依赖冷静期，而社区早就在等这一天。
+category: engineering
 ---
 
 上周五下午四点半，我在一个老项目里跑了个 `pip install -r requirements.txt`。十分钟后，CI 全挂了。

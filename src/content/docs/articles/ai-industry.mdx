@@ -7,32 +7,25 @@ sidebar:
   order: 0
 ---
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { getCollection } from 'astro:content';
+
+export const fmtDate = (d) =>
+	d
+		? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+		: '';
+
+export const posts = (await getCollection('docs'))
+	.filter((p) => p.data.category === 'ai-industry')
+	.sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
 
 > 商业模型、公司战略、产业经济学、行业趋势
 
-<LinkCard title="(2026-05-12) GitLab 砍掉三层管理层、退役价值观：一个 $10 亿公司在赌什么" href="/articles/gitlab-act-2/" />
-
-<LinkCard title="(2026-05-12) 缩放定律变成三条之后" href="/articles/2026-05-12-amazon-foundation-model-building-blocks/" />
-
-<LinkCard title="(2026-05-11) AI 写的 PR 淹没了开源，但有一帮人想出了另一种玩法" href="/articles/transformers-to-mlx/" />
-
-<LinkCard title="(2026-05-10) 产品可以抄，但公司的形状抄不走" href="/articles/ai-era-company-moat/" />
-
-<LinkCard title="(2026-05-09) 代码不过海关：GitHub如何变成国家竞争力的新标尺" href="/articles/github-as-national-competitiveness/" />
-
-<LinkCard title="(2026-05-08) 当「为了人类」不包括孟菲斯的黑人社区" href="/articles/xai-anthropic/" />
-
-<LinkCard title="(2026-05-06) 诺奖得主 Hassabis 的 50%：为什么造出 AlphaGo 的人对 AGI 不敢打包票" href="/articles/demis-hassabis-agents-agi/" />
-
-<LinkCard title="(2026-05-05) 我们都理解错了《Good Luck, Have Fun, Don't Die》——它是另一个版本的《黑客帝国》" href="/articles/good-luck-have-fun-dont-die-review/" />
-
-<LinkCard title="(2026-05-04) 你的公司连自己在干啥都说不清，还指望用 AI？" href="/articles/most-companies-arent-ready-for-ai/" />
-
-<LinkCard title="(2026-05-04) AI 不是你的聪明朋友" href="/articles/claudepersonalguidance/" />
-
-<LinkCard title="(2026-05-01) AI 的账，算不清" href="/articles/ai-economics-doesnt-work/" />
-
-<LinkCard title="(2026-05-01) AI评测正在烧成一个新的算力黑洞" href="/articles/ai-eval-costs-bottleneck/" />
-
-<LinkCard title="(2026-05-01) 开源社区最硬的 AI 禁令：代码再完美，也不收" href="/articles/simon-willison/" />
+<CardGrid>
+	{posts.map((p) => (
+		<LinkCard
+			title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
+			href={`/${p.id}/`}
+		/>
+	))}
+</CardGrid>
