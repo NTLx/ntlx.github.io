@@ -19,7 +19,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const STEPS = ["0", "1", "2", "2.5", "3", "4", "4.5", "4.6", "5", "6", "7", "8", "9", "9.5", "10"];
-const VALID_STATUS = new Set(["pending", "running", "done", "failed", "skipped"]);
+const VALID_STATUS = new Set(["pending", "running", "done", "failed", "skipped", "blocked"]);
 
 function postsRoot() {
   return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
@@ -90,6 +90,10 @@ function next(slug) {
   }
   for (const s of STEPS) {
     const entry = state.steps?.[s];
+    if (entry && entry.status === "blocked") {
+      process.stdout.write(`blocked:${s}\n`);
+      return;
+    }
     if (!entry || entry.status !== "done" && entry.status !== "skipped") {
       process.stdout.write(s + "\n");
       return;

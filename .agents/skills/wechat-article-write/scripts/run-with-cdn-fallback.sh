@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # CDN → 本地路径降级编排
 #
-# 用法:
+# 用法（两种风格均支持）:
 #   run-with-cdn-fallback.sh <date-slug> <stage> -- <command...>
+#   run-with-cdn-fallback.sh --post-dir posts/<date-slug> --stage <stage> -- <command...>
+#   run-with-cdn-fallback.sh --slug <date-slug> --stage <stage> -- <command...>
 #
 # 参数:
 #   date-slug : posts/<date-slug> 目录名
-#   stage     : html | wechat (用于决定降级文件名 / 是否需要 html 回写)
+#   --post-dir: posts/<date-slug>（脚本会从中提取末段目录名作为 slug）
+#   --slug    : 与 date-slug 等价的命名参数
+#   --stage   : html | wechat | publish (用于决定降级文件名 / 是否需要 html 回写)
 #   command   : 实际要执行的命令；命令内出现的 {ARTICLE_MD} 将被替换为
 #               article.md (CDN) 或 article-local.md (本地降级)
 #
@@ -22,18 +26,66 @@
 
 set -uo pipefail
 
-if [[ $# -lt 4 ]]; then
-  echo "usage: run-with-cdn-fallback.sh <date-slug> <stage> -- <command...>" >&2
-  exit 64
+usage() {
+  cat >&2 <<'EOF'
+usage:
+  run-with-cdn-fallback.sh <date-slug> <stage> -- <command...>
+  run-with-cdn-fallback.sh --post-dir posts/<date-slug> --stage <stage> -- <command...>
+  run-with-cdn-fallback.sh --slug <date-slug> --stage <stage> -- <command...>
+EOF
+}
+
+slug=""
+stage=""
+
+# 检测调用风格：如果首参以 -- 开头（除 `--` 分隔符外），走命名参数解析
+if [[ $# -gt 0 && "$1" =~ ^--[a-z] ]]; then
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --post-dir)
+        # posts/2026-05-14-foo → 取末段 2026-05-14-foo 作为 slug
+        slug="$(basename "$2")"
+        shift 2
+        ;;
+      --slug)
+        slug="$2"
+        shift 2
+        ;;
+      --stage)
+        stage="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        echo "run-with-cdn-fallback.sh: unknown option '$1'" >&2
+        usage
+        exit 64
+        ;;
+    esac
+  done
+else
+  # 位置参数模式
+  if [[ $# -lt 4 ]]; then
+    usage
+    exit 64
+  fi
+  slug="$1"; shift
+  stage="$1"; shift
+  if [[ "$1" != "--" ]]; then
+    echo "run-with-cdn-fallback.sh: missing '--' separator" >&2
+    exit 64
+  fi
+  shift
 fi
 
-slug="$1"; shift
-stage="$1"; shift
-if [[ "$1" != "--" ]]; then
-  echo "run-with-cdn-fallback.sh: missing '--' separator" >&2
+if [[ -z "$slug" || -z "$stage" || $# -eq 0 ]]; then
+  echo "run-with-cdn-fallback.sh: missing slug/stage/command" >&2
+  usage
   exit 64
 fi
-shift
 
 posts_root="${PIPELINE_POSTS_ROOT:-posts}"
 base="$posts_root/$slug"
@@ -88,7 +140,13 @@ if grep -qiE 'timeout|etimedout|503|econnreset|connection reset|cdn.jsdelivr' "$
   fi
   if [[ "$stage" == "html" ]]; then
     html="$base/article.html"
+    local_html="$base/article-local.html"
     map="$base/image-map.json"
+    # baoyu-markdown-to-html 把 article-local.md → article-local.html。
+    # 我们的契约里 Step 8 的产物固定叫 article.html，因此需要 rename。
+    if [[ -f "$local_html" ]]; then
+      mv -f "$local_html" "$html"
+    fi
     if [[ -f "$html" && -f "$map" ]]; then
       echo "[cdn-fallback] rewrite local imgs/ paths back to CDN in $html"
       bun run "$(dirname "$0")/apply-image-map.mjs" --html-rewrite "$html" "$map" || exit $?

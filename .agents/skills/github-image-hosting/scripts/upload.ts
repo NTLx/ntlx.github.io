@@ -1,30 +1,49 @@
 #!/usr/bin/env bun
 /**
  * GitHub Image Hosting Upload Script
- * 
+ *
  * Uploads images to NTLx/Pic repository using GitHub API and returns jsDelivr CDN URLs.
- * 
- * Usage:
- *   bun upload.ts <image-path> [--name <custom-name>] [--folder <folder>]
- * 
+ *
+ * Two invocation modes:
+ *
+ *   1) Single file:
+ *      bun upload.ts <image-path> [--name <custom-name>] [--folder <folder>] [--repo <owner/name@branch:folder>]
+ *
+ *   2) Directory (batch):
+ *      bun upload.ts <directory> --name-prefix <prefix> [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>]
+ *      → traverses all images in <directory>, uploads with name = `${prefix}-${basename-no-ext}`
+ *      → writes image-map.json: { "<original-filename>": "<cdn-url>", ... }
+ *
  * Options:
- *   --name <name>     Custom filename (without extension)
- *   --folder <path>   Target folder in repo (default: Jarvis)
- *   --dry-run         Show what would be uploaded without actually uploading
+ *   --name <name>          Custom filename (without extension). Single-file mode only.
+ *   --name-prefix <prefix> Filename prefix for directory mode.
+ *   --folder <path>        Target folder in repo (default: Jarvis). Equivalent to `:folder` part of --repo.
+ *   --repo <spec>          Spec format: `owner/name@branch:folder`. Overrides REPO_OWNER/REPO_NAME/folder.
+ *   --output <path>        Directory mode only: write image-map.json to <path>.
+ *   --dry-run              Show what would be uploaded without actually uploading.
+ *
+ * Notes:
+ *   - The script automatically strips a trailing extension from --name / --name-prefix-derived names
+ *     to avoid double-extension bugs (e.g. `01-foo.jpg.jpg`).
  */
 
-import { spawnSync, execSync } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const REPO_OWNER = 'NTLx';
-const REPO_NAME = 'Pic';
+let REPO_OWNER = 'NTLx';
+let REPO_NAME = 'Pic';
+let REPO_BRANCH = 'master';
 const DEFAULT_FOLDER = 'Jarvis';
+
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
 interface UploadOptions {
   imagePath: string;
   customName?: string;
+  namePrefix?: string;
   folder: string;
+  output?: string;
   dryRun: boolean;
 }
 
@@ -35,6 +54,18 @@ interface UploadResult {
   githubUrl: string;
   cdnUrl: string;
   error?: string;
+}
+
+function parseRepoSpec(spec: string, options: UploadOptions): void {
+  // owner/name@branch:folder
+  const m = spec.match(/^([^/]+)\/([^@:]+)(?:@([^:]+))?(?::(.+))?$/);
+  if (!m) {
+    throw new Error(`invalid --repo spec: ${spec}`);
+  }
+  REPO_OWNER = m[1];
+  REPO_NAME = m[2];
+  if (m[3]) REPO_BRANCH = m[3];
+  if (m[4]) options.folder = m[4];
 }
 
 function parseArgs(): UploadOptions {
@@ -49,8 +80,14 @@ function parseArgs(): UploadOptions {
     const arg = args[i];
     if (arg === '--name' && args[i + 1]) {
       options.customName = args[++i];
+    } else if (arg === '--name-prefix' && args[i + 1]) {
+      options.namePrefix = args[++i];
     } else if (arg === '--folder' && args[i + 1]) {
       options.folder = args[++i];
+    } else if (arg === '--repo' && args[i + 1]) {
+      parseRepoSpec(args[++i], options);
+    } else if (arg === '--output' && args[i + 1]) {
+      options.output = args[++i];
     } else if (arg === '--dry-run') {
       options.dryRun = true;
     } else if (!arg.startsWith('-') && !options.imagePath) {
@@ -101,7 +138,7 @@ function ghApiPatch(endpoint: string, payload: object): void {
 
 async function getExistingFiles(): Promise<Set<string>> {
   try {
-    const result = execSync(`gh api repos/${REPO_OWNER}/${REPO_NAME}/git/trees/master?recursive=1 --jq '.tree[].path'`, {
+    const result = execSync(`gh api repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1 --jq '.tree[].path'`, {
       encoding: 'utf-8',
       timeout: 30000,
       stdio: ['pipe', 'pipe', 'pipe']
@@ -133,6 +170,20 @@ function sanitizeFilename(name: string): string {
     .toLowerCase();
 }
 
+// 防止双扩展名（baoyu-imagine 输出 + 流水线传 --name 时已带 .jpg → 拼接后变 .jpg.jpg）
+function stripTrailingExt(name: string, ext: string): string {
+  const lower = name.toLowerCase();
+  const lext = ext.toLowerCase();
+  if (lext && lower.endsWith(lext)) {
+    return name.slice(0, name.length - ext.length);
+  }
+  // 同时去除常见图片扩展名（即便传入 ext 不是图片）
+  for (const e of IMAGE_EXTS) {
+    if (lower.endsWith(e)) return name.slice(0, name.length - e.length);
+  }
+  return name;
+}
+
 async function uploadImage(options: UploadOptions): Promise<UploadResult> {
   const { imagePath, customName, folder, dryRun } = options;
 
@@ -149,7 +200,9 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
 
   const ext = path.extname(imagePath);
   const originalBasename = path.basename(imagePath, ext);
-  const baseName = sanitizeFilename(customName || originalBasename);
+  // 去掉 customName 末尾可能重复的扩展名，再 sanitize
+  const rawName = customName ? stripTrailingExt(customName, ext) : originalBasename;
+  const baseName = sanitizeFilename(rawName);
 
   const existingFiles = await getExistingFiles();
   const filename = generateUniqueFilename(baseName, ext, folder, existingFiles);
@@ -160,8 +213,8 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
       success: true,
       filename,
       folder,
-      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/master/${repoPath}`,
-      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@master/${repoPath}`,
+      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
+      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
     };
   }
 
@@ -171,7 +224,7 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
     const base64Content = fileContent.toString('base64');
 
     // Get current commit SHA
-    const currentSha = ghApiGet(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/master`);
+    const currentSha = ghApiGet(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`);
 
     // Create blob
     const blobSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
@@ -198,14 +251,14 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
     });
 
     // Update reference
-    ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/master`, { sha: commitSha });
+    ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`, { sha: commitSha });
 
     return {
       success: true,
       filename,
       folder,
-      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/master/${repoPath}`,
-      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@master/${repoPath}`,
+      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
+      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
     };
   } catch (error) {
     return {
@@ -219,19 +272,73 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
   }
 }
 
+function listImagesInDir(dir: string): string[] {
+  return fs.readdirSync(dir)
+    .filter((f) => IMAGE_EXTS.has(path.extname(f).toLowerCase()))
+    .sort()
+    .map((f) => path.join(dir, f));
+}
+
+async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; map: Record<string, string>; results: UploadResult[] }> {
+  const dir = options.imagePath;
+  const files = listImagesInDir(dir);
+  if (files.length === 0) {
+    throw new Error(`no images found under directory: ${dir}`);
+  }
+  const map: Record<string, string> = {};
+  const results: UploadResult[] = [];
+  let ok = true;
+  for (const file of files) {
+    const ext = path.extname(file);
+    const base = path.basename(file, ext); // e.g. 01-spectrum-comparison
+    // name 由 prefix + base 拼接；upload 内部会再去掉重复 ext
+    const name = options.namePrefix ? `${options.namePrefix}-${base}` : base;
+    const r = await uploadImage({ ...options, imagePath: file, customName: name });
+    results.push(r);
+    if (r.success) {
+      // image-map.json key 用本地原始文件名（含扩展名），与 apply-image-map.mjs 约定一致
+      map[`${base}${ext}`] = r.cdnUrl;
+    } else {
+      ok = false;
+      console.error(`[upload] FAIL: ${file} → ${r.error}`);
+    }
+  }
+  return { ok, map, results };
+}
+
 // Main
 const options = parseArgs();
 
 if (!options.imagePath) {
-  console.error('Usage: bun upload.ts <image-path> [--name <custom-name>] [--folder <folder>]');
+  console.error('Usage: bun upload.ts <image-path-or-dir> [--name <name>|--name-prefix <prefix>] [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>]');
   process.exit(1);
 }
 
-uploadImage(options).then((r) => {
-  if (r.success) {
-    console.log(JSON.stringify(r, null, 2));
-  } else {
-    console.error(JSON.stringify(r, null, 2));
+const stat = fs.existsSync(options.imagePath) ? fs.statSync(options.imagePath) : null;
+
+if (stat && stat.isDirectory()) {
+  // 目录模式
+  uploadDirectory(options).then(({ ok, map, results }) => {
+    if (options.output) {
+      fs.mkdirSync(path.dirname(options.output), { recursive: true });
+      fs.writeFileSync(options.output, JSON.stringify(map, null, 2) + '\n');
+      console.log(`written: ${options.output} (${Object.keys(map).length} entries)`);
+    } else {
+      console.log(JSON.stringify({ map, results }, null, 2));
+    }
+    if (!ok) process.exit(1);
+  }).catch((e) => {
+    console.error(`[upload] error: ${e?.message ?? e}`);
     process.exit(1);
-  }
-});
+  });
+} else {
+  // 单文件模式
+  uploadImage(options).then((r) => {
+    if (r.success) {
+      console.log(JSON.stringify(r, null, 2));
+    } else {
+      console.error(JSON.stringify(r, null, 2));
+      process.exit(1);
+    }
+  });
+}

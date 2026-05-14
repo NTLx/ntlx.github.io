@@ -55,6 +55,7 @@ interface ArticleOptions {
   imageMediaIds?: string[];
   needOpenComment?: number;
   onlyFansCanComment?: number;
+  contentSourceUrl?: string;
 }
 
 const TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
@@ -375,6 +376,7 @@ async function publishToDraft(
       },
     };
     if (options.author) article.author = options.author;
+    if (options.contentSourceUrl) article.content_source_url = options.contentSourceUrl;
   } else {
     article = {
       article_type: "news",
@@ -386,6 +388,7 @@ async function publishToDraft(
     };
     if (options.author) article.author = options.author;
     if (options.digest) article.digest = options.digest;
+    if (options.contentSourceUrl) article.content_source_url = options.contentSourceUrl;
   }
 
   const res = await fetch(url, {
@@ -492,6 +495,7 @@ Options:
   --color <name|hex>  Primary color (blue, green, vermilion, etc. or hex)
   --cover <path>      Cover image path (local or URL)
   --account <alias>   Select account by alias (for multi-account setups)
+  --source-url <url>  "阅读原文" link URL (content_source_url in WeChat draft API)
   --no-cite           Disable bottom citations for ordinary external links in markdown mode
   --dry-run           Parse and render only, don't publish
   --help              Show this help
@@ -537,6 +541,7 @@ interface CliArgs {
   color?: string;
   cover?: string;
   account?: string;
+  sourceUrl?: string;
   citeStatus: boolean;
   dryRun: boolean;
 }
@@ -576,6 +581,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.cover = argv[++i];
     } else if (arg === "--account" && argv[i + 1]) {
       args.account = argv[++i];
+    } else if (arg === "--source-url" && argv[i + 1]) {
+      args.sourceUrl = argv[++i];
     } else if (arg === "--cite") {
       args.citeStatus = true;
     } else if (arg === "--no-cite") {
@@ -768,6 +775,7 @@ async function main(): Promise<void> {
     imageMediaIds: args.articleType === "newspic" ? imageMediaIds : undefined,
     needOpenComment: resolved.need_open_comment,
     onlyFansCanComment: resolved.only_fans_can_comment,
+    contentSourceUrl: args.sourceUrl,
   }, accessToken);
 
   console.log(JSON.stringify({
