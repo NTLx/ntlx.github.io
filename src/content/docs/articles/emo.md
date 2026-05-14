@@ -4,6 +4,7 @@ title: EMO：MoE 的专家原来在给「的」和「了」打工
 date: 2026-05-09
 description: MoE 专家分工不是按数学或编程，而是介词和定冠词。EMO 用一条文档级约束，让模块化从数据里自己长出来。
 coverImage: cover.png
+category: ai-models
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-emo-modularity-img-00.jpg)

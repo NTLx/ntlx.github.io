@@ -3,6 +3,7 @@ $schema: starlight
 title: 别再只顾着跑代码了，你在背负「认知债」吗？
 description: Martin Fowler 旗下最新的深度长文《什么是代码？》，揭示了 AI 时代程序员最容易忽略的陷阱：当代码生成的词汇速度超过你的理解速度，你就已经欠下了沉重的「认知债」。
 date: 2025-05-14
+category: ai-coding
 ---
 
 ![什么是代码核心总结](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2025-05-14-what-is-code/00-infographic-summary-1.png)

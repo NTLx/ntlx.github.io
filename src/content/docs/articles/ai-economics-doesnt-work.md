@@ -4,6 +4,7 @@ title: AI 的账，算不清
 date: 2026-05-01
 description: 所有人都在用 AI，但没人知道它到底多少钱。这才是最大的问题。
 coverImage: cover.png
+category: ai-industry
 ---
 
 凌晨两点，读到一篇长文。Ed Zitron 写的，标题很直白——AI 的经济学说不通。

@@ -4,6 +4,7 @@ title: 当你的 AI 同事开始用 HTML 跟你说话
 date: 2026-05-09
 description: AI 输出从 Markdown 草稿变成 HTML 成品，你是在更深入参与，还是在更优雅旁观？
 coverImage: cover.png
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-html-vs-markdown-infographic-00.jpg)

@@ -3,6 +3,7 @@ $schema: starlight
 title: AI 编码越快，你死得越早
 date: 2026-05-12
 description: 所有人都在比谁写代码快，James Shore 算了一笔没人敢算的账——维护成本
+category: ai-coding
 ---
 
 ![AI 编码与维护成本核心摘要](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-12-ai-maintenance-costs-img-00.jpg)

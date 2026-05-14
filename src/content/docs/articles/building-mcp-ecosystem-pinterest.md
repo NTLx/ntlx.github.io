@@ -3,6 +3,7 @@ $schema: starlight
 title: MCP 不是 USB-C，Pinterest 告诉你真正的门槛在哪
 date: 2026-05-12
 description: 66,000 次月调用、7,000 小时节省——Pinterest 的 MCP 实践揭示了一个被忽略的事实：协议本身不值钱，围绕协议建立的工程纪律才值钱。
+category: ai-agents
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-12-mcp-ecosystem-pinterest-img-00.jpg)

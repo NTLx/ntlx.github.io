@@ -4,6 +4,7 @@ title: Stripe 的 100 毫秒
 date: 2026-04-30
 description: 你点下"购买"后的 100 毫秒里，一个系统正在评估 1000 多个特征来决定你是不是骗子。
 coverImage: cover.png
+category: engineering
 ---
 
 你网购时点下「购买」按钮，到支付成功——大概 100 毫秒。

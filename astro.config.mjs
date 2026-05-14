@@ -71,7 +71,7 @@ export default defineConfig({
 				baseUrl: 'https://github.com/NTLx/ntlx.github.io/edit/main/',
 			},
 			// Favicon
-			favicon: '/favicon.ico',
+			favicon: '/favicon.svg',
 			// 自定义 CSS：引入霞鹜文楷 Screen，仅作用于文章正文
 			customCss: ['./src/styles/fonts.css'],
 			// 显示最后更新时间

@@ -4,6 +4,7 @@ title: AI 写的代码，谁来审？
 date: 2026-05-08
 description: 代码在变便宜，判断力没有。
 coverImage: cover.png
+category: ai-agents
 ---
 
 前两天 GitHub Blog 发了篇文章，标题直接戳到痛处——"Agent pull requests are everywhere"。作者 Andrea Griffiths 是 GitHub 的 Senior Developer Advocate，她说了句大实话：你可能已经审过 Agent 写的 PR 了，只是你没意识到。测试过了，代码看着干净，你点了 Merge。

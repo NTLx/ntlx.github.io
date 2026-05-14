@@ -4,6 +4,7 @@ title: AI 的规模之痛：当模型变强时，系统却在偷偷出错
 date: 2026-05-02
 description: Scaling Law 让模型越来越强，但每天数亿请求的规模下，真正决定用户体验的是底层系统工程的严谨程度。
 coverImage: cover.png
+category: ai-agents
 ---
 
 看了 z.ai 团队最近发的那篇技术博客，讲 GLM-5 在大规模 Coding Agent 服务中踩的坑。说实话，看完有点震撼。不是因为 bug 有多难，而是这件事本身：AI 的 Scaling 不只是模型的问题，底层系统工程一旦跟不上，用户那边就开始看到乱码了。

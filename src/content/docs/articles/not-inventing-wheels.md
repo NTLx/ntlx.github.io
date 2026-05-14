@@ -3,6 +3,7 @@ $schema: starlight
 title: 不发明轮子的人
 date: 2026-05-11
 description: DeepSeek 从来不发明轮子，但它能把别人的轮子装到自己的车上，跑得比发明轮子的人还远。
+category: ai-models
 ---
 
 ![DeepSeek V4 工程整合哲学信息图](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-not-inventing-wheels-img-00.jpg)

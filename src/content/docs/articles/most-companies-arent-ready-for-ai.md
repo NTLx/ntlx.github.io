@@ -7,6 +7,7 @@ tags: [ write ]
 identifier: 20260504T203547
 author: NTLx
 coverImage: cover.png
+category: ai-industry
 ---
 
 Daniel Miessler 写了篇文章，叫「Most Companies Aren't Anywhere Near Ready for AI」，标题看着像又是一篇「企业 AI 成熟度分析」那种东西。

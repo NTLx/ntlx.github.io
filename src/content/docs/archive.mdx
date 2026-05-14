@@ -1,0 +1,48 @@
+---
+title: 文章归档
+description: 全部博客文章按年月倒序归档
+lastUpdated: false
+sidebar:
+  label: 🗂️ 归档
+  order: 1
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { getCollection } from 'astro:content';
+
+export const fmtDate = (d) =>
+  d
+    ? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    : '';
+
+export const allPosts = (await getCollection('docs', ({ id }) => id.startsWith('articles/')))
+  .filter((p) => p.data.date)
+  .sort((a, b) => +b.data.date - +a.data.date);
+
+export const grouped = (() => {
+  const buckets = new Map();
+  for (const p of allPosts) {
+    const d = p.data.date;
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(p);
+  }
+  return [...buckets.entries()];
+})();
+
+> 共 {allPosts.length} 篇文章。按发布时间倒序排列，分类导航请见[首页](/)或顶部侧边栏。
+
+{grouped.map(([month, posts]) => (
+  <section>
+    <h2 id={month}>{month}</h2>
+    <CardGrid>
+      {posts.map((p) => (
+        <LinkCard
+          title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
+          href={`/${p.id}/`}
+          description={p.data.description}
+        />
+      ))}
+    </CardGrid>
+  </section>
+))}

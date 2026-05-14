@@ -4,6 +4,7 @@ title: Agent 没挂，是你的测试挂了
 date: 2026-05-07
 description: Agent 做对了任务但测试亮红灯——问题不在 agent，在"正确"的定义方式本身。
 coverImage: cover.png
+category: ai-agents
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-07-agent-test-trust-img-00.jpg)

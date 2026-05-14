@@ -3,6 +3,7 @@ $schema: starlight
 title: Agent 能跑 demo 不算本事，能跑一年才是
 date: 2026-05-12
 description: 85% 的组织部署了 AI Agent，67% 因缺乏路线图陷入困境。从 demo 到生产，中间隔着四道坎。
+category: ai-agents
 ---
 
 Agent 能跑起来不难，难的是跑一年不出事。

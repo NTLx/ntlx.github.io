@@ -4,6 +4,7 @@ title: 当法律开始定义什么是"应用商店"，开源社区坐不住了
 date: 2026-05-09
 description: 保护儿童没问题，但当年龄验证法从社交媒体下沉到操作系统层，一套为 TikTok 设计的规则正在掐断下一代开发者进入开源的入口。
 coverImage: cover.png
+category: security
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-age-assurance-laws-img-00.jpg)

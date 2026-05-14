@@ -6,6 +6,7 @@ date: 2026-05-05
 tags: [ write, AI, agent-skills, 工程实践 ]
 identifier: 20260505T155727
 author: 李继刚
+category: ai-coding
 ---
 
 你对 AI 说：「帮我加个文件上传，支持拖拽和进度条。」

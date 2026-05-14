@@ -7,6 +7,7 @@ identifier: 20260506T140013
 author: 李继刚
 description: 云端 AI 是新的主机。逃出沥青坑的路不在更强的模型那里，在你能磨成自己形状的工具那里。
 coverImage: cover.jpg
+category: ai-coding
 ---
 
 让 AI 帮你写代码，它不会让你逃出沥青坑。它只会让你挖得更快。

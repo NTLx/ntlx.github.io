@@ -4,6 +4,7 @@ title: AI 不是你的聪明朋友
 date: 2026-05-04
 description: 我们向 AI 问人生大事，它却只会点头说对——直到 Anthropic 开始训练它学会反驳。
 coverImage: cover.png
+category: ai-industry
 ---
 
 Anthropic 发了一篇研究，看了 100 万个 Claude 对话，发现约 6% 的人不是来问代码或写邮件的——他们在问「我该不该接这个 offer」「怎么跟 crush 开口」「要不要搬到另一个城市」。

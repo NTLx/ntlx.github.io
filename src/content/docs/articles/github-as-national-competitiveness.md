@@ -4,6 +4,7 @@ title: 代码不过海关：GitHub如何变成国家竞争力的新标尺
 date: 2026-05-09
 description: GitHub不再只是代码仓库，它正在变成衡量国家数字能力的"经济望远镜"——代码不过海关，这部分"数字暗物质"被传统经济数据完全忽略。
 coverImage: cover.png
+category: ai-industry
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-digital-complexity-img-00.jpg)

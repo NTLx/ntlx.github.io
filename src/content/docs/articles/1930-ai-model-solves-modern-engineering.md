@@ -7,6 +7,7 @@ tags: [ write ]
 identifier: 20260504T191611
 author: NTLx
 coverImage: cover.png
+category: ai-models
 ---
 
 有件事反直觉：一个 2026 年 5 月还能跑在 8 张 B200 上做 SFT 的研究，训练数据截止到 1930 年 12 月 31 日。

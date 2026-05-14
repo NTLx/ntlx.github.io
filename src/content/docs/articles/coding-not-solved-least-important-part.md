@@ -4,6 +4,7 @@ title: 编程没有被解决，只是被解决的那部分恰好最不重要
 date: 2026-05-06
 description: 敲代码从来就不是编程中最难的部分。AI 解决了翻译，但理解问题、做出判断、构建共识——这些才刚开始。
 coverImage: cover.png
+category: ai-coding
 ---
 
 ![全文核心摘要](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-06-coding-solved-infographic-00.jpg)

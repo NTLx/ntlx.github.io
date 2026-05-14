@@ -4,6 +4,7 @@ title: 别管 AI 能不能写代码了，你管理任务的方式才是问题
 date: 2026-05-02
 description: 当 AI 编程不再受限，真正的瓶颈是我们还没学会怎么把活儿派出去
 coverImage: cover.png
+category: ai-agents
 ---
 
 OpenAI 发了一篇博客，叫 Symphony。看完之后，我有一个感觉：**我们一直在问错问题**。

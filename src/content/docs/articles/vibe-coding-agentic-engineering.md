@@ -4,6 +4,7 @@ title: 当 vibe coding 和 agentic engineering 开始模糊，我感到一阵不
 date: 2026-05-07
 description: Simon Willison 发现他不再审查 AI 写的每一行代码了。这让我想起信任一个没有声誉、没有问责的同事，那种感觉叫道德负债。
 coverImage: cover.png
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-07-vibe-coding-agentic-img-00.jpg)

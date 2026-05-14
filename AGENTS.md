@@ -1,309 +1,84 @@
-# CLAUDE.md
+# AGENTS.md
 
-此文件为 Claude Code (claude.ai/code) 在处理本仓库代码时提供指导。
+此文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的共享入口约定。详细规范分散在以下三个权威文件，本文件仅做入口聚合：
 
-## 项目概览
+- 微信 + 博客双轨发布管线 → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
+- 技术博文编写规范 → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
+- web 联网约定 → [`.agents/skills/web-access/SKILL.md`](.agents/skills/web-access/SKILL.md)
 
-这是一个基于 [Astro Starlight](https://starlight.astro.build/) 构建的个人知识库和博客，同时集成了微信公众号文章写作管线。内容涵盖操作系统、HPC、网络工具、DevOps、生物信息学以及商业/科技评论等主题。网站托管在 GitHub Pages 上。
+## 项目定位
+
+基于 [Astro Starlight](https://starlight.astro.build/) 构建的个人知识库 + 博客，托管在 GitHub Pages。除知识库类技术文档（操作系统、HPC、网络工具、DevOps 等）外，还集成微信公众号 + 博客双轨发布管线，目录 `src/content/docs/articles/` 即博客文章。
 
 ## 开发命令
 
-- **安装依赖**: `npm install` (需要 Node.js 22+)
-- **启动开发服务器**: `npm run dev` (运行在 http://localhost:4321)
-- **构建生产版本**: `npm run build` (输出到 `dist/` 目录)
-- **预览生产构建**: `npm run preview`
-- **Lint/检查**: TypeScript 使用 `astro/tsconfigs/strict` 配置。package.json 中未定义特定的 lint 命令。
+- **安装依赖**：`npm install`（Node.js 22+）
+- **启动开发服务器**：`npm run dev`（运行在 <http://localhost:4321>）
+- **构建生产版本**：`npm run build`（输出到 `dist/`）
+- **预览生产构建**：`npm run preview`
+- **同步内容集合**（新增/重命名 `src/content/docs/` 文件后）：`npx astro sync`
+- **清缓存重试**：`rm -rf .astro/ && npm run build`
 
-:::note[测试命令]
-本项目目前没有定义单元测试或端到端测试脚本。如需添加测试，建议使用 Astro 的内置测试支持或 Vitest。
-:::
+## 目录结构
 
-## 工具脚本
+- `src/content/docs/`：所有页面（Markdown / MDX），目录大致对应侧边栏分类
+- `src/content/docs/articles/`：博客文章；6 个分类索引页（`ai-coding/ai-agents/ai-industry/ai-models/security/engineering`.mdx）基于 frontmatter `category` **动态生成**，新增文章只需写对 `category`
+- `src/content/docs/guides/`：知识库类编写规范文档（含 [`authoring-guide.md`](src/content/docs/guides/authoring-guide.md)）
+- `src/content.config.ts`：内容集合 schema（含 `date` / `updated` / `category` / `tags`）
+- `src/components/`：自定义 Astro 组件
+- `posts/YYYY-MM-DD-slug/`：管线中间产物（`.gitignore`），最终产物落到 `src/content/docs/articles/`
+- `.agents/skills/`：项目级技能源（必须入库）
+- `.baoyu-skills/<skill>/EXTEND.md`：技能偏好配置（必须入库；密钥单独放 `~/.baoyu-skills/.env`）
+- `.github/workflows/deploy.yml`：推 `main` → 自动构建并部署到 GitHub Pages
+- `public/`：静态资源（`favicon.ico` / `CNAME`）
 
-- **文档迁移**: `python3 migrate_docs.py` - 将旧版 Markdown 文件从 `docs/` 迁移到 `src/content/docs/`，自动添加 frontmatter 并将 GitHub Alerts 转换为 Starlight Asides。
+## Skill 系统入口
 
-## 架构与结构
+- 项目级技能在 `.agents/skills/`，每个技能一个目录，含 `SKILL.md`（执行入口）、`scripts/`（可执行脚本）、`references/`（参考文档）
+- 调用方式两种：**Skill 工具调用型**（读 `SKILL.md` 走工作流）/ **脚本执行型**（`bun run <skill>/scripts/...`）
+- 用 `npx skills` 管理版本，锁文件 `skills-lock.json` 入库
+- 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
 
-- **框架**: Astro v6 + Starlight v0.39
-- **配置**:
-  - `astro.config.mjs`: 主配置文件。定义了网站标题、集成、Google Analytics 以及**侧边栏导航结构**。
-  - `package.json`: 依赖和脚本。
-- **内容**:
-  - `src/content/docs/`: 包含所有文档页面 (Markdown/MDX)。
-  - 目录结构大致对应侧边栏分类 (例如 `operating-systems/`, `hpc-cluster/`, `devops/`)。
-  - `src/content/docs/articles/`: 微信公众号文章写作管线产出的文章。
-  - `src/content/docs/articles/*.mdx`: 6 个分类索引页（ai-coding、ai-agents、ai-industry、ai-models、security、engineering），用 `<LinkCard>` 聚合同类文章链接。
-  - `src/content.config.ts`: 定义内容集合 (collections) 和 schema。
-- **组件**:
-  - `src/components/`: 自定义 Astro 组件，用于扩展 Starlight 主题功能。
-- **资源**:
-  - `public/`: 静态资源，如 `favicon.ico`, `CNAME` 和图片。
-- **部署**:
-  - `.github/workflows/deploy.yml`: GitHub Actions 工作流，在推送到 `main` 分支时自动构建并部署到 GitHub Pages。
+## 管线入口（wechat-article-write）
 
-## Skill 系统
+完整 15 阶段流水线（Step 0–10，含 2.5 / 4.5 / 4.6 / 9.5）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，关键事实：
 
-- 项目级技能位于 `.agents/skills/`，每个技能是一个包含 `SKILL.md` 的目录
-- 技能通过 EXTEND.md 配置运行时行为（`quick_mode`、`preferred_image_backend` 等），配置路径在各技能 SKILL.md 中定义
-- 调用技能时读取其 `SKILL.md` 中的工作流指令
-- 技能分两种调用方式：**Skill 工具调用型**（baoyu-cover-image、ljg-writes、humanizer-zh、baoyu-article-illustrator）通过 Skill 工具加载 SKILL.md 执行；**脚本执行型**（baoyu-imagine、github-image-hosting 等）查找 `scripts/` 目录执行脚本
-- 脚本执行使用 `bun run`（非 `bun x`）
-- 使用 `npx skills` 管理技能版本，版本锁文件为 `skills-lock.json`
+- **发布顺序**：博客先发（Step 9）→ 等 Pages 部署（Step 9.5）→ 微信草稿（Step 10），保证微信"阅读原文"链接 200
+- **图床前置**：Step 4.6 在生成 HTML 前先把图片上传图床并产出 `image-map.json`，Step 5 同时生成 `article.md`（CDN 版）/ `article-local.md`（降级备份）
+- **CDN 降级**：Step 8 / Step 10 通过 `scripts/run-with-cdn-fallback.sh` 自动切换，详见 [`references/cdn-fallback.md`](.agents/skills/wechat-article-write/references/cdn-fallback.md)
+- **状态化**：每步状态写入 `posts/<slug>/.pipeline-state.json`，便于断点续跑
+- 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 不必再手写 frontmatter / sed / curl 轮询
 
-## wechat-article-write 管线
+## 硬规则
 
-完整管线定义见 `.agents/skills/wechat-article-write/SKILL.md`。
-
-- **输出目录**：中间产物在 `posts/YYYY-MM-DD-slug/`（gitignored），最终文章在 `src/content/docs/articles/`
-- **13 步流水线（Step 0-11，含 Step 4.5）**：依赖预检 → 资料收集 → 创作 → 封面 → 插图 → 信息图 → 图床 → CDN整合 → 去AI痕迹 → 格式化 → HTML → 发布到微信 → 发布到博客
-- **Step 11（发布到博客）**：复制 article.md 到 `src/content/docs/articles/`（summary→description，移除 coverImage）→ 在对应分类索引页添加 `<LinkCard>` 条目
-
-## 内容指南
-
-1. **添加新页面**:
-    - 在 `src/content/docs/` 下的相应子目录中创建 `.md` 或 `.mdx` 文件。
-    - 添加至少包含 `title` 的 frontmatter。
-    - **侧边栏已自动化**：`astro.config.mjs` 使用 `autogenerate` 按目录自动生成侧边栏，新增文章无需手动修改配置。
-    - 新增 `articles/` 下的文章后，需手动在对应分类索引页（如 `articles/ai-coding.mdx`）中添加一行 `<LinkCard>`。
-
-2. **添加新文章的完整流程**:
-    1. 将 `.md` 文件放入 `src/content/docs/articles/`（扁平结构，不建子目录）
-    2. 确定文章属于哪个分类（ai-coding / ai-agents / ai-industry / ai-models / security / engineering）
-    3. 在对应的 `articles/<分类>.mdx` 索引页中，按日期降序插入一行：
-       ```mdx
-       <LinkCard title="(YYYY-MM-DD) 文章标题" href="/articles/slug/" />
-       ```
-    4. 如果标题含特殊字符（中文引号 `""` 等），使用模板字符串语法：
-       ```mdx
-       <LinkCard title={`(YYYY-MM-DD) 含"特殊字符"的标题`} href="/articles/slug/" />
-       ```
-
-3. **Frontmatter 格式**:
-    ```yaml
-    ---
-    title: 页面标题
-    description: 可选描述
-    ---
-    ```
-
-    管线产出的文章使用扩展 frontmatter：
-    ```yaml
-    ---
-    $schema: starlight
-    title: 文章标题
-    description: 文章摘要
-    date: 2026-05-10
-    ---
-    ```
-
-4.  **语言规范**:
-    - 如未指定，默认使用中文撰写博客文章。
-
-## 踩坑记录
-
-从实际开发中总结的关键约束，违反会导致构建失败或内容丢失。
-
-### URL 稳定性原则（极其重要）
-
-**绝对不能移动 `articles/` 下已有文章的文件路径。** 文章一旦发布，其 URL（如 `ntlx.github.io/articles/slug/`）就会在互联网上被引用（社交媒体、搜索引擎、RSS 订阅者）。移动文件 = 所有外部链接 404。
-
-如需做分类导航，正确做法是：
-- ✅ 创建分类索引页（`.mdx`），用 `<LinkCard>` 链接到文章
-- ✅ 在首页用 `<CardGrid>` 做分类卡片入口
-- ❌ 将文章移动到子目录（如 `articles/ai-coding/xxx.md`）
-- ❌ 重命名已有文章文件
-
-### Starlight v0.39 Sidebar API 变更
-
-`autogenerate` **不再是** sidebar group 的顶层属性。必须嵌套在 `items` 数组内：
-
-```js
-// ❌ 旧写法（v0.38 及以前）— v0.39 会报 AstroUserError
-{ label: '文章', collapsed: true, autogenerate: { directory: 'articles' } }
-
-// ✅ 新写法（v0.39+）
-{ label: '文章', collapsed: true, items: [{ autogenerate: { directory: 'articles' } }] }
-```
-
-### MDX 中 JSX 属性的特殊字符
-
-MDX 文件中的 JSX 组件属性值如果包含中文引号 `""`、`<`、`>` 等字符，会导致 MDX 解析器报错（`Unexpected character in attribute name`）。
-
-解决方案：将 `title="..."` 改为模板字符串 `title={`...`}`：
-
-```mdx
-// ❌ 会报错
-<LinkCard title="含"中文引号"的标题" href="/articles/slug/" />
-
-// ✅ 正确
-<LinkCard title={`含"中文引号"的标题`} href="/articles/slug/" />
-```
-
-### 文件名必须为小写 ASCII kebab-case
-
-Starlight 的内容集合（content collection）对文件名有严格限制：
-
-- **不支持中文文件名**：包含非 ASCII 字符的文件名不会被内容集合收录，构建时报 `The slug specified in the Starlight sidebar config does not exist`
-- **slug 自动转小写**：`AI-eval-costs-bottleneck.md` 的 slug 是 `articles/ai-eval-costs-bottleneck`（全小写），sidebar 配置中写大写会导致构建失败
-- **标题可以是中文**：文件名是 URL 的一部分（必须 ASCII），标题只是显示用的标签（可以任意语言）
-
-正确做法：
-```
-文件名：ai-era-company-moat.md
-frontmatter title：产品可以抄，但公司的形状抄不走
-sidebar slug：articles/ai-era-company-moat
-```
-
-### 构建验证检查清单
-
-每次修改内容或配置后，按顺序执行：
-
-1. `npx astro sync` — 同步内容集合（新增/删除/重命名文件后必须执行）
-2. `npm run build` — 验证构建成功
-3. 如果构建失败且原因不明确，清除缓存重试：`rm -rf .astro/ && npm run build`
-
-常见构建失败原因：
-- sidebar slug 与实际文件名不匹配（大小写、中文）
-- 文章引用了不存在的本地图片
-
-### 正文禁止 H1 标题
-
-Starlight 自动将 frontmatter `title` 渲染为 `<h1>`。正文中**不得**以 `# 标题` 开头，否则页面会出现两个标题。管线 Step 2（创作）和 Step 11（发布）都需要注意这一点。
-
-错误：`# 当写代码不再需要写代码`（正文第一行）
-正确：直接以段落或 `##` 二级标题开始正文
-
-### Git 跟踪规则
-
-- `.agents/skills/` — 技能源文件，**必须入库**
-- `.claude/skills/` — Claude Code 自动生成的符号链接，**已通过 .gitignore 排除**
-- `skills-lock.json` — 技能版本锁文件，**必须入库**
-- frontmatter 格式错误（缺少 `title`）
-
-### 管线相关踩坑
-
-图片 CDN URL 要求、Frontmatter 字段映射、CDN 缓存策略等管线特定约束，详见 `.agents/skills/wechat-article-write/SKILL.md` 的"博客发布约束"章节。
-
-## 内容分发质量守则
-
-为了防止自动流水线在复杂操作中发生级联故障，Agent 在执行任何多步内容构建或发布任务时，必须严格遵守以下工程铁律：
-
-1. **幂等操作与状态回滚 (Idempotence & State Rollback)**：
-   在执行多步文件处理（如 sed 替换、Python 脚本修改文件）时，严禁在发生错误后对已损坏的文件（Dirty State）继续打补丁。如果验证失败，必须从上一个干净的备份（如 `draft.md`）重新生成，或执行 `git checkout` 恢复原状。禁止使用临时拼凑的内联 Python 脚本进行复杂的 DOM/文本树修改，应优先使用可靠的解析器或内置技能。
-
-2. **防呆检查 (Sanity Checks) 与 验证驱动执行 (VDE)**：
-   对于任何向外部生产环境（如微信公众号、GitHub 仓库）提交数据的操作，必须在执行提交命令前进行终态验证。
-   - 必须抽查最终 Markdown/HTML 的格式（例如是否存在异常的空行、未解析的占位符）。
-   - 必须通过检查文件树确认所有被引用的本地图片路径真实存在。
-   - 绝对禁止“写完代码/脚本后立刻执行发布”的开环盲盒操作。
-
-3. **路径绝对化规范 (Path Safety)**：
-   在编排跨脚本或跨目录的工具链时，必须优先计算和传递绝对路径（Absolute Paths）。在使用批量处理工具时，必须验证目标目录的层级结构，严禁基于直觉猜测工具的 CWD（当前工作目录）行为。
+| 规则 | 详情 |
+| --- | --- |
+| **URL 稳定性** | 不重命名、不移动 `articles/` 下已有文章。已有 60+ 篇文章 URL（如 `ntlx.github.io/articles/<slug>/`）已被外部引用，移动 = 全网 404 |
+| **正文禁止 H1** | Starlight 自动把 frontmatter `title` 渲染为 `<h1>`。正文不得以 `# ` 开头，否则页面双标题 |
+| **文件名 kebab-case** | `articles/` 下文件名必须为小写 ASCII kebab-case；`AI-Foo.md` 与 `ai-foo.md` 视为同名冲突；标题字段可任意语言 |
+| **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
+| **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
+| **Git 跟踪** | `.agents/skills/` ✅ 入库；`.claude/skills/` ❌（gitignore，符号链接）；`skills-lock.json` ✅；`posts/` ❌（gitignore） |
 
 ## 部署
 
-- 部署通过 GitHub Actions 自动化进行。
-- 推送到 `main` 分支会触发构建和部署流程。
-- 自定义域名配置通过 `public/CNAME` 处理。
+- 推 `main` → GitHub Actions 自动构建 + 上传 GitHub Pages → 部署到 <https://ntlx.github.io/>
+- 自定义域名走 `public/CNAME`
+- 手动触发：在 Actions 页面运行 "Deploy to GitHub Pages" 工作流
 
-**部署流程**:
-1. 推送代码到 `main` 分支
-2. GitHub Actions 自动运行构建任务
-3. 构建产物上传到 GitHub Pages
-4. 网站自动部署到 https://ntlx.github.io/
+## 内容分发质量守则
 
-**手动触发部署**:
-- 在 GitHub 仓库的 Actions 页面手动运行 "Deploy to GitHub Pages" 工作流
+为防止自动流水线在复杂操作中级联故障，agent 在执行任何多步内容构建或发布任务时，必须严格遵守以下工程铁律：
 
-## 文档编写最佳实践
+1. **幂等操作与状态回滚**：多步文件处理（sed / Python / 内联脚本）出错后**严禁**对脏文件继续打补丁。验证失败必须从上一个干净备份（如 `draft.md` / `article-local.md`）重新生成，或 `git checkout` 恢复原状。复杂 DOM / 文本树修改优先用解析器或内置技能，不要临时拼凑内联 Python。
 
-### 联网搜索与浏览器使用
+2. **防呆检查与验证驱动执行（VDE）**：向外部生产环境（公众号 / GitHub）提交数据前必须做终态验证：
+   - 检查最终 Markdown / HTML 格式（异常空行、未解析占位符）
+   - 检查所有引用图片的本地路径真实存在
+   - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作（管线已通过 `validate-pipeline.sh` 提供阶段化校验）
 
-1. **优先使用 BrowserOS MCP 工具**：
-   - 当需要访问互联网时，使用 BrowserOS MCP 中的工具（如 `browser_navigate`, `browser_get_page_content`）
-   - 搜索引擎优先使用 `google.com/ncr`
-   - 避免使用 `WebFetch` 工具，因为 BrowserOS 提供更好的浏览器模拟和内容提取能力
+3. **路径绝对化**：跨脚本 / 跨目录工具链统一用绝对路径，**严禁**基于直觉猜测 CWD 行为；批量处理工具运行前先验证目录层级。
 
-2. **访问官方文档的流程**：
-   - 使用 `browser_navigate` 导航到目标 URL
-   - 使用 `browser_get_load_status` 检查页面加载状态
-   - 使用 `browser_get_page_content` 获取页面文本内容（而非截图）
-   - 对于长文档，使用 `page` 参数进行分页获取
+## 技术博文编写规范
 
-### 技术博文编写规范
-
-1. **信息层次设计**：
-   - 采用"是什么 → 为什么 → 怎么做 → 出问题怎么办"的结构
-   - 使用渐进式信息披露，避免一次性抛出过多信息
-
-2. **跨平台兼容性**：
-   - 技术教程必须同时提供 Linux/macOS/Windows 三个平台的命令示例
-   - Windows 命令使用 PowerShell，并添加容错参数（如 `-ErrorAction SilentlyContinue`）
-   - 为不同 Shell（Bash/Zsh/Fish）提供对应的配置方法
-   - 对于 Unix-only 工具（如 tmux、proxychains），提供 WSL 安装指南作为 Windows 替代方案
-
-3. **Starlight Asides 组件使用**：
-   - `:::tip` - 用于提供额外的上下文或解释设计理念
-   - `:::caution` - 用于警告用户可能的数据丢失或不可逆操作
-   - `:::note` - 用于补充说明
-   - 示例：
-     ```markdown
-     :::caution[重要提示]
-     删除这些文件将清除你的登录会话。建议先备份。
-     :::
-     ```
-
-4. **代码块规范**：
-   - 为代码块添加语言标识符（bash, powershell, json, toml 等）
-   - 为复杂命令添加注释说明
-   - 提供"临时生效"和"永久生效"两种配置方式
-   - **检查中文引号**：用户粘贴的代码（尤其是 JSON）可能使用中文引号 `""`，需修正为英文引号 `""`
-
-5. **外部链接引用**：
-   - 引用官方文档时使用 Markdown 链接格式，并说明链接内容
-   - 例如：`根据 [Claude Code 官方文档](https://code.claude.com/docs/zh-CN/settings)`
-
-### 环境变量配置文档模式
-
-当编写环境变量配置指南时，应包含：
-
-1. **优先级说明**：明确环境变量 > 配置文件的优先级
-2. **临时配置**：使用 `export`（Unix）或 `$env:`（PowerShell）的单行命令
-3. **永久配置**：
-   - Unix: 编辑 `.bashrc`/`.zshrc` 或使用 `echo >> ~/.zshrc`
-   - Windows: 系统环境变量（GUI）、PowerShell Profile、或 `SetEnvironmentVariable`
-4. **多种选择**：为不同技能水平的用户提供多种配置方案
-
-### 故障排除章节编写
-
-1. **问题导向**：直接列出用户可能遇到的具体症状
-2. **提供选择**：如"完全重置"vs"精确操作"，满足不同需求
-3. **风险提示**：在执行危险操作前使用 `:::caution` 明确告知后果
-4. **引用权威**：引用官方文档增加可信度
-
-### 开发服务器使用
-
-- 使用 `npm run dev` 启动开发服务器（运行在 http://localhost:4321）
-- 可以使用 `run_in_background: true` 参数在后台运行
-- 使用 BrowserOS 工具预览修改效果，而非直接访问文件系统
-- 大型文件（如 privoxy.md）可能超出 token 限制，使用 `limit` 参数分块读取
-
-### Git 提交规范
-
-使用 Conventional Commits 格式：
-```
-docs: 简短描述（不超过 50 字符）
-
-- 详细说明修改内容（如果需要）
-- 使用列表格式说明多个变更点
-```
-
-示例：
-```
-docs: 优化 Claude Code 配置文件删除说明
-
-- 添加基于官方文档的配置文件详细列表
-- 增加删除操作的警告提示
-- 提供完全重置和精确删除两种方案
-- 改进跨平台命令的容错性
-```
+迁移至 [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)（联网工具、跨平台命令、Asides、代码块、Git 提交等）。

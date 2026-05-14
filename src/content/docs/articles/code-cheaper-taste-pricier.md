@@ -4,6 +4,7 @@ title: "代码越来越便宜，品味越来越贵"
 date: 2026-05-06
 description: "代码变得越来越便宜，'决定写什么'变得越来越贵——产品品味成了AI时代最稀缺的能力。"
 coverImage: cover.png
+category: ai-coding
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-06-code-taste-img-00.jpg)

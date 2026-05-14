@@ -4,6 +4,7 @@ title: 安全防守方不需要最大的模型——CyberSecQwen-4B 让我想通
 date: 2026-05-09
 description: 对安全防守方来说，最好的 AI 不是参数最多的那个，是你自己掌控的那个。
 coverImage: cover.png
+category: security
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-09-cybersecqwen-img-00.jpg)

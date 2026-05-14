@@ -7,6 +7,7 @@ tags: [ write ]
 identifier: 20260501T013740
 author: 李继刚
 coverImage: cover.png
+category: engineering
 ---
 
 凌晨翻到 Wise 工程团队发的 2025 技术栈更新，看完有一个感受——**真正成熟的技术团队，写的东西往往很无聊。**

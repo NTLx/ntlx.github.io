@@ -4,6 +4,7 @@ title: Elasticsearch 到 pgvector：Instacart 如何用 Postgres 干掉一堆专
 date: 2026-05-06
 description: Instacart 把 Elasticsearch、FAISS 全砍了，只用 Postgres 做搜索，结果还变好了。
 coverImage: cover.jpg
+category: engineering
 ---
 
 看完 Instacart 工程师写的搜索架构文章，我最大的感受是——他们走的这条路，跟我很多项目里的直觉一模一样：**别急着引入新东西，先把手里的工具榨干。**

@@ -3,6 +3,7 @@ $schema: starlight
 title: AI 写的 PR 淹没了开源，但有一帮人想出了另一种玩法
 date: 2026-05-11
 description: Agent 能一小时写十个 PR，但维护者要的是那一个值得读的。Hugging Face 用一份 15000 字的 Skill 教会了 AI 什么叫「不写」。
+category: ai-industry
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-11-transformers-to-mlx-img-00.jpg)

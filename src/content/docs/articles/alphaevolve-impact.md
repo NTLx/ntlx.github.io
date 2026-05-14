@@ -4,6 +4,7 @@ title: 当AI开始设计运行自己的芯片：AlphaEvolve一周年回顾
 date: 2026-05-08
 description: 一个AI系统优化了运行自己的芯片——算法发现这件事本身正在被算法化。
 coverImage: cover.png
+category: ai-models
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-08-alphaevolve-impact-img-00.jpg)

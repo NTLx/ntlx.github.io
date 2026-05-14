@@ -3,6 +3,7 @@ $schema: starlight
 title: 缩放定律变成三条之后
 date: 2026-05-12
 description: 三条缩放定律叠加在一起，算力需求不是加法，是乘法
+category: ai-industry
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-12-aws-scaling-laws-img-00.jpg)
