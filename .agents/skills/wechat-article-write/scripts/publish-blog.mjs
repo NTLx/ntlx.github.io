@@ -23,11 +23,11 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { writeStep } from "./state-lib.mjs";
 
 const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
-const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
 function postsRoot() {
   return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
@@ -257,17 +257,12 @@ bun run .agents/skills/wechat-article-write/scripts/wait-pages-deployed.mjs "$SL
   process.stdout.write(`written: ${resumePath}\n`);
 }
 
-// 写 state：push 成功 = done；push 失败 = blocked（保留 commit sha，便于后续续跑）
-const stateScript = resolve(SCRIPT_DIR, "state.mjs");
+// 写 state：push 成功 = done；push 失败 = blocked
 const finalStatus = pushBlocked ? "blocked" : "done";
 const stateExtra = pushBlocked
   ? { commit: sha, slug, pushed: false, push_error: pushError, resume_file: "RESUME.md" }
   : { commit: sha, slug, pushed };
-spawnSync("bun", [
-  "run", stateScript,
-  "set", dateSlug, "9", finalStatus,
-  JSON.stringify(stateExtra),
-], { stdio: "inherit", cwd: repoRoot() });
+writeStep(dateSlug, "9", finalStatus, stateExtra);
 
 process.stdout.write(JSON.stringify({
   slug,

@@ -39,18 +39,15 @@
 - 用 `npx skills` 管理版本，锁文件 `skills-lock.json` 入库
 - 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
 
-## 管线入口（wechat-article-write）
+## 管线概览（wechat-article-write）
 
-完整 15 阶段流水线（Step 0–10，含 2.5 / 4.5 / 4.6 / 9.5）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，关键事实：
+完整 15 阶段流水线（Step 0–10，含 2.5 / 4.5 / 4.6 / 9.5）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
 
-- **发布顺序**：博客先发（Step 9）→ 等 Pages 部署（Step 9.5）→ 微信草稿（Step 10），保证微信"阅读原文"链接 HTTP 200
-- **图床前置**：Step 4.6 在生成 HTML 前先把图片上传图床并产出 `image-map.json`，Step 5 同时生成 `article.md`（CDN 版）/ `article-local.md`（降级备份）
-- **CDN 降级**：Step 8 / Step 10 通过 `scripts/run-with-cdn-fallback.sh` 自动切换，详见 [`references/cdn-fallback.md`](.agents/skills/wechat-article-write/references/cdn-fallback.md)
-- **状态写入强制**：每步完成后必须写入 `posts/<slug>/.pipeline-state.json`（通过 `state.mjs set`），断点续跑依赖此文件——状态写入不是可选的
-- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下的本地目录名（可含中文）；blog-slug 是 `articles/` 下的 URL 文件名（必须纯 ASCII kebab-case，`^[a-z][a-z0-9-]*[a-z0-9]$`）。当 date-slug 含中文时，Step 2.5 写入 `blogSlug` 到 frontmatter，Step 9 通过 `--blog-slug` 显式传入
-- **阅读原文链接**：`--source-url` 从 Step 10 全链贯通（publish-wechat → post-draft → wechat-api → 微信 `content_source_url`），必须传入博客文章 URL
-- **article-local.md 禁用于发布**：该文件仅是 CDN 降级备份，Step 9 博客发布和 Step 10 微信发布必须使用 `article.md`（CDN 版）
-- 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 不必再手写 frontmatter / sed / curl 轮询
+- **发布顺序**：博客先发（Step 9）→ 微信草稿（Step 10）。sourceUrl 预先填入，不等 Pages 部署即发布（约 1-3 分钟 404 窗口）
+- **状态写入全内聚**：每个 Step 完成后由对应脚本自动写入 `.pipeline-state.json`，agent 不需要手动调用 `state.mjs set`
+- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下的本地目录名（可含中文）；blog-slug 是 `articles/` 下的 URL 文件名（必须纯 ASCII kebab-case）
+- **article-local.md 禁用于发布**：该文件仅是 CDN 降级备份，必须使用 `article.md`（CDN 版）
+- 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 只调用脚本、解读退出码
 
 ## 硬规则
 
@@ -62,8 +59,6 @@
 | **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
 | **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
 | **Git 跟踪** | `.agents/skills/` ✅ 入库；`.claude/skills/` ❌（gitignore，符号链接）；`skills-lock.json` ✅；`posts/` ❌（gitignore） |
-| **Pipeline state 强制写入** | 管线每步完成后必须 `state.mjs set`，断点续跑和失败恢复依赖 `.pipeline-state.json`——跳过状态写入 = 断点续跑失效 |
-| **article-local.md 禁发布** | `article-local.md` 仅作 CDN 降级备份，禁止用于 Step 9（博客）或 Step 10（微信）发布，必须用 `article.md`（CDN 版） |
 
 ## 部署
 
