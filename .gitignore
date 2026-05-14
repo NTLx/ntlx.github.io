@@ -1,105 +1,36 @@
-# ==========================================
 # Dependencies
-# ==========================================
 node_modules/
-package-lock.json
-# pnpm-lock.yaml
-# yarn.lock
 
-# ==========================================
-# Build Output
-# ==========================================
+# Build output
 dist/
-.astro/
-.vercel/
-.netlify/
 
-# ==========================================
-# Logs
-# ==========================================
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-*.log
-
-# ==========================================
-# Environment Variables
-# ==========================================
+# Environment
 .env
-.env.production
-.env.local
-.env.*.local
+.env.*
 
-# ==========================================
-# OS Generated Files
-# ==========================================
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# ==========================================
-# IDE & Editor
-# ==========================================
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# Editor
+.vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# ==========================================
-# Python (for migrate_docs.py)
-# ==========================================
-__pycache__/
-*.py[cod]
-*$py.class
-.python-version
-.venv/
-venv/
-ENV/
-env/
-
-# ==========================================
-# Claude Code
-# ==========================================
-# .claude/ 目录结构保留，但排除自动生成的符号链接和缓存
-.claude/skills/
-.claude/memory/
-
-# ==========================================
-# Documentation (Explicitly Tracked)
-# ==========================================
-!docs/
-
-# ==========================================
-# WeChat Article Pipeline (intermediate artifacts)
-# ==========================================
+# Pipeline intermediates
 posts/
-infographic/
-sources/
-url-to-markdown/
-.playwright-mcp/
 
-# Bun
-bun.lockb
-bun.lock
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Skill scripts node_modules (managed independently)
-.agents/skills/*/scripts/node_modules/
-.agents/skills/*/scripts/bun.lockb
-.agents/skills/*/scripts/bun.lock
+# Astro cache
+.astro/
 
-
-# Claude Code local config
+# Claude Code auto-generated symlinks
 .claude/
 
-# baoyu skills: EXTEND.md tracked (project-level), .env excluded by root .env rule
+# Backup files
+*.bak*
