@@ -46,8 +46,9 @@
 - **发布顺序**：博客先发（Step 9）→ 微信草稿（Step 10）。sourceUrl 预先填入，不等 Pages 部署即发布（约 1-3 分钟 404 窗口）
 - **状态写入全内聚**：每个 Step 完成后由对应脚本自动写入 `.pipeline-state.json`，agent 不需要手动调用 `state.mjs set`
 - **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下的本地目录名（可含中文）；blog-slug 是 `articles/` 下的 URL 文件名（必须纯 ASCII kebab-case）
-- **article-local.md 禁用于发布**：该文件仅是 CDN 降级备份，必须使用 `article.md`（CDN 版）
+- **双轨分离**：博客轨只消费 `article.md`（Markdown + CDN URL），不生成 HTML；微信轨使用 `article-local.md` → `article-wechat.html`（本地 imgs/ 路径），wechat-api.ts 直接读本地文件上传
 - 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 只调用脚本、解读退出码
+- **run-with-cdn-fallback.sh 已废弃**：微信轨全程本地文件操作（零 CDN 依赖），博客轨不生成 HTML，CDN 降级场景不存在
 
 ## 硬规则
 
@@ -79,7 +80,7 @@
 
 3. **路径绝对化**：跨脚本 / 跨目录工具链统一用绝对路径，**严禁**基于直觉猜测 CWD 行为；批量处理工具运行前先验证目录层级。
 
-4. **发布输入源校验**：Step 9（博客）和 Step 10（微信）的输入文件必须是 `article.md`（CDN URL 版），**严禁**使用 `article-local.md`（本地路径降级备份）作为发布输入——该文件头已标注警告，但脚本层不拦截，靠 agent 自觉遵守。
+4. **发布输入源校验**：Step 9（博客）的输入文件必须是 `article.md`（CDN URL 版）；Step 10（微信）的输入文件是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
 ## 技术博文编写规范
 

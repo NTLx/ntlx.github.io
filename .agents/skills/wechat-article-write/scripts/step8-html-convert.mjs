@@ -84,13 +84,21 @@ if (existsSync(localHtml)) {
   process.exit(2);
 }
 
-// font-family 声明中的字体名用双引号包裹（如 "Source Han Serif SC"）
-// 嵌套在 style="..." 属性内会导致属性值截断，微信 API 解析器对此更严格
-// 修复：将 font-family: "..." 中的内嵌双引号替换为单引号
+// 微信 WebView 不加载自定义字体，font-family 声明全部回退到系统默认，没有实际意义。
+// 反而会引发双引号嵌套（style="font-family: "X""）被微信 API 解析器截断的问题。
+// 处理：先将 font-family 值中的内层引号替换为单引号（消除 style 属性值截断），再删除整个声明。
 let html = readFileSync(wechatHtml, "utf8");
-html = html.replace(/font-family:\s*((?:&quot;|")[^;,]+?(?:&quot;|")(?:\s*,\s*(?:&quot;|")[^;,]+?(?:&quot;|"))*)/g, (_match, familyValue) => {
-  return `font-family: ${familyValue.replace(/&quot;/g, "'").replace(/"/g, "'")}`;
+// 第一步：消除 font-family 值中与外层 style="..." 冲突的引号
+html = html.replace(/font-family:\s*((?:&quot;|")[^;,]+?(?:&quot;|")(?:\s*,\s*(?:&quot;|")[^;,]+?(?:&quot;|"))*)/g, (_m, quoted) => {
+  return `font-family: ${quoted.replace(/&quot;/g, "'").replace(/"/g, "'")}`;
 });
+// 第二步：删除 font-family 声明（此时值内已无冲突引号，[^;]+ 可安全匹配到分号）
+html = html.replace(/font-family:\s*[^;]+;/g, "");
+// 清理残留：空 style 属性、连续分号、多余空格、style 值开头空白
+html = html.replace(/style="\s*"/g, "");
+html = html.replace(/;\s*;(?!\s*important)/g, ";");
+html = html.replace(/; {2,}/g, "; ");
+html = html.replace(/style=" /g, "style=\"");
 writeFileSync(wechatHtml, html);
 
 // 验证
