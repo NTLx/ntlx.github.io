@@ -24,6 +24,8 @@ export const collections = {
 					.optional(),
 				// 标签：未来可用于 tag 索引或 SEO，本期 schema 仅声明，不强制使用。
 				tags: z.array(z.string()).optional(),
+				// 信息图插入位置：管线 Step 4.5 根据此值决定信息图引用插入位置。
+				infographicPosition: z.enum(['top', 'before-conclusion', 'skip']).optional(),
 			}),
 		}),
 	}),

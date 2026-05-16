@@ -1,51 +1,41 @@
 #!/usr/bin/env bun
 /**
- * 基于关键词命中给文章推荐分类。
+ * 基于关键词命中给文章推荐分类（v2 — 外部 JSON 关键词 + anti-keyword + N-gram + tags 加权 + gap 置信度）
  *
  * 用法:
- *   bun run suggest-category.mjs <draft.md>
- * 输出（stdout）:
- *   {"recommended":"ai-coding","confidence":0.78,"alternative":"ai-agents","scores":{...}}
- * 退出码:
- *   0 成功；1 参数错误；2 文件不存在
+ *   bun run suggest-category.mjs <draft.md> [--json]
+ * 输出（stdout, JSON）:
+ *   {"recommended":"ai-coding","confidence":0.78,"low_confidence":false,"alternative":"ai-agents","scores":{...}}
  *
- * 关键词命中按 (1) frontmatter title/summary、(2) 二级标题、(3) 全文 三档加权。
- * 规则集与方案 Task 2.0 一致；可按需在 RULES 内扩展。
+ * 改进（v2）:
+ *   - 关键词从 references/category-keywords.json 加载（可增量维护）
+ *   - anti-keyword 惩罚：命中反关键词的类别扣分
+ *   - N-gram 匹配：2 词短语得分更高（×1.5）
+ *   - frontmatter tags 加权：每个 tag 命中关键词按 +6 计分
+ *   - gap 置信度：top-2 差距 < 15% 标记 low_confidence
+ *   - --json 标志：显式启用 JSON 输出（默认也是 JSON，保持向后兼容）
+ *
+ * 退出码: 0 成功；1 参数错误；2 文件不存在
  */
 
 import { existsSync, readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 
-const RULES = {
-  "ai-coding": [
-    "agent", "coding", "cli", "vibe", "codex", "cursor", "copilot",
-    "claude code", "claude-code", "qoder", "ide", "auto-complete", "tab",
-    "代码生成", "辅助编程",
-  ],
-  "ai-agents": [
-    "agent harness", "lifecycle", "mcp", "skill", "orchestrat", "multi-agent",
-    "subagent", "tool use", "agent loop", "agent 框架", "工作流", "harness",
-  ],
-  "ai-industry": [
-    "acquisition", "融资", "layoff", "裁员", "market", "openai", "anthropic",
-    "投资", "商业", "估值", "营收", "ipo", "并购", "公司", "战略", "市场",
-  ],
-  "ai-models": [
-    "model", "llm", "qwen", "deepseek", "gemini", "训练", "pretraining",
-    "benchmark", "post-training", "rlhf", "蒸馏", "推理", "moe", "fine-tune",
-    "上下文窗口", "tokenizer",
-  ],
-  security: [
-    "security", "cve", "漏洞", "审计", "攻击", "firewall", "sandbox",
-    "隔离", "supply chain", "auth", "rce", "提权", "exploit",
-  ],
-  engineering: [
-    "pipeline", "infra", "postgres", "kafka", "lock", "性能", "架构",
-    "database", "分布式", "高并发", "k8s", "kubernetes", "ci/cd",
-    "可观测", "限流", "缓存", "分库分表",
-  ],
-};
+const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
+const KEYWORDS_PATH = resolve(SCRIPT_DIR, "../references/category-keywords.json");
 
-const WEIGHTS = { title: 5, heading: 2, body: 1 };
+const WEIGHTS = { title: 5, heading: 2, body: 1, tags: 6 };
+const NGRAM_BONUS = 1.5;
+const ANTI_PENALTY = 3;
+const LOW_CONFIDENCE_GAP = 0.15;
+
+function loadKeywords() {
+  if (!existsSync(KEYWORDS_PATH)) {
+    process.stderr.write(`suggest-category: keywords file not found: ${KEYWORDS_PATH}\n`);
+    process.exit(2);
+  }
+  return JSON.parse(readFileSync(KEYWORDS_PATH, "utf8"));
+}
 
 function loadDoc(p) {
   if (!existsSync(p)) {
@@ -62,18 +52,46 @@ function splitDoc(raw) {
 }
 
 function extractFmField(fm, key) {
-  const re = new RegExp(`^${key}\\s*:\\s*(.*)$`, "m");
-  const m = fm.match(re);
-  if (!m) return "";
-  return m[1].trim().replace(/^["']|["']$/g, "");
+  const prefix = `${key}:`;
+  const line = fm.split("\n").find((l) => l.startsWith(prefix));
+  if (!line) return "";
+  const val = line.slice(prefix.length).trimStart();
+  return val.replace(/^["']|["']$/g, "");
 }
 
-function score(text, weight, scores) {
+// 从 frontmatter tags 字段提取数组（支持 ["a", "b"] 和 YAML 流式 a, b 格式）
+function extractTags(fm) {
+  const raw = extractFmField(fm, "tags");
+  if (!raw) return [];
+  if (raw.startsWith("[") && raw.endsWith("]")) {
+    return raw.slice(1, -1).split(",").map((t) => t.trim().replace(/^["']|["']$/g, ""));
+  }
+  return raw.split(",").map((t) => t.trim());
+}
+
+function score(text, weight, scores, rules) {
   const lower = text.toLowerCase();
-  for (const [cat, keywords] of Object.entries(RULES)) {
-    for (const kw of keywords) {
+
+  for (const [cat, rule] of Object.entries(rules)) {
+    // 正向关键词
+    for (const kw of rule.keywords ?? []) {
       if (lower.includes(kw.toLowerCase())) {
         scores[cat] = (scores[cat] ?? 0) + weight;
+      }
+    }
+
+    // N-gram 匹配（2 词短语得分更高）
+    for (const [w1, w2] of rule.ngrams ?? []) {
+      const pattern = `${w1.toLowerCase()} ${w2.toLowerCase()}`;
+      if (lower.includes(pattern)) {
+        scores[cat] = (scores[cat] ?? 0) + weight * NGRAM_BONUS;
+      }
+    }
+
+    // anti-keyword 惩罚
+    for (const akw of rule.antiKeywords ?? []) {
+      if (lower.includes(akw.toLowerCase())) {
+        scores[cat] = (scores[cat] ?? 0) - ANTI_PENALTY * weight;
       }
     }
   }
@@ -81,33 +99,54 @@ function score(text, weight, scores) {
 
 function rank(scores) {
   const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  if (entries.length === 0) return { recommended: "ai-industry", confidence: 0, alternative: null };
+  if (entries.length === 0) return { recommended: "ai-industry", confidence: 0, low_confidence: true, alternative: null };
+
   const top = entries[0];
-  const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
+  const total = entries.reduce((s, [, v]) => s + Math.max(v, 0), 0) || 1;
   const confidence = +(top[1] / total).toFixed(2);
+
+  // gap 置信度：top-2 差距
+  const second = entries[1];
+  const gap = second ? (top[1] - second[1]) / total : 1;
+  const lowConfidence = gap < LOW_CONFIDENCE_GAP;
+
   return {
     recommended: top[0],
     confidence,
-    alternative: entries[1]?.[0] ?? null,
+    low_confidence: lowConfidence,
+    alternative: second?.[0] ?? null,
   };
 }
 
-const [, , file] = process.argv;
+const args = process.argv.slice(2);
+let file = null;
+for (const a of args) {
+  if (a === "--json") continue;
+  else file = a;
+}
 if (!file) {
-  process.stderr.write("usage: suggest-category.mjs <draft.md>\n");
+  process.stderr.write("usage: suggest-category.mjs <draft.md> [--json]\n");
   process.exit(1);
 }
 
+const rules = loadKeywords();
 const raw = loadDoc(file);
 const { fm, body } = splitDoc(raw);
 const title = extractFmField(fm, "title");
 const summary = extractFmField(fm, "summary");
+const tags = extractTags(fm);
 const headings = (body.match(/^##\s+.+$/gm) ?? []).join("\n");
 
 const scores = {};
-score(title + " " + summary, WEIGHTS.title, scores);
-score(headings, WEIGHTS.heading, scores);
-score(body, WEIGHTS.body, scores);
+score(title + " " + summary, WEIGHTS.title, scores, rules);
+score(headings, WEIGHTS.heading, scores, rules);
+score(body, WEIGHTS.body, scores, rules);
+
+// E4: frontmatter tags 加权（+6）——tags 是作者显式标注，信号强度远高于正文偶现
+if (tags.length > 0) {
+  const tagsText = tags.join(" ");
+  score(tagsText, WEIGHTS.tags, scores, rules);
+}
 
 const result = { ...rank(scores), scores };
 process.stdout.write(JSON.stringify(result) + "\n");

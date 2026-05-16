@@ -16,19 +16,10 @@
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot, findGithubScriptDir } from "./path-resolver.mjs";
 
-function repoRoot() { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
-function postsRoot() { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
-
-function findGithubScriptDir() {
-  const candidates = [
-    resolve(repoRoot(), ".agents/skills/github-image-hosting"),
-    resolve(process.env.HOME ?? "", ".claude/skills/github-image-hosting"),
-  ];
-  for (const d of candidates) { if (existsSync(d)) return d; }
-  return null;
-}
+const SCRIPT_DIR = resolve(new URL(import.meta.url).pathname, "..");
 
 const args = process.argv.slice(2);
 let slug = null, repo = "NTLx/Pic@master:wechat-articles", datePrefix = "";
@@ -38,6 +29,9 @@ for (let i = 0; i < args.length; i++) {
   else if (!slug) { slug = args[i]; }
 }
 if (!slug) { process.stderr.write("usage: step46-upload-cdn.mjs <date-slug> [--repo REPO] [--date YYYY-MM-DD]\n"); process.exit(1); }
+
+writeRunning(slug, "4.6");
+
 if (!datePrefix) {
   const m = slug.match(/^(\d{4}-\d{2}-\d{2})/);
   datePrefix = m ? m[1] : "";
@@ -46,6 +40,12 @@ if (!datePrefix) {
 const base = resolve(postsRoot(), slug);
 const imgsDir = resolve(base, "imgs");
 if (!existsSync(imgsDir)) { process.stderr.write("step46: imgs/ directory missing\n"); process.exit(2); }
+
+// 防御性格式修正：上传前确保扩展名与 MIME 一致
+const norm = spawnSync("bun", ["run", resolve(SCRIPT_DIR, "normalize-image-formats.mjs"), base], { stdio: "inherit", encoding: "utf8" });
+if (norm.status !== 0) {
+  process.stderr.write("step46: normalize-image-formats failed (non-blocking, continuing)\n");
+}
 
 const files = readdirSync(imgsDir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f));
 if (files.length === 0) { process.stderr.write("step46: imgs/ is empty\n"); process.exit(2); }

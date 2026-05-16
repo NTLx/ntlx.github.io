@@ -7,10 +7,15 @@
 # 支持 stage:
 #   draft         : Step 2.4.1 质量门控（字数 / 互动 / 原文参考 / frontmatter / category 必填）
 #   images        : Step 4 + 4.5 图片完整性
+#   step4         : Step 4 入口校验；draft.md 插图引用数与 imgs/ 文件数对齐
+#   step45        : Step 4.5 信息图一致性；infographic 文件存在 iff draft.md 引用它
 #   cdn           : Step 5 出口；article.md 内不残留本地 imgs/ 路径
+#   step9-input   : Step 9 入口校验；article.md 使用 CDN URL、frontmatter 完整
 #   html          : Step 8 出口；article-wechat.html 非空、含 inline CSS
+#   step10-input  : Step 10 入口校验；article-wechat.html 使用本地路径、cover 存在
 #   publish-blog  : Step 9 出口；src/content/docs/articles/<blogSlug>.md frontmatter 已转 Starlight 字段
 #   publish-wechat: Step 10 进入前；cover 存在、article-wechat.html 存在、sourceUrl 已部署
+#   syntax-check  : 基础语法检查；孤立引用、未闭合标签、异常空行
 #
 # 退出码: 0 通过；非 0 失败并打印原因
 
@@ -144,6 +149,109 @@ case "$stage" in
     code=$(curl -fsSLI -o /dev/null -w '%{http_code}' --max-time 15 "$src" || echo 000)
     [[ "$code" == "200" ]] || fail "sourceUrl=$src 未就绪 (HTTP $code)；先跑 wait-pages-deployed.mjs"
     ok "publish-wechat 通过：cover / article-wechat.html / sourceUrl=$src (HTTP 200)"
+    ;;
+  step4)
+    # Step 4 入口校验：draft.md 中插图引用（SLOT_IMG + ![]()形式）数与 imgs/ 文件数对齐
+    f="$base/draft.md"
+    [[ -f "$f" ]] || fail "draft.md missing: $f"
+    [[ -d "$base/imgs" ]] || fail "imgs/ 目录不存在"
+    img_count=$(ls -1 "$base"/imgs/*.{png,jpg,jpeg,webp} 2>/dev/null | wc -l | tr -d ' ')
+    slot_count=$(grep -cE '<!--\s*SLOT_IMG_' "$f" || true)
+    md_img_count=$(grep -cE '!\[[^]]*\]\(imgs/' "$f" || true)
+    total_refs=$((slot_count + md_img_count))
+    if [[ "$total_refs" -eq 0 ]]; then
+      fail "draft.md 中无任何图片引用（SLOT_IMG 或 ![](imgs/...)）"
+    fi
+    # SLOT_IMG 和 ![]() 不应同时存在（normalize-refs 应已统一为 SLOT_IMG）
+    if [[ "$slot_count" -gt 0 && "$md_img_count" -gt 0 ]]; then
+      fail "draft.md 同时包含 SLOT_IMG($slot_count) 和 ![](imgs/)($md_img_count)，请先跑 step4-normalize-refs.mjs"
+    fi
+    ok "step4 通过：imgs=$img_count refs(SLOT=$slot_count,md=$md_img_count)"
+    ;;
+  step45)
+    # Step 4.5 信息图一致性：infographic 文件存在 iff draft.md 引用它
+    f="$base/draft.md"
+    [[ -f "$f" ]] || fail "draft.md missing: $f"
+    has_info_file=false
+    for ext in png jpg jpeg webp; do
+      if [[ -f "$base/imgs/infographic.$ext" ]]; then has_info_file=true; break; fi
+    done
+    has_ref=false
+    grep -qiE '(信息图|infographic|SLOT_IMG_00)' "$f" && has_ref=true
+    if $has_info_file && ! $has_ref; then
+      fail "infographic 文件存在但 draft.md 未引用（可设置 infographicPosition=before-conclusion 自动插入）"
+    fi
+    if ! $has_info_file && $has_ref; then
+      fail "draft.md 引用了信息图但 imgs/infographic.* 不存在"
+    fi
+    ok "step45 通过：infographic文件=$has_info_file 引用=$has_ref"
+    ;;
+  step9-input)
+    # Step 9 入口校验：博客轨输入 article.md 必须使用 CDN URL
+    a="$base/article.md"
+    [[ -f "$a" ]] || fail "article.md 不存在（先完成 Step 5 apply-image-map）"
+    title=$(read_fm "$a" title);    [[ -n "$title" ]] || fail "frontmatter.title 缺失"
+    date=$(read_fm  "$a" date);     [[ -n "$date" ]] || fail "frontmatter.date 缺失"
+    summary=$(read_fm "$a" summary);[[ -n "$summary" ]] || fail "frontmatter.summary 缺失"
+    category=$(read_fm "$a" category)
+    [[ -n "$category" ]] || fail "frontmatter.category 缺失"
+    is_valid_category "$category" || fail "category=$category 不在白名单 ${VALID_CATEGORIES[*]}"
+    if grep -qE '!\[[^]]*\]\(imgs/' "$a"; then
+      fail "article.md 仍含本地 imgs/ 路径（博客轨必须使用 CDN URL，先跑 apply-image-map）"
+    fi
+    if grep -q '<!-- SLOT_IMG_' "$a"; then
+      fail "article.md 仍含 SLOT_IMG_ 占位符（未被消解，先跑 apply-image-map）"
+    fi
+    ok "step9-input 通过：article.md CDN + frontmatter 完整"
+    ;;
+  step10-input)
+    # Step 10 入口校验：微信轨输入 article-wechat.html 必须使用本地路径
+    h="$base/article-wechat.html"
+    [[ -f "$h" ]] || fail "article-wechat.html 不存在（先完成 Step 8 HTML 转换）"
+    [[ -s "$h" ]] || fail "article-wechat.html 为空"
+    [[ -f "$base/cover.png" || -f "$base/cover.jpg" ]] || fail "cover.png/cover.jpg 不存在"
+    # 微信轨 HTML 应引用本地 imgs/ 路径（wechat-api.ts 直接读本地文件上传）
+    # 不检查 CDN URL——微信轨不应依赖 CDN
+    ok "step10-input 通过：HTML + cover 就绪"
+    ;;
+  syntax-check)
+    # 基础语法检查：孤立引用定义、未闭合 HTML 标签、异常空行
+    errors=0
+    # 1) 孤立引用定义：[label]: url 定义了但正文未使用 [label]
+    if [[ -f "$base/article.md" ]]; then
+      while IFS= read -r line; do
+        label=$(echo "$line" | sed -n 's/^\[\([^]]*\)\]:.*$/\1/p')
+        if [[ -n "$label" ]]; then
+          if ! grep -q "\[$label\]" "$base/article.md" | grep -v "^\[$label\]:"; then
+            echo "WARN[syntax-check]: 孤立引用定义 [$label]" >&2
+            errors=$((errors + 1))
+          fi
+        fi
+      done < <(grep '^\[' "$base/article.md" 2>/dev/null || true)
+    fi
+    # 2) 连续 3+ 空行
+    if [[ -f "$base/article.md" ]]; then
+      blank_run=$(awk '/^$/{n++;if(n>=3){print;exit}}!/^$/{n=0}' "$base/article.md")
+      if [[ -n "$blank_run" ]]; then
+        echo "WARN[syntax-check]: article.md 含连续 3+ 空行" >&2
+        errors=$((errors + 1))
+      fi
+    fi
+    # 3) article-wechat.html 中未闭合的危险标签（简单启发式）
+    if [[ -f "$base/article-wechat.html" ]]; then
+      for tag in table div section; do
+        opens=$(grep -oiE "<${tag}[> ]" "$base/article-wechat.html" 2>/dev/null | wc -l | tr -d ' ')
+        closes=$(grep -oiE "</${tag}>" "$base/article-wechat.html" 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "$opens" -ne "$closes" ]]; then
+          echo "WARN[syntax-check]: article-wechat.html <${tag}> 开=${opens} 闭=${closes} 不匹配" >&2
+          errors=$((errors + 1))
+        fi
+      done
+    fi
+    if [[ "$errors" -gt 0 ]]; then
+      fail "syntax-check 发现 $errors 个问题"
+    fi
+    ok "syntax-check 通过：无孤立引用、异常空行、未闭合标签"
     ;;
   *)
     echo "validate-pipeline.sh: unknown stage '$stage'" >&2

@@ -120,6 +120,7 @@ baoyu 系列技能使用的 `.env` 文件位于：
 2. 检查各技能的 `scripts/node_modules` 是否存在
 3. 对缺失的依赖自动执行 `bun install`
 4. 检测脚本类型（TypeScript vs Bash），确保正确的执行方式
+5. CDP 健康预检：探测 Chrome DevTools Protocol 端口（默认 127.0.0.1:9222），不可达时打印启动提示（**非阻塞**——无联网需求的文章可忽略）
 
 如果关键技能缺失，列出缺失项并询问用户是否继续（部分步骤可能无法执行）。
 
@@ -133,8 +134,8 @@ baoyu 系列技能使用的 `.env` 文件位于：
 
 | Step | 动作 | 使用技能 | 产出 | 门控 |
 |------|------|---------|------|------|
-| 0 | 依赖预检 | 自动检查 + bun install | 就绪环境 | ⛔ |
-| 1 | 资料收集 | **web-access**（唯一联网入口） → 用户手动 | materials.md | |
+| 0 | 依赖预检 + CDP 健康检测 | 自动检查 + bun install + CDP 非阻塞预检 | 就绪环境 | ⛔ |
+| 1 | 资料收集 + 低质量检测 | **web-access**（唯一联网入口） → 用户手动；低质量资料打印警告 | materials.md | |
 | 2 | 文章创作 | ljg-writes（Skill 工具调用，不允许手动替代） | draft.md (含语义占位符) | |
 | 2.4.1 | 质量门控 | 自动检查字数/互动/引用/数据点 | draft.md（验证通过） | ⛔ |
 | 2.5 | 文章分类确认 | suggest-category.mjs + set-frontmatter.mjs | draft.md（含 category） | ⛔ |
@@ -336,7 +337,7 @@ mkdir -p posts/{date-slug}/
 
 ### 1.5 状态写入
 
-**脚本内置**：资料收集完成后调用 `step1-materials-done.mjs`，自动验证 `materials.md` 存在并写状态。
+**脚本内置**：资料收集完成后调用 `step1-materials-done.mjs`，自动验证 `materials.md` 存在、检测低质量资料（字数 < 200 或段落 < 50 字时打印警告，**非阻塞**）、写状态。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step1-materials-done.mjs \
@@ -478,10 +479,14 @@ ljg-writes 的「磨」步骤完成后、保存 draft.md 之前，**必须执行
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/suggest-category.mjs \
-  posts/{date-slug}/draft.md
+  posts/{date-slug}/draft.md [--json]
 ```
 
-输出 JSON：`{"recommended":"ai-coding","confidence":0.78,"alternative":"ai-agents","scores":{...}}`。
+输出 JSON：`{"recommended":"ai-coding","confidence":0.78,"low_confidence":false,"alternative":"ai-agents","scores":{...}}`。
+
+`--json` 标志显式请求 JSON 输出（默认也是 JSON，向后兼容）。当 `low_confidence` 为 `true` 时（top-2 分类分差 < 15%），建议向用户确认。
+
+分类推荐使用 `references/category-keywords.json` 定义的关键词 / 反关键词 / N-gram 匹配，而非硬编码规则。
 
 #### 2.5.2 与用户单次确认（分类 + blog-slug）
 
@@ -583,11 +588,11 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}  # 必须替换为 Step 2.
 
 ### 2.8 状态写入
 
-**脚本内置**：使用 `step2-writing-done.mjs` 自动验证 `draft.md` 存在并写状态。
+**脚本内置**：使用 `step2-writing-done.mjs` 自动验证 `draft.md` 存在并写状态。支持 `--min-chars` 门控（默认 2500）——字数不足时状态写 `failed`，附带差值和建议。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-writing-done.mjs \
-  <date-slug> [--chars <字数> --title <标题>]
+  <date-slug> [--chars <字数> --title <标题> --min-chars <下限>]
 ```
 
 ## Step 3: 封面图生成（与 Step 4、4.5 并行）
@@ -662,19 +667,11 @@ bun run .agents/skills/wechat-article-write/scripts/step2-writing-done.mjs \
 
 Step 3（封面）、Step 4（插图）、Step 4.5（信息图）全部完成后，**必须统一执行**格式检测修正，不得遗漏任何一张：
 
+**脚本化**：`normalize-image-formats.mjs` 自动扫描 `imgs/` 和封面文件，检测 MIME/扩展名不匹配，原子重命名 + 更新 draft.md 引用。各 Step 完成脚本（step3/step4/step45）内部已集成调用此脚本，**无需手动执行**。
+
 ```bash
-# 检测 imgs/ 目录下所有图片
-for img in posts/{date-slug}/imgs/*; do
-  actual_type=$(file -b "$img" | head -c 10)
-  ext="${img##*.}"
-  if [[ "$actual_type" == *"JPEG"* && "$ext" == "png" ]]; then
-    new_name="${img%.png}.jpg"
-    mv "$img" "$new_name"
-    # 联动更新 draft.md 中的引用
-    sed -i '' "s|$(basename "$img")|$(basename "$new_name")|g" posts/{date-slug}/draft.md
-    echo "修正: $(basename "$img") → $(basename "$new_name")"
-  fi
-done
+# 手动执行（通常不需要，Step 脚本会自动调用）
+bun run .agents/skills/wechat-article-write/scripts/normalize-image-formats.mjs posts/{date-slug}
 ```
 
 **为什么统一执行而非分散在各步骤**：三个步骤并行执行，各自完成后立即做格式检测容易出现遗漏（比如只做了封面忘了插图）。统一在 Step 5 之前集中执行一次，用同一个循环处理所有图片，确保零遗漏。
@@ -833,9 +830,15 @@ ref_count=$(grep -c '![](imgs/[0-9][0-9]-' posts/{date-slug}/draft.md)
 
 信息图生成后，**立即**在 `posts/{date-slug}/draft.md` 中自动插入引用——不要延迟到后续步骤：
 
-- **位置**：文章正文开头（frontmatter 结束后的第一段之前），或第一个二级标题之前
-- **格式**：`![](imgs/00-infographic-core-summary.png)`
-- 插入后不需要额外说明文字——信息图本身就是视觉总览
+插入位置由 frontmatter `infographicPosition` 字段控制（可选，默认 `before-conclusion`）：
+
+| 值 | 插入位置 | 适用场景 |
+|---|---|---|
+| `top` | frontmatter 后、第一个 `## ` 标题之后 | 开门见山型文章 |
+| `before-conclusion` | 最后一个 `## ` 标题之前（或 `## 总结` / `## 结论` 之前） | 默认，信息图作为全文总结 |
+| `skip` | 不自动插入，标记 step 为 `failed` | 无需信息图的特殊文章 |
+
+如果 draft.md 中**尚未**引用信息图且信息图文件存在，`step45-infographic-done.mjs` 会根据 `infographicPosition` 自动插入 `![信息图](imgs/infographic.{ext})`。
 
 **注意**：插入完成后必须执行 **4.5.5 插入验证**，确认引用已正确写入文件。不得跳过验证直接进入下一步。
 
@@ -866,13 +869,13 @@ grep -q '![](imgs/00-infographic' posts/{date-slug}/draft.md && echo "OK" || ech
 
 ### 4.5.7 状态写入
 
-**脚本内置**：使用 `step45-infographic-done.mjs`，自动验证信息图文件存在 + draft.md 引用已写入 + 状态写入。
+**脚本内置**：使用 `step45-infographic-done.mjs`，自动执行格式检测修正（normalize-image-formats）+ 根据 infographicPosition 自动插入引用 + 验证信息图文件存在 + draft.md 引用已写入 + 状态写入。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step45-infographic-done.mjs <date-slug>
 ```
 
-同时，Step 4（插图）完成后调用 `step4-illustrations-done.mjs` 自动验证插图引用一致性并写状态：
+同时，Step 4（插图）完成后调用 `step4-illustrations-done.mjs`，自动执行格式检测修正 + 引用标准化（`![](imgs/)` → `<!-- SLOT_IMG_ -->`）+ 验证插图引用一致性 + 状态写入：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-illustrations-done.mjs <date-slug>
@@ -953,7 +956,7 @@ bun run .agents/skills/wechat-article-write/scripts/apply-image-map.mjs \
 | `posts/{date-slug}/article.md` | `https://cdn.jsdelivr.net/...` | 博客轨：Step 6/7/9 消费此文件（Markdown + CDN URL） |
 | `posts/{date-slug}/article-local.md` | `imgs/NN-xxx.{ext}` | 微信轨：Step 8 将此文件转为 article-wechat.html |
 
-**状态写入**：脚本内置，成功时自动写 `step=5 done`，无需 agent 手动调用。
+**状态写入**：脚本内置，启动时自动写 `running` 状态（`writeRunning`），成功时自动写 `step=5 done`，无需 agent 手动调用。
 
 ### 5.2 验证
 
@@ -1192,11 +1195,13 @@ Step 9 验证时按顺序执行：
 ### 9.1 调用 publish-blog.mjs
 
 ```bash
-node .agents/skills/wechat-article-write/scripts/publish-blog.mjs \
+bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs \
   --post-dir posts/{date-slug} \
   --blog-slug {ascii-slug} \
   --category {ai-coding|ai-agents|ai-industry|ai-models|security|engineering}
 ```
+
+> `--post-dir` 是 `--slug` 的替代选项，支持传入完整路径而非 date-slug。脚本也支持 `--help` 查看完整用法，未知参数会打印警告（防 typo）。
 
 脚本职责（详见脚本头部注释）：
 
@@ -1270,13 +1275,15 @@ bun run .agents/skills/wechat-article-write/scripts/wait-pages-deployed.mjs \
 ### 10.2 调用 publish-wechat.mjs
 
 ```bash
-node .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
   --post-dir posts/{date-slug} \
   --theme {theme} \
   --color {color} \
   --author {author} \
   --method {api|browser}
 ```
+
+> `--post-dir` 是 `--slug` 的替代选项，支持传入完整路径。脚本也支持 `--help` 查看完整用法，未知参数会打印警告。
 
 脚本职责：
 
@@ -1443,3 +1450,51 @@ sed -i '' -e 's|a|b|g' -e 's|c|d|g' article-wechat.html
 | DashScope | 中文文本渲染最佳（qwen-image-2.0-pro） | 审核最严，安全类术语易触发拦截 | 信息图（大量中文文本），且 prompt 无安全敏感词时 |
 
 **降级规则**：任何后端失败后，自动切换到下一个优先级重试同一 prompt，最多遍历全部三个后端。全部失败才报告错误。
+
+## 工具索引
+
+### 核心脚本
+
+| 脚本 | 用途 | 关键参数 |
+|------|------|---------|
+| `scripts/path-resolver.mjs` | 路径解析单一来源（`repoRoot` / `postsRoot` / `statePath` / `resolveBase`） | 内部模块，不直接调用 |
+| `scripts/state-lib.mjs` | 状态读写库 + `writeRunning()` + `STEPS` / `VALID_STATUS` 常量 | 内部模块，不直接调用 |
+| `scripts/state.mjs` | 状态 CLI（get/set/next/list） | `bun run state.mjs <cmd> <slug>` |
+| `scripts/state-watch.mjs` | 状态实时监控 | `bun run state-watch.mjs <slug> [--watch]` |
+| `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 + draft.md 引用更新 | `bun run normalize-image-formats.mjs <postDir>` |
+| `scripts/step4-normalize-refs.mjs` | `![](imgs/NN-xxx)` → `<!-- SLOT_IMG_NN_DESC -->` | `bun run step4-normalize-refs.mjs <date-slug>` |
+| `scripts/suggest-category.mjs` | 分类推荐（使用 `references/category-keywords.json`） | `bun run suggest-category.mjs <file> [--json]` |
+| `scripts/set-frontmatter.mjs` | Frontmatter 读写 | `bun run set-frontmatter.mjs <file> get|set <key> [value]` |
+| `scripts/apply-image-map.mjs` | 占位符 → CDN URL / 本地路径 | `bun run apply-image-map.mjs <date-slug>` |
+| `scripts/publish-blog.mjs` | 博客发布轨编排 | `bun run publish-blog.mjs <slug> [--post-dir] [--blog-slug] [--help]` |
+| `scripts/publish-wechat.mjs` | 微信草稿发布编排 | `bun run publish-wechat.mjs <slug> [--post-dir] [--help]` |
+| `scripts/validate-pipeline.sh` | 阶段化校验 | 见下方 stage 列表 |
+
+### validate-pipeline.sh stages
+
+| Stage | 校验内容 | 使用时机 |
+|-------|---------|---------|
+| `draft` | 字数 / frontmatter / category / H1 / 互动 | Step 2.4.1 出口 |
+| `images` | imgs/ + SLOT_IMG 对齐 | Step 4+4.5 出口 |
+| `step4` | 插图引用数 vs imgs/ 文件数 | Step 4 入口 |
+| `step45` | 信息图文件 ↔ draft.md 引用一致性 | Step 4.5 出口 |
+| `cdn` | article.md 无本地路径 / 无占位符残留 | Step 5 出口 |
+| `step9-input` | article.md CDN URL + frontmatter 完整 | Step 9 入口 |
+| `html` | article-wechat.html 非空 + inline CSS | Step 8 出口 |
+| `step10-input` | HTML + cover 就绪 | Step 10 入口 |
+| `publish-blog` | Starlight 目标文件 frontmatter 转换正确 | Step 9 出口 |
+| `publish-wechat` | cover + HTML + sourceUrl HTTP 200 | Step 10 入口 |
+| `syntax-check` | 孤立引用 / 异常空行 / 未闭合 HTML 标签 | 发布前 |
+
+### 参考文档
+
+| 文件 | 内容 |
+|------|------|
+| `references/category-keywords.json` | 6 分类关键词 / 反关键词 / N-gram 定义（`suggest-category.mjs` 的数据源） |
+| `references/image-backends.md` | 图片后端构图特性与 prompt 策略 |
+
+### 已废弃
+
+| 脚本 | 原用途 | 废弃原因 |
+|------|---------|---------|
+| `run-with-cdn-fallback.sh` | CDN 降级回退 | 微信轨全程本地文件操作（零 CDN 依赖），博客轨不生成 HTML，CDN 降级场景不存在 |

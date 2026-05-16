@@ -1,0 +1,83 @@
+{
+  "ai-coding": {
+    "keywords": [
+      "agent", "coding", "cli", "vibe", "codex", "cursor", "copilot",
+      "claude code", "claude-code", "qoder", "ide", "auto-complete", "tab",
+      "代码生成", "辅助编程", "ai编程", "AI编程", "代码补全", "编程助手",
+      "prompt", "指令", "skill", "mcp", "工具调用", "tool use"
+    ],
+    "antiKeywords": ["电影", "音乐", "游戏", "食谱", "旅游"],
+    "ngrams": [
+      ["AI", "coding"], ["代码", "补全"], ["claude", "code"],
+      ["copilot", "workspace"], ["agent", "loop"], ["vibe", "coding"]
+    ]
+  },
+  "ai-agents": {
+    "keywords": [
+      "agent harness", "lifecycle", "mcp", "skill", "orchestrat", "multi-agent",
+      "subagent", "tool use", "agent loop", "agent 框架", "工作流", "harness",
+      "编排", "调度", "规划", "反思", "记忆", "memory", "reasoning", "planning",
+      "执行", "反馈", "autonomous", "自主", "swarm"
+    ],
+    "antiKeywords": ["训练", "模型参数", "loss", "梯度"],
+    "ngrams": [
+      ["agent", "harness"], ["multi", "agent"], ["mcp", "server"],
+      ["agent", "loop"], ["工作", "流"], ["编排", "调度"]
+    ]
+  },
+  "ai-industry": {
+    "keywords": [
+      "acquisition", "融资", "layoff", "裁员", "market", "openai", "anthropic",
+      "投资", "商业", "估值", "营收", "ipo", "并购", "公司", "战略", "市场",
+      "竞争", "垄断", "监管", "合规", "政策", "立法", "伦理", "版权", "诉讼",
+      "partnership", "合作", "生态", "产业", "芯片", "算力", "数据中心"
+    ],
+    "antiKeywords": ["代码", "编程", "pipeline", "部署"],
+    "ngrams": [
+      ["融资", "轮"], ["裁员", "比例"], ["ipo", "上市"],
+      ["openai", "valuation"], ["算力", "短缺"]
+    ]
+  },
+  "ai-models": {
+    "keywords": [
+      "model", "llm", "qwen", "deepseek", "gemini", "训练", "pretraining",
+      "benchmark", "post-training", "rlhf", "蒸馏", "推理", "moe", "fine-tune",
+      "上下文窗口", "tokenizer", "架构", "参数", "权重", "checkpoint",
+      "sft", "alignment", "对齐", "量化", "部署", "推理加速", "推理优化",
+      "attention", "transformer", "嵌入", "embedding"
+    ],
+    "antiKeywords": ["电影", "音乐", "游戏"],
+    "ngrams": [
+      ["推理", "加速"], ["模型", "参数"], ["上下文", "窗口"],
+      ["fine", "tune"], ["rlhf", "alignment"], ["模型", "蒸馏"]
+    ]
+  },
+  "security": {
+    "keywords": [
+      "security", "cve", "漏洞", "审计", "攻击", "firewall", "sandbox",
+      "隔离", "supply chain", "auth", "rce", "提权", "exploit",
+      "xss", "csrf", "注入", "sql注入", "勒索", "加密", "解密",
+      "渗透", "防护", "威胁", "风险", "合规", "zero-day", "0day",
+      "backdoor", "后门", "供应链攻击"
+    ],
+    "antiKeywords": ["烹饪", "旅行", "体育"],
+    "ngrams": [
+      ["supply", "chain"], ["sql", "注入"], ["零", "日"],
+      ["漏洞", "利用"], ["供应链", "攻击"]
+    ]
+  },
+  "engineering": {
+    "keywords": [
+      "pipeline", "infra", "postgres", "kafka", "lock", "性能", "架构",
+      "database", "分布式", "高并发", "k8s", "kubernetes", "ci/cd",
+      "可观测", "限流", "缓存", "分库分表", "监控", "日志",
+      "部署", "容器", "docker", "微服务", "消息队列", "负载均衡",
+      "网络", "协议", "tcp", "http", "异步", "并发", "调度"
+    ],
+    "antiKeywords": ["投资", "融资", "裁员"],
+    "ngrams": [
+      ["高", "并发"], ["分库", "分表"], ["ci", "cd"],
+      ["微", "服务"], ["负载", "均衡"], ["消息", "队列"]
+    ]
+  }
+}
