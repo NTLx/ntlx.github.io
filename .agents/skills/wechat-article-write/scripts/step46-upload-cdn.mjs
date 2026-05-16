@@ -7,9 +7,8 @@
  *
  * 行为:
  *   1. 把 imgs/ 下所有图片上传到 GitHub 图床
- *   2. 等待 CDN 缓存传播（默认 30s）
- *   3. 产出 image-map.json
- *   4. 写状态: step 4.6 done
+ *   2. 产出 image-map.json
+ *   3. 写状态: step 4.6 done
  *
  * 退出码: 0 成功；1 参数错误；2 imgs/ 为空或上传失败
  */
@@ -73,9 +72,8 @@ if (r.status !== 0) {
   process.exit(2);
 }
 
-// CDN 缓存等待
-process.stdout.write("waiting for jsDelivr edge propagation 30s...\n");
-spawnSync("sleep", ["30"]);
+// 博客是唯一消费 CDN URL 的渠道，Astro 构建不会 fetch 图片，
+// 用户访问时 CDN 早已就绪，无需等待传播。
 
 writeStep(slug, "4.6", "done", { image_map: "image-map.json", count: files.length });
 process.stdout.write(JSON.stringify({ slug, step: "4.6", count: files.length }) + "\n");

@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# ⚠️ DEPRECATED — 此脚本已不再被任何 Step 调用。
+#
+# 原因：博客轨只消费 Markdown（article.md + CDN URL），不生成 HTML；
+# 微信轨使用 article-wechat.html（本地路径版），wechat-api.ts 直接读本地文件上传，
+# 全程零 CDN 依赖。CDN 超时降级场景已不存在。
+#
+# 保留此文件仅供参考，可安全删除。
+#
+# === 以下为原始文档（已废弃） ===
+#
 # CDN → 本地路径降级编排
 #
 # 用法（两种风格均支持）:

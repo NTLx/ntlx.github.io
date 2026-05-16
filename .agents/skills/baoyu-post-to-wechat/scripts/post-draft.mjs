@@ -44,13 +44,15 @@ if (!htmlPath || !cover) {
   process.exit(1);
 }
 
+const articleType = parsed.type || "news";
+
 // 构建 wechat-api.ts 参数
 const wechatArgs = [
   "run", WECHAT_API,
   htmlPath,
   "--title", title || "",
   "--theme", theme,
-  "--type", "newspic",
+  "--type", articleType,
   "--cover", cover,
 ];
 

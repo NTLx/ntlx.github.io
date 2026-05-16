@@ -6,12 +6,11 @@
  *   1. 读取 posts/<date-slug>/article.md frontmatter，自动从中提取 title / sourceUrl
  *   2. 探活 sourceUrl（HTTP 200），未就绪则报错并退出（提示先跑 wait-pages-deployed.mjs）
  *   3. 调用 baoyu-post-to-wechat 技能脚本，传入 --cover --theme --color --author --src
- *      具体脚本路径由 BAOYU_POST_TO_WECHAT_BIN 环境变量指定，
- *      默认 .agents/skills/baoyu-post-to-wechat/scripts/post-draft.mjs
+ *      使用 article-wechat.html（本地路径版），微信 API 直接读本地图片上传
  *   4. 成功后 state.mjs set <date-slug> 10 done
  *
  * 用法:
- *   bun run publish-wechat.mjs <date-slug> [--theme baoyu] [--color blue]
+ *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme grace] [--color vermilion]
  *                              [--author NTLx] [--no-skip-deploy-check] [--dry-run]
  * 退出码:
  *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
@@ -28,11 +27,12 @@ function postsRoot()  { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts
 function repoRoot()   { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
 
 function parseArgs(argv) {
-  const o = { slug: null, theme: "baoyu", color: "blue", author: "NTLx", skipDeployCheck: true, dryRun: false };
+  const o = { slug: null, theme: "grace", color: "vermilion", type: "news", author: "NTLx", skipDeployCheck: true, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--theme") o.theme = argv[++i];
     else if (a === "--color") o.color = argv[++i];
+    else if (a === "--type") o.type = argv[++i];
     else if (a === "--author") o.author = argv[++i];
     else if (a === "--no-skip-deploy-check") o.skipDeployCheck = false;
     else if (a === "--skip-deploy-check") o.skipDeployCheck = true;
@@ -49,13 +49,13 @@ function readFm(file, key) {
 
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.slug) {
-  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--theme T] [--color C] [--author A] [--skip-deploy-check] [--dry-run]\n");
+  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--type news|newspic] [--theme T] [--color C] [--author A] [--skip-deploy-check] [--dry-run]\n");
   process.exit(1);
 }
 
 const base = resolve(postsRoot(), opts.slug);
 const articlePath = resolve(base, "article.md");
-const htmlPath    = resolve(base, "article.html");
+const htmlPath    = resolve(base, "article-wechat.html");
 const coverPng    = resolve(base, "cover.png");
 const coverJpg    = resolve(base, "cover.jpg");
 
@@ -94,6 +94,7 @@ const args = [
   "--html", htmlPath,
   "--cover", cover,
   "--title", title,
+  "--type", opts.type,
   "--theme", opts.theme,
   "--color", opts.color,
   "--author", opts.author,
