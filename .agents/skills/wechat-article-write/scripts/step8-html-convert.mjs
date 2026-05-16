@@ -18,10 +18,8 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
-
-function postsRoot() { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
-function repoRoot() { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
 let slug = null, theme = "default", color = "blue";
@@ -31,6 +29,8 @@ for (let i = 0; i < args.length; i++) {
   else if (!slug) { slug = args[i]; }
 }
 if (!slug) { process.stderr.write("usage: step8-html-convert.mjs <date-slug> [--theme T] [--color C]\n"); process.exit(1); }
+
+writeRunning(slug, "8");
 
 const base = resolve(postsRoot(), slug);
 const localMd = resolve(base, "article-local.md");

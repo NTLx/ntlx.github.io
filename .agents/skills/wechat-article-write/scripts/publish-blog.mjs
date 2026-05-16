@@ -25,16 +25,10 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
-
-function postsRoot() {
-  return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
-}
-function repoRoot() {
-  return resolve(process.env.PIPELINE_REPO_ROOT ?? ".");
-}
 
 function run(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { stdio: "inherit", encoding: "utf8", ...opts });
@@ -58,17 +52,42 @@ function captureStdout(cmd, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { noPush: false, noBuild: false, dryRun: false, slug: null, blogSlug: null, commitTemplate: null };
+  const opts = { noPush: false, noBuild: false, dryRun: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--no-push") opts.noPush = true;
+    if (a === "--help") { printHelp(); process.exit(0); }
+    else if (a === "--no-push") opts.noPush = true;
     else if (a === "--no-build") opts.noBuild = true;
     else if (a === "--dry-run") opts.dryRun = true;
     else if (a === "--commit-template") opts.commitTemplate = argv[++i];
     else if (a === "--blog-slug") opts.blogSlug = argv[++i];
+    else if (a === "--post-dir") opts.postDir = argv[++i];
+    else if (a.startsWith("--")) { process.stderr.write(`publish-blog: unknown flag "${a}" (typo?)\n`); }
     else if (!opts.slug) opts.slug = a;
   }
   return opts;
+}
+
+function printHelp() {
+  process.stdout.write(`publish-blog.mjs — 博客发布编排 (Step 9)
+
+用法:
+  bun run publish-blog.mjs <date-slug> [options]
+  bun run publish-blog.mjs --post-dir <path>  [options]
+
+选项:
+  --blog-slug <ascii-slug>  博客文章 URL slug（必须纯 ASCII kebab-case）
+  --post-dir <path>         posts/ 下的目录路径（替代 date-slug）
+  --no-push                 不执行 git push
+  --no-build                不执行 Astro 构建
+  --dry-run                 只输出将要执行的操作，不实际执行
+  --commit-template <tmpl>  git commit 消息模板
+  --help                    显示此帮助信息
+
+示例:
+  bun run publish-blog.mjs 2026-05-16-langchain
+  bun run publish-blog.mjs --post-dir posts/2026-05-16-langchain --blog-slug langchain-interrupt
+`);
 }
 
 function splitFm(raw) {
@@ -91,6 +110,11 @@ function parseFm(fmText) {
 }
 
 function buildBlogFm(fm) {
+  // 管线专用字段不写入博客文章：infographicPosition（仅 step45 消费）、
+  // coverImage（微信轨专用）、sourceUrl（微信轨引用）
+  const excluded = ["infographicPosition", "coverImage", "sourceUrl"];
+  for (const k of excluded) delete fm[k];
+
   // 字段顺序：$schema -> title -> description -> date -> category -> tags?
   const lines = [];
   lines.push(`$schema: starlight`);
@@ -132,6 +156,8 @@ if (!opts.slug) {
   process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--commit-template TEMPLATE]\n");
   process.exit(1);
 }
+
+writeRunning(opts.slug, "9");
 
 const dateSlug = opts.slug;
 const articlePath = resolve(postsRoot(), dateSlug, "article.md");

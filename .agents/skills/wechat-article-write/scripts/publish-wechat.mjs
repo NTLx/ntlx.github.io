@@ -19,27 +19,52 @@
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
-function postsRoot()  { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
-function repoRoot()   { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
-
 function parseArgs(argv) {
-  const o = { slug: null, theme: "grace", color: "vermilion", type: "news", author: "NTLx", skipDeployCheck: true, dryRun: false };
+  const o = { slug: null, theme: "grace", color: "vermilion", type: "news", author: "NTLx", skipDeployCheck: true, dryRun: false, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--theme") o.theme = argv[++i];
+    if (a === "--help") { printHelp(); process.exit(0); }
+    else if (a === "--theme") o.theme = argv[++i];
     else if (a === "--color") o.color = argv[++i];
     else if (a === "--type") o.type = argv[++i];
     else if (a === "--author") o.author = argv[++i];
     else if (a === "--no-skip-deploy-check") o.skipDeployCheck = false;
     else if (a === "--skip-deploy-check") o.skipDeployCheck = true;
     else if (a === "--dry-run") o.dryRun = true;
+    else if (a === "--post-dir") o.postDir = argv[++i];
+    else if (a.startsWith("--")) { process.stderr.write(`publish-wechat: unknown flag "${a}" (typo?)\n`); }
     else if (!o.slug) o.slug = a;
   }
   return o;
+}
+
+function printHelp() {
+  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 10)
+
+用法:
+  bun run publish-wechat.mjs <date-slug> [options]
+  bun run publish-wechat.mjs --post-dir <path>  [options]
+
+选项:
+  --type <news|newspic>       文章类型（默认 news）
+  --theme <name>              主题样式（默认 grace）
+  --color <name>              主题颜色（默认 vermilion）
+  --author <name>             作者名（默认 NTLx）
+  --post-dir <path>           posts/ 下的目录路径（替代 date-slug）
+  --skip-deploy-check         跳过 sourceUrl 探活（默认开启）
+  --no-skip-deploy-check      强制探活 sourceUrl（HTTP 200 校验）
+  --dry-run                   只输出将要执行的操作，不实际执行
+  --help                      显示此帮助信息
+
+示例:
+  bun run publish-wechat.mjs 2026-05-16-langchain
+  bun run publish-wechat.mjs --post-dir posts/2026-05-16-langchain --type newspic
+`);
 }
 
 function readFm(file, key) {
@@ -48,10 +73,18 @@ function readFm(file, key) {
 }
 
 const opts = parseArgs(process.argv.slice(2));
-if (!opts.slug) {
-  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--type news|newspic] [--theme T] [--color C] [--author A] [--skip-deploy-check] [--dry-run]\n");
+if (!opts.slug && !opts.postDir) {
+  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--type news|newspic] [--theme T] [--color C] [--author A] [--post-dir <path>] [--skip-deploy-check] [--dry-run]\n");
   process.exit(1);
 }
+
+// --post-dir: 从路径推导 slug
+if (opts.postDir && !opts.slug) {
+  const p = opts.postDir.replace(/\/+$/, "");
+  opts.slug = p.includes("/") ? p.split("/").pop() : p;
+}
+
+writeRunning(opts.slug, "10");
 
 const base = resolve(postsRoot(), opts.slug);
 const articlePath = resolve(base, "article.md");

@@ -10,9 +10,8 @@
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { writeStep } from "./state-lib.mjs";
-
-function postsRoot() { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
 let slug = null, score = "";
@@ -21,6 +20,8 @@ for (let i = 0; i < args.length; i++) {
   else if (!slug) { slug = args[i]; }
 }
 if (!slug) { process.stderr.write("usage: step6-humanize-done.mjs <date-slug> [--score N]\n"); process.exit(1); }
+
+writeRunning(slug, "6");
 
 const base = resolve(postsRoot(), slug);
 const articlePath = resolve(base, "article.md");

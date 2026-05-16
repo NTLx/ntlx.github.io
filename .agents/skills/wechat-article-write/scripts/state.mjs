@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * .pipeline-state.json 读写工具
+ * .pipeline-state.json CLI 工具
  *
  * 用法:
  *   bun run state.mjs init <date-slug>
@@ -9,42 +9,10 @@
  *   bun run state.mjs next <date-slug>                   # 输出第一个非 done 的 step 编号
  *   bun run state.mjs dump <date-slug>                   # 输出整个 state JSON
  *
- * Step 编号顺序（与 SKILL.md 概览表保持一致）:
- *   "0","1","2","2.5","3","4","4.5","4.6","5","6","7","8","9","9.5","10"
- *
- * 退出码: 0 成功；1 参数错误；2 文件不存在或解析失败；3 step 编号不在白名单
+ * 所有逻辑从 state-lib.mjs 导入，CLI 只做参数解析和输出格式化。
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-
-const STEPS = ["0", "1", "2", "2.5", "3", "4", "4.5", "4.6", "5", "6", "7", "8", "9", "9.5", "10"];
-const VALID_STATUS = new Set(["pending", "running", "done", "failed", "skipped", "blocked"]);
-
-function postsRoot() {
-  return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
-}
-
-function statePath(slug) {
-  return resolve(postsRoot(), slug, ".pipeline-state.json");
-}
-
-function loadState(slug) {
-  const p = statePath(slug);
-  if (!existsSync(p)) return null;
-  try {
-    return JSON.parse(readFileSync(p, "utf8"));
-  } catch (e) {
-    process.stderr.write(`state.mjs: failed to parse ${p}: ${e.message}\n`);
-    process.exit(2);
-  }
-}
-
-function saveState(slug, state) {
-  const p = statePath(slug);
-  mkdirSync(dirname(p), { recursive: true });
-  writeFileSync(p, JSON.stringify(state, null, 2) + "\n");
-}
+import { loadState, saveState, STEPS, VALID_STATUS } from "./state-lib.mjs";
 
 function ensureStep(step) {
   if (!STEPS.includes(step)) {

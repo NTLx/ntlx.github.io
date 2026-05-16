@@ -28,11 +28,8 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { writeStep } from "./state-lib.mjs";
-
-function postsRoot() {
-  return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts");
-}
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { postsRoot } from "./path-resolver.mjs";
 
 function loadMap(p) {
   if (!existsSync(p)) {
@@ -123,6 +120,8 @@ if (!slug) {
   process.stderr.write("usage: apply-image-map.mjs <date-slug>\n");
   process.exit(1);
 }
+
+writeRunning(slug, "5");
 
 const baseDir = resolve(postsRoot(), slug);
 const draftPath = resolve(baseDir, "draft.md");

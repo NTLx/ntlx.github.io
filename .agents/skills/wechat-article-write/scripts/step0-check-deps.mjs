@@ -17,7 +17,8 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { findSkillDir } from "./path-resolver.mjs";
 
 const DEFAULT_SKILLS = [
   "web-access",
@@ -27,23 +28,6 @@ const DEFAULT_SKILLS = [
   "baoyu-post-to-wechat",
   "baoyu-infographic",
 ];
-
-function repoRoot() {
-  return resolve(process.env.PIPELINE_REPO_ROOT ?? ".");
-}
-
-function findSkillDir(skillName) {
-  // 项目级 > 用户级 > 全局插件
-  const candidates = [
-    resolve(repoRoot(), ".agents/skills", skillName),
-    resolve(process.env.HOME ?? "", ".claude/skills", skillName),
-    resolve(process.env.HOME ?? "", ".claude/plugins/cache/claude-plugins-official/skills", skillName),
-  ];
-  for (const d of candidates) {
-    if (existsSync(d)) return d;
-  }
-  return null;
-}
 
 function parseArgs(argv) {
   const o = { slug: null, skills: DEFAULT_SKILLS.slice() };
@@ -63,6 +47,8 @@ if (!opts.slug) {
   process.stderr.write("usage: step0-check-deps.mjs <date-slug> [--skills s1,s2,...]\n");
   process.exit(1);
 }
+
+writeRunning(opts.slug, "0");
 
 const results = { installed: [], ready: [], failed: [] };
 
@@ -89,12 +75,27 @@ for (const skill of opts.skills) {
   }
 }
 
+// CDP 健康预检（Theme G）：非阻塞警告，不影响管线继续
+const CDP_PORT = process.env.CDP_PORT ?? 9222;
+const cdpProbe = spawnSync("curl", ["-fsSL", "--max-time", "2", `http://127.0.0.1:${CDP_PORT}/json/version`], { encoding: "utf8", stdio: "pipe" });
+if (cdpProbe.status !== 0) {
+  process.stderr.write(
+    `\n⚠ CDP 未就绪 (127.0.0.1:${CDP_PORT})。web-access 技能需要 Chrome DevTools Protocol。\n` +
+    `  启动方式: /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=${CDP_PORT}\n` +
+    `  如本文不需要联网访问，可忽略此警告。\n\n`
+  );
+  results.cdp_warn = true;
+} else {
+  process.stdout.write(`  CDP: 127.0.0.1:${CDP_PORT} ✓\n`);
+}
+
 // 写状态
 const status = results.failed.length === 0 ? "done" : "failed";
 writeStep(opts.slug, "0", status, {
   installed: results.installed,
   ready: results.ready,
   failed: results.failed,
+  cdp: cdpProbe.status === 0 ? "ready" : "unreachable",
 });
 
 // 报告

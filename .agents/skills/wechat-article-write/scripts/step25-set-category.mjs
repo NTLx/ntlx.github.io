@@ -16,11 +16,10 @@
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep } from "./state-lib.mjs";
+import { writeStep, writeRunning } from "./state-lib.mjs";
+import { resolveBase } from "./path-resolver.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
-
-function postsRoot() { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
 
 function run(cmd, args) {
   return spawnSync(cmd, args, { stdio: "pipe", encoding: "utf8" });
@@ -39,7 +38,10 @@ if (!slug) {
   process.exit(1);
 }
 
-const draftPath = resolve(postsRoot(), slug, "draft.md");
+writeRunning(slug, "2.5");
+
+const base = resolveBase(slug);
+const draftPath = resolve(base, "draft.md");
 if (!existsSync(draftPath)) {
   process.stderr.write(`step25: draft.md missing: ${draftPath}\n`);
   process.exit(2);
