@@ -1,13 +1,12 @@
 #!/usr/bin/env bun
 /**
- * 微信草稿发布编排（Step 10）
+ * 微信草稿发布（Step 6.2）
  *
  * 行为:
- *   1. 读取 posts/<date-slug>/article.md frontmatter，自动从中提取 title / sourceUrl
- *   2. 探活 sourceUrl（HTTP 200），未就绪则报错并退出（提示先跑 wait-pages-deployed.mjs）
- *   3. 调用 baoyu-post-to-wechat 技能脚本，传入 --cover --theme --color --author --src
- *      使用 article-wechat.html（本地路径版），微信 API 直接读本地图片上传
- *   4. 成功后 state.mjs set <date-slug> 10 done
+ *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl
+ *   2. 探活 sourceUrl（仅在 --no-skip-deploy-check 时）
+ *   3. 调用 baoyu-post-to-wechat，传入 --cover --theme --color --author --src
+ *   4. 成功后 markStepDone(6)
  *
  * 用法:
  *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme grace] [--color vermilion]
@@ -19,7 +18,7 @@
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep, writeRunning } from "./state-lib.mjs";
+import { markStepDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
@@ -84,8 +83,6 @@ if (opts.postDir && !opts.slug) {
   opts.slug = p.includes("/") ? p.split("/").pop() : p;
 }
 
-writeRunning(opts.slug, "10");
-
 const base = resolve(postsRoot(), opts.slug);
 const articlePath = resolve(base, "article.md");
 const htmlPath    = resolve(base, "article-wechat.html");
@@ -108,7 +105,7 @@ if (!opts.skipDeployCheck) {
   process.stdout.write(`probing sourceUrl: ${sourceUrl}\n`);
   const probe = spawnSync("curl", ["-fsSLI", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "15", sourceUrl], { encoding: "utf8" });
   if (probe.status !== 0 || (probe.stdout ?? "").trim() !== "200") {
-    process.stderr.write(`publish-wechat: sourceUrl 未就绪 (HTTP ${(probe.stdout ?? "").trim() || "?"})；先跑 wait-pages-deployed.mjs\n`);
+    process.stderr.write(`publish-wechat: sourceUrl 未就绪 (HTTP ${(probe.stdout ?? "").trim() || "?"})；等待 GitHub Pages 部署完成后重试\n`);
     process.exit(3);
   }
 }
@@ -145,5 +142,5 @@ if (result.status !== 0) {
   process.exit(4);
 }
 
-writeStep(opts.slug, "10", "done", { sourceUrl, theme: opts.theme });
+markStepDone(opts.slug, 6, { sourceUrl, theme: opts.theme });
 process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, theme: opts.theme, color: opts.color }) + "\n");

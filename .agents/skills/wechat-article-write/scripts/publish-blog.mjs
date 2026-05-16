@@ -1,31 +1,28 @@
 #!/usr/bin/env bun
 /**
- * 博客发布轨一键编排（Step 9）
+ * 博客发布轨（Step 6.1）
  *
  * 行为:
- *   1. 校验：frontmatter 含 title / date / summary / category（在 6 枚举内）
+ *   1. 校验：frontmatter 含 title / date / summary / category（6 枚举内）
  *   2. 转换：summary→description、加 $schema: starlight、删 coverImage / sourceUrl
- *   3. 确定 blog slug：优先 --blog-slug（纯 ASCII）；未传则从 date-slug 去日期前缀，
- *      若非纯 ASCII kebab-case 则报错退出（CLAUDE.md 禁止中文文件名）
- *   4. 写入：复制为 src/content/docs/articles/<slug>.md
- *   5. 构建：npx astro sync && npm run build（任一非零立即中止）
- *   6. 提交：git add → git commit（独立步骤，失败 => exit 4）
- *   7. 推送：git push（独立步骤，失败 => 状态写 blocked + 生成 RESUME.md，进程 exit 0
- *           以便 agent 把后续 Step 9.5/10 标 blocked 而不是 failed；commit 仍然有效）
- *   8. 写状态：bun run state.mjs set <date-slug> 9 done|blocked '{...}'
+ *   3. 确定 blog slug：优先 --blog-slug（纯 ASCII）；未传则从 date-slug 去日期前缀
+ *   4. 写入：src/content/docs/articles/<slug>.md
+ *   5. 构建：npx astro sync && npm run build
+ *   6. git add → git commit → git push
+ *   7. push 失败 → 生成 RESUME.md，commit 不丢失
  *
  * 用法:
  *   bun run publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run]
- *                              [--commit-template TEMPLATE]
+ *
  * 退出码:
- *   0 成功（含 push 失败但 commit 成功 + 已写 RESUME.md 的 blocked 状态）
- *   1 参数错误；2 frontmatter 校验失败或 blog-slug 非 ASCII；3 构建失败；4 git add/commit 失败
+ *   0 成功（push 失败但 commit 成功时也返回 0）
+ *   1 参数错误；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { writeStep, writeRunning } from "./state-lib.mjs";
+import { markStepDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
@@ -157,8 +154,6 @@ if (!opts.slug) {
   process.exit(1);
 }
 
-writeRunning(opts.slug, "9");
-
 const dateSlug = opts.slug;
 const articlePath = resolve(postsRoot(), dateSlug, "article.md");
 if (!existsSync(articlePath)) {
@@ -262,15 +257,8 @@ git log origin/main..HEAD   # 应为空
 \`\`\`bash
 SLUG="${dateSlug}"
 
-# Step 9 状态升级到 done
-bun run .agents/skills/wechat-article-write/scripts/state.mjs set "$SLUG" 9 done '{"commit":"${sha}","slug":"${slug}","resumed":true}'
-
-# Step 9.5 等待 GitHub Pages 部署完成
-bun run .agents/skills/wechat-article-write/scripts/wait-pages-deployed.mjs "$SLUG"
-
-# Step 10 微信发布（参考 SKILL.md Step 10）
-.agents/skills/wechat-article-write/scripts/validate-pipeline.sh "$SLUG" publish-wechat
-# 然后调用 baoyu-post-to-wechat
+# Step 6 微信发布
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-dir posts/"$SLUG" --theme grace --color vermilion --author NTLx
 \`\`\`
 
 ## 排查 push 失败常见原因
@@ -283,12 +271,16 @@ bun run .agents/skills/wechat-article-write/scripts/wait-pages-deployed.mjs "$SL
   process.stdout.write(`written: ${resumePath}\n`);
 }
 
-// 写 state：push 成功 = done；push 失败 = blocked
-const finalStatus = pushBlocked ? "blocked" : "done";
+// 写 state：push 成功 = done；push 失败 = done（commit 已完成，push 可后续手动补）
 const stateExtra = pushBlocked
   ? { commit: sha, slug, pushed: false, push_error: pushError, resume_file: "RESUME.md" }
   : { commit: sha, slug, pushed };
-writeStep(dateSlug, "9", finalStatus, stateExtra);
+if (pushBlocked) {
+  markStepDone(dateSlug, 6, stateExtra);
+  process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push' manually then mark step complete.\n");
+} else {
+  markStepDone(dateSlug, 6, stateExtra);
+}
 
 process.stdout.write(JSON.stringify({
   slug,

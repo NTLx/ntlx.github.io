@@ -41,15 +41,13 @@
 
 ## 管线概览（wechat-article-write）
 
-完整 15 阶段流水线（Step 0–10，含 2.5 / 4.5 / 4.6 / 9.5）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
+6 步流水线（Step 1–6）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
 
-- **发布顺序**：博客先发（Step 9）→ 微信草稿（Step 10）。sourceUrl 预先填入，不等 Pages 部署即发布（约 1-3 分钟 404 窗口）
-- **状态写入全内聚**：每个 Step 完成后由对应脚本自动写入 `.pipeline-state.json`，agent 不需要手动调用 `state.mjs set`。脚本启动时自动写 `running` 状态（`writeRunning`），提供实时可观测性
-- **状态监控**：`state-watch.mjs` 可实时监控管线状态变化（`bun run state-watch.mjs <date-slug> --watch`）
-- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下的本地目录名（可含中文）；blog-slug 是 `articles/` 下的 URL 文件名（必须纯 ASCII kebab-case）
-- **双轨分离**：博客轨只消费 `article.md`（Markdown + CDN URL），不生成 HTML；微信轨使用 `article-local.md` → `article-wechat.html`（本地 imgs/ 路径），wechat-api.ts 直接读本地文件上传
-- 所有 inline bash / sed 链已脚本化到 `scripts/`，agent 只调用脚本、解读退出码
-- **run-with-cdn-fallback.sh 已废弃**：微信轨全程本地文件操作（零 CDN 依赖），博客轨不生成 HTML，CDN 降级场景不存在
+- **发布顺序**：博客先发（Step 6.1）→ 微信草稿（Step 6.2）。sourceUrl 预先填入，不等 Pages 部署即发布
+- **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑
+- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下本地目录名（可含中文）；blog-slug 是 `articles/` 下 URL 文件名（必须纯 ASCII kebab-case）
+- **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传
+- 所有校验逻辑已封装在 step 脚本内，agent 只调用脚本、解读退出码
 
 ## 硬规则
 
@@ -78,11 +76,11 @@
 2. **防呆检查与验证驱动执行（VDE）**：向外部生产环境（公众号 / GitHub）提交数据前必须做终态验证：
    - 检查最终 Markdown / HTML 格式（异常空行、未解析占位符）
    - 检查所有引用图片的本地路径真实存在
-   - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作（管线已通过 `validate-pipeline.sh` 提供阶段化校验，含 `step4`/`step45`/`step9-input`/`step10-input`/`syntax-check` 入口校验）
+   - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作（各 step 脚本内嵌阶段化校验）
 
 3. **路径绝对化**：跨脚本 / 跨目录工具链统一用绝对路径，**严禁**基于直觉猜测 CWD 行为；批量处理工具运行前先验证目录层级。
 
-4. **发布输入源校验**：Step 9（博客）的输入文件必须是 `article.md`（CDN URL 版）；Step 10（微信）的输入文件是 `article-wechat.html`（本地路径版 HTML），严禁混用。
+4. **发布输入源校验**：Step 6.1（博客）输入必须是 `article.md`（CDN URL 版）；Step 6.2（微信）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
 ## 技术博文编写规范
 
