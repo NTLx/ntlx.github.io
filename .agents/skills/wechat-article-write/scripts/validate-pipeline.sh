@@ -8,9 +8,9 @@
 #   draft         : Step 2.4.1 质量门控（字数 / 互动 / 原文参考 / frontmatter / category 必填）
 #   images        : Step 4 + 4.5 图片完整性
 #   cdn           : Step 5 出口；article.md 内不残留本地 imgs/ 路径
-#   html          : Step 8 出口；article.html 非空、含 inline CSS、所有 <img> 走 CDN
+#   html          : Step 8 出口；article-wechat.html 非空、含 inline CSS
 #   publish-blog  : Step 9 出口；src/content/docs/articles/<blogSlug>.md frontmatter 已转 Starlight 字段
-#   publish-wechat: Step 10 进入前；cover 存在、sourceUrl 已部署
+#   publish-wechat: Step 10 进入前；cover 存在、article-wechat.html 存在、sourceUrl 已部署
 #
 # 退出码: 0 通过；非 0 失败并打印原因
 
@@ -125,26 +125,25 @@ case "$stage" in
     ok "publish-blog 通过：$f description / category=$category 已就绪"
     ;;
   html)
-    h="$base/article.html"
-    [[ -f "$h" ]] || fail "article.html 不存在"
-    [[ -s "$h" ]] || fail "article.html 为空"
-    grep -q 'style=' "$h" || fail "article.html 缺少 inline CSS"
-    if grep -nE '<img[^>]+src="imgs/' "$h"; then
-      fail "article.html 仍含本地 imgs/ 路径（CDN 降级 rewrite 未生效？）"
-    fi
-    ok "html 通过：article.html 非空且 <img> 全部走 CDN"
+    h="$base/article-wechat.html"
+    [[ -f "$h" ]] || fail "article-wechat.html 不存在"
+    [[ -s "$h" ]] || fail "article-wechat.html 为空"
+    grep -q 'style=' "$h" || fail "article-wechat.html 缺少 inline CSS"
+    # 微信版 HTML 使用本地 imgs/ 路径，这是预期行为（wechat-api.ts 直接读本地文件上传）
+    # 不检查 <img src> 是否走 CDN——微信轨全程本地文件操作
+    ok "html 通过：article-wechat.html 非空，微信轨专用"
     ;;
   publish-wechat)
     f="$base/article.md"
     [[ -f "$f" ]] || fail "article.md 不存在"
     [[ -f "$base/cover.png" || -f "$base/cover.jpg" ]] || fail "cover.png/cover.jpg 不存在"
-    [[ -f "$base/article.html" ]] || fail "article.html 不存在"
+    [[ -f "$base/article-wechat.html" ]] || fail "article-wechat.html 不存在"
     src=$(read_fm "$f" sourceUrl)
     [[ "$src" =~ ^https://ntlx\.github\.io/articles/.+/?$ ]] || fail "sourceUrl 非法: $src"
     # 探活 sourceUrl
     code=$(curl -fsSLI -o /dev/null -w '%{http_code}' --max-time 15 "$src" || echo 000)
     [[ "$code" == "200" ]] || fail "sourceUrl=$src 未就绪 (HTTP $code)；先跑 wait-pages-deployed.mjs"
-    ok "publish-wechat 通过：cover / html / sourceUrl=$src (HTTP 200)"
+    ok "publish-wechat 通过：cover / article-wechat.html / sourceUrl=$src (HTTP 200)"
     ;;
   *)
     echo "validate-pipeline.sh: unknown stage '$stage'" >&2

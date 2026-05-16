@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * 将 draft.md 中的语义占位符替换为 CDN URL（产出 article.md）和本地路径（产出 article-local.md）。
- * 同时支持把已生成的 article.html 中的本地路径回写为 CDN URL。
+ * 同时支持把已生成的 HTML 中的本地路径回写为 CDN URL（--html-rewrite 模式，已废弃）。
  *
  * 替换覆盖两类引用（CDN 输出端）：
  *   1. 注释占位符: `<!-- SLOT_IMG_NN_DESC -->`
@@ -141,11 +141,11 @@ const resolver = buildResolver(map, imgsDir);
 const cdnMd = replaceWithCdn(draft, resolver, map);
 const localMd = replaceWithLocal(draft, resolver);
 
-// article-local.md 是 CDN 降级备份，包含本地路径引用，不可直接用于发布
-const localWarning = `<!-- ⚠️ 警告：此文件是 CDN 降级备份，包含本地 imgs/ 路径。仅当 CDN 不可达时作为输入源使用。不要将此文件用于 Step 9 博客发布或 Step 10 微信发布——那些步骤必须使用 article.md（CDN 版）。 -->\n\n`;
-
+// article-local.md 是微信轨的正式 Markdown 输入，包含本地 imgs/ 路径引用
+// 用于 Step 8 生成微信版 HTML（article-wechat.html）
+// 不在文件头加 HTML 注释：markdown-to-html 会把注释渲染进正文，微信 API 拒绝含注释的 content
 writeFileSync(resolve(baseDir, "article.md"), cdnMd);
-writeFileSync(resolve(baseDir, "article-local.md"), localWarning + localMd);
+writeFileSync(resolve(baseDir, "article-local.md"), localMd);
 
 const stillHasSlot = /<!--\s*SLOT_IMG_/.test(cdnMd);
 const stillHasLocal = /!\[[^\]]*\]\((?:\.\/)?imgs\//.test(cdnMd);

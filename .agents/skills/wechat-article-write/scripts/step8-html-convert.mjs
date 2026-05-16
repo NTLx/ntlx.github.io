@@ -1,19 +1,21 @@
 #!/usr/bin/env bun
 /**
- * Step 8: HTML 转换 + 验证 + 状态写入
+ * Step 8: HTML 转换（微信轨专用）
  *
  * 用法:
  *   bun run step8-html-convert.mjs <date-slug> [--theme default] [--color blue]
  *
  * 行为:
- *   1. 通过 run-with-cdn-fallback.sh 调用 baoyu-markdown-to-html
+ *   1. 从 article-local.md（本地 imgs/ 路径）生成 article-wechat.html
  *   2. 运行 validate-pipeline.sh html 验证
  *   3. 写状态: step 8 done
  *
- * 退出码: 0 成功；1 参数错误；2 转换/验证失败
+ * 微信轨全程使用本地文件：wechat-api.ts 的 loadUploadAsset() 直接
+ * fs.readFileSync 读取 imgs/ 下的图片，无需 CDN URL。
+ * 博客轨不消费 HTML——Astro Starlight 直接消费 article.md（Markdown）。
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { writeStep } from "./state-lib.mjs";
@@ -31,8 +33,8 @@ for (let i = 0; i < args.length; i++) {
 if (!slug) { process.stderr.write("usage: step8-html-convert.mjs <date-slug> [--theme T] [--color C]\n"); process.exit(1); }
 
 const base = resolve(postsRoot(), slug);
-const articleMd = resolve(base, "article.md");
-if (!existsSync(articleMd)) { process.stderr.write("step8: article.md missing\n"); process.exit(2); }
+const localMd = resolve(base, "article-local.md");
+if (!existsSync(localMd)) { process.stderr.write("step8: article-local.md missing\n"); process.exit(2); }
 
 // 查找 baoyu-markdown-to-html 脚本
 function findHtmlScript() {
@@ -51,30 +53,54 @@ const htmlScript = findHtmlScript();
 if (!htmlScript) { process.stderr.write("step8: baoyu-markdown-to-html/scripts/main.ts not found\n"); process.exit(2); }
 
 const skillDir = resolve(repoRoot(), ".agents/skills/wechat-article-write");
-const fallbackScript = resolve(skillDir, "scripts/run-with-cdn-fallback.sh");
 
-process.stdout.write(`step8: converting ${articleMd} to HTML...\n`);
-const r = spawnSync("bash", [
-  fallbackScript,
-  "--post-dir", base,
-  "--stage", "html",
-  "--",
-  "bun", "run", htmlScript,
-  articleMd,
+// 从 article-local.md frontmatter 读取标题
+const content = readFileSync(localMd, "utf8");
+const fmMatch = content.match(/(^|\n)---\n([\s\S]*?)\n---/);
+let title = "";
+if (fmMatch) {
+  const titleMatch = fmMatch[2].match(/^title:\s*(.+)$/m);
+  if (titleMatch) title = titleMatch[1].trim();
+}
+
+process.stdout.write(`step8: converting ${localMd} to article-wechat.html...\n`);
+const r = spawnSync("bun", [
+  "run", htmlScript,
+  localMd,
   "--theme", theme,
-  "--title", "",
+  "--title", title,
 ], { stdio: "inherit", encoding: "utf8", cwd: repoRoot() });
 
 if (r.status !== 0) { process.stderr.write("step8: HTML conversion failed\n"); process.exit(2); }
 
+// baoyu-markdown-to-html 输出固定为 {input}.html，即 article-local.html
+// 重命名为 article-wechat.html（微信轨专用产物）
+const localHtml = resolve(base, "article-local.html");
+const wechatHtml = resolve(base, "article-wechat.html");
+if (existsSync(localHtml)) {
+  renameSync(localHtml, wechatHtml);
+} else if (!existsSync(wechatHtml)) {
+  process.stderr.write("step8: HTML output not found (expected article-local.html or article-wechat.html)\n");
+  process.exit(2);
+}
+
+// font-family 声明中的字体名用双引号包裹（如 "Source Han Serif SC"）
+// 嵌套在 style="..." 属性内会导致属性值截断，微信 API 解析器对此更严格
+// 修复：将 font-family: "..." 中的内嵌双引号替换为单引号
+let html = readFileSync(wechatHtml, "utf8");
+html = html.replace(/font-family:\s*((?:&quot;|")[^;,]+?(?:&quot;|")(?:\s*,\s*(?:&quot;|")[^;,]+?(?:&quot;|"))*)/g, (_match, familyValue) => {
+  return `font-family: ${familyValue.replace(/&quot;/g, "'").replace(/"/g, "'")}`;
+});
+writeFileSync(wechatHtml, html);
+
 // 验证
 const validate = resolve(skillDir, "scripts/validate-pipeline.sh");
-const vr = spawnSync("bash", [validate, base, "html"], { stdio: "pipe", encoding: "utf8" });
+const vr = spawnSync("bash", [validate, slug, "html"], { stdio: "pipe", encoding: "utf8" });
 if (vr.status !== 0) {
   process.stderr.write(`step8: validation failed: ${vr.stderr}\n`);
   process.exit(2);
 }
 
-writeStep(slug, "8", "done", { theme, color });
-process.stdout.write(JSON.stringify({ slug, step: 8, theme, color }) + "\n");
+writeStep(slug, "8", "done", { theme, color, output: "article-wechat.html" });
+process.stdout.write(JSON.stringify({ slug, step: 8, theme, color, output: "article-wechat.html" }) + "\n");
 process.exit(0);
