@@ -28,7 +28,6 @@
 
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { writeStep, writeRunning } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 
 function loadMap(p) {
@@ -121,8 +120,6 @@ if (!slug) {
   process.exit(1);
 }
 
-writeRunning(slug, "5");
-
 const baseDir = resolve(postsRoot(), slug);
 const draftPath = resolve(baseDir, "draft.md");
 const mapPath = resolve(baseDir, "image-map.json");
@@ -167,6 +164,3 @@ process.stdout.write(JSON.stringify({
   article_local_md: "article-local.md",
   image_count: Object.keys(map).length,
 }) + "\n");
-
-// 自动写 Step 5 状态
-writeStep(slug, "5", "done", { article_md: "article.md", article_local_md: "article-local.md", image_count: Object.keys(map).length });
