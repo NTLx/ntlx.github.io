@@ -19,6 +19,7 @@ import { spawnSync } from "node:child_process";
 import { writeStep } from "./state-lib.mjs";
 
 function repoRoot() { return resolve(process.env.PIPELINE_REPO_ROOT ?? "."); }
+function postsRoot() { return resolve(process.env.PIPELINE_POSTS_ROOT ?? "posts"); }
 
 function findGithubScriptDir() {
   const candidates = [
