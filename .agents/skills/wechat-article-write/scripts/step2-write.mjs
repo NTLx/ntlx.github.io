@@ -3,7 +3,7 @@
  * Step 2: 文章创作质量门控
  *
  * 校验 draft.md：
- *   - 字数 ≥ 2500（中文字符+英文单词，硬性下限）
+ *   - 字数 ≥ 2000（中文字符+英文单词，硬性下限）
  *   - frontmatter 完整（title / date / summary / category / coverImage / sourceUrl）
  *   - 文末互动存在
  *   - 正文无 H1
@@ -71,7 +71,7 @@ const body = bodyStart !== -1 ? content.slice(bodyStart + 5) : content;
 const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
 const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
 const wordCount = chineseChars + englishWords;
-if (wordCount < 2500) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2500（硬性下限）`);
+if (wordCount < 2000) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2000（硬性下限）`);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");

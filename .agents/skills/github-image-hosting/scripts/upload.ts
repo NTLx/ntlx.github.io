@@ -218,58 +218,83 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
     };
   }
 
-  try {
-    // Read file and encode to base64
-    const fileContent = fs.readFileSync(imagePath);
-    const base64Content = fileContent.toString('base64');
+  // Read file and encode once (reused across retries)
+  const fileContent = fs.readFileSync(imagePath);
+  const base64Content = fileContent.toString('base64');
 
-    // Get current commit SHA
-    const currentSha = ghApiGet(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`);
+  // Create blob once (immutable, reusable across retries)
+  const blobSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
+    encoding: 'base64',
+    content: base64Content
+  });
 
-    // Create blob
-    const blobSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
-      encoding: 'base64',
-      content: base64Content
-    });
+  const MAX_RETRIES = 3;
+  const BASE_DELAY_MS = 1000;
 
-    // Create tree
-    const treeSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/trees`, {
-      base_tree: currentSha,
-      tree: [{
-        path: repoPath,
-        mode: '100644',
-        type: 'blob',
-        sha: blobSha
-      }]
-    });
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // Re-read HEAD on every attempt (may have moved due to concurrent uploads)
+      const currentSha = ghApiGet(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`);
 
-    // Create commit
-    const commitSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/commits`, {
-      message: `Add: ${filename}`,
-      tree: treeSha,
-      parents: [currentSha]
-    });
+      // Create tree against current HEAD
+      const treeSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/trees`, {
+        base_tree: currentSha,
+        tree: [{
+          path: repoPath,
+          mode: '100644',
+          type: 'blob',
+          sha: blobSha
+        }]
+      });
 
-    // Update reference
-    ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`, { sha: commitSha });
+      // Create commit
+      const commitSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/commits`, {
+        message: `Add: ${filename}`,
+        tree: treeSha,
+        parents: [currentSha]
+      });
 
-    return {
-      success: true,
-      filename,
-      folder,
-      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
-      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      filename,
-      folder,
-      githubUrl: '',
-      cdnUrl: '',
-      error: `Upload failed: ${error}`,
-    };
+      // Update reference
+      ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`, { sha: commitSha });
+
+      return {
+        success: true,
+        filename,
+        folder,
+        githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
+        cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
+      };
+    } catch (error: any) {
+      const msg = error?.stderr ?? error?.message ?? String(error);
+      const isRefConflict = /422|409|non-fast-forward/i.test(msg);
+
+      if (isRefConflict && attempt < MAX_RETRIES - 1) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        console.warn(`[upload] ref conflict (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      return {
+        success: false,
+        filename,
+        folder,
+        githubUrl: '',
+        cdnUrl: '',
+        error: `Upload failed after ${attempt + 1} attempt(s): ${msg}`,
+      };
+    }
   }
+
+  // Should not reach here, but satisfy TypeScript
+  return {
+    success: false,
+    filename,
+    folder,
+    githubUrl: '',
+    cdnUrl: '',
+    error: 'Upload failed: max retries exceeded',
+  };
 }
 
 function listImagesInDir(dir: string): string[] {

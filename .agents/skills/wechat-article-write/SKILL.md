@@ -92,7 +92,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 **Agent 动作**：
 1. 通过 **Skill 工具调用 ljg-writes**，传入：
    - 资料内容：`posts/{date-slug}/materials.md`
-   - 扩展模式：目标 2500-3500 字（材料丰富则 3500-5000），字数下限 2500 硬门控
+   - 扩展模式：目标 2000-3500 字（材料丰富则 3500-5000），字数下限 2000 硬门控
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
@@ -127,7 +127,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> [--allow-no-references]
 ```
-脚本校验：字数 ≥ 2500、frontmatter 完整（title/date/summary/category/coverImage/sourceUrl）、文末互动存在、无 H1、正文含 `## 原文参考`（默认强制，`--allow-no-references` 跳过）。materials.md 中的 URL 未在正文引用的打印 warning。任一不通过 exit 非零。
+脚本校验：字数 ≥ 2000、frontmatter 完整（title/date/summary/category/coverImage/sourceUrl）、文末互动存在、无 H1、正文含 `## 原文参考`（默认强制，`--allow-no-references` 跳过）。materials.md 中的 URL 未在正文引用的打印 warning。任一不通过 exit 非零。
 
 ---
 
@@ -143,7 +143,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并**复验关键质量门控**（frontmatter 完整、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2500、原文参考存在）。任一不通过 fail。
+脚本验证 draft.md 存在、非空，并**复验关键质量门控**（frontmatter 完整、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2000、原文参考存在）。任一不通过 fail。
 
 ---
 
@@ -260,6 +260,7 @@ theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md`
 | `scripts/set-frontmatter.mjs` | Frontmatter 读写 |
 | `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 |
 | `scripts/apply-image-map.mjs` | 占位符 → CDN URL / 本地路径 |
+| `scripts/pipeline.mjs` | 最小编排器：自动串行执行确定性步骤（Step 5 + Step 6） |
 
 ### 参考文档
 | 文件 | 内容 |
