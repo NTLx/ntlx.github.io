@@ -36,6 +36,13 @@ user_invocable: true
 | EXTEND.md（偏好） | `.baoyu-skills/{skill-name}/EXTEND.md` | 项目级，git 跟踪 |
 | .env（密钥） | `~/.baoyu-skills/.env` | 用户级，不进 git |
 
+**配置读取机制**：`config-lib.mjs` 在脚本启动时自动读取 `.baoyu-skills/*/EXTEND.md` 的 frontmatter，解析为配置字典。脚本默认值由 config-lib 从 EXTEND.md 读取，CLI 参数仍可覆盖。不再在各脚本中硬编码 theme/color/author 等默认值。
+
+**EXTEND.md 示例**：
+- `baoyu-markdown-to-html` → `default_theme: grace`, `default_color: vermilion`
+- `baoyu-post-to-wechat` → `default_author: NTLx`, `default_publish_method: api`
+- `baoyu-cover-image` → `preferred_image_backend: baoyu-imagine`, `default_aspect: 2.35:1`
+
 Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude/skills/` > 全局插件。
 
 ## 流水线概览
@@ -118,9 +125,9 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 **脚本**：
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> [--allow-no-references]
 ```
-脚本校验：字数 ≥ 2500、frontmatter 完整（title/date/summary/category/coverImage/sourceUrl）、文末互动存在、无 H1、读后感类含原文参考。任一不通过 exit 非零。
+脚本校验：字数 ≥ 2500、frontmatter 完整（title/date/summary/category/coverImage/sourceUrl）、文末互动存在、无 H1、正文含 `## 原文参考`（默认强制，`--allow-no-references` 跳过）。materials.md 中的 URL 未在正文引用的打印 warning。任一不通过 exit 非零。
 
 ---
 
@@ -136,7 +143,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，写状态。
+脚本验证 draft.md 存在、非空，并**复验关键质量门控**（frontmatter 完整、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2500、原文参考存在）。任一不通过 fail。
 
 ---
 
@@ -157,7 +164,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
-脚本执行：统一格式检测修正（MIME/扩展名不匹配）→ 更新 coverImage 扩展名 → 插图引用一致性验证 → 信息图插入验证。全部通过写状态。
+脚本执行：缺 draft.md/cover 直接 fail → 统一格式检测修正（MIME/扩展名不匹配）→ 更新 coverImage 扩展名 → **SLOT-only 强制校验**（draft 中不得含 `![](imgs/...)` 本地引用）→ SLOT_IMG 与 imgs/ 文件一一对应校验 → 信息图位置约束（`SLOT_IMG_00_INFOGRAPHIC` 须在正文前 200 字符内）。全部通过写状态。
 
 ---
 
@@ -171,7 +178,7 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 1. 上传 `imgs/*` 到 GitHub 图床 → image-map.json
 2. 将 draft.md 占位符替换为 CDN URL → article.md
 3. 将 draft.md 占位符替换为本地路径（内存中） → 调用 baoyu-markdown-to-html → article-wechat.html
-4. 验证: article.md 无占位符残留、无本地路径；article-wechat.html 非空、含 inline CSS
+4. 验证: article.md 无占位符残留、无本地路径；article-wechat.html 非空、含 inline CSS、无 SLOT 残留、无空 img src
 5. 写状态
 
 ---
@@ -185,23 +192,23 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs \
   --post-dir posts/{date-slug} \
-  --blog-slug {ascii-slug} \
-  --category {category}
+  --blog-slug {ascii-slug}
 ```
 
-脚本职责：frontmatter 转换（summary→description, +$schema, -coverImage/-sourceUrl）→ astro sync + build → git add + commit + push。push 失败写 RESUME.md + 标记 blocked。
+脚本职责：frontmatter 转换（summary→description, +$schema, -coverImage/-sourceUrl）→ 目标文件防覆盖检查 → astro sync + build → 分支检查（非 main 拒绝）→ git add + commit + push。push 失败写 RESUME.md + 标记 blocked。
+
+额外选项：`--overwrite`（允许覆盖已有文章）、`--allow-non-main`（允许在非 main 分支发布）、`--dry-run`。
 
 ### 6.2 微信发布
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
-  --post-dir posts/{date-slug} \
-  --theme {theme} --color {color} --author {author}
+  --post-dir posts/{date-slug}
 ```
 
-脚本职责：pre-flight（cover + article-wechat.html + sourceUrl）→ 调用 baoyu-post-to-wechat 发布草稿 → 写状态。
+脚本职责：pre-flight（cover + article-wechat.html + sourceUrl）→ 从 article.md 读取 title/summary → 调用 baoyu-post-to-wechat 发布草稿 → 写状态。
 
-主题/颜色从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 读取，作者从 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 读取。
+theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 和 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 自动读取，无需手动传入。CLI 参数仍可覆盖。
 
 ---
 
@@ -212,7 +219,8 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
 2. 图片后端降级（Gemini > Seedream > DashScope）自动执行，不需确认
 3. 图床上传失败：重试 1 次 → 仍失败则询问是否跳过
 4. 其他失败：询问是否继续。用户选择「停止」则保存中间产物和状态，报告进度
-5. `state.mjs next <date-slug>` 返回第一个未完成的步骤，支持断点续跑
+5. `state.mjs next <date-slug>` 返回下一个待执行步骤，全部完成时返回 `done`
+6. Step 6 发布分为博客和微信两个子状态：`state.mjs blog` 和 `state.mjs wechat` 独立管理，一方失败不阻塞另一方
 
 ## 已知约束
 
@@ -245,7 +253,8 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
 | `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 |
 | `scripts/publish-wechat.mjs` | Step 6.2: 微信草稿编排 |
 | `scripts/state.mjs` | 状态 CLI（next/set/get） |
-| `scripts/state-lib.mjs` | 状态读写库（内部模块） |
+| `scripts/config-lib.mjs` | 配置解析（从 baoyu EXTEND.md 读取 theme/color/author 等） |
+| `scripts/state-lib.mjs` | 状态读写库（含 Step 6 博客/微信子状态） |
 | `scripts/path-resolver.mjs` | 路径解析（内部模块） |
 | `scripts/suggest-category.mjs` | 分类 + blog-slug 推荐 |
 | `scripts/set-frontmatter.mjs` | Frontmatter 读写 |

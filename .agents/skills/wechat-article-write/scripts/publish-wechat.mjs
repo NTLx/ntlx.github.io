@@ -6,11 +6,11 @@
  *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl
  *   2. 探活 sourceUrl（仅在 --no-skip-deploy-check 时）
  *   3. 调用 baoyu-post-to-wechat，传入 --cover --theme --color --author --src
- *   4. 成功后 markStepDone(6)
+ *   4. 成功后 markWechatDone
  *
  * 用法:
- *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme grace] [--color vermilion]
- *                              [--author NTLx] [--no-skip-deploy-check] [--dry-run]
+ *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme <cfg>] [--color <cfg>]
+ *                              [--author <cfg>] [--no-skip-deploy-check] [--dry-run]
  * 退出码:
  *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
  */
@@ -18,13 +18,15 @@
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markStepDone } from "./state-lib.mjs";
+import { markStepFailed, markWechatDone } from "./state-lib.mjs";
+import { getPostToWechatConfig } from "./config-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
 function parseArgs(argv) {
-  const o = { slug: null, theme: "grace", color: "vermilion", type: "news", author: "NTLx", skipDeployCheck: true, dryRun: false, postDir: null };
+  const cfg = getPostToWechatConfig();
+  const o = { slug: null, theme: cfg.theme, color: cfg.color, type: "news", author: cfg.author, skipDeployCheck: true, dryRun: false, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
@@ -36,14 +38,14 @@ function parseArgs(argv) {
     else if (a === "--skip-deploy-check") o.skipDeployCheck = true;
     else if (a === "--dry-run") o.dryRun = true;
     else if (a === "--post-dir") o.postDir = argv[++i];
-    else if (a.startsWith("--")) { process.stderr.write(`publish-wechat: unknown flag "${a}" (typo?)\n`); }
+    else if (a.startsWith("--")) { process.stderr.write(`publish-wechat: unknown flag "${a}" (typo?)\n`); process.exit(1); }
     else if (!o.slug) o.slug = a;
   }
   return o;
 }
 
 function printHelp() {
-  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 10)
+  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 6.2)
 
 用法:
   bun run publish-wechat.mjs <date-slug> [options]
@@ -51,9 +53,9 @@ function printHelp() {
 
 选项:
   --type <news|newspic>       文章类型（默认 news）
-  --theme <name>              主题样式（默认 grace）
-  --color <name>              主题颜色（默认 vermilion）
-  --author <name>             作者名（默认 NTLx）
+  --theme <name>              主题样式（默认来自 config）
+  --color <name>              主题颜色（默认来自 config）
+  --author <name>             作者名（默认来自 config）
   --post-dir <path>           posts/ 下的目录路径（替代 date-slug）
   --skip-deploy-check         跳过 sourceUrl 探活（默认开启）
   --no-skip-deploy-check      强制探活 sourceUrl（HTTP 200 校验）
@@ -96,6 +98,7 @@ if (!cover) { process.stderr.write("publish-wechat: cover.png/cover.jpg 都不�
 
 const title = readFm(articlePath, "title");
 const sourceUrl = readFm(articlePath, "sourceUrl");
+const digest = readFm(articlePath, "summary");
 if (!title || !sourceUrl) {
   process.stderr.write("publish-wechat: frontmatter.title 或 sourceUrl 缺失\n");
   process.exit(2);
@@ -130,6 +133,8 @@ const args = [
   "--author", opts.author,
   "--src", sourceUrl,
 ];
+// digest/summary: passed for future compatibility (post-draft.mjs may accept --digest later)
+if (digest) args.push("--digest", digest);
 
 if (opts.dryRun) {
   process.stdout.write(`[dry-run] bun ${args.join(" ")}\n`);
@@ -139,8 +144,9 @@ if (opts.dryRun) {
 const result = spawnSync("bun", args, { stdio: "inherit" });
 if (result.status !== 0) {
   process.stderr.write(`publish-wechat: post-draft 退出码 ${result.status}\n`);
+  markStepFailed(opts.slug, 6.2, `post-draft exit ${result.status}`);
   process.exit(4);
 }
 
-markStepDone(opts.slug, 6, { sourceUrl, theme: opts.theme });
+markWechatDone(opts.slug, { sourceUrl, theme: opts.theme });
 process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, theme: opts.theme, color: opts.color }) + "\n");

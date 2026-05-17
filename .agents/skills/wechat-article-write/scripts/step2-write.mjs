@@ -3,14 +3,16 @@
  * Step 2: 文章创作质量门控
  *
  * 校验 draft.md：
- *   - 字数 ≥ 2500（硬性下限）
+ *   - 字数 ≥ 2500（中文字符+英文单词，硬性下限）
  *   - frontmatter 完整（title / date / summary / category / coverImage / sourceUrl）
  *   - 文末互动存在
  *   - 正文无 H1
- *   - 读后感类文章含 ## 原文参考
+ *   - ## 原文参考 区块（默认必须，--allow-no-references 可跳过）
+ *   - 原文参考区内容验证（至少含 URL 或引用来源）
+ *   - materials.md URL 交叉引用检查
  *
  * 用法:
- *   bun run step2-write.mjs <date-slug>
+ *   bun run step2-write.mjs <date-slug> [--allow-no-references]
  *
  * 退出码: 0 通过；2 frontmatter 缺失；3 字数不足；4 互动/原文参考缺失
  */
@@ -21,8 +23,10 @@ import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
-const slug = process.argv[2];
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug>\n"); process.exit(1); }
+const args = process.argv.slice(2);
+const allowNoReferences = args.includes("--allow-no-references");
+const slug = args.find(a => !a.startsWith("--"));
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -61,11 +65,13 @@ if (!sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(sourceUrl)) 
 if (!category) fail(2, "frontmatter.category 缺失");
 if (!VALID_CATEGORIES.includes(category)) fail(2, `category=${category} 不在白名单 ${VALID_CATEGORIES.join(",")}`);
 
-// 2. Word count (non-whitespace characters)
+// 2. Word count (Chinese characters + English words)
 const bodyStart = content.indexOf("\n---\n", 4);
 const body = bodyStart !== -1 ? content.slice(bodyStart + 5) : content;
-const charCount = body.replace(/\s+/g, "").length;
-if (charCount < 2500) fail(3, `字数 ${charCount} < 2500（硬性下限）`);
+const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
+const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
+const wordCount = chineseChars + englishWords;
+if (wordCount < 2500) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2500（硬性下限）`);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
@@ -76,11 +82,38 @@ if (!/\*[^*]+\?/.test(body) && !body.includes("*")) {
   // Non-blocking warning
 }
 
-// 5. References check (for review-style articles)
-const isReviewType = /读后感|书评|影评|转述|翻译|review|thoughts on/i.test(body);
-if (isReviewType && !/^## 原文参考/m.test(body)) {
-  fail(4, "读后感类文章缺少 ## 原文参考 区块");
+// 5. References check (mandatory for all articles)
+const hasRefSection = /^## 原文参考/m.test(body);
+if (!hasRefSection && !allowNoReferences) {
+  fail(4, "缺少 ## 原文参考 区块（如无需参考文献，使用 --allow-no-references 跳过此检查）");
 }
 
-markStepDone(slug, 2, { title, date, category, char_count: charCount });
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, char_count: charCount }) + "\n");
+// 5a. Validate reference section has actual content
+if (hasRefSection) {
+  const refSectionMatch = body.match(/^## 原文参考\s*\n([\s\S]*?)(?=\n## |\n*$)/);
+  if (refSectionMatch) {
+    const refContent = refSectionMatch[1];
+    const hasUrl = /https?:\/\//.test(refContent);
+    const hasBlockquoteSource = /^>\s+\S/m.test(refContent);
+    if (!hasUrl && !hasBlockquoteSource) {
+      process.stderr.write("step2: WARNING ## 原文参考 区块存在但未检测到实际引用内容（URL 或引用来源）\n");
+    }
+  }
+}
+
+// 5b. Cross-check materials.md URLs against draft body
+const materialsPath = resolve(postsRoot(), slug, "materials.md");
+if (existsSync(materialsPath)) {
+  const materialsContent = readFileSync(materialsPath, "utf8");
+  const materialUrls = materialsContent.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
+  const unreferenced = materialUrls.filter(url => !body.includes(url));
+  if (unreferenced.length > 0) {
+    process.stderr.write(`step2: WARNING materials.md 中有 ${unreferenced.length} 个 URL 未在 draft.md 中引用:\n`);
+    for (const u of unreferenced) {
+      process.stderr.write(`  - ${u}\n`);
+    }
+  }
+}
+
+markStepDone(slug, 2, { title, date, category, word_count: wordCount });
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, word_count: wordCount }) + "\n");

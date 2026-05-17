@@ -12,17 +12,17 @@
  *   7. push 失败 → 生成 RESUME.md，commit 不丢失
  *
  * 用法:
- *   bun run publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run]
+ *   bun run publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]
  *
  * 退出码:
  *   0 成功（push 失败但 commit 成功时也返回 0）
- *   1 参数错误；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败
+ *   1 参数错误 / 未知 flag；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败；5 目标文件已存在；6 非 main 分支
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markStepDone } from "./state-lib.mjs";
+import { markBlogDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
@@ -49,24 +49,26 @@ function captureStdout(cmd, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { noPush: false, noBuild: false, dryRun: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
+  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
     else if (a === "--no-push") opts.noPush = true;
     else if (a === "--no-build") opts.noBuild = true;
     else if (a === "--dry-run") opts.dryRun = true;
+    else if (a === "--overwrite") opts.overwrite = true;
+    else if (a === "--allow-non-main") opts.allowNonMain = true;
     else if (a === "--commit-template") opts.commitTemplate = argv[++i];
     else if (a === "--blog-slug") opts.blogSlug = argv[++i];
     else if (a === "--post-dir") opts.postDir = argv[++i];
-    else if (a.startsWith("--")) { process.stderr.write(`publish-blog: unknown flag "${a}" (typo?)\n`); }
+    else if (a.startsWith("--")) { process.stderr.write(`publish-blog: unknown flag "${a}" (typo?)\n`); process.exit(1); }
     else if (!opts.slug) opts.slug = a;
   }
   return opts;
 }
 
 function printHelp() {
-  process.stdout.write(`publish-blog.mjs — 博客发布编排 (Step 9)
+  process.stdout.write(`publish-blog.mjs — 博客发布编排 (Step 6.1)
 
 用法:
   bun run publish-blog.mjs <date-slug> [options]
@@ -75,6 +77,8 @@ function printHelp() {
 选项:
   --blog-slug <ascii-slug>  博客文章 URL slug（必须纯 ASCII kebab-case）
   --post-dir <path>         posts/ 下的目录路径（替代 date-slug）
+  --overwrite               强制覆盖已存在的文章文件
+  --allow-non-main          跳过 main 分支检查
   --no-push                 不执行 git push
   --no-build                不执行 Astro 构建
   --dry-run                 只输出将要执行的操作，不实际执行
@@ -149,8 +153,14 @@ function blogSlug(dateSlug, explicitSlug) {
 }
 
 const opts = parseArgs(process.argv.slice(2));
+// --post-dir 可替代位置参数 date-slug：提取 posts/ 前缀后的最后路径段
+if (!opts.slug && opts.postDir) {
+  const normalized = opts.postDir.replace(/\\/g, "/");
+  const stripped = normalized.replace(/^posts\//, "");
+  opts.slug = stripped.split("/").filter(Boolean).pop() || null;
+}
 if (!opts.slug) {
-  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--commit-template TEMPLATE]\n");
+  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]\n");
   process.exit(1);
 }
 
@@ -192,6 +202,11 @@ if (opts.dryRun) {
   process.exit(0);
 }
 
+if (existsSync(targetPath) && !opts.overwrite) {
+  process.stderr.write(`publish-blog: ${targetPath} 已存在（使用 --overwrite 强制覆盖）\n`);
+  process.exit(5);
+}
+
 writeFileSync(targetPath, blogContent);
 process.stdout.write(`written: ${targetPath}\n`);
 
@@ -207,13 +222,22 @@ let pushBlocked = false;
 let pushError = null;
 
 if (!opts.noPush) {
+  // 分支检查：仅允许在 main 分支上发布
+  if (!opts.allowNonMain) {
+    const branch = captureStdout("git", ["branch", "--show-current"]);
+    if (branch !== "main") {
+      process.stderr.write(`publish-blog: 当前分支非 main，拒绝发布（使用 --allow-non-main 跳过检查）\n`);
+      process.exit(6);
+    }
+  }
+
   // Step 5: git add + commit（失败 => exit 4，因为 commit 失败说明本地仓库异常，必须中止）
   run("git", ["add", targetPath], { cwd: repoRoot() });
   const tmpl = opts.commitTemplate ?? `post: ${fm.title} (${slug})`;
   run("git", ["commit", "-m", tmpl], { cwd: repoRoot() });
 
   // Step 6: git push（软执行，失败 => 写 RESUME.md，进程仍正常退出）
-  const pushStatus = trySpawn("git", ["push"], { cwd: repoRoot() });
+  const pushStatus = trySpawn("git", ["push", "origin", "HEAD:main"], { cwd: repoRoot() });
   if (pushStatus === 0) {
     pushed = true;
   } else {
@@ -231,19 +255,18 @@ if (pushBlocked) {
   const resumeBody = `# 流水线断点续跑指引
 
 > 自动生成于 ${new Date().toISOString()}
-> 触发原因：Step 9 (publish-blog) git push 失败 — ${pushError}
+> 触发原因：Step 6.1 (publish-blog) git push 失败 — ${pushError}
 
 ## 当前状态
 
-- **Step 9 (博客发布)**：commit 已创建（${sha}），但 **push 未完成**，状态 = \`blocked\`
-- **Step 9.5 (等待 GitHub Pages 部署)**：依赖 push 完成，未执行
-- **Step 10 (微信发布)**：依赖 sourceUrl HTTP 200，未执行
+- **Step 6.1 (博客发布)**：commit 已创建（${sha}），但 **push 未完成**，状态 = \`blocked\`
+- **Step 6.2 (微信发布)**：依赖 sourceUrl HTTP 200，未执行
 
 ## 需要手动完成的操作
 
 \`\`\`bash
 # 1) 在网络通畅的环境（如切换到 https 协议，或使用 GitHub Token over HTTPS）重新推送
-git push origin main
+git push origin HEAD:main
 
 # 或使用 gh cli 绕过 SSH
 gh repo sync   # 如已配置远端
@@ -271,15 +294,15 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-di
   process.stdout.write(`written: ${resumePath}\n`);
 }
 
-// 写 state：push 成功 = done；push 失败 = done（commit 已完成，push 可后续手动补）
+// 写 state：push 成功 = done；push 失败 = blocked（commit 已完成，push 可后续手动补）
 const stateExtra = pushBlocked
   ? { commit: sha, slug, pushed: false, push_error: pushError, resume_file: "RESUME.md" }
   : { commit: sha, slug, pushed };
 if (pushBlocked) {
-  markStepDone(dateSlug, 6, stateExtra);
-  process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push' manually then mark step complete.\n");
+  markBlogDone(dateSlug, { pushed: false, extra: stateExtra });
+  process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push origin HEAD:main' manually then mark step complete.\n");
 } else {
-  markStepDone(dateSlug, 6, stateExtra);
+  markBlogDone(dateSlug, { pushed: true, extra: stateExtra });
 }
 
 process.stdout.write(JSON.stringify({
