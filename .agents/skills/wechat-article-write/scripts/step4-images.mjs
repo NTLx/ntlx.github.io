@@ -14,7 +14,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markStepDone } from "./state-lib.mjs";
+import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const slug = process.argv[2];
@@ -23,6 +23,12 @@ if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); proc
 const base = resolve(postsRoot(), slug);
 const imgsDir = resolve(base, "imgs");
 const draftPath = resolve(base, "draft.md");
+
+// 0. Pre-validation: draft.md must exist
+if (!existsSync(draftPath)) {
+  markStepFailed(slug, 4, "draft.md missing");
+  process.exit(2);
+}
 
 // 1. Format normalization
 if (existsSync(imgsDir)) {
@@ -45,31 +51,77 @@ else if (existsSync(coverJpg)) {
   coverExt = "jpg";
 }
 
+// Fail if no cover image exists at all
+if (!existsSync(coverPng) && !existsSync(coverJpg)) {
+  markStepFailed(slug, 4, "cover image missing (cover.png/cover.jpg)");
+  process.exit(2);
+}
+
 const setFmScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/set-frontmatter.mjs");
 spawnSync("bun", ["run", setFmScript, draftPath, "set", "coverImage", `cover.${coverExt}`], { stdio: "pipe" });
 
-// 3. Image reference validation
-if (existsSync(imgsDir) && existsSync(draftPath)) {
-  const imgs = readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f));
-  const draft = readFileSync(draftPath, "utf8");
+// 3. Read draft.md (already validated to exist)
+const draft = readFileSync(draftPath, "utf8");
 
-  // Check slot placeholders vs actual images (excluding 00- infographic)
+// 4. SLOT-only enforcement: no local imgs/ Markdown references allowed
+const localImgRefs = [...draft.matchAll(/!\[[^\]]*\]\([^)]*imgs\//g)];
+if (localImgRefs.length > 0) {
+  markStepFailed(slug, 4, "draft.md contains local imgs/ image references — use SLOT_IMG_NN placeholders only");
+  process.exit(2);
+}
+
+// 5. SLOT_IMG validation: every referenced slot must have a matching image file
+const slotRefs = [...draft.matchAll(/<!--\s*SLOT_IMG_(\d{2})[^>]*-->/g)].map(m => m[1]);
+if (slotRefs.length > 0) {
+  const imgs = existsSync(imgsDir)
+    ? readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
+    : [];
+  for (const slotNum of slotRefs) {
+    const hasMatch = imgs.some(f => f.startsWith(`${slotNum}-`));
+    if (!hasMatch) {
+      markStepFailed(slug, 4, `SLOT_IMG_${slotNum} has no matching image in imgs/`);
+      process.exit(2);
+    }
+  }
+  // Keep existing warning for images with no slot references
   const nonInfoImgs = imgs.filter(f => !f.startsWith("00-"));
-  const slotRefs = [...draft.matchAll(/<!--\s*SLOT_IMG_(\d{2})[^>]*-->/g)].map(m => m[1]);
+  const referencedSlots = new Set(slotRefs);
+  const unreferencedImgs = nonInfoImgs.filter(f => {
+    const slotNum = f.split("-")[0];
+    return !referencedSlots.has(slotNum);
+  });
+  if (unreferencedImgs.length > 0) {
+    process.stderr.write(`step4: WARNING ${unreferencedImgs.length} images in imgs/ not referenced by any SLOT_IMG placeholder\n`);
+  }
+} else if (existsSync(imgsDir)) {
+  // No SLOT references at all — check if images exist without references
+  const imgs = readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f));
+  const nonInfoImgs = imgs.filter(f => !f.startsWith("00-"));
   const mdRefs = [...draft.matchAll(/!\[[^\]]*\]\(imgs\/(\d{2})-/g)].map(m => m[1]);
-
-  if (nonInfoImgs.length > 0 && slotRefs.length === 0 && mdRefs.length === 0) {
+  if (nonInfoImgs.length > 0 && mdRefs.length === 0) {
     process.stderr.write(`step4: WARNING ${nonInfoImgs.length} images in imgs/ but no references in draft.md\n`);
   }
 }
 
-// 4. Infographic validation
+// 6. Infographic validation
 const infoFiles = existsSync(imgsDir) ? readdirSync(imgsDir).filter(f => f.startsWith("00-infographic")) : [];
-if (infoFiles.length > 0 && existsSync(draftPath)) {
-  const draft = readFileSync(draftPath, "utf8");
+if (infoFiles.length > 0) {
   const hasInfoRef = /infographic|SLOT_IMG_00/i.test(draft);
   if (!hasInfoRef) {
     process.stderr.write("step4: WARNING infographic file exists but not referenced in draft.md\n");
+  }
+}
+
+// 7. SLOT_IMG_00_INFOGRAPHIC position constraint (non-blocking warning)
+if (/SLOT_IMG_00_INFOGRAPHIC/i.test(draft)) {
+  // Find body text after frontmatter (---...---)
+  const fmEnd = draft.indexOf("---", draft.indexOf("---") + 3);
+  if (fmEnd !== -1) {
+    const body = draft.slice(fmEnd + 3).trimStart();
+    const slotPos = body.search(/SLOT_IMG_00_INFOGRAPHIC/i);
+    if (slotPos > 200) {
+      process.stderr.write("step4: WARNING SLOT_IMG_00_INFOGRAPHIC is not near the top of the article body (>200 chars after frontmatter)\n");
+    }
   }
 }
 

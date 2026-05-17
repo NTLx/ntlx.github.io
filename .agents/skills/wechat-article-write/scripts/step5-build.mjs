@@ -18,9 +18,11 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 
+const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
-let slug = null, theme = "default", color = "blue";
+let slug = null, theme = cfg.theme, color = cfg.color;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--theme" && args[i + 1]) { theme = args[++i]; }
   else if (args[i] === "--color" && args[i + 1]) { color = args[++i]; }
@@ -81,6 +83,18 @@ if (!existsSync(articlePath)) fail(4, "article.md not created");
 
 // 3. Generate article-wechat.html from draft.md（本地路径版）
 //    Read draft.md, replace SLOT_IMG with local imgs/ paths, feed to markdown-to-html
+
+// Defensive: cover normalization — if cover.png is actually JPEG, rename it
+const coverPng = resolve(base, "cover.png");
+const coverJpg = resolve(base, "cover.jpg");
+if (existsSync(coverPng)) {
+  const fileType = spawnSync("file", ["-b", "--mime-type", coverPng], { encoding: "utf8" });
+  if (fileType.stdout?.trim()?.startsWith("image/jpeg")) {
+    renameSync(coverPng, coverJpg);
+    process.stderr.write("step5: renamed cover.png → cover.jpg (was actually JPEG)\n");
+  }
+}
+
 const htmlSkillDir = findScriptDir("baoyu-markdown-to-html");
 if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
 
@@ -112,6 +126,7 @@ const htmlResult = spawnSync("bun", [
   "run", htmlScript,
   tempLocalMd,
   "--theme", theme,
+  "--color", color,
   "--title", title,
 ], { stdio: "inherit", encoding: "utf8", cwd: repoRoot() });
 
@@ -140,6 +155,27 @@ if (existsSync(wechatHtmlPath)) {
   html = html.replace(/; {2,}/g, "; ");
   html = html.replace(/style=" /g, "style=\"");
   writeFileSync(wechatHtmlPath, html);
+}
+
+// WeChat HTML preflight validation
+if (existsSync(wechatHtmlPath)) {
+  const wechatHtml = readFileSync(wechatHtmlPath, "utf8");
+
+  // No SLOT_IMG residuals
+  if (/SLOT_IMG_/.test(wechatHtml)) {
+    fail(4, "article-wechat.html still has SLOT_IMG_ placeholders");
+  }
+
+  // No empty img src
+  if (/<img[^>]+src\s*=\s*["']["'][^>]*>/i.test(wechatHtml)) {
+    fail(4, "article-wechat.html has empty img src");
+  }
+
+  // No markdown residuals — strip <code> blocks first, then check for ![...] or ]( patterns
+  const stripped = wechatHtml.replace(/<code[\s\S]*?<\/code>/gi, "");
+  if (/!\[[^\]]*\]\(/.test(stripped)) {
+    fail(4, "article-wechat.html has markdown residuals (unconverted image link)");
+  }
 }
 
 // 4. Validation

@@ -30,12 +30,17 @@
       "acquisition", "融资", "layoff", "裁员", "market", "openai", "anthropic",
       "投资", "商业", "估值", "营收", "ipo", "并购", "公司", "战略", "市场",
       "竞争", "垄断", "监管", "合规", "政策", "立法", "伦理", "版权", "诉讼",
-      "partnership", "合作", "生态", "产业", "芯片", "算力", "数据中心"
+      "partnership", "合作", "生态", "产业", "芯片", "算力", "数据中心",
+      "startup", "founder", "entrepreneur", "playbook", "创业", "创始人",
+      "增长", "增长黑客", "product market fit", "PMF", "商业模式",
+      "融资轮", "天使轮", "A轮", "B轮", "VC", "venture capital"
     ],
-    "antiKeywords": ["代码", "编程", "pipeline", "部署"],
+    "antiKeywords": [],
     "ngrams": [
       ["融资", "轮"], ["裁员", "比例"], ["ipo", "上市"],
-      ["openai", "valuation"], ["算力", "短缺"]
+      ["openai", "valuation"], ["算力", "短缺"],
+      ["product", "market"], ["商业", "模式"], ["创业", "公司"],
+      ["增长", "策略"], ["创始人", "模式"]
     ]
   },
   "ai-models": {

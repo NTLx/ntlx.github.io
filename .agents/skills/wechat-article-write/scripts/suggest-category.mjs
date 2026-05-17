@@ -5,7 +5,7 @@
  * 用法:
  *   bun run suggest-category.mjs <draft.md> [--json]
  * 输出（stdout, JSON）:
- *   {"recommended":"ai-coding","confidence":0.78,"low_confidence":false,"alternative":"ai-agents","scores":{...}}
+ *   {"recommended":"ai-coding","confidence":0.78,"low_confidence":false,"alternative":"ai-agents","blogSlug":"langchain-interrupt","scores":{...}}
  *
  * 改进（v2）:
  *   - 关键词从 references/category-keywords.json 加载（可增量维护）
@@ -118,6 +118,55 @@ function rank(scores) {
   };
 }
 
+function generateBlogSlug(body, title) {
+  const STOP_WORDS = new Set([
+    "the", "and", "for", "with", "from", "that", "this", "have", "been",
+    "into", "your", "will", "what", "when", "where", "which", "about",
+    "their", "there", "would", "could", "should", "using", "makes", "more",
+    "some", "than", "then", "also", "just", "like", "over", "very", "much",
+    "such", "only", "other", "into",
+  ]);
+
+  function extractEnglishWords(text) {
+    const matches = text.match(/[a-zA-Z]{3,}/g) ?? [];
+    const seen = new Set();
+    const result = [];
+    for (const w of matches) {
+      const lower = w.toLowerCase();
+      if (!STOP_WORDS.has(lower) && !seen.has(lower)) {
+        seen.add(lower);
+        result.push(lower);
+      }
+    }
+    return result;
+  }
+
+  // a. Extract from title first
+  let words = extractEnglishWords(title);
+
+  // e. Fall back to headings if title doesn't yield enough
+  if (words.length < 2) {
+    const headings = (body.match(/^##\s+.+$/gm) ?? []).join(" ");
+    words = extractEnglishWords(title + " " + headings);
+  }
+
+  // f. Fall back to body if still insufficient
+  if (words.length < 2) {
+    words = extractEnglishWords(title + " " + body);
+  }
+
+  // c. Take first 2-4 unique words, join with hyphens
+  const slug = words.slice(0, 4).join("-");
+
+  // d. Ensure result matches ^[a-z][a-z0-9-]*[a-z0-9]$
+  if (/^[a-z][a-z0-9-]*[a-z0-9]$/.test(slug) && slug.length >= 2) {
+    return slug;
+  }
+
+  // f. Fallback
+  return "article";
+}
+
 const args = process.argv.slice(2);
 let file = null;
 for (const a of args) {
@@ -148,5 +197,5 @@ if (tags.length > 0) {
   score(tagsText, WEIGHTS.tags, scores, rules);
 }
 
-const result = { ...rank(scores), scores };
+const result = { ...rank(scores), blogSlug: generateBlogSlug(body, title), scores };
 process.stdout.write(JSON.stringify(result) + "\n");

@@ -49,6 +49,7 @@ summary: "测试摘要"
     expect(result).toHaveProperty("confidence");
     expect(result).toHaveProperty("low_confidence");
     expect(result).toHaveProperty("alternative");
+    expect(result).toHaveProperty("blogSlug");
     expect(result).toHaveProperty("scores");
   });
 
