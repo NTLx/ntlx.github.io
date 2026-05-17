@@ -7,7 +7,7 @@
  *   - frontmatter 完整（title / date / category）
  *   - 正文无 H1
  *   - SLOT_IMG 占位符未丢失
- *   - 字数 ≥ 2500
+ *   - 字数 ≥ 2000
  *   - 原文参考 区块未丢失（若原文存在）
  *
  * 用法:
@@ -84,10 +84,12 @@ if (imageRefs.length > 0 && slotPlaceholders.length === 0) {
   fail(2, `正文含 ${imageRefs.length} 处图片引用但无 SLOT_IMG 占位符（polish 可能清除）`);
 }
 
-// 4. Word count still >= 2500
-const charCount = body.replace(/\s+/g, "").length;
-if (charCount < 2500) {
-  fail(3, `字数 ${charCount} < 2500（polish 后字数不足）`);
+// 4. Word count still >= 2000 (Chinese chars + English words, same as step2)
+const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
+const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
+const wordCount = chineseChars + englishWords;
+if (wordCount < 2000) {
+  fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2000（polish 后字数不足）`);
 }
 
 // 5. 原文参考 preserved (if it existed before polish — check current content)
@@ -97,5 +99,5 @@ if (isReviewType && !/^## 原文参考/m.test(body)) {
   fail(2, "读后感类文章缺少 ## 原文参考 区块（polish 可能删除）");
 }
 
-markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, char_count: charCount });
-process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, char_count: charCount }) + "\n");
+markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount });
+process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount }) + "\n");

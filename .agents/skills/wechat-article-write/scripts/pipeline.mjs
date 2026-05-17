@@ -1,0 +1,139 @@
+#!/usr/bin/env bun
+/**
+ * pipeline.mjs — 最小编排器
+ *
+ * 自动串行执行确定性步骤（Step 5 构建 + Step 6 发布）。
+ * 非确定性步骤（1-4）由 Agent 手动执行，编排器只打印指引。
+ *
+ * 用法:
+ *   bun run pipeline.mjs <date-slug> [--auto]
+ *
+ * 行为:
+ *   - 读取 state 获取 nextStep
+ *   - nextStep 1-4: 打印相应指引后退出（Agent 需手动完成）
+ *   - nextStep 5:   自动运行 step5-build.mjs
+ *   - nextStep 6:   自动依次运行 publish-blog.mjs → publish-wechat.mjs（检查子状态）
+ *   - nextStep done: 打印完成信息
+ *   - 任何脚本失败: 写 state，报告错误，退出
+ *
+ * --auto: 跳过确认，自动执行所有可执行步骤直到完成或失败
+ */
+
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
+
+const repoRoot = resolve(import.meta.dirname, "../../../..");
+const scriptsDir = resolve(import.meta.dirname);
+
+function run(args, label) {
+  process.stdout.write(`\n▶ ${label}\n`);
+  const r = spawnSync("bun", ["run", ...args], { stdio: "inherit", encoding: "utf8", cwd: repoRoot });
+  if (r.status !== 0) {
+    process.stderr.write(`\n✗ ${label} 失败（exit ${r.status}）\n`);
+    process.exit(r.status ?? 1);
+  }
+  process.stdout.write(`✓ ${label} 完成\n`);
+  return r;
+}
+
+function getNextStep(slug) {
+  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "next", slug], {
+    encoding: "utf8", cwd: repoRoot
+  });
+  return (r.stdout ?? "").trim();
+}
+
+function printNext(slug) {
+  const step = getNextStep(slug);
+  if (step === "done") {
+    process.stdout.write("\n🎉 流水线全部完成！\n");
+  } else {
+    process.stdout.write(`\n→ 下一步: Step ${step}\n`);
+    if (["1", "2", "3", "4"].includes(step)) {
+      printAgentGuide(step, slug);
+    }
+  }
+}
+
+function printAgentGuide(step, slug) {
+  const guides = {
+    "1": `  Agent: 调用 web-access 收集资料 → 写入 posts/${slug}/materials.md\n  然后运行: bun run step1-collect.mjs ${slug}`,
+    "2": `  Agent: 调用 ljg-writes 写作 + suggest-category.mjs 分类\n  保存为 posts/${slug}/draft.md 后运行: bun run step2-write.mjs ${slug}`,
+    "3": `  Agent: 调用 humanizer-zh + baoyu-format-markdown 处理 draft.md\n  完成后运行: bun run step3-polish.mjs ${slug}`,
+    "4": `  Agent: 并行调用 baoyu-cover-image + baoyu-article-illustrator + baoyu-infographic\n  生成 cover.png + imgs/*.png 后运行: bun run step4-images.mjs ${slug}`,
+  };
+  process.stdout.write(guides[step] ?? "");
+}
+
+function getPublishState(slug) {
+  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
+    encoding: "utf8", cwd: repoRoot
+  });
+  try {
+    return JSON.parse(r.stdout ?? "{}").publish ?? { blog: "pending", wechat: "pending" };
+  } catch {
+    return { blog: "pending", wechat: "pending" };
+  }
+}
+
+// Main
+const args = process.argv.slice(2);
+const auto = args.includes("--auto");
+const slug = args.find(a => !a.startsWith("--"));
+
+if (!slug) {
+  process.stderr.write("usage: pipeline.mjs <date-slug> [--auto]\n");
+  process.exit(1);
+}
+
+let step = getNextStep(slug);
+process.stdout.write(`→ 当前进度: ${step === "done" ? "全部完成" : `Step ${step}`}\n`);
+
+if (step === "done") {
+  process.stdout.write("流水线已完成，无需执行。\n");
+  process.exit(0);
+}
+
+// Steps 1-4: 需要 Agent 手动执行
+if (["1", "2", "3", "4"].includes(step)) {
+  printAgentGuide(step, slug);
+  process.stdout.write("\n完成上述步骤后，重新运行 pipeline.mjs 继续。\n");
+  process.exit(0);
+}
+
+// Step 5: 自动构建
+if (step === "5") {
+  run([resolve(scriptsDir, "step5-build.mjs"), slug], "Step 5: 产物构建");
+  step = getNextStep(slug);
+}
+
+// Step 6: 双轨发布（检查子状态避免重复执行）
+if (step === "6" || step === "done") {
+  const pub = getPublishState(slug);
+
+  if (pub.blog === "pending" || pub.blog === "failed") {
+    run([resolve(scriptsDir, "publish-blog.mjs"), slug], "Step 6.1: 博客发布");
+  } else {
+    process.stdout.write(`\n→ 博客发布: ${pub.blog}（跳过）\n`);
+  }
+
+  // 博客发布后可能有 blocked 状态（push 失败但 commit 成功），此时可以继续微信发布
+  if (pub.wechat === "pending" || pub.wechat === "failed") {
+    const blogPub = getPublishState(slug); // re-read after blog publish
+    if (blogPub.blog === "blocked") {
+      process.stdout.write("\n⚠ 博客 push 失败，commit 已保存。检查网络后手动 git push。\n");
+      process.stdout.write("微信发布可继续（sourceUrl 将稍后就绪）。\n");
+    }
+    if (!auto) {
+      process.stdout.write("\n是否继续微信发布？(y/n): ");
+      // In --auto mode, skip confirmation
+    }
+    if (auto || process.env.PIPELINE_AUTO) {
+      run([resolve(scriptsDir, "publish-wechat.mjs"), slug, "--skip-deploy-check"], "Step 6.2: 微信发布");
+    }
+  } else {
+    process.stdout.write(`\n→ 微信发布: ${pub.wechat}（跳过）\n`);
+  }
+}
+
+printNext(slug);
