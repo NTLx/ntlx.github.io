@@ -6,8 +6,7 @@ date: 2026-05-17
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-00-infographic-core-summary.png)
-![AI 时代创业：判断力成为唯一稀缺资源](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-00-infographic-core-summary-1.png)
 
 ## 一个下午就能做出来，然后呢？
 
@@ -17,7 +16,7 @@ category: ai-industry
 
 然后问题来了：我为什么要做这个东西？
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-01-comparison-speed-judgment.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-01-comparison-speed-judgment-1.jpg)
 
 不是因为"能做出来的东西变多了"，所以"什么都该做"。恰恰相反。做出来的速度越快，做之前的那个停顿就越要长。你得停下来问自己：这个东西真的有人需要吗？还是我只是为了证明"我能做"？
 
@@ -41,7 +40,7 @@ Anthropic 前阵子发了个东西，叫《The Founder's Playbook》。讲创业
 
 *所有人的能力边界都在扩展，但扩展的不是手速，是责任。*
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-02-scene-dissolving-wall.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-02-scene-dissolving-wall-1.jpg)
 
 Anthropic 自己就是个极端案例。Daniela Amodei，文科背景，非技术出身，在 Stripe 做过风险经理，早期在华盛顿的非政府组织混过。放在以前，这种背景去创业，大概率得找一个技术合伙人搭班子，然后祈祷两人理念不冲突。现在呢？她联合创立了一家估值 9.5 万亿美元的公司——是的，你没看错，9.5 万亿。2025 年 3 月这家公司还值 615 亿，到了 2026 年 5 月，已经逼近 9.5 万亿。
 
@@ -93,7 +92,7 @@ Claude Code 自己的经历就是证据。2025 年 2 月发布，从一个工程
 
 过去你招人的时候可以有一些模糊地带。"先招进来再说，总能找到活给他干"。这句话在 2026 年听起来像一个奢侈的浪费。当 AI 能处理"总能找到活"的那部分时，你招人的每一笔预算都必须对准明确的目标。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-03-infographic-lean-unicorn.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-03-infographic-lean-unicorn-1.jpg)
 
 *人的判断加上 AI 的执行。这个组合不是"人指挥 AI 干活"那么简单——它要求人对"什么是正确的事"有一个清晰的、持续的、可辩护的理解。*
 
@@ -117,7 +116,7 @@ Daniela Amodei 给 Anthropic 定的招聘标准很朴素：沟通能力、高情
 
 *一个文科生能联合创立一家 9.5 万亿美元的公司。一个物理学家把 40% 的时间花在文化建设上。一个内部实验一年内变成 10 亿美元 ARR 的产品。这些事在 2021 年听起来像科幻小说。现在是日常。*
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-04-scene-abundance-compass.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-17-ai-img-04-scene-abundance-compass-1.jpg)
 
 那我的不安到底是什么？
 
@@ -133,6 +132,6 @@ Daniela Amodei 给 Anthropic 定的招聘标准很朴素：沟通能力、高情
 
 ## 原文参考
 
-- Anthropic，《[The Founder's Playbook](https://claude.com/blog/the-founders-playbook)》（2026 年），Chapters 1-2
-- 手册引用数据：42% 的初创企业失败是因为"构建了没人想要的东西"
-- Anthropic 财务数据：ARR 2024 年 12 月 $1B → 2026 年 4 月 $30B；估值 2025 年 3 月 $615B → 2026 年 5 月约 $9.5T
+- Anthropic，《The Founder's Playbook: Building an AI-Native Startup》（2026 年 5 月）
+- 博客地址：https://claude.com/blog/the-founders-playbook
+- 手册 PDF 下载：https://cdn.prod.website-files.com/6889473510b50328dbb70ae6/69fe2a55b93bb0732b1fe33c_The-Founders-Playbook-05062026_v3%20(1).pdf
