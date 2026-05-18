@@ -19,8 +19,8 @@ user_invocable: true
 
 ## 核心原则
 
-- **全自动执行**：中间步骤不停顿，全部完成后展示结果。仅在分类低置信度时询问用户
-- **失败不阻塞**：某步失败报告错误，询问是否继续
+- **确定性步骤自动化**：Step 5/6 由脚本执行；Step 1-4 由 Agent 完成智能判断后运行脚本门控
+- **失败可恢复**：某步失败报告错误并写状态；`state.mjs next <date-slug>` 返回续跑位置
 - **脚本化**：所有校验和文件操作封装在 `scripts/` 下。Agent 负责调用脚本 + 解读退出码；禁止内联超过 5 行的 bash/python
 - **联网唯一入口 web-access**：所有联网操作（搜索、抓取、资料获取）只通过 web-access Skill 完成。搜索用 `google.com/ncr`
 - **图片后端优先级**：Gemini > Seedream > DashScope。失败自动降级
@@ -97,8 +97,8 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - 必须包含文末互动 + 原文参考区块
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
-4. 信任度低时用 `AskUserQuestion` 确认分类和 blog-slug；否则自动采纳
-5. 用 `set-frontmatter.mjs` 写入 category 和 blogSlug
+4. 信任度低时用当前运行时的用户确认工具确认分类和 blog-slug；否则自动采纳
+5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致
 
 **draft.md 模板**（强制使用语义占位符）：
 ```markdown
@@ -107,6 +107,7 @@ title: {标题}
 date: {YYYY-MM-DD}
 summary: {一句话 ≤ 60 字}
 category: {6 枚举之一}
+blogSlug: {ascii-kebab-case}
 coverImage: cover.png
 sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ---
@@ -127,7 +128,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> [--allow-no-references]
 ```
-脚本校验：字数 ≥ 2000、frontmatter 完整（title/date/summary/category/coverImage/sourceUrl）、文末互动存在、无 H1、正文含 `## 原文参考`（默认强制，`--allow-no-references` 跳过）。materials.md 中的 URL 未在正文引用的打印 warning。任一不通过 exit 非零。
+脚本校验：字数 ≥ 2000、frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 原文参考`（默认强制，`--allow-no-references` 跳过）。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。
 
 ---
 
@@ -143,14 +144,14 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并**复验关键质量门控**（frontmatter 完整、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2000、原文参考存在）。任一不通过 fail。
+脚本验证 draft.md 存在、非空，并**复验关键质量门控**（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2000、原文参考存在）。任一不通过 fail。
 
 ---
 
 ## Step 4: 图片生成
 
-**Agent 动作**（并行执行）：
-在同一消息中发起三个 Agent 调用，均设置 `run_in_background: true`：
+**Agent 动作**（优先并行执行）：
+如果当前运行时支持后台任务或并行工具调用，封面、信息图、正文插图可并行生成；否则串行执行：
 
 | Agent | Skill | 产出 | 参数要点 |
 |-------|-------|------|---------|
@@ -172,14 +173,24 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 
 **脚本**（一键完成，无需 agent 干预）：
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> \
+  [--theme default] [--color blue] [--dry-run] [--reuse-image-map]
 ```
 脚本执行：
-1. 上传 `imgs/*` 到 GitHub 图床 → image-map.json
-2. 将 draft.md 占位符替换为 CDN URL → article.md
-3. 将 draft.md 占位符替换为本地路径（内存中） → 调用 baoyu-markdown-to-html → article-wechat.html
-4. 验证: article.md 无占位符残留、无本地路径；article-wechat.html 非空、含 inline CSS、无 SLOT 残留、无空 img src
-5. 写状态
+1. 预检 `draft.md`、`cover.png|cover.jpg`、`imgs/*`、blogSlug、SLOT 与图片映射完整性
+2. 上传 `imgs/*` 到 GitHub 图床 → image-map.json（图片命名前缀使用 `YYYY-MM-DD-{blogSlug}-img`）
+3. 将 draft.md 占位符替换为 CDN URL → article.md
+4. 将 draft.md 占位符替换为本地路径（内存中） → 调用 baoyu-markdown-to-html → article-wechat.html
+5. 验证: article.md 无占位符残留、无本地路径；article-wechat.html 非空、含 inline CSS、无 SLOT 残留、无空 img src
+6. 写状态
+
+辅助模式：
+- `--dry-run`：只做预检和依赖检查，不上传、不写 `image-map.json`、不生成 `article.md/article-wechat.html`、不写状态
+- `--reuse-image-map`：复用已有 `image-map.json`，跳过图床上传；适用于 HTML 转换失败后重跑，或只修复占位符/正文后重建产物
+
+`--reuse-image-map` 会校验 map 中每张被引用图片都有有效 URL；缺失或格式错误直接 fail，避免生成半成品。
+
+若 `imgs/` 中已有图片，但 draft.md 没有任何 `SLOT_IMG` 或本地图片引用，Step 5 直接 fail；这通常意味着占位符在前序步骤被误删。
 
 ---
 
@@ -191,13 +202,12 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs \
-  --post-dir posts/{date-slug} \
-  --blog-slug {ascii-slug}
+  --post-dir posts/{date-slug}
 ```
 
-脚本职责：frontmatter 转换（summary→description, +$schema, -coverImage/-sourceUrl）→ 目标文件防覆盖检查 → astro sync + build → 分支检查（非 main 拒绝）→ git add + commit + push。push 失败写 RESUME.md + 标记 blocked。
+脚本职责：读取 frontmatter.blogSlug（CLI `--blog-slug` 可覆盖）→ 校验 sourceUrl 与 blogSlug 一致 → frontmatter 转换（summary→description, +$schema, 删除管线字段）→ 分支检查（非 main 拒绝）→ 目标文件防覆盖检查 → astro sync + build → git add + commit + push。`--no-push` 或 push 失败会标记博客状态为 blocked。
 
-额外选项：`--overwrite`（允许覆盖已有文章）、`--allow-non-main`（允许在非 main 分支发布）、`--dry-run`。
+额外选项：`--blog-slug`（覆盖 frontmatter.blogSlug）、`--overwrite`（允许覆盖已有文章）、`--allow-non-main`（允许在非 main 分支发布）、`--no-push`（只写本地文件，状态为 blocked）、`--dry-run`。
 
 ### 6.2 微信发布
 
@@ -210,6 +220,18 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
 
 theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 和 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 自动读取，无需手动传入。CLI 参数仍可覆盖。
 
+### 最小编排器
+
+```bash
+# 只查看当前状态和下一步，不执行文件写入、发布或网络操作
+bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
+
+# 自动执行当前可执行的确定性步骤（Step 5/6）
+bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --auto
+```
+
+Step 1-4 始终需要 Agent 完成智能判断和产物生成后，再由对应脚本做门控。`pipeline.mjs` 不会替 Agent 收集资料、写作、润色或生成图片。
+
 ---
 
 ## 失败处理
@@ -217,8 +239,8 @@ theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md`
 任何步骤失败时：
 1. 报告哪一步失败、错误原因
 2. 图片后端降级（Gemini > Seedream > DashScope）自动执行，不需确认
-3. 图床上传失败：重试 1 次 → 仍失败则询问是否跳过
-4. 其他失败：询问是否继续。用户选择「停止」则保存中间产物和状态，报告进度
+3. 图床上传失败：报告错误并保留状态；修复网络或凭据后重跑 Step 5；若 `image-map.json` 已完整生成，可用 `--reuse-image-map` 避免重复上传
+4. 其他失败：保存中间产物和状态，报告进度
 5. `state.mjs next <date-slug>` 返回下一个待执行步骤，全部完成时返回 `done`
 6. Step 6 发布分为博客和微信两个子状态：`state.mjs blog` 和 `state.mjs wechat` 独立管理，一方失败不阻塞另一方
 
@@ -260,11 +282,10 @@ theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md`
 | `scripts/set-frontmatter.mjs` | Frontmatter 读写 |
 | `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 |
 | `scripts/apply-image-map.mjs` | 占位符 → CDN URL / 本地路径 |
-| `scripts/pipeline.mjs` | 最小编排器：自动串行执行确定性步骤（Step 5 + Step 6） |
+| `scripts/pipeline.mjs` | 最小编排器：默认报告状态，`--auto` 执行确定性步骤（Step 5 + Step 6） |
 
 ### 参考文档
 | 文件 | 内容 |
 |------|------|
 | `references/category-keywords.json` | 6 分类关键词/反关键词（suggest-category.mjs 数据源） |
 | `references/image-backends.md` | 各图片后端构图特性与 prompt 策略 |
-| `references/known-issues.md` | 历史已知问题与解决方案 |

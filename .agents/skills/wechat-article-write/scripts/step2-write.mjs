@@ -3,8 +3,9 @@
  * Step 2: 文章创作质量门控
  *
  * 校验 draft.md：
- *   - 字数 ≥ 2000（中文字符+英文单词，硬性下限）
- *   - frontmatter 完整（title / date / summary / category / coverImage / sourceUrl）
+ *   - 字数 >= 2000（中文字符+英文单词，硬性下限）
+ *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
+ *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 文末互动存在
  *   - 正文无 H1
  *   - ## 原文参考 区块（默认必须，--allow-no-references 可跳过）
@@ -35,6 +36,7 @@ if (!existsSync(draftPath)) {
 }
 
 const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
+const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 const content = readFileSync(draftPath, "utf8");
 
 // Parse frontmatter
@@ -54,6 +56,7 @@ const title = readFm(draftPath, "title");
 const date = readFm(draftPath, "date");
 const summary = readFm(draftPath, "summary");
 const category = readFm(draftPath, "category");
+const blogSlug = readFm(draftPath, "blogSlug");
 const coverImage = readFm(draftPath, "coverImage");
 const sourceUrl = readFm(draftPath, "sourceUrl");
 
@@ -61,9 +64,15 @@ if (!title) fail(2, "frontmatter.title 缺失");
 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(2, `frontmatter.date 不合法: ${date}`);
 if (!summary) fail(2, "frontmatter.summary 缺失");
 if (!coverImage) fail(2, "frontmatter.coverImage 缺失");
-if (!sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法: ${sourceUrl}`);
 if (!category) fail(2, "frontmatter.category 缺失");
 if (!VALID_CATEGORIES.includes(category)) fail(2, `category=${category} 不在白名单 ${VALID_CATEGORIES.join(",")}`);
+if (!blogSlug) fail(2, "frontmatter.blogSlug 缺失");
+if (!ASCII_SLUG_RE.test(blogSlug)) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case: ${blogSlug}`);
+if (!sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法: ${sourceUrl}`);
+const expectedSourceUrl = `https://ntlx.github.io/articles/${blogSlug}`;
+if (sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
+  fail(2, `frontmatter.sourceUrl (${sourceUrl}) 与 blogSlug (${blogSlug}) 不一致，应为 ${expectedSourceUrl}`);
+}
 
 // 2. Word count (Chinese characters + English words)
 const bodyStart = content.indexOf("\n---\n", 4);
@@ -115,5 +124,5 @@ if (existsSync(materialsPath)) {
   }
 }
 
-markStepDone(slug, 2, { title, date, category, word_count: wordCount });
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, word_count: wordCount }) + "\n");
+markStepDone(slug, 2, { title, date, category, blog_slug: blogSlug, source_url: sourceUrl, word_count: wordCount });
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount }) + "\n");

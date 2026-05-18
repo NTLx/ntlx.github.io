@@ -138,7 +138,7 @@ const cdnMd = replaceWithCdn(draft, resolver, map);
 const localMd = replaceWithLocal(draft, resolver);
 
 // article-local.md 是微信轨的正式 Markdown 输入，包含本地 imgs/ 路径引用
-// 用于 Step 8 生成微信版 HTML（article-wechat.html）
+// 用于 Step 5 生成微信版 HTML（article-wechat.html）
 // 不在文件头加 HTML 注释：markdown-to-html 会把注释渲染进正文，微信 API 拒绝含注释的 content
 writeFileSync(resolve(baseDir, "article.md"), cdnMd);
 writeFileSync(resolve(baseDir, "article-local.md"), localMd);

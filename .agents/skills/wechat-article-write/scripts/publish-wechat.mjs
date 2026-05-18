@@ -92,7 +92,7 @@ const coverPng    = resolve(base, "cover.png");
 const coverJpg    = resolve(base, "cover.jpg");
 
 if (!existsSync(articlePath)) { process.stderr.write(`publish-wechat: ${articlePath} 缺失\n`); process.exit(2); }
-if (!existsSync(htmlPath))    { process.stderr.write(`publish-wechat: ${htmlPath} 缺失（先跑 Step 8 HTML 转换）\n`); process.exit(2); }
+if (!existsSync(htmlPath))    { process.stderr.write(`publish-wechat: ${htmlPath} 缺失（先跑 Step 5 产物构建）\n`); process.exit(2); }
 const cover = existsSync(coverPng) ? coverPng : (existsSync(coverJpg) ? coverJpg : null);
 if (!cover) { process.stderr.write("publish-wechat: cover.png/cover.jpg 都不存在\n"); process.exit(2); }
 

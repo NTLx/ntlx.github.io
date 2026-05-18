@@ -8,12 +8,12 @@
  * 4. 验证
  *
  * 用法:
- *   bun run step5-build.mjs <date-slug> [--theme default] [--color blue]
+ *   bun run step5-build.mjs <date-slug> [--theme default] [--color blue] [--dry-run] [--reuse-image-map]
  *
  * 退出码: 0 成功；2 输入缺失；3 上传失败；4 HTML 转换失败
  */
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
@@ -22,13 +22,19 @@ import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
-let slug = null, theme = cfg.theme, color = cfg.color;
+let slug = null, theme = cfg.theme, color = cfg.color, dryRun = false, reuseImageMap = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--theme" && args[i + 1]) { theme = args[++i]; }
   else if (args[i] === "--color" && args[i + 1]) { color = args[++i]; }
+  else if (args[i] === "--dry-run") { dryRun = true; }
+  else if (args[i] === "--reuse-image-map") { reuseImageMap = true; }
+  else if (args[i].startsWith("--")) {
+    process.stderr.write(`step5: unknown flag ${args[i]}\n`);
+    process.exit(1);
+  }
   else if (!slug) slug = args[i];
 }
-if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--theme T] [--color C]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--theme T] [--color C] [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
 
 const base = resolve(postsRoot(), slug);
 const draftPath = resolve(base, "draft.md");
@@ -36,15 +42,80 @@ const imgsDir = resolve(base, "imgs");
 const mapPath = resolve(base, "image-map.json");
 const articlePath = resolve(base, "article.md");
 const wechatHtmlPath = resolve(base, "article-wechat.html");
+const coverPng = resolve(base, "cover.png");
+const coverJpg = resolve(base, "cover.jpg");
 
 function fail(code, msg) {
   process.stderr.write(`step5: FAIL - ${msg}\n`);
-  markStepFailed(slug, 5, msg);
+  if (!dryRun) markStepFailed(slug, 5, msg);
   process.exit(code);
 }
 
 if (!existsSync(draftPath)) fail(2, "draft.md missing");
 if (!existsSync(imgsDir)) fail(2, "imgs/ directory missing");
+if (!existsSync(coverPng) && !existsSync(coverJpg)) fail(2, "cover image missing (cover.png/cover.jpg)");
+
+function imageFiles(dir) {
+  return readdirSync(dir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f)).sort();
+}
+
+function readFmValue(markdown, key) {
+  const m = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return "";
+  const line = m[1].split(/\r?\n/).find(l => l.startsWith(`${key}:`));
+  if (!line) return "";
+  return line.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
+}
+
+function loadImageMap() {
+  if (!existsSync(mapPath)) fail(3, "image-map.json missing; cannot --reuse-image-map");
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync(mapPath, "utf8"));
+  } catch (err) {
+    fail(3, `image-map.json invalid JSON: ${err.message}`);
+  }
+  const files = raw.files ?? raw;
+  if (!files || typeof files !== "object" || Array.isArray(files)) {
+    fail(3, "image-map.json must be an object or contain a files object");
+  }
+  return files;
+}
+
+function resolveAssetSlug(draft) {
+  const blogSlug = readFmValue(draft, "blogSlug");
+  if (/^[a-z][a-z0-9-]*[a-z0-9]$/.test(blogSlug)) return blogSlug;
+  fail(2, "frontmatter.blogSlug missing or invalid; Step 5 needs an ASCII slug for stable image names");
+}
+
+function buildSyntheticMap(files, namePrefix) {
+  return Object.fromEntries(files.map(file => [
+    file,
+    `https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/${namePrefix}-${file}`,
+  ]));
+}
+
+function validateImageMapCoverage(draft, files, map) {
+  const hasUrl = file => typeof map[file] === "string" && /^https?:\/\//.test(map[file]);
+  const slotRefs = [...draft.matchAll(/<!--\s*SLOT_IMG_(\d{2})[^>]*-->/g)].map(m => m[1]);
+  for (const slotNum of slotRefs) {
+    const file = files.find(f => f.startsWith(`${slotNum}-`));
+    if (!file) fail(4, `SLOT_IMG_${slotNum} has no matching image in imgs/`);
+    if (!hasUrl(file)) fail(4, `image-map.json missing valid CDN URL for ${file}`);
+  }
+
+  const localRefs = [...draft.matchAll(/!\[[^\]]*\]\((?:\.\/)?imgs\/([^)\s]+)\)/g)].map(m => m[1]);
+  for (const file of localRefs) {
+    if (!files.includes(file)) fail(4, `draft.md references missing local image imgs/${file}`);
+    if (!hasUrl(file)) fail(4, `image-map.json missing valid CDN URL for ${file}`);
+  }
+
+  if (slotRefs.length === 0 && localRefs.length === 0) {
+    fail(4, "draft.md has images in imgs/ but no SLOT_IMG placeholders or local imgs/ references");
+  }
+
+  return { slot_count: slotRefs.length, local_ref_count: localRefs.length };
+}
 
 // Helper: find script dir
 function findScriptDir(name) {
@@ -60,19 +131,53 @@ function findScriptDir(name) {
 const githubDir = findScriptDir("github-image-hosting");
 if (!githubDir) fail(2, "github-image-hosting skill not found");
 
+const draft = readFileSync(draftPath, "utf8");
+const imgs = imageFiles(imgsDir);
+if (imgs.length === 0) fail(2, "imgs/ contains no image files");
+
 const dateStr = slug.slice(0, 10);
-const asciiSlug = slug.slice(11).replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-const uploadResult = spawnSync("bun", [
-  "run", resolve(githubDir, "scripts/upload.ts"),
-  imgsDir,
-  "--repo", "NTLx/Pic@master:wechat-articles",
-  "--name-prefix", `${dateStr}-${asciiSlug}-img`,
-  "--output", mapPath,
-], { stdio: "inherit", encoding: "utf8" });
+const assetSlug = resolveAssetSlug(draft);
+const namePrefix = `${dateStr}-${assetSlug}-img`;
 
-if (uploadResult.status !== 0) fail(3, "CDN upload failed");
+let imageMap = reuseImageMap ? loadImageMap() : buildSyntheticMap(imgs, namePrefix);
+const coverage = validateImageMapCoverage(draft, imgs, imageMap);
 
-if (!existsSync(mapPath)) fail(3, "image-map.json not created");
+if (dryRun) {
+  const htmlSkillDir = findScriptDir("baoyu-markdown-to-html");
+  if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
+  const htmlScript = resolve(htmlSkillDir, "scripts/main.ts");
+  if (!existsSync(htmlScript)) fail(2, `HTML script not found: ${htmlScript}`);
+  process.stdout.write(JSON.stringify({
+    slug,
+    step: 5,
+    dry_run: true,
+    reuse_image_map: reuseImageMap,
+    image_count: imgs.length,
+    name_prefix: namePrefix,
+    theme,
+    color,
+    ...coverage,
+  }) + "\n");
+  process.exit(0);
+}
+
+if (!reuseImageMap) {
+  const uploadResult = spawnSync("bun", [
+    "run", resolve(githubDir, "scripts/upload.ts"),
+    imgsDir,
+    "--repo", "NTLx/Pic@master:wechat-articles",
+    "--name-prefix", namePrefix,
+    "--output", mapPath,
+  ], { stdio: "inherit", encoding: "utf8" });
+
+  if (uploadResult.status !== 0) fail(3, "CDN upload failed");
+
+  if (!existsSync(mapPath)) fail(3, "image-map.json not created");
+  imageMap = loadImageMap();
+  validateImageMapCoverage(draft, imgs, imageMap);
+} else {
+  process.stdout.write(`step5: reusing existing image-map.json (${Object.keys(imageMap).length} entries)\n`);
+}
 
 // 2. Placeholder → CDN URL → article.md
 const applyScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/apply-image-map.mjs");
@@ -85,8 +190,6 @@ if (!existsSync(articlePath)) fail(4, "article.md not created");
 //    Read draft.md, replace SLOT_IMG with local imgs/ paths, feed to markdown-to-html
 
 // Defensive: cover normalization — if cover.png is actually JPEG, rename it
-const coverPng = resolve(base, "cover.png");
-const coverJpg = resolve(base, "cover.jpg");
 if (existsSync(coverPng)) {
   const fileType = spawnSync("file", ["-b", "--mime-type", coverPng], { encoding: "utf8" });
   if (fileType.stdout?.trim()?.startsWith("image/jpeg")) {
@@ -101,13 +204,10 @@ if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
 const htmlScript = resolve(htmlSkillDir, "scripts/main.ts");
 if (!existsSync(htmlScript)) fail(2, `HTML script not found: ${htmlScript}`);
 
-const draft = readFileSync(draftPath, "utf8");
-
 // Build a local-paths version of draft.md in memory
 // Replace <!-- SLOT_IMG_NN --> with ![](imgs/NN-xxx.ext)
 const tempLocalMd = resolve(base, "_temp_local.md");
 let localMd = draft;
-const imgs = existsSync(imgsDir) ? require("fs").readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f)) : [];
 
 localMd = localMd.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
   const m = raw.match(/SLOT_IMG_(\d{2})(?:_([A-Za-z0-9_-]+))?/);
@@ -131,7 +231,7 @@ const htmlResult = spawnSync("bun", [
 ], { stdio: "inherit", encoding: "utf8", cwd: repoRoot() });
 
 // Cleanup temp file
-try { require("fs").unlinkSync(tempLocalMd); } catch {}
+try { unlinkSync(tempLocalMd); } catch {}
 
 if (htmlResult.status !== 0) fail(4, "HTML conversion failed");
 
@@ -188,5 +288,5 @@ const articleContent = readFileSync(articlePath, "utf8");
 if (/<!--\s*SLOT_IMG_/.test(articleContent)) fail(4, "article.md still has SLOT_IMG_ placeholders");
 if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) fail(4, "article.md still has local imgs/ paths");
 
-markStepDone(slug, 5, { article_md: "article.md", article_wechat_html: "article-wechat.html", theme, color });
-process.stdout.write(JSON.stringify({ slug, step: 5, theme, color }) + "\n");
+markStepDone(slug, 5, { article_md: "article.md", article_wechat_html: "article-wechat.html", theme, color, reuse_image_map: reuseImageMap });
+process.stdout.write(JSON.stringify({ slug, step: 5, theme, color, reuse_image_map: reuseImageMap }) + "\n");
