@@ -27,8 +27,9 @@
  *     to avoid double-extension bugs (e.g. `01-foo.jpg.jpg`).
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 let REPO_OWNER = 'NTLx';
@@ -99,7 +100,7 @@ function parseArgs(): UploadOptions {
 }
 
 function ghApiGet(endpoint: string): string {
-  const result = execSync(`gh api ${endpoint} --jq '.sha // .object.sha // empty'`, {
+  const result = execFileSync('gh', ['api', endpoint, '--jq', '.sha // .object.sha // empty'], {
     encoding: 'utf-8',
     timeout: 30000,
     stdio: ['pipe', 'pipe', 'pipe']
@@ -108,37 +109,44 @@ function ghApiGet(endpoint: string): string {
 }
 
 function ghApiPost(endpoint: string, payload: object): string {
-  const tempFile = `/tmp/gh-api-payload-${Date.now()}.json`;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-api-payload-'));
+  const tempFile = path.join(tempDir, 'payload.json');
   fs.writeFileSync(tempFile, JSON.stringify(payload));
   try {
-    const result = execSync(`gh api ${endpoint} --input ${tempFile} --jq '.sha // empty'`, {
+    const result = execFileSync('gh', ['api', endpoint, '--input', tempFile, '--jq', '.sha // empty'], {
       encoding: 'utf-8',
       timeout: 60000,
       stdio: ['pipe', 'pipe', 'pipe']
     });
     return result.trim();
   } finally {
-    fs.unlinkSync(tempFile);
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
 function ghApiPatch(endpoint: string, payload: object): void {
-  const tempFile = `/tmp/gh-api-payload-${Date.now()}.json`;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-api-payload-'));
+  const tempFile = path.join(tempDir, 'payload.json');
   fs.writeFileSync(tempFile, JSON.stringify(payload));
   try {
-    execSync(`gh api ${endpoint} --input ${tempFile}`, {
+    execFileSync('gh', ['api', endpoint, '--input', tempFile], {
       encoding: 'utf-8',
       timeout: 30000,
       stdio: ['pipe', 'pipe', 'pipe']
     });
   } finally {
-    fs.unlinkSync(tempFile);
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
 async function getExistingFiles(): Promise<Set<string>> {
   try {
-    const result = execSync(`gh api repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1 --jq '.tree[].path'`, {
+    const result = execFileSync('gh', [
+      'api',
+      `repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1`,
+      '--jq',
+      '.tree[].path',
+    ], {
       encoding: 'utf-8',
       timeout: 30000,
       stdio: ['pipe', 'pipe', 'pipe']

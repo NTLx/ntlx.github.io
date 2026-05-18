@@ -4,7 +4,8 @@
  *
  * 验证 draft.md 经过 humanizer-zh + baoyu-format-markdown 处理后：
  *   - 文件存在且非空
- *   - frontmatter 完整（title / date / category）
+ *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
+ *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
  *   - SLOT_IMG 占位符未丢失
  *   - 字数 ≥ 2000
@@ -23,6 +24,9 @@ import { postsRoot } from "./path-resolver.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
+
+const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
+const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
 function fail(code, msg) {
   process.stderr.write(`step3: FAIL - ${msg}\n`);
@@ -68,8 +72,18 @@ const body = extractBody(content);
 // 1. Frontmatter integrity
 if (!fm) fail(2, "frontmatter 缺失或格式损坏（未找到 --- 开闭标记）");
 if (!fm.title) fail(2, "frontmatter.title 缺失（polish 后丢失）");
-if (!fm.date) fail(2, "frontmatter.date 缺失（polish 后丢失）");
+if (!fm.date || !/^\d{4}-\d{2}-\d{2}$/.test(fm.date)) fail(2, `frontmatter.date 不合法（polish 后损坏）: ${fm.date ?? ""}`);
+if (!fm.summary) fail(2, "frontmatter.summary 缺失（polish 后丢失）");
+if (!fm.coverImage) fail(2, "frontmatter.coverImage 缺失（polish 后丢失）");
 if (!fm.category) fail(2, "frontmatter.category 缺失（polish 后丢失）");
+if (!VALID_CATEGORIES.includes(fm.category)) fail(2, `frontmatter.category 不在白名单（polish 后损坏）: ${fm.category}`);
+if (!fm.blogSlug) fail(2, "frontmatter.blogSlug 缺失（polish 后丢失）");
+if (!ASCII_SLUG_RE.test(fm.blogSlug)) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case（polish 后损坏）: ${fm.blogSlug}`);
+if (!fm.sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(fm.sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（polish 后损坏）: ${fm.sourceUrl ?? ""}`);
+const expectedSourceUrl = `https://ntlx.github.io/articles/${fm.blogSlug}`;
+if (fm.sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
+  fail(2, `frontmatter.sourceUrl (${fm.sourceUrl}) 与 blogSlug (${fm.blogSlug}) 不一致`);
+}
 
 // 2. No H1 in body
 if (/^# /m.test(body)) {
@@ -77,11 +91,9 @@ if (/^# /m.test(body)) {
 }
 
 // 3. SLOT_IMG placeholders preserved
-//    If body has image references like ![](  there should be corresponding SLOT_IMG placeholders
-const slotPlaceholders = body.match(/<!--\s*SLOT_IMG_\d+\s*-->/g) || [];
-const imageRefs = body.match(/!\[.*?\]\([^)]+\)/g) || [];
-if (imageRefs.length > 0 && slotPlaceholders.length === 0) {
-  fail(2, `正文含 ${imageRefs.length} 处图片引用但无 SLOT_IMG 占位符（polish 可能清除）`);
+const slotPlaceholders = body.match(/<!--\s*SLOT_IMG_\d{2}[^>]*-->/g) || [];
+if (slotPlaceholders.length === 0) {
+  fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }
 
 // 4. Word count still >= 2000 (Chinese chars + English words, same as step2)
@@ -99,5 +111,5 @@ if (isReviewType && !/^## 原文参考/m.test(body)) {
   fail(2, "读后感类文章缺少 ## 原文参考 区块（polish 可能删除）");
 }
 
-markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount });
-process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount }) + "\n");
+markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl });
+process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl }) + "\n");

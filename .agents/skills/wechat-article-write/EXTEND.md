@@ -6,17 +6,17 @@
 
 ### quick_mode
 
-是否跳过中间确认步骤，全自动执行。
+是否尽量跳过可选确认。Step 1-4 仍由 Agent 完成智能判断；Step 5/6 需要通过 `pipeline.mjs --auto` 执行确定性自动化。
 
 ```yaml
 quick_mode: true
 ```
 
-**推荐值**：`true` — 流水线设计为全自动执行。
+**推荐值**：`true` — 减少非必要确认，但不改变脚本门控。
 
 ### default_publish_method
 
-发布到公众号的默认方式。
+发布到公众号的默认方式。本项目核心管线默认走 API；浏览器方式仅作为第三方技能的人工降级路径，不作为 `wechat-article-write` 主路径。
 
 ```yaml
 default_publish_method: api

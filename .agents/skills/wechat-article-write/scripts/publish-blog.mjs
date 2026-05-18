@@ -4,8 +4,8 @@
  *
  * 行为:
  *   1. 校验：frontmatter 含 title / date / summary / category（6 枚举内）
- *   2. 转换：summary→description、加 $schema: starlight、删 coverImage / sourceUrl
- *   3. 确定 blog slug：优先 --blog-slug（纯 ASCII）；未传则从 date-slug 去日期前缀
+ *   2. 确定 blog slug：优先 --blog-slug，其次 frontmatter.blogSlug，最后从 date-slug 去日期前缀
+ *   3. 转换：summary→description、加 $schema: starlight、删管线专用字段
  *   4. 写入：src/content/docs/articles/<slug>.md
  *   5. 构建：npx astro sync && npm run build
  *   6. git add → git commit → git push
@@ -15,7 +15,7 @@
  *   bun run publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]
  *
  * 退出码:
- *   0 成功（push 失败但 commit 成功时也返回 0）
+ *   0 成功（--no-push 或 push 失败时也返回 0，并把博客发布状态标记为 blocked）
  *   1 参数错误 / 未知 flag；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败；5 目标文件已存在；6 非 main 分支
  */
 
@@ -75,11 +75,11 @@ function printHelp() {
   bun run publish-blog.mjs --post-dir <path>  [options]
 
 选项:
-  --blog-slug <ascii-slug>  博客文章 URL slug（必须纯 ASCII kebab-case）
+  --blog-slug <ascii-slug>  博客文章 URL slug（覆盖 frontmatter.blogSlug，必须纯 ASCII kebab-case）
   --post-dir <path>         posts/ 下的目录路径（替代 date-slug）
   --overwrite               强制覆盖已存在的文章文件
   --allow-non-main          跳过 main 分支检查
-  --no-push                 不执行 git push
+  --no-push                 不执行 git commit/push，状态标记为 blocked
   --no-build                不执行 Astro 构建
   --dry-run                 只输出将要执行的操作，不实际执行
   --commit-template <tmpl>  git commit 消息模板
@@ -111,9 +111,8 @@ function parseFm(fmText) {
 }
 
 function buildBlogFm(fm) {
-  // 管线专用字段不写入博客文章：infographicPosition（仅 step45 消费）、
-  // coverImage（微信轨专用）、sourceUrl（微信轨引用）
-  const excluded = ["infographicPosition", "coverImage", "sourceUrl"];
+  // 管线专用字段不写入博客文章：coverImage（微信轨专用）、sourceUrl（微信轨引用）、blogSlug（发布定位）。
+  const excluded = ["infographicPosition", "coverImage", "sourceUrl", "blogSlug"];
   for (const k of excluded) delete fm[k];
 
   // 字段顺序：$schema -> title -> description -> date -> category -> tags?
@@ -132,24 +131,42 @@ function quote(v) {
   return v;
 }
 
-// date-slug -> blog slug：优先使用 --blog-slug；否则去掉前导日期 YYYY-MM-DD- 后剩下的部分
-// CLAUDE.md 硬规则：blog slug 必须为小写 ASCII kebab-case，禁止中文
+// date-slug -> blog slug：优先使用 --blog-slug，其次 frontmatter.blogSlug，否则去掉前导日期。
+// 项目硬规则：blog slug 必须为小写 ASCII kebab-case，禁止中文。
 const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
-function blogSlug(dateSlug, explicitSlug) {
-  if (explicitSlug) {
-    if (!ASCII_SLUG_RE.test(explicitSlug)) {
-      process.stderr.write(`publish-blog: --blog-slug "${explicitSlug}" 不符合 ASCII kebab-case 规则（${ASCII_SLUG_RE}）\n`);
-      process.exit(2);
-    }
-    return explicitSlug;
-  }
-  const m = dateSlug.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
-  const auto = m ? m[1] : dateSlug;
-  if (!ASCII_SLUG_RE.test(auto)) {
-    process.stderr.write(`publish-blog: 自动生成的 blog slug "${auto}" 不是纯 ASCII kebab-case。CLAUDE.md 禁止中文文件名。\n请通过 --blog-slug 参数显式传入 ASCII slug，例如 --blog-slug fake-lossless-detection\n`);
+function validateBlogSlug(slug, label) {
+  if (!ASCII_SLUG_RE.test(slug)) {
+    process.stderr.write(`publish-blog: ${label} "${slug}" 不符合 ASCII kebab-case 规则（${ASCII_SLUG_RE}）\n`);
     process.exit(2);
   }
-  return auto;
+  return slug;
+}
+
+function resolveBlogSlug(dateSlug, explicitSlug, frontmatterSlug) {
+  if (explicitSlug) return validateBlogSlug(explicitSlug, "--blog-slug");
+  if (frontmatterSlug) return validateBlogSlug(frontmatterSlug, "frontmatter.blogSlug");
+
+  const m = dateSlug.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
+  const auto = m ? m[1] : dateSlug;
+  return validateBlogSlug(auto, "自动生成的 blog slug");
+}
+
+function validateSourceUrl(fm, slug) {
+  if (!fm.sourceUrl) return;
+  const expected = `https://ntlx.github.io/articles/${slug}`;
+  if (fm.sourceUrl.replace(/\/+$/, "") !== expected) {
+    process.stderr.write(`publish-blog: frontmatter.sourceUrl (${fm.sourceUrl}) 与 blog slug (${slug}) 不一致，应为 ${expected}\n`);
+    process.exit(2);
+  }
+}
+
+function assertMainBranchIfNeeded(opts) {
+  if (opts.noPush || opts.allowNonMain) return;
+  const branch = captureStdout("git", ["branch", "--show-current"]);
+  if (branch !== "main") {
+    process.stderr.write("publish-blog: 当前分支非 main，拒绝发布（使用 --allow-non-main 跳过检查）\n");
+    process.exit(6);
+  }
 }
 
 const opts = parseArgs(process.argv.slice(2));
@@ -191,7 +208,8 @@ if (!VALID_CATEGORIES.includes(fm.category)) {
   process.exit(2);
 }
 
-const slug = blogSlug(dateSlug, opts.blogSlug);
+const slug = resolveBlogSlug(dateSlug, opts.blogSlug, fm.blogSlug);
+validateSourceUrl(fm, slug);
 const targetPath = resolve(repoRoot(), "src/content/docs/articles", `${slug}.md`);
 const blogFm = buildBlogFm(fm);
 const blogContent = blogFm + split.body;
@@ -201,6 +219,8 @@ if (opts.dryRun) {
   process.stdout.write(blogFm);
   process.exit(0);
 }
+
+assertMainBranchIfNeeded(opts);
 
 if (existsSync(targetPath) && !opts.overwrite) {
   process.stderr.write(`publish-blog: ${targetPath} 已存在（使用 --overwrite 强制覆盖）\n`);
@@ -222,15 +242,6 @@ let pushBlocked = false;
 let pushError = null;
 
 if (!opts.noPush) {
-  // 分支检查：仅允许在 main 分支上发布
-  if (!opts.allowNonMain) {
-    const branch = captureStdout("git", ["branch", "--show-current"]);
-    if (branch !== "main") {
-      process.stderr.write(`publish-blog: 当前分支非 main，拒绝发布（使用 --allow-non-main 跳过检查）\n`);
-      process.exit(6);
-    }
-  }
-
   // Step 5: git add + commit（失败 => exit 4，因为 commit 失败说明本地仓库异常，必须中止）
   run("git", ["add", targetPath], { cwd: repoRoot() });
   const tmpl = opts.commitTemplate ?? `post: ${fm.title} (${slug})`;
@@ -247,9 +258,10 @@ if (!opts.noPush) {
   }
 }
 
-const sha = captureStdout("git", ["rev-parse", "HEAD"]);
+const sha = opts.noPush ? null : captureStdout("git", ["rev-parse", "HEAD"]);
 
 // 写 RESUME.md（push 失败时必须；push 成功时不写）
+let resumeFile = null;
 if (pushBlocked) {
   const resumePath = resolve(postsRoot(), dateSlug, "RESUME.md");
   const resumeBody = `# 流水线断点续跑指引
@@ -281,7 +293,7 @@ git log origin/main..HEAD   # 应为空
 SLUG="${dateSlug}"
 
 # Step 6 微信发布
-bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-dir posts/"$SLUG" --theme grace --color vermilion --author NTLx
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-dir posts/"$SLUG"
 \`\`\`
 
 ## 排查 push 失败常见原因
@@ -292,16 +304,22 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-di
 `;
   writeFileSync(resumePath, resumeBody);
   process.stdout.write(`written: ${resumePath}\n`);
+  resumeFile = "RESUME.md";
 }
 
-// 写 state：push 成功 = done；push 失败 = blocked（commit 已完成，push 可后续手动补）
-const stateExtra = pushBlocked
-  ? { commit: sha, slug, pushed: false, push_error: pushError, resume_file: "RESUME.md" }
-  : { commit: sha, slug, pushed };
-if (pushBlocked) {
+// 写 state：push 成功 = done；push 失败或 --no-push = blocked
+if (opts.noPush) {
+  markBlogDone(dateSlug, {
+    pushed: false,
+    extra: { commit: null, slug, pushed: false, no_push: true, local_only: true },
+  });
+  process.stderr.write("publish-blog: --no-push enabled; local article written but blog state is blocked until commit/push completes.\n");
+} else if (pushBlocked) {
+  const stateExtra = { commit: sha, slug, pushed: false, push_error: pushError, resume_file: resumeFile };
   markBlogDone(dateSlug, { pushed: false, extra: stateExtra });
   process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push origin HEAD:main' manually then mark step complete.\n");
 } else {
+  const stateExtra = { commit: sha, slug, pushed };
   markBlogDone(dateSlug, { pushed: true, extra: stateExtra });
 }
 
@@ -310,6 +328,7 @@ process.stdout.write(JSON.stringify({
   target: targetPath,
   commit: sha,
   pushed,
-  blocked: pushBlocked,
-  resume_file: pushBlocked ? "RESUME.md" : null,
+  no_push: opts.noPush,
+  blocked: pushBlocked || opts.noPush,
+  resume_file: resumeFile,
 }) + "\n");
