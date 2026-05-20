@@ -44,7 +44,7 @@
 6 步流水线（Step 1–6）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
 
 - **发布顺序**：博客先发（Step 6.1）→ 微信草稿（Step 6.2）。sourceUrl 预先填入，不等 Pages 部署即发布
-- **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑
+- **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑。Step 6 博客/微信子状态独立管理：`state.mjs blog <slug> get` / `state.mjs wechat <slug> get` 查询
 - **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下本地目录名（可含中文）；blog-slug 是 `articles/` 下 URL 文件名（必须纯 ASCII kebab-case）
 - **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传
 - 所有校验逻辑已封装在 step 脚本内，agent 只调用脚本、解读退出码

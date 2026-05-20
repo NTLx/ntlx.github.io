@@ -80,7 +80,7 @@ const body = bodyStart !== -1 ? content.slice(bodyStart + 5) : content;
 const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
 const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
 const wordCount = chineseChars + englishWords;
-if (wordCount < 2000) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2000（硬性下限）`);
+if (wordCount < 2000) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2000 — 请补充内容达到 2000 字以上（ljg-writes 默认 1000-1500 字，调用时需明确指定"字数下限 2000"）`);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");

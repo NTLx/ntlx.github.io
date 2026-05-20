@@ -49,7 +49,7 @@ function captureStdout(cmd, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
+  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, autoRebase: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
@@ -58,6 +58,7 @@ function parseArgs(argv) {
     else if (a === "--dry-run") opts.dryRun = true;
     else if (a === "--overwrite") opts.overwrite = true;
     else if (a === "--allow-non-main") opts.allowNonMain = true;
+    else if (a === "--auto-rebase") opts.autoRebase = true;
     else if (a === "--commit-template") opts.commitTemplate = argv[++i];
     else if (a === "--blog-slug") opts.blogSlug = argv[++i];
     else if (a === "--post-dir") opts.postDir = argv[++i];
@@ -79,6 +80,7 @@ function printHelp() {
   --post-dir <path>         posts/ 下的目录路径（替代 date-slug）
   --overwrite               强制覆盖已存在的文章文件
   --allow-non-main          跳过 main 分支检查
+  --auto-rebase             push 失败时自动尝试 git pull --rebase 再 push（最多 1 次）
   --no-push                 不执行 git commit/push，状态标记为 blocked
   --no-build                不执行 Astro 构建
   --dry-run                 只输出将要执行的操作，不实际执行
@@ -88,6 +90,7 @@ function printHelp() {
 示例:
   bun run publish-blog.mjs 2026-05-16-langchain
   bun run publish-blog.mjs --post-dir posts/2026-05-16-langchain --blog-slug langchain-interrupt
+  bun run publish-blog.mjs 2026-05-16-langchain --auto-rebase
 `);
 }
 
@@ -248,7 +251,22 @@ if (!opts.noPush) {
   run("git", ["commit", "-m", tmpl], { cwd: repoRoot() });
 
   // Step 6: git push（软执行，失败 => 写 RESUME.md，进程仍正常退出）
-  const pushStatus = trySpawn("git", ["push", "origin", "HEAD:main"], { cwd: repoRoot() });
+  let pushStatus = trySpawn("git", ["push", "origin", "HEAD:main"], { cwd: repoRoot() });
+
+  // --auto-rebase: push reject 时自动 pull --rebase 再 push（最多 1 次）
+  if (pushStatus !== 0 && opts.autoRebase) {
+    process.stdout.write("publish-blog: push rejected, attempting auto-rebase...\n");
+    const rebaseStatus = trySpawn("git", ["pull", "--rebase", "origin", "main"], { cwd: repoRoot() });
+    if (rebaseStatus === 0) {
+      pushStatus = trySpawn("git", ["push", "origin", "HEAD:main"], { cwd: repoRoot() });
+      if (pushStatus === 0) {
+        process.stdout.write("publish-blog: auto-rebase succeeded, push completed\n");
+      }
+    } else {
+      process.stderr.write(`publish-blog: auto-rebase failed (pull --rebase exited ${rebaseStatus}), falling back to blocked state\n`);
+    }
+  }
+
   if (pushStatus === 0) {
     pushed = true;
   } else {
@@ -277,13 +295,16 @@ if (pushBlocked) {
 ## 需要手动完成的操作
 
 \`\`\`bash
-# 1) 在网络通畅的环境（如切换到 https 协议，或使用 GitHub Token over HTTPS）重新推送
-git push origin HEAD:main
+# 方式 1: 自动 rebase（推荐）
+bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs ${dateSlug} --auto-rebase --no-build
 
-# 或使用 gh cli 绕过 SSH
+# 方式 2: 手动推送
+git pull --rebase origin main && git push origin HEAD:main
+
+# 方式 3: 使用 gh cli 绕过 SSH
 gh repo sync   # 如已配置远端
 
-# 2) 验证推送成功
+# 验证推送成功
 git log origin/main..HEAD   # 应为空
 \`\`\`
 

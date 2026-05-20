@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * .pipeline-state.json CLI — v2（支持 Step 6 子状态）
+ * .pipeline-state.json CLI — v2（支持 Step 6 子状态 + 查询）
  *
  * 用法:
  *   bun run state.mjs init  <date-slug>
@@ -8,8 +8,8 @@
  *   bun run state.mjs next  <date-slug>              # 输出下一个 step 或 "done"
  *   bun run state.mjs done  <date-slug> <step>       # 标记 step 完成
  *   bun run state.mjs fail  <date-slug> <step> <err> # 标记 step 失败
- *   bun run state.mjs blog  <date-slug> <done|blocked> # 博客发布子状态
- *   bun run state.mjs wechat <date-slug> <done|failed> [error] # 微信子状态
+ *   bun run state.mjs blog  <date-slug> <done|blocked|get> # 博客发布子状态
+ *   bun run state.mjs wechat <date-slug> <done|failed|get> [error] # 微信子状态
  *   bun run state.mjs dump  <date-slug>              # 输出完整 state JSON
  */
 
@@ -24,7 +24,7 @@ function fail(msg) { process.stderr.write(`state.mjs: ${msg}\n`); process.exit(1
 
 const [, , cmd, slug, ...args] = process.argv;
 if (!cmd || !slug) {
-  process.stderr.write("usage: state.mjs <init|get|next|done|fail|blog|wechat|dump> <date-slug> [args...]\n");
+  process.stderr.write("usage: state.mjs <init|get|next|done|fail|blog|wechat|dump> <date-slug> [args...]\n  blog: done|blocked|get  wechat: done|failed|get\n");
   process.exit(1);
 }
 
@@ -62,7 +62,8 @@ switch (cmd) {
     const sub = args[0];
     if (sub === "done") { markBlogDone(slug, { pushed: true }); process.stdout.write("ok: blog done\n"); }
     else if (sub === "blocked") { markBlogDone(slug, { pushed: false }); process.stdout.write("ok: blog blocked\n"); }
-    else fail(`blog subcommand: done|blocked, got "${sub}"`);
+    else if (sub === "get") { const pub = getPublishState(slug); process.stdout.write(pub.blog + "\n"); }
+    else fail(`blog subcommand: done|blocked|get, got "${sub}"`);
     break;
   }
   case "wechat": {
@@ -70,7 +71,8 @@ switch (cmd) {
     const err = args.slice(1).join(" ") || "";
     if (sub === "done") { markWechatDone(slug); process.stdout.write("ok: wechat done\n"); }
     else if (sub === "failed") { markWechatFailed(slug, err || "wechat publish failed"); process.stdout.write(`ok: wechat failed (${err || "wechat publish failed"})\n`); }
-    else fail(`wechat subcommand: done|failed, got "${sub}"`);
+    else if (sub === "get") { const pub = getPublishState(slug); process.stdout.write(pub.wechat + "\n"); }
+    else fail(`wechat subcommand: done|failed|get, got "${sub}"`);
     break;
   }
   case "dump": {
@@ -80,5 +82,5 @@ switch (cmd) {
     break;
   }
   default:
-    fail(`unknown subcommand "${cmd}"`);
+    fail(`unknown subcommand "${cmd}". Known: init, get, next, done, fail, blog, wechat, dump`);
 }
