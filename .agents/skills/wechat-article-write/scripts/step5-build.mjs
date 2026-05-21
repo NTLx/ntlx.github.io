@@ -254,6 +254,13 @@ if (existsSync(wechatHtmlPath)) {
   html = html.replace(/;\s*;(?!\s*important)/g, ";");
   html = html.replace(/; {2,}/g, "; ");
   html = html.replace(/style=" /g, "style=\"");
+  // Normalize img tags: ensure `src` is never the first attribute after `<img`.
+  // baoyu-post-to-wechat's imgRegex uses `\ssrc` which requires whitespace before `src`.
+  // When `<img src="...">` (src is the first attribute), the greedy `[^>]*` in the regex
+  // can consume the space between `<img` and `src`, causing `\s` to fail to match.
+  // Injecting `data-img` before `src` guarantees whitespace exists before `src`.
+  html = html.replace(/<img(\s)src=/gi, '<img data-img src=');
+
   writeFileSync(wechatHtmlPath, html);
 }
 
