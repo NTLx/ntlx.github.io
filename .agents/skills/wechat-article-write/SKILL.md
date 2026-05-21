@@ -199,7 +199,8 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 3. 将 draft.md 占位符替换为 CDN URL → article.md
 4. 将 draft.md 占位符替换为本地路径（内存中） → 调用 baoyu-markdown-to-html → article-wechat.html
 5. 验证: article.md 无占位符残留、无本地路径；article-wechat.html 非空、含 inline CSS、无 SLOT 残留、无空 img src
-6. 写状态
+6. img 标签规范化：给 `<img src=` 注入 `data-img` 前缀属性（`<img data-img src=`），确保第三方发布脚本的 `\ssrc` regex 能匹配到 src 前的空白
+7. 写状态
 
 辅助模式：
 - `--dry-run`：只做预检和依赖检查，不上传、不写 `image-map.json`、不生成 `article.md/article-wechat.html`、不写状态
