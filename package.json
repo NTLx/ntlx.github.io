@@ -13,6 +13,12 @@
     "@astrojs/rss": "^4.0.18",
     "@astrojs/starlight": "^0.39.2",
     "astro": "^6.3.1",
-    "sharp": "^0.34.2"
+    "remark-cjk-friendly": "^2.0.1",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "sharp": "^0.34.2",
+    "unified": "^11.0.5"
   }
 }
