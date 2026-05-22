@@ -62,7 +62,15 @@ const sourceUrl = readFm(draftPath, "sourceUrl");
 
 if (!title) fail(2, "frontmatter.title 缺失");
 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(2, `frontmatter.date 不合法: ${date}`);
-if (!summary) fail(2, "frontmatter.summary 缺失");
+if (!summary) fail(2, "frontmatter.summary 缺失（微信草稿箱 digest 必填，需金句式摘要 ≤120 字）");
+
+// Summary quality check: warn if it reads like a bland description
+if (/^(本文|这篇文章|这篇文章介绍了|本文介绍了|本文将|本文探讨了)/.test(summary)) {
+  process.stderr.write(`step2: WARNING summary 看起来像内容简介（"本文介绍了…"开头），而非金句式摘要。微信推送卡片上展示的就是这句话，请改成概括核心洞察或最反直觉结论的一句金句\n`);
+}
+if (summary.length > 120) {
+  process.stderr.write(`step2: WARNING summary 超过 120 字（当前 ${summary.length} 字），微信 digest 字段上限约 120 字，超长会被截断\n`);
+}
 if (!coverImage) fail(2, "frontmatter.coverImage 缺失");
 if (!category) fail(2, "frontmatter.category 缺失");
 if (!VALID_CATEGORIES.includes(category)) fail(2, `category=${category} 不在白名单 ${VALID_CATEGORIES.join(",")}`);
