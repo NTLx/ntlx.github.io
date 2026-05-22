@@ -36,7 +36,31 @@ user_invocable: true
 | EXTEND.md（偏好） | `.baoyu-skills/{skill-name}/EXTEND.md` | 项目级，git 跟踪 |
 | .env（密钥） | `~/.baoyu-skills/.env` | 用户级，不进 git |
 
-**配置读取机制**：`config-lib.mjs` 在脚本启动时自动读取 `.baoyu-skills/*/EXTEND.md` 的 frontmatter，解析为配置字典。脚本默认值由 config-lib 从 EXTEND.md 读取，CLI 参数仍可覆盖。不再在各脚本中硬编码 theme/color/author 等默认值。
+**⚠️ 配置查找规则（Agent 必须遵守）**：
+
+所有 baoyu 系列技能的配置查找遵循三级优先链：**项目级（优先级 1）→ XDG 级（优先级 2）→ 用户级（优先级 3）**，第一个找到的即生效。具体路径：
+
+| 优先级 | 路径模式 | 说明 |
+|--------|---------|------|
+| 1 | `.baoyu-skills/{skill-name}/EXTEND.md` | **项目目录下**，本仓库已有配置 |
+| 2 | `${XDG_CONFIG_HOME:-$HOME/.config}/baoyu-skills/{skill-name}/EXTEND.md` | XDG 配置目录 |
+| 3 | `$HOME/.baoyu-skills/{skill-name}/EXTEND.md` | 用户家目录 |
+
+**本项目 `.baoyu-skills/` 下已有以下技能配置**（不要去 `~/.baoyu-skills/` 找，那里只有 `.env`）：
+
+- `baoyu-imagine/EXTEND.md`
+- `baoyu-cover-image/EXTEND.md`
+- `baoyu-infographic/EXTEND.md`
+- `baoyu-article-illustrator/EXTEND.md`
+- `baoyu-markdown-to-html/EXTEND.md`
+- `baoyu-post-to-wechat/EXTEND.md`
+
+**Agent 在调用 baoyu 子技能时的行为规范**：
+- **不得触发首次设置流程**：项目级 EXTEND.md 已存在，不需要询问用户配置偏好
+- **不得去 `~/.baoyu-skills/` 查找 EXTEND.md**：用户目录下没有技能配置，只有密钥 `.env`
+- 直接使用项目目录 `.baoyu-skills/{skill-name}/EXTEND.md` 中的配置值
+
+**配置读取机制**：`config-lib.mjs` 在脚本启动时自动读取项目级 `.baoyu-skills/*/EXTEND.md` 的 frontmatter，解析为配置字典。脚本默认值由 config-lib 从 EXTEND.md 读取，CLI 参数仍可覆盖。不再在各脚本中硬编码 theme/color/author 等默认值。
 
 **EXTEND.md 示例**：
 - `baoyu-markdown-to-html` → `default_theme: grace`, `default_color: vermilion`
@@ -170,6 +194,8 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 **Agent 动作**（优先并行执行）：
 如果当前运行时支持后台任务或并行工具调用，封面、信息图、正文插图可并行生成；否则串行执行：
 
+**⚠️ 调用 baoyu 子技能前必读**：这些技能的 EXTEND.md 配置文件在**项目目录** `.baoyu-skills/{skill-name}/EXTEND.md`（优先级 1），不在用户家目录。项目下已有完整配置，**不要触发首次设置流程**，直接使用已有偏好。
+
 | Agent | Skill | 产出 | 参数要点 |
 |-------|-------|------|---------|
 | A | baoyu-cover-image | `posts/{date-slug}/cover.png` | 默认 `--text none`，类型/风格按标题自动选择 |
@@ -236,7 +262,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
 
 脚本职责：pre-flight（cover + article-wechat.html + sourceUrl）→ 从 article.md 读取 title/summary → 调用 baoyu-post-to-wechat 发布草稿 → 写状态。
 
-theme/color/author 默认值从 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 和 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 自动读取，无需手动传入。CLI 参数仍可覆盖。
+theme/color/author 默认值从项目级 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 和 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 自动读取（config-lib.mjs 硬编码项目级路径），无需手动传入。CLI 参数仍可覆盖。
 
 ### 最小编排器
 
