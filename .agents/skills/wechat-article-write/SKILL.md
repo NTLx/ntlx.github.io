@@ -28,6 +28,7 @@ user_invocable: true
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
 - **信息图非强制**：agent 判断是否需要，不需要可跳过
+- **金句摘要硬性必填**：frontmatter `summary` 是微信草稿箱 digest 字段的唯一来源，必须是一句"金句"式摘要（≤120 字），概括文章核心洞察或最反直觉的结论，而非平淡的内容简介。Step 2 写作时必须生成，publish-wechat.mjs 缺 summary 直接 fail
 
 ## 配置文件路径
 
@@ -121,6 +122,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
    - **同时规划插图占位符位置**：按 SLOT_IMG 编号规则（见下方）在写作时插入语义占位符
+   - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
 4. 信任度低时用当前运行时的用户确认工具确认分类和 blog-slug；否则自动采纳
@@ -131,7 +133,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 ---
 title: {标题}
 date: {YYYY-MM-DD}
-summary: {一句话 ≤ 60 字}
+summary: {金句式摘要 ≤ 120 字，概括核心洞察或最反直觉结论，而非内容简介}
 category: {6 枚举之一}
 blogSlug: {ascii-kebab-case}
 coverImage: cover.png
@@ -260,7 +262,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
   --post-dir posts/{date-slug}
 ```
 
-脚本职责：pre-flight（cover + article-wechat.html + sourceUrl）→ 从 article.md 读取 title/summary → 调用 baoyu-post-to-wechat 发布草稿 → 写状态。
+脚本职责：pre-flight（cover + article-wechat.html + sourceUrl + **summary**）→ 从 article.md 读取 title/summary → **summary 缺失直接 fail**（微信草稿箱 digest 必填，空摘要等于推文卡片没文字）→ 以 `--summary` 传递 digest 到 baoyu-post-to-wechat → 调用发布草稿 → 写状态。
 
 theme/color/author 默认值从项目级 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 和 `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` 自动读取（config-lib.mjs 硬编码项目级路径），无需手动传入。CLI 参数仍可覆盖。
 

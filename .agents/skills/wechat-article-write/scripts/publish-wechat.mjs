@@ -103,6 +103,10 @@ if (!title || !sourceUrl) {
   process.stderr.write("publish-wechat: frontmatter.title 或 sourceUrl 缺失\n");
   process.exit(2);
 }
+if (!digest) {
+  process.stderr.write("publish-wechat: frontmatter.summary 缺失（微信草稿箱必须有摘要/digest）。请在 Step 2 写作时生成金句式 summary（≤120 字），或在 draft.md frontmatter 中手动补填\n");
+  process.exit(2);
+}
 
 if (!opts.skipDeployCheck) {
   process.stdout.write(`probing sourceUrl: ${sourceUrl}\n`);
@@ -127,14 +131,13 @@ const args = [
   "--html", htmlPath,
   "--cover", cover,
   "--title", title,
+  "--summary", digest,
   "--type", opts.type,
   "--theme", opts.theme,
   "--color", opts.color,
   "--author", opts.author,
   "--src", sourceUrl,
 ];
-// digest/summary: passed for future compatibility (post-draft.mjs may accept --digest later)
-if (digest) args.push("--digest", digest);
 
 if (opts.dryRun) {
   process.stdout.write(`[dry-run] bun ${args.join(" ")}\n`);
