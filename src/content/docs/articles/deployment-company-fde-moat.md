@@ -6,7 +6,7 @@ date: 2026-05-23
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-00-infographic-core-summary-1.png)
 
 我平时在博客管线上跑着 Claude Code、Windsurf 这些工具，亲眼看着它们把"从想法到原型"的周期从几天压到半小时。所以读到 Caffein Chen 这篇 *The Return of the Deployment Company* 的时候，第一个感觉是确认。这些工具的效率提升，正在改变一件很多人还没意识到的事：AI 公司的商业模型本身。
 
@@ -28,7 +28,7 @@ AI 产品把三个都拆了。
 
 至于高转换成本，当"用户"变成一个能读文档、调 API、跨工具操作的 AI agent 的时候，基于人类 UI 习惯的锁定确实在弱化。但数据迁移的耦合、组织惯性、API 语义层的标准化缺口，这些更深层的壁垒还在。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-01-saas-vs-ai-economics.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-01-saas-vs-ai-economics-1.png)
 
 简单画个对比：
 
@@ -58,7 +58,7 @@ Anthropic → 行业know-how     →  "模型够用就行，关键是懂你"
 Google  → 分发渠道            →  "你本来就在我这儿"
 ```
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-02-three-bets-strategy.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-02-three-bets-strategy-1.png)
 
 a16z 有一篇 *Trading Margin for Moat*，从投资人角度说 FDE 是"用毛利换护城河"的正确策略。这话对了一半——对 AI 公司来说确实如此。但对企业买方来说，这句话翻译过来是：*这家公司的商业模型就是要把你变成它护城河的一部分。*
 
@@ -97,7 +97,7 @@ Month 18: 竞品降价 30% 想进来——
 
 这就是"通过隐性知识的 vendor lock-in"——比 SaaS 时代的锁定更隐性、更深、更难解绑。SaaS 锁定靠的是"你学了三个月的界面不想重新学"，FDE 锁定靠的是"你整个业务流程的运行逻辑已经被这个系统重塑了"。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-03-fde-lockin-timeline.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-23-deployment-company-fde-moat-img-03-fde-lockin-timeline-1.png)
 
 而且很多企业在依赖加深之后会发现，供应商开始调合同价格了。议价能力从你手里溜走，不是因为合同条款改了，是因为你*实际上走不了了*。
 
