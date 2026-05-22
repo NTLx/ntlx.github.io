@@ -1,6 +1,6 @@
 ---
 $schema: starlight
-title: 我让 agent 去洗澡，回来时它把事儿办完了
+title: 让 agent 去洗澡：Codex 异步执行模式的实践
 description: 看了 Jason Liu 的 Code-maxxing，才发现我们用 AI 的方式一直停留在聊天框里
 date: 2026-05-22
 category: ai-coding
