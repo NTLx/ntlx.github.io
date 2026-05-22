@@ -23,7 +23,7 @@ user_invocable: true
 - **失败可恢复**：某步失败报告错误并写状态；`state.mjs next <date-slug>` 返回续跑位置
 - **脚本化**：所有校验和文件操作封装在 `scripts/` 下。Agent 负责调用脚本 + 解读退出码；禁止内联超过 5 行的 bash/python
 - **联网唯一入口 web-access**：所有联网操作（搜索、抓取、资料获取）只通过 web-access Skill 完成。搜索用 `google.com/ncr`
-- **图片后端优先级**：Gemini > Seedream > DashScope。失败自动降级
+- **图片后端优先级**：按 `.baoyu-skills/baoyu-imagine/EXTEND.md` 中 `preferred_image_backend` 配置（默认 Gemini > Seedream > DashScope），失败自动降级。**禁止使用未配置的后端**（如 minimax、openai 等）
 - **Gemini 格式陷阱**：Gemini 返回 JPEG 但保存为 .png。Step 4 统一修正
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
@@ -199,6 +199,25 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 - 封面图同理：必须由 `baoyu-cover-image` 技能生成，不得直调后端
 - 唯一允许直调 `baoyu-imagine` 的场景：Step 4 批量图片部分失败时的**单图增量重试**（见下方「批量图片部分失败时的增量重试」）
 
+**⚠️ 图片后端配置必须传递（硬性约束）**：
+在调用任何图片生成子技能（`baoyu-cover-image`、`baoyu-infographic`、`baoyu-article-illustrator`）之前，**必须先读取 `.baoyu-skills/baoyu-imagine/EXTEND.md`**，获取以下配置：
+- `preferred_image_backend`：首选后端（如 `google`）
+- `default_model`：各后端的默认模型映射
+
+然后在 prompt 或 skill 调用参数中**显式传递这些配置给子技能**，例如：
+```
+请使用 baoyu-article-illustrator 技能生成插图。
+图片后端配置（来自 .baoyu-skills/baoyu-imagine/EXTEND.md）：
+- preferred_image_backend: google
+- 降级链：google → seedream → dashscope
+- default_model:
+    google: gemini-3.1-flash-image-preview
+    seedream: doubao-seedream-5-0-260128
+    dashscope: qwen-image-2.0-pro
+```
+
+**禁止子技能或子 agent 自行选择 provider**（如 minimax、openai 等未在 `baoyu-imagine/EXTEND.md` 中配置的后端）。所有图片生成必须走配置的降级链。
+
 **Agent 动作**（优先并行执行）：
 如果当前运行时支持后台任务或并行工具调用，封面、信息图、正文插图可并行生成；否则串行执行：
 
@@ -206,9 +225,9 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 | Agent | Skill | 产出 | 参数要点 |
 |-------|-------|------|---------|
-| A | baoyu-cover-image | `posts/{date-slug}/cover.png` | 默认 `--text none`，类型/风格按标题自动选择 |
-| B | baoyu-infographic | `posts/{date-slug}/imgs/00-infographic-core-summary.png` | aged-academia + bento-grid + 16:9（通过 baoyu-infographic 技能调用，该技能自动读取项目级 EXTEND.md 配置确定 style/layout/backend） |
-| C | baoyu-article-illustrator | `posts/{date-slug}/imgs/01-*.png, 02-*.png, ...` | density=balanced，3-5 张 |
+| A | baoyu-cover-image | `posts/{date-slug}/cover.png` | 默认 `--text none`，类型/风格按标题自动选择。**必须传递 `baoyu-imagine/EXTEND.md` 的 provider 配置** |
+| B | baoyu-infographic | `posts/{date-slug}/imgs/00-infographic-core-summary.png` | aged-academia + bento-grid + 16:9。**必须传递 `baoyu-imagine/EXTEND.md` 的 provider 配置**（该技能自动读取项目级 EXTEND.md 确定 style/layout/backend） |
+| C | baoyu-article-illustrator | `posts/{date-slug}/imgs/01-*.png, 02-*.png, ...` | density=balanced，3-5 张。**必须传递 `baoyu-imagine/EXTEND.md` 的 provider 配置**（见上方硬性约束），禁止自行选择 provider |
 
 **批量图片部分失败时的增量重试**：
 
