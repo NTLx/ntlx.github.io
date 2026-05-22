@@ -94,7 +94,6 @@ export function getPostToWechatConfig() {
     author:        c.default_author         ?? "NTLx",
     theme:         c.default_theme          ?? "default",
     color:         c.default_color          ?? "blue",
-    publishMethod: c.default_publish_method ?? "api",
     openComment:   c.need_open_comment      ?? 1,
     fansComment:   c.only_fans_can_comment  ?? 1,
   };
@@ -115,7 +114,7 @@ export function getCoverImageConfig() {
 export function getImagineConfig() {
   const c = loadAll().imagine;
   return {
-    preferredBackend: c.preferred_image_backend ?? "google",
+    preferredBackend: c.preferred_image_backend ?? "dashscope",
     defaultModel:     c.default_model           ?? {},
   };
 }

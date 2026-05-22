@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
 /**
- * 微信草稿发布（Step 6.2）
+ * 微信草稿发布（Step 6.2）— API only
  *
  * 行为:
- *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl
+ *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl / summary
  *   2. 探活 sourceUrl（仅在 --no-skip-deploy-check 时）
- *   3. 调用 baoyu-post-to-wechat，传入 --cover --theme --color --author --src
- *   4. 成功后 markWechatDone
+ *   3. 调用 wechat-api.ts 通过微信官方 API 发布草稿
+ *   4. 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时）
+ *   5. 成功后 markWechatDone
  *
  * 用法:
  *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme <cfg>] [--color <cfg>]
@@ -45,7 +46,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 6.2)
+  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 6.2, API only)
 
 用法:
   bun run publish-wechat.mjs <date-slug> [options]
@@ -53,8 +54,6 @@ function printHelp() {
 
 选项:
   --type <news|newspic>       文章类型（默认 news）
-  --theme <name>              主题样式（默认来自 config）
-  --color <name>              主题颜色（默认来自 config）
   --author <name>             作者名（默认来自 config）
   --post-dir <path>           posts/ 下的目录路径（替代 date-slug）
   --skip-deploy-check         跳过 sourceUrl 探活（默认开启）
@@ -64,7 +63,7 @@ function printHelp() {
 
 示例:
   bun run publish-wechat.mjs 2026-05-16-langchain
-  bun run publish-wechat.mjs --post-dir posts/2026-05-16-langchain --type newspic
+  bun run publish-wechat.mjs --post-dir posts/2026-05-16-langchain
 `);
 }
 
@@ -73,13 +72,39 @@ function readFm(file, key) {
   return (r.stdout ?? "").trim();
 }
 
+function ensureDepsInstalled(scriptsDir) {
+  const pkgJson = resolve(scriptsDir, "package.json");
+  const nodeModules = resolve(scriptsDir, "node_modules");
+  if (existsSync(pkgJson) && !existsSync(nodeModules)) {
+    process.stdout.write(`publish-wechat: installing dependencies in ${scriptsDir}...\n`);
+    const result = spawnSync("bun", ["install"], { cwd: scriptsDir, stdio: "inherit" });
+    if (result.status !== 0) {
+      process.stderr.write(`publish-wechat: dependency installation failed (exit ${result.status})\n`);
+      process.exit(4);
+    }
+    process.stdout.write("publish-wechat: dependencies installed\n");
+  }
+}
+
+function resolveWechatApiScript() {
+  if (process.env.BAOYU_POST_TO_WECHAT_BIN) {
+    return process.env.BAOYU_POST_TO_WECHAT_BIN;
+  }
+  const apiScript = resolve(repoRoot(), ".agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts");
+  if (!existsSync(apiScript)) {
+    process.stderr.write(`publish-wechat: wechat-api.ts 不存在: ${apiScript}\n`);
+    process.stderr.write("  请检查 baoyu-post-to-wechat 技能是否已安装，或设置 BAOYU_POST_TO_WECHAT_BIN 环境变量。\n");
+    process.exit(4);
+  }
+  return apiScript;
+}
+
 const opts = parseArgs(process.argv.slice(2));
 if (!opts.slug && !opts.postDir) {
-  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--type news|newspic] [--theme T] [--color C] [--author A] [--post-dir <path>] [--skip-deploy-check] [--dry-run]\n");
+  process.stderr.write("usage: publish-wechat.mjs <date-slug> [--type news|newspic] [--author A] [--post-dir <path>] [--skip-deploy-check] [--dry-run]\n");
   process.exit(1);
 }
 
-// --post-dir: 从路径推导 slug
 if (opts.postDir && !opts.slug) {
   const p = opts.postDir.replace(/\/+$/, "");
   opts.slug = p.includes("/") ? p.split("/").pop() : p;
@@ -117,26 +142,19 @@ if (!opts.skipDeployCheck) {
   }
 }
 
-const wechatBin = process.env.BAOYU_POST_TO_WECHAT_BIN
-  ?? resolve(repoRoot(), ".agents/skills/baoyu-post-to-wechat/scripts/post-draft.mjs");
-
-if (!existsSync(wechatBin)) {
-  process.stderr.write(`publish-wechat: post-to-wechat 脚本不存在: ${wechatBin}\n`);
-  process.stderr.write("  可通过 BAOYU_POST_TO_WECHAT_BIN 覆盖；或检查 baoyu-post-to-wechat 是否安装。\n");
-  process.exit(4);
-}
+const wechatBin = resolveWechatApiScript();
+const scriptsDir = dirname(wechatBin);
+ensureDepsInstalled(scriptsDir);
 
 const args = [
   "run", wechatBin,
-  "--html", htmlPath,
-  "--cover", cover,
+  htmlPath,
   "--title", title,
   "--summary", digest,
-  "--type", opts.type,
-  "--theme", opts.theme,
-  "--color", opts.color,
   "--author", opts.author,
-  "--src", sourceUrl,
+  "--cover", cover,
+  "--type", opts.type,
+  "--no-cite",
 ];
 
 if (opts.dryRun) {
@@ -144,12 +162,14 @@ if (opts.dryRun) {
   process.exit(0);
 }
 
+process.stdout.write(`publish-wechat: API → ${wechatBin}\n`);
+
 const result = spawnSync("bun", args, { stdio: "inherit" });
 if (result.status !== 0) {
-  process.stderr.write(`publish-wechat: post-draft 退出码 ${result.status}\n`);
-  markStepFailed(opts.slug, 6.2, `post-draft exit ${result.status}`);
+  process.stderr.write(`publish-wechat: wechat-api.ts 退出码 ${result.status}\n`);
+  markStepFailed(opts.slug, 6.2, `wechat-api exit ${result.status}`);
   process.exit(4);
 }
 
-markWechatDone(opts.slug, { sourceUrl, theme: opts.theme });
-process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, theme: opts.theme, color: opts.color }) + "\n");
+markWechatDone(opts.slug, { sourceUrl });
+process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl }) + "\n");

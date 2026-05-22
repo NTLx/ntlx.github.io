@@ -204,6 +204,17 @@ if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
 const htmlScript = resolve(htmlSkillDir, "scripts/main.ts");
 if (!existsSync(htmlScript)) fail(2, `HTML script not found: ${htmlScript}`);
 
+// Auto-install dependencies if node_modules is missing
+const htmlScriptsDir = resolve(htmlSkillDir, "scripts");
+const htmlPkgJson = resolve(htmlScriptsDir, "package.json");
+const htmlNodeModules = resolve(htmlScriptsDir, "node_modules");
+if (existsSync(htmlPkgJson) && !existsSync(htmlNodeModules)) {
+  process.stdout.write("step5: installing baoyu-markdown-to-html dependencies...\n");
+  const installResult = spawnSync("bun", ["install"], { cwd: htmlScriptsDir, stdio: "inherit" });
+  if (installResult.status !== 0) fail(4, "dependency installation failed");
+  process.stdout.write("step5: dependencies installed\n");
+}
+
 // Build a local-paths version of draft.md in memory
 // Replace <!-- SLOT_IMG_NN --> with ![](imgs/NN-xxx.ext)
 const tempLocalMd = resolve(base, "_temp_local.md");
