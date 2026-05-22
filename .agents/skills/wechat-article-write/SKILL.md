@@ -27,7 +27,7 @@ user_invocable: true
 - **Gemini 格式陷阱**：Gemini 返回 JPEG 但保存为 .png。Step 4 统一修正
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
-- **信息图非强制**：agent 判断是否需要，不需要可跳过
+- **信息图默认生成**：除非用户明确表示不需要，否则每次写作都应生成信息图。SLOT 00 不是可选的——它是文章视觉摘要的默认组件
 - **金句摘要硬性必填**：frontmatter `summary` 是微信草稿箱 digest 字段的唯一来源，必须是一句"金句"式摘要（≤120 字），概括文章核心洞察或最反直觉的结论，而非平淡的内容简介。Step 2 写作时必须生成，publish-wechat.mjs 缺 summary 直接 fail
 
 ## 配置文件路径
@@ -121,7 +121,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - **必须明确强调字数下限 2000 字**：ljg-writes 自身默认 1000-1500 字，与本管线要求冲突。在 prompt 中使用"字数下限 2000 字，不可低于此数"覆盖 ljg-writes 的默认约束
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
-   - **同时规划插图占位符位置**：按 SLOT_IMG 编号规则（见下方）在写作时插入语义占位符
+   - **同时规划插图占位符位置**：按 SLOT_IMG 编号规则（见下方）在写作时插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
@@ -158,7 +158,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 | 编号 | 含义 | 位置约定 | 文件名示例 |
 |------|------|---------|-----------|
-| `00` | 信息图（可选） | 正文开头前 200 字符内 | `00-infographic-core-summary.png` |
+| `00` | 信息图（默认生成） | 正文开头 frontmatter 之后 | `00-infographic-core-summary.png` |
 | `01` | 第一个核心概念/架构图 | 第一个 H2 章节后 | `01-app-architecture.png` |
 | `02` | 第二个关键流程/对比图 | 第二个 H2 章节后 | `02-sensors-overview.png` |
 | `03-05` | 补充插图 | 对应章节后 | `03-workflow-steps.png` |
@@ -193,6 +193,12 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## Step 4: 图片生成
 
+**⚠️ 禁止绕过技能层直调底层工具（硬性约束）**：
+- 信息图必须由 `baoyu-infographic` 技能生成，**禁止**手写 prompt 直接调用 `baoyu-imagine` 生成信息图
+- `baoyu-imagine` 是图片后端，不是业务接口——风格配置（`preferred_style`）、布局选择（`preferred_layout`）应由 `baoyu-infographic` 技能读取 EXTEND.md 后自动处理
+- 封面图同理：必须由 `baoyu-cover-image` 技能生成，不得直调后端
+- 唯一允许直调 `baoyu-imagine` 的场景：Step 4 批量图片部分失败时的**单图增量重试**（见下方「批量图片部分失败时的增量重试」）
+
 **Agent 动作**（优先并行执行）：
 如果当前运行时支持后台任务或并行工具调用，封面、信息图、正文插图可并行生成；否则串行执行：
 
@@ -201,7 +207,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 | Agent | Skill | 产出 | 参数要点 |
 |-------|-------|------|---------|
 | A | baoyu-cover-image | `posts/{date-slug}/cover.png` | 默认 `--text none`，类型/风格按标题自动选择 |
-| B | baoyu-infographic | `posts/{date-slug}/imgs/00-infographic-core-summary.png` | aged-academia + bento-grid + 16:9（agent 判断可跳过） |
+| B | baoyu-infographic | `posts/{date-slug}/imgs/00-infographic-core-summary.png` | aged-academia + bento-grid + 16:9（通过 baoyu-infographic 技能调用，该技能自动读取项目级 EXTEND.md 配置确定 style/layout/backend） |
 | C | baoyu-article-illustrator | `posts/{date-slug}/imgs/01-*.png, 02-*.png, ...` | density=balanced，3-5 张 |
 
 **批量图片部分失败时的增量重试**：
