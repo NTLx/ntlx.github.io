@@ -6,7 +6,7 @@ date: 2026-05-22
 category: ai-agents
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-00-infographic-core-summary-1.png)
 
 昨天 LangChain 发了一篇博客，Hunter Lovell 写的，讲他们在 Deep Agents 里加了解释器。看完之后我坐那儿想了一会儿——不是因为这个功能本身多惊艳，而是因为它把一个我一直没理顺的问题理顺了。
 
@@ -22,7 +22,7 @@ category: ai-agents
 
 这不是 agent 能力不够，是交互模式本身有天花板。每一步都过 model，就像每条 SQL 都要人工审批再执行。流程是对的，但中间人太多了。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-01-framework-interpreter-architecture.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-01-framework-interpreter-architecture.png)
 
 ## 起点的选择
 
@@ -63,7 +63,7 @@ filesystem       → 持久化工件，跨对话存活
 
 这个三层模型不是 LangChain 发明的，是需求自己长出来的。当 agent 要干的活变长、变复杂，你自然会发现需要一种"活着的中间态"——不是历史，不是文件，就是纯粹的 working memory。REPL 的感觉和一次性命令不一样，原因就在这儿。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-02-comparison-three-layer-context.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-02-infographic-three-layer-context.png)
 
 ## 程序化工具调用
 
@@ -75,7 +75,7 @@ LangChain 的做法有意思：它把 PTC 做成了 middleware，不依赖任何
 
 Cloudflare 的 Code Mode 也是同样的思路，Sunil Pai 讲得很直白：LLM 更擅长写代码，不是调工具。它们训练的时候看了几百万行真实代码，但 tool calling 的例子大多是人为构造的。让模型写代码去编排工具调用，比让它生成 JSON 参数要自然得多。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-03-comparison-ptc-vs-traditional.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-agents-interpreter-code-orchestration-img-03-comparison-ptc-vs-traditional.png)
 
 ## 行业在收敛
 
