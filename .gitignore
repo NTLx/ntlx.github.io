@@ -34,3 +34,6 @@ yarn-error.log*
 
 # Backup files
 *.bak*
+
+# YouTube transcript cache
+youtube-transcript/
