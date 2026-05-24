@@ -7,8 +7,8 @@
  *
  * 行为：
  *   1. 读取 batch.json，跳过已有图片的任务
- *   2. 运行 baoyu-imagine --batchfile
- *   3. 检查哪些图片未生成，逐个重试（原 prompt → 降级 provider）
+ *   2. 强制使用 DashScope 运行 baoyu-imagine --batchfile
+ *   3. 检查哪些图片未生成，只用 DashScope 逐个重试
  *   4. 报告结果
  *
  * 用法:
@@ -60,7 +60,10 @@ try { raw = JSON.parse(readFileSync(batchFile, "utf8")); }
 catch (e) { process.stderr.write(`step4-generate: batch.json 解析失败: ${e.message}\n`); process.exit(2); }
 
 const allTasks = Array.isArray(raw) ? raw : (raw.tasks ?? []);
-const pendingTasks = allTasks.filter(t => !existsSync(resolve(imgsDir, t.image)));
+const REQUIRED_PROVIDER = "dashscope";
+const pendingTasks = allTasks
+  .filter(t => !existsSync(resolve(imgsDir, t.image)))
+  .map(t => ({ ...t, provider: REQUIRED_PROVIDER }));
 const skippedCount = allTasks.length - pendingTasks.length;
 
 if (pendingTasks.length === 0) {
@@ -110,9 +113,9 @@ if (failed.length > 0) {
   process.stdout.write(`step4-generate: ${failed.length} failed, retrying individually...\n`);
 
   const cfg = getImagineConfig();
-  const providers = [cfg.preferredBackend];
-  for (const p of ["dashscope", "google", "seedream"]) {
-    if (p !== cfg.preferredBackend) providers.push(p);
+  if (cfg.preferredBackend !== REQUIRED_PROVIDER) {
+    process.stderr.write(`step4-generate: preferred_image_backend is ${cfg.preferredBackend}, but this pipeline requires ${REQUIRED_PROVIDER}\n`);
+    process.exit(2);
   }
 
   for (const task of failed) {
@@ -121,27 +124,24 @@ if (failed.length > 0) {
     const ar = task.ar ?? "16:9";
     let recovered = false;
 
-    // 尝试各 provider（每个 provider 最多 2 次）
-    for (const provider of providers) {
-      if (recovered) break;
-      for (let attempt = 1; attempt <= 2; attempt++) {
-        process.stdout.write(`  retry: ${task.id} (${provider}, attempt ${attempt})\n`);
-        spawnSync("bun", [
-          "run", IMAGINE_MAIN,
-          "--promptfiles", promptFile,
-          "--image", imgPath,
-          "--provider", provider,
-          "--ar", ar,
-        ], { stdio: "inherit", encoding: "utf8", timeout: 120_000 });
+    // 只用 DashScope 重试，避免降级后生成质量不一致的配图。
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      process.stdout.write(`  retry: ${task.id} (${REQUIRED_PROVIDER}, attempt ${attempt})\n`);
+      spawnSync("bun", [
+        "run", IMAGINE_MAIN,
+        "--promptfiles", promptFile,
+        "--image", imgPath,
+        "--provider", REQUIRED_PROVIDER,
+        "--ar", ar,
+      ], { stdio: "inherit", encoding: "utf8", timeout: 120_000 });
 
-        if (existsSync(imgPath)) { recovered = true; break; }
-      }
+      if (existsSync(imgPath)) { recovered = true; break; }
     }
 
     if (recovered) {
       succeeded.push(task.id);
     } else {
-      process.stderr.write(`  FAILED: ${task.id} (all providers exhausted)\n`);
+      process.stderr.write(`  FAILED: ${task.id} (DashScope retries exhausted)\n`);
     }
   }
 }
