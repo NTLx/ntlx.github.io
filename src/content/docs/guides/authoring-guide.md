@@ -10,9 +10,7 @@ sidebar:
 
 ## 联网搜索与浏览器使用
 
-所有联网操作（搜索、抓取、登录站点、动态渲染页面读取）统一通过 [`web-access`](https://github.com/anthropics/skills) 技能完成；搜索引擎始终访问 `google.com/ncr`。详细约定见 `.agents/skills/web-access/SKILL.md`。
-
-禁止使用任何 MCP 搜索工具、`WebFetch`、`WebParser`、`WebSearch` 或其他网络工具替代 `web-access`。
+联网操作（搜索、抓取、登录站点、动态渲染页面读取）由 Agent 自行选择合适的可用工具完成；搜索引擎始终访问 `google.com/ncr`。具体使用哪个工具（web-access、baoyu-url-to-markdown、MCP 工具等）取决于用户级技能配置，本项目不做硬性指定。
 
 ## 技术博文编写规范
 
@@ -70,7 +68,7 @@ sidebar:
 
 - 使用 `npm run dev` 启动开发服务器（运行在 http://localhost:4321）
 - 可以使用 `run_in_background: true` 参数在后台运行
-- 使用 `web-access` 技能预览修改效果，而非直接访问文件系统
+- 使用可用的联网工具预览修改效果，而非直接访问文件系统
 - 大型文件（如 `privoxy.md`）可能超出 token 限制，使用 `limit` 参数分块读取
 
 ## Git 提交规范

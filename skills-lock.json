@@ -85,12 +85,6 @@
       "skillPath": "skills/baoyu-translate/SKILL.md",
       "computedHash": "3dc723aa4b86c4c6b8557faeec558e54f5bce5f9cf39aa629dd588ed6531df20"
     },
-    "baoyu-url-to-markdown": {
-      "source": "JimLiu/baoyu-skills",
-      "sourceType": "github",
-      "skillPath": "skills/baoyu-url-to-markdown/SKILL.md",
-      "computedHash": "b55b97dd2489018ab25588a7c4450eb24ea37bce501aebcb8cee9c294660d21c"
-    },
     "baoyu-youtube-transcript": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
@@ -235,12 +229,6 @@
       "sourceType": "github",
       "skillPath": "skills/ljg-writes/SKILL.md",
       "computedHash": "a9d6d0c222b40a10e09a161ce1a786cc80a13fc36575756024b3279a8660f848"
-    },
-    "web-access": {
-      "source": "eze-is/web-access",
-      "sourceType": "github",
-      "skillPath": "SKILL.md",
-      "computedHash": "8b045544b9e5d94d0a3d4678330f157c874bc4149737faaeff052b5390ac4e4a"
     }
   }
 }

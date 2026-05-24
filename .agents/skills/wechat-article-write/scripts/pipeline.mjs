@@ -63,7 +63,7 @@ function printNext(slug) {
 
 function printAgentGuide(step, slug) {
   const guides = {
-    "1": `  Agent: 调用 web-access 收集资料 → 写入 posts/${slug}/materials.md\n  然后运行: bun run step1-collect.mjs ${slug}`,
+    "1": `  Agent: 使用可用的联网工具收集资料 → 写入 posts/${slug}/materials.md\n  然后运行: bun run step1-collect.mjs ${slug}`,
     "2": `  Agent: 调用 ljg-writes 写作 + suggest-category.mjs 分类\n  保存为 posts/${slug}/draft.md 后运行: bun run step2-write.mjs ${slug}`,
     "3": `  Agent: 调用 humanizer-zh + baoyu-format-markdown 处理 draft.md\n  完成后运行: bun run step3-polish.mjs ${slug}`,
     "4": `  Agent: 并行调用 baoyu-cover-image + baoyu-article-illustrator + baoyu-infographic\n  生成 cover.png + imgs/*.png 后运行: bun run step4-images.mjs ${slug}`,
