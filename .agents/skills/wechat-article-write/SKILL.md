@@ -22,7 +22,6 @@ user_invocable: true
 - **确定性步骤自动化**：Step 5/6 由脚本执行；Step 1-4 由 Agent 完成智能判断后运行脚本门控
 - **失败可恢复**：某步失败报告错误并写状态；`state.mjs next <date-slug>` 返回续跑位置
 - **脚本化**：所有校验和文件操作封装在 `scripts/` 下。Agent 负责调用脚本 + 解读退出码；禁止内联超过 5 行的 bash/python
-- **联网唯一入口 web-access**：所有联网操作（搜索、抓取、资料获取）只通过 web-access Skill 完成。搜索用 `google.com/ncr`
 - **图片后端优先级**：按 `.baoyu-skills/baoyu-imagine/EXTEND.md` 中 `preferred_image_backend` 配置，失败自动降级（降级链见「图片后端策略」）。**禁止使用未配置的后端**（如 minimax、openai 等）
 - **Gemini 格式陷阱**：Gemini 返回 JPEG 但保存为 .png。Step 4 统一修正
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
@@ -32,11 +31,11 @@ user_invocable: true
 
 ## 配置文件
 
-baoyu 系列技能的配置在项目级 `.baoyu-skills/{skill-name}/EXTEND.md`（git 跟踪），密钥在 `~/.baoyu-skills/.env`（不进 git）。
+baoyu 系列技能的配置在项目级 `.baoyu-skills/{skill-name}/EXTEND.md`（git 跟踪），密钥在项目级 `.baoyu-skills/.env`（已被 `.gitignore` 忽略，不进 git）。
 
 **Agent 行为规范**：
 - 项目级 EXTEND.md 已存在，直接使用已有偏好，**不要触发首次设置流程**
-- **不要去 `~/.baoyu-skills/` 找 EXTEND.md**——那里只有 `.env` 密钥文件
+- 调用 baoyu 系列技能时，确保从项目级 `.baoyu-skills/.env` 读取环境变量（密钥文件已在此目录，无需去用户主目录查找）
 - `config-lib.mjs` 在脚本启动时自动读取项目级配置，CLI 参数可覆盖
 
 Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude/skills/` > 全局插件。
@@ -47,7 +46,7 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 
 | Step | 动作 | 使用技能 | 产出 | 脚本 |
 |------|------|---------|------|------|
-| 1 | 资料收集 | web-access | materials.md | step1-collect.mjs |
+| 1 | 资料收集 | （Agent 自选工具） | materials.md | step1-collect.mjs |
 | 2 | 文章创作 | ljg-writes, suggest-category.mjs | draft.md（含 category + blogSlug） | step2-write.mjs |
 | 3 | 文本后处理 | humanizer-zh, baoyu-format-markdown | draft.md（优化后） | step3-polish.mjs |
 | 4 | 图片生成 | baoyu-cover-image, baoyu-article-illustrator, baoyu-infographic | cover.png + imgs/*.png | step4-generate.mjs, step4-images.mjs |
@@ -70,8 +69,7 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 
 **Agent 动作**：
 - 检测输入类型（URL / 文件路径 / 粘贴文本）
-- URL 内容通过 **Skill 工具调用 web-access** 获取
-- 联网搜索通过 web-access 访问 `google.com/ncr`
+- URL 内容获取和联网搜索由 Agent 自行选择合适的工具完成
 - 所有资料合并写入 `posts/{date-slug}/materials.md`，每份资料间用 `---` 分隔，标注来源
 
 **脚本**：
