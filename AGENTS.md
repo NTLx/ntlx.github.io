@@ -4,7 +4,6 @@
 
 - 微信 + 博客双轨发布管线 → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
 - 技术博文编写规范 → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
-- web 联网约定 → [`.agents/skills/web-access/SKILL.md`](.agents/skills/web-access/SKILL.md)
 
 ## 项目定位
 
