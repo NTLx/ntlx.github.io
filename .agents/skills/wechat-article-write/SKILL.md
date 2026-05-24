@@ -6,9 +6,10 @@ description: >
   infographic, illustrations, and publishes to both blog (Astro Starlight) and WeChat
   Official Account drafts. Use when user says "写公众号文章", "公众号推文", "wechat article",
   "wechat-article-write", "公众号", "微信文章", or wants to create, illustrate, format,
-  and publish a WeChat Official Account article. 6-stage pipeline: collect → write → polish →
-  images → build → publish. Publishes blog first, then WeChat draft.
-user_invocable: true
+  and publish a WeChat Official Account article with mandatory background research,
+  reader-response style original writing, and information-dense article illustrations.
+  6-stage pipeline: collect → write → polish → images → build → publish. Publishes
+  blog first, then WeChat draft.
 ---
 
 # 微信公众号文章写作
@@ -28,6 +29,9 @@ user_invocable: true
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
 - **信息图默认生成**：除非用户明确表示不需要，否则每次写作都应生成信息图。SLOT 00 不是可选的——它是文章视觉摘要的默认组件
 - **金句摘要硬性必填**：frontmatter `summary` 是微信草稿箱 digest 字段的唯一来源，必须是一句"金句"式摘要（≤120 字），概括文章核心洞察或最反直觉的结论，而非平淡的内容简介。Step 2 写作时必须生成，publish-wechat.mjs 缺 summary 直接 fail
+- **先调研再写作**：Step 1 必须联网查询背景资料，覆盖相关人物、组织/公司、重要概念/事件、技术/文化/理念，以及能找到的评论或讨论。`materials.md` 必须含 `## 背景调研` 章节和可追溯 URL
+- **读后感式原创表达**：Step 2 必须写成"我读完材料后的理解、判断和延展"，不是翻译、摘要或搬运。可以引用原文观点，但要交代自己的取舍、疑问和连接，不要使用 AI 腔的泛泛转述
+- **插图服务理解**：尽量保留原文有价值插图；新增文内插图只为提高信息密度、帮助理解正文。遇到逻辑关系、流程、对比、架构、概念网络时，优先用 baoyu 系列文生图技能生成图，不要用代码块/ASCII 文本伪装成图
 
 ## 配置文件
 
@@ -70,6 +74,12 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 **Agent 动作**：
 - 检测输入类型（URL / 文件路径 / 粘贴文本）
 - URL 内容获取和联网搜索由 Agent 自行选择合适的工具完成
+- 无论输入是否已含原文，都必须额外联网查询背景资料，并在 `materials.md` 中写入 `## 背景调研` 章节：
+  - 相关人物、组织或公司的背景
+  - 文中提及的重要概念、事件、技术、文化或理念背景
+  - 可找到的相关评论、讨论、争议或二手分析
+  - 每条背景资料标注来源 URL；无法找到的项要写明"未找到可靠来源"
+- 原文插图处理：记录原文中值得保留的插图 URL/本地路径、图注、所在上下文，以及是否建议保留。只保留对理解正文有信息价值的图，不为装饰保留
 - 所有资料合并写入 `posts/{date-slug}/materials.md`，每份资料间用 `---` 分隔，标注来源
 
 **脚本**：
@@ -77,7 +87,7 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug> \
   [--sources <成功数> --failed <失败数>]
 ```
-脚本验证 materials.md 存在且非空，低质量检测（字数 < 200 打印警告，非阻塞），写状态。
+脚本验证 materials.md 存在且非空、含 `## 背景调研` 且该章节至少有一个 URL；低质量检测（字数 < 200 打印警告，非阻塞），写状态。
 
 ---
 
@@ -90,7 +100,10 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - **必须明确强调字数下限 2000 字**：ljg-writes 自身默认 1000-1500 字，与本管线要求冲突。在 prompt 中使用"字数下限 2000 字，不可低于此数"覆盖 ljg-writes 的默认约束
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
+   - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
+   - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
    - **同时规划插图占位符位置**：按 SLOT_IMG 编号规则（见下方）在写作时插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过
+   - **必须做文内插图决策**：尽量保留原文中有信息价值的插图；根据正文内容判断是否新增插图。新增图优先覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
@@ -150,6 +163,8 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 
 处理范围为正文内容（frontmatter 之后，原文参考之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，humanizer-zh 和格式化都不会修改它们。
 
+后处理目标不是"润色得更正式"，而是去掉 AI 生成痕迹：删除空泛排比、机械转折、宣传腔和翻译腔，保留清晰的个人判断、具体细节和自然的中文节奏。不要把第一人称观察和读后感式判断磨平。
+
 **脚本**：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
@@ -167,9 +182,11 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 **Agent 动作**：
 
 1. 读取 `.baoyu-skills/baoyu-imagine/EXTEND.md` 获取 `preferred_image_backend` 和降级链
-2. 调用子技能生成图片（封面 → `cover.png`，信息图 → `imgs/00-*.png`，插图 → `imgs/01-*.png` 等）
-3. 为每张图创建 prompt 文件到 `imgs/prompts/`，并编写 `imgs/batch.json`
-4. 运行 `step4-generate.mjs` 执行批量生成（自动处理失败重试和后端降级）
+2. 先复核 `materials.md` 中记录的原文插图：有信息价值且版权/来源可标注的，优先保留或复刻其信息结构；纯装饰、低清、无助理解的不要保留
+3. 调用子技能生成图片（封面 → `cover.png`，信息图 → `imgs/00-*.png`，插图 → `imgs/01-*.png` 等）
+4. 新增文内插图必须服务正文理解：逻辑关系、流程、架构、概念对比、时间线、因果链、角色关系优先。此类内容优先调用 `baoyu-article-illustrator`、`baoyu-infographic` 等 baoyu 文生图技能生成，不要用代码块、ASCII 图或项目符号列表冒充图
+5. 为每张图创建 prompt 文件到 `imgs/prompts/`，并编写 `imgs/batch.json`
+6. 运行 `step4-generate.mjs` 执行批量生成（自动处理失败重试和后端降级）
 
 | 技能 | 产出 | 参数要点 |
 |------|------|---------|
