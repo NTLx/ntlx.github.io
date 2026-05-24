@@ -29,6 +29,7 @@ description: >
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
 - **信息图默认生成**：除非用户明确表示不需要，否则每次写作都应生成信息图。SLOT 00 不是可选的——它是文章视觉摘要的默认组件
 - **金句摘要硬性必填**：frontmatter `summary` 是微信草稿箱 digest 字段的唯一来源，必须是一句"金句"式摘要（≤120 字），概括文章核心洞察或最反直觉的结论，而非平淡的内容简介。Step 2 写作时必须生成，publish-wechat.mjs 缺 summary 直接 fail
+- **原文链接必填**：微信公众号草稿必须把博客文章公网地址作为"原文链接"（`content_source_url`）。博客 URL 规则固定为 `https://ntlx.github.io/articles/{blogSlug}`，Step 2 预先写入 `sourceUrl`，Step 6.2 必须把该值传给微信 API；无需等待 GitHub Pages 探活成功再拼接地址
 - **先调研再写作**：Step 1 必须联网查询背景资料，覆盖相关人物、组织/公司、重要概念/事件、技术/文化/理念，以及能找到的评论或讨论。`materials.md` 必须含 `## 背景调研` 章节和可追溯 URL
 - **读后感式原创表达**：Step 2 必须写成"我读完材料后的理解、判断和延展"，不是翻译、摘要或搬运。可以引用原文观点，但要交代自己的取舍、疑问和连接，不要使用 AI 腔的泛泛转述
 - **插图服务理解**：尽量保留原文有价值插图；新增文内插图只为提高信息密度、帮助理解正文。遇到逻辑关系、流程、对比、架构、概念网络时，优先用 baoyu 系列文生图技能生成图，不要用代码块/ASCII 文本伪装成图
@@ -46,7 +47,7 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 
 ## 流水线概览
 
-> 发布顺序：先博客后微信。博客 commit/push 触发 GitHub Pages 部署在前，微信草稿在后。sourceUrl 在 Step 2 写作时预先填入，读者可能在 push 后 1-3 分钟内遇到 404（Pages 部署通常很快）。
+> 发布顺序：先博客后微信。博客 commit/push 触发 GitHub Pages 部署在前，微信草稿在后。sourceUrl 在 Step 2 写作时按 `https://ntlx.github.io/articles/{blogSlug}` 预先填入，并在 Step 6.2 作为微信公众号"原文链接"传入；读者可能在 push 后 1-3 分钟内遇到 404（Pages 部署通常很快）。
 
 | Step | 动作 | 使用技能 | 产出 | 脚本 |
 |------|------|---------|------|------|
@@ -108,7 +109,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
 4. 信任度低时用当前运行时的用户确认工具确认分类和 blog-slug；否则自动采纳
-5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致
+5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的唯一来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空或替换为原始素材链接
 
 **draft.md 模板**（强制使用语义占位符）：
 ```markdown
@@ -254,7 +255,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs \
   --post-dir posts/{date-slug}
 ```
 
-脚本职责：pre-flight（cover + article-wechat.html + sourceUrl + **summary**）→ 从 article.md 读取 title/summary → **summary 缺失直接 fail**（微信草稿箱 digest 必填，空摘要等于推文卡片没文字）→ 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时 `bun install`）→ 调用 `wechat-api.ts` 通过微信官方 API 发布草稿 → 写状态。
+脚本职责：pre-flight（cover + article-wechat.html + sourceUrl + **summary**）→ 从 article.md 读取 title/summary/sourceUrl → **summary 缺失直接 fail**（微信草稿箱 digest 必填，空摘要等于推文卡片没文字）→ 将 sourceUrl 作为微信"原文链接"（`content_source_url`）传给 `wechat-api.ts` → 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时 `bun install`）→ 调用 `wechat-api.ts` 通过微信官方 API 发布草稿 → 写状态。
 
 只走 API 方式，不使用 CDP/browser。API 方式速度快、确定性强，需要 `.baoyu-skills/.env` 中配置好 `WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`，且本机 IP 在微信公众号后台 IP 白名单中。
 

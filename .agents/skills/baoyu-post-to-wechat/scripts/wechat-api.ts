@@ -61,6 +61,7 @@ interface ArticleOptions {
   title: string;
   author?: string;
   digest?: string;
+  sourceUrl?: string;
   content: string;
   thumbMediaId: string;
   articleType: ArticleType;
@@ -306,6 +307,7 @@ async function publishToDraft(
       },
     };
     if (options.author) article.author = options.author;
+    if (options.sourceUrl) article.content_source_url = options.sourceUrl;
   } else {
     article = {
       article_type: "news",
@@ -317,6 +319,7 @@ async function publishToDraft(
     };
     if (options.author) article.author = options.author;
     if (options.digest) article.digest = options.digest;
+    if (options.sourceUrl) article.content_source_url = options.sourceUrl;
   }
 
   const res = await client(url, {
@@ -417,6 +420,7 @@ Options:
   --title <title>     Override title
   --author <name>     Author name (max 16 chars)
   --summary <text>    Article summary/digest (max 128 chars)
+  --source-url <url>  Original article URL shown as "Read original" / 原文链接
   --theme <name>      Theme name for markdown (default, grace, simple, modern). Default: default
   --color <name|hex>  Primary color (blue, green, vermilion, etc. or hex)
   --cover <path>      Cover image path (local or URL)
@@ -438,6 +442,7 @@ Frontmatter Fields (markdown):
   title               Article title
   author              Author name
   digest/summary      Article summary
+  sourceUrl           Original article URL
   coverImage/featureImage/cover/image   Cover image path
 
 Comments:
@@ -471,6 +476,7 @@ interface CliArgs {
   title?: string;
   author?: string;
   summary?: string;
+  sourceUrl?: string;
   theme: string;
   color?: string;
   cover?: string;
@@ -516,6 +522,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.author = argv[++i];
     } else if (arg === "--summary" && argv[i + 1]) {
       args.summary = argv[++i];
+    } else if (arg === "--source-url" && argv[i + 1]) {
+      args.sourceUrl = argv[++i];
     } else if (arg === "--theme" && argv[i + 1]) {
       args.theme = argv[++i]!;
     } else if (arg === "--color" && argv[i + 1]) {
@@ -630,6 +638,7 @@ async function main(): Promise<void> {
   let title = args.title || "";
   let author = args.author || "";
   let digest = args.summary || "";
+  let sourceUrl = args.sourceUrl || "";
   let htmlPath: string;
   let htmlContent: string;
   let frontmatter: Record<string, string> = {};
@@ -646,6 +655,7 @@ async function main(): Promise<void> {
       if (!title && frontmatter.title) title = frontmatter.title;
       if (!author) author = frontmatter.author || "";
       if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
+      if (!sourceUrl) sourceUrl = frontmatter.sourceUrl || "";
     }
     if (!title) {
       title = extractHtmlTitle(fs.readFileSync(htmlPath, "utf-8"));
@@ -664,6 +674,7 @@ async function main(): Promise<void> {
     }
     if (!author) author = frontmatter.author || "";
     if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
+    if (!sourceUrl) sourceUrl = frontmatter.sourceUrl || "";
 
     console.error(`[wechat-api] Theme: ${args.theme}${args.color ? `, color: ${args.color}` : ""}, citeStatus: ${args.citeStatus}`);
     const rendered = renderMarkdownWithPlaceholders(filePath, args.theme, args.color, args.citeStatus, args.title);
@@ -692,6 +703,7 @@ async function main(): Promise<void> {
   console.error(`[wechat-api] Title: ${title}`);
   if (author) console.error(`[wechat-api] Author: ${author}`);
   if (digest) console.error(`[wechat-api] Digest: ${digest.slice(0, 50)}...`);
+  if (sourceUrl) console.error(`[wechat-api] Source URL: ${sourceUrl}`);
   console.error(`[wechat-api] Type: ${args.articleType}`);
 
   const extConfig = loadWechatExtendConfig();
@@ -706,6 +718,7 @@ async function main(): Promise<void> {
       title,
       author: author || undefined,
       digest: digest || undefined,
+      sourceUrl: sourceUrl || undefined,
       htmlPath,
       contentLength: htmlContent.length,
       placeholderImageCount: contentImages.length || undefined,
@@ -774,6 +787,7 @@ async function main(): Promise<void> {
       title,
       author: author || undefined,
       digest: digest || undefined,
+      sourceUrl: sourceUrl || undefined,
       content: htmlContent,
       thumbMediaId,
       articleType: args.articleType,

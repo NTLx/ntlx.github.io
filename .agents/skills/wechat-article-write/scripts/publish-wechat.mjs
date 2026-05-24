@@ -9,6 +9,11 @@
  *   4. 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时）
  *   5. 成功后 markWechatDone
  *
+ * 说明:
+ *   sourceUrl 是博客文章公网地址，必须作为微信公众号草稿的“原文链接”
+ *   传给底层 wechat-api.ts。该地址由固定规则 https://ntlx.github.io/articles/{blogSlug}
+ *   拼接得到，可以在 GitHub Pages 完成公网探活前先传入。
+ *
  * 用法:
  *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme <cfg>] [--color <cfg>]
  *                              [--author <cfg>] [--no-skip-deploy-check] [--dry-run]
@@ -151,6 +156,7 @@ const args = [
   htmlPath,
   "--title", title,
   "--summary", digest,
+  "--source-url", sourceUrl,
   "--author", opts.author,
   "--cover", cover,
   "--type", opts.type,
