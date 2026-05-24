@@ -37,12 +37,14 @@
 - 调用方式两种：**Skill 工具调用型**（读 `SKILL.md` 走工作流）/ **脚本执行型**（`bun run <skill>/scripts/...`）
 - 用 `npx skills` 管理版本，锁文件 `skills-lock.json` 入库
 - 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
+- **第三方技能本地补丁**：`baoyu-post-to-wechat` 由 `npx skills` 管理，升级可能覆盖本地补丁。当前 `wechat-article-write` 依赖 `.agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts` 支持 `--source-url` 并写入微信公众号草稿字段 `content_source_url`，用于把博客 URL 作为"原文链接"。升级后若微信草稿缺少原文链接，先检查 `wechat-article-write/SKILL.md` 的"第三方技能本地补丁记录"并复查 `source-url|content_source_url|sourceUrl`
 
 ## 管线概览（wechat-article-write）
 
 6 步流水线（Step 1–6）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
 
 - **发布顺序**：博客先发（Step 6.1）→ 微信草稿（Step 6.2）。sourceUrl 预先填入，不等 Pages 部署即发布
+- **微信原文链接**：Step 6.2 必须把博客 URL（`https://ntlx.github.io/articles/<blog-slug>`）作为微信公众号"原文链接"传入；该能力依赖 `baoyu-post-to-wechat` 的本地 `--source-url` 补丁
 - **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑。Step 6 博客/微信子状态独立管理：`state.mjs blog <slug> get` / `state.mjs wechat <slug> get` 查询
 - **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下本地目录名（可含中文）；blog-slug 是 `articles/` 下 URL 文件名（必须纯 ASCII kebab-case）
 - **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传
