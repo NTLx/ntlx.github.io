@@ -2,7 +2,8 @@
 /**
  * Step 1: 资料收集验证
  *
- * 验证 materials.md 存在且非空，低质量检测（字数 < 200 打印警告，非阻塞）。
+ * 验证 materials.md 存在且非空，且包含联网背景调研章节。
+ * 低质量检测（字数 < 200 打印警告，非阻塞）。
  *
  * 用法:
  *   bun run step1-collect.mjs <date-slug> [--sources N --failed N]
@@ -31,12 +32,31 @@ if (!existsSync(materialsPath)) {
 const content = readFileSync(materialsPath, "utf8");
 const charCount = content.replace(/\s+/g, "").length;
 
+const lines = content.split(/\r?\n/);
+const headingIndex = lines.findIndex((line) => /^##\s+背景调研\s*$/.test(line));
+if (headingIndex === -1) {
+  process.stderr.write("step1: FAIL materials.md 缺少 `## 背景调研` 章节。每次写作前必须联网查询相关人物/组织/概念/事件/评论等背景资料\n");
+  process.exit(3);
+}
+
+const sectionLines = [];
+for (const line of lines.slice(headingIndex + 1)) {
+  if (/^##\s+/.test(line) || /^---\s*$/.test(line)) break;
+  sectionLines.push(line);
+}
+const backgroundSection = sectionLines.join("\n");
+if (!/https?:\/\//.test(backgroundSection)) {
+  process.stderr.write("step1: FAIL `## 背景调研` 章节缺少来源 URL。背景资料必须可追溯；找不到可靠来源时也要说明检索结果\n");
+  process.exit(3);
+}
+
 if (charCount < 200) {
   process.stderr.write(`step1: WARNING materials.md 仅 ${charCount} 字（非空白），可能不足以支撑 2500 字文章\n`);
   // 非阻塞，继续
 }
 
-const info = { materials_path: materialsPath, char_count: charCount };
+const backgroundUrls = backgroundSection.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
+const info = { materials_path: materialsPath, char_count: charCount, background_urls: backgroundUrls.length };
 if (sources !== null) info.sources = sources;
 if (failed !== null) info.failed = failed;
 
