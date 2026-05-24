@@ -47,7 +47,7 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-imagine/SKILL.md",
-      "computedHash": "d7374cc6653582b6bc464e20dcaf4a552e7f84936c2855672a3f6a5ecf8a34ca"
+      "computedHash": "a881e0afae45302268a5170b6761db626851506d9b64c8907cc3dd7b196253cb"
     },
     "baoyu-infographic": {
       "source": "JimLiu/baoyu-skills",
@@ -84,6 +84,12 @@
       "sourceType": "github",
       "skillPath": "skills/baoyu-translate/SKILL.md",
       "computedHash": "3dc723aa4b86c4c6b8557faeec558e54f5bce5f9cf39aa629dd588ed6531df20"
+    },
+    "baoyu-url-to-markdown": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baoyu-url-to-markdown/SKILL.md",
+      "computedHash": "b55b97dd2489018ab25588a7c4450eb24ea37bce501aebcb8cee9c294660d21c"
     },
     "baoyu-youtube-transcript": {
       "source": "JimLiu/baoyu-skills",
@@ -123,7 +129,7 @@
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-paper/SKILL.md",
-      "computedHash": "d36c71c9ad5271c6f40542cac61a26b3221e4ef2e740aaf1b9438a7c65a53745"
+      "computedHash": "3961cd2b9dde59d581891a6d7a6722c108c5b4b3499801406658d5901179c749"
     },
     "ljg-paper-flow": {
       "source": "lijigang/ljg-skills",

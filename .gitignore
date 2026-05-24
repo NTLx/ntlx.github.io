@@ -29,8 +29,9 @@ yarn-error.log*
 # Astro cache
 .astro/
 
-# Claude Code auto-generated symlinks
+# Auto-generated symlinks
 .claude/
+.qoder/
 
 # Backup files
 *.bak*
