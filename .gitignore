@@ -29,8 +29,9 @@ yarn-error.log*
 # Astro cache
 .astro/
 
-# Auto-generated symlinks
-.claude/
+# Auto-generated symlinks (track .claude/skills which links to .agents/skills)
+.claude/*
+!.claude/skills
 .qoder/
 
 # Backup files
