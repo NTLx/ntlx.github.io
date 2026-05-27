@@ -19,7 +19,7 @@
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
-import { markStepDone, markStepFailed } from "./state-lib.mjs";
+import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 
 const slug = process.argv[2];
@@ -69,6 +69,11 @@ function extractBody(text) {
 const fm = parseFrontmatter(content);
 const body = extractBody(content);
 
+// Load pipeline state to check for humanizer skip flag
+const state = loadState(slug);
+const humanizerSkip = state?.humanizer === "skip";
+const hasTargetPath = !!fm.targetPath;
+
 // 1. Frontmatter integrity
 if (!fm) fail(2, "frontmatter 缺失或格式损坏（未找到 --- 开闭标记）");
 if (!fm.title) fail(2, "frontmatter.title 缺失（polish 后丢失）");
@@ -79,10 +84,14 @@ if (!fm.category) fail(2, "frontmatter.category 缺失（polish 后丢失）");
 if (!VALID_CATEGORIES.includes(fm.category)) fail(2, `frontmatter.category 不在白名单（polish 后损坏）: ${fm.category}`);
 if (!fm.blogSlug) fail(2, "frontmatter.blogSlug 缺失（polish 后丢失）");
 if (!ASCII_SLUG_RE.test(fm.blogSlug)) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case（polish 后损坏）: ${fm.blogSlug}`);
-if (!fm.sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(fm.sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（polish 后损坏）: ${fm.sourceUrl ?? ""}`);
-const expectedSourceUrl = `https://ntlx.github.io/articles/${fm.blogSlug}`;
-if (fm.sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
-  fail(2, `frontmatter.sourceUrl (${fm.sourceUrl}) 与 blogSlug (${fm.blogSlug}) 不一致`);
+if (!fm.sourceUrl) fail(2, "frontmatter.sourceUrl 缺失（polish 后丢失）");
+// sourceUrl 格式和一致性检查：有 targetPath 时（教程策略）跳过，sourceUrl 指向博文实际地址
+if (!hasTargetPath) {
+  if (!/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(fm.sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（polish 后损坏）: ${fm.sourceUrl ?? ""}`);
+  const expectedSourceUrl = `https://ntlx.github.io/articles/${fm.blogSlug}`;
+  if (fm.sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
+    fail(2, `frontmatter.sourceUrl (${fm.sourceUrl}) 与 blogSlug (${fm.blogSlug}) 不一致`);
+  }
 }
 
 // 2. No H1 in body
@@ -96,26 +105,39 @@ if (slotPlaceholders.length === 0) {
   fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }
 
-// 4. Word count: ≥ 2000 pass; ≥ 1800 WARNING (humanizer trim); < 1800 FAIL
+// 4. Word count
+//    默认：≥ 2000 pass；≥ 1800 WARNING (humanizer trim); < 1800 FAIL
+//    humanizer: skip 模式：字数下限 1800，无 WARNING 区间
 const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
 const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
 const wordCount = chineseChars + englishWords;
-if (wordCount < 1800) {
-  fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 1800（polish 后字数严重不足，需回到 Step 2 补充内容）`);
-} else if (wordCount < 2000) {
-  process.stderr.write(`step3: WARNING 字数 ${wordCount} < 2000 但 ≥ 1800 — humanizer 精简导致字数略低，Agent 请补充 1-2 段落使字数达到 2000+\n`);
-  // Non-blocking: pass step but include warning for Agent to act on
-  markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, word_count_warning: true });
-  process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, word_count_warning: true }) + "\n");
-  process.exit(0);
+
+if (humanizerSkip) {
+  // 教程策略：字数下限 1800（2000 × 90%），无弹性 WARNING
+  if (wordCount < 1800) {
+    fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 1800（教程策略字数下限 1800）`);
+  }
+} else {
+  if (wordCount < 1800) {
+    fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 1800（polish 后字数严重不足，需回到 Step 2 补充内容）`);
+  } else if (wordCount < 2000) {
+    process.stderr.write(`step3: WARNING 字数 ${wordCount} < 2000 但 ≥ 1800 — humanizer 精简导致字数略低，Agent 请补充 1-2 段落使字数达到 2000+\n`);
+    // Non-blocking: pass step but include warning for Agent to act on
+    markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, word_count_warning: true });
+    process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, word_count_warning: true }) + "\n");
+    process.exit(0);
+  }
 }
 
 // 5. 原文参考 preserved (if it existed before polish — check current content)
 //    Read后感/review-type articles should retain this section
-const isReviewType = /读后感|书评|影评|转述|翻译|review|thoughts on/i.test(body);
-if (isReviewType && !/^## 原文参考/m.test(body)) {
-  fail(2, "读后感类文章缺少 ## 原文参考 区块（polish 可能删除）");
+//    humanizerSkip (教程策略) 不要求原文参考
+if (!humanizerSkip) {
+  const isReviewType = /读后感|书评|影评|转述|翻译|review|thoughts on/i.test(body);
+  if (isReviewType && !/^## 原文参考/m.test(body)) {
+    fail(2, "读后感类文章缺少 ## 原文参考 区块（polish 可能删除）");
+  }
 }
 
-markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl });
-process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl }) + "\n");
+markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined });
+process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined }) + "\n");

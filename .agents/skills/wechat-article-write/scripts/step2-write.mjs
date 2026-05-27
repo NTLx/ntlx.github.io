@@ -13,7 +13,7 @@
  *   - materials.md URL 交叉引用检查
  *
  * 用法:
- *   bun run step2-write.mjs <date-slug> [--allow-no-references]
+ *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer] [--min-words <N>]
  *
  * 退出码: 0 通过；2 frontmatter 缺失；3 字数不足；4 互动/原文参考缺失
  */
@@ -26,8 +26,25 @@ import { postsRoot, repoRoot } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
 const allowNoReferences = args.includes("--allow-no-references");
-const slug = args.find(a => !a.startsWith("--"));
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references]\n"); process.exit(1); }
+const noHumanizer = args.includes("--no-humanizer");
+let minWords = 2000;
+const minWordsIdx = args.indexOf("--min-words");
+if (minWordsIdx !== -1 && args[minWordsIdx + 1]) {
+  const parsed = parseInt(args[minWordsIdx + 1], 10);
+  if (!isNaN(parsed) && parsed > 0) minWords = parsed;
+}
+// Slug is the positional argument — find args that aren't flags or flag values
+const flagsWithValue = new Set(["--min-words"]);
+let slug = null;
+for (let i = 0; i < args.length; i++) {
+  if (args[i].startsWith("--")) {
+    if (flagsWithValue.has(args[i])) i++; // skip value
+    continue;
+  }
+  slug = args[i];
+  break;
+}
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer] [--min-words <N>]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -59,6 +76,7 @@ const category = readFm(draftPath, "category");
 const blogSlug = readFm(draftPath, "blogSlug");
 const coverImage = readFm(draftPath, "coverImage");
 const sourceUrl = readFm(draftPath, "sourceUrl");
+const targetPath = readFm(draftPath, "targetPath");
 
 if (!title) fail(2, "frontmatter.title 缺失");
 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(2, `frontmatter.date 不合法: ${date}`);
@@ -76,10 +94,18 @@ if (!category) fail(2, "frontmatter.category 缺失");
 if (!VALID_CATEGORIES.includes(category)) fail(2, `category=${category} 不在白名单 ${VALID_CATEGORIES.join(",")}`);
 if (!blogSlug) fail(2, "frontmatter.blogSlug 缺失");
 if (!ASCII_SLUG_RE.test(blogSlug)) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case: ${blogSlug}`);
-if (!sourceUrl || !/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法: ${sourceUrl}`);
-const expectedSourceUrl = `https://ntlx.github.io/articles/${blogSlug}`;
-if (sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
-  fail(2, `frontmatter.sourceUrl (${sourceUrl}) 与 blogSlug (${blogSlug}) 不一致，应为 ${expectedSourceUrl}`);
+if (!sourceUrl) fail(2, "frontmatter.sourceUrl 缺失");
+// sourceUrl 格式和一致性检查：仅在无 targetPath 时执行。
+// 有 targetPath 时（教程策略），sourceUrl 指向博文实际地址，不遵循 articles/{blogSlug} 模式。
+if (!targetPath) {
+  if (!/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法: ${sourceUrl}`);
+  const expectedSourceUrl = `https://ntlx.github.io/articles/${blogSlug}`;
+  if (sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
+    fail(2, `frontmatter.sourceUrl (${sourceUrl}) 与 blogSlug (${blogSlug}) 不一致，应为 ${expectedSourceUrl}`);
+  }
+} else {
+  // 有 targetPath 时只验证 sourceUrl 是合法的 https URL
+  if (!/^https?:\/\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（需为合法 URL）: ${sourceUrl}`);
 }
 
 // 2. Word count (Chinese characters + English words)
@@ -88,7 +114,7 @@ const body = bodyStart !== -1 ? content.slice(bodyStart + 5) : content;
 const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
 const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
 const wordCount = chineseChars + englishWords;
-if (wordCount < 2000) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 2000 — 请补充内容达到 2000 字以上（ljg-writes 默认 1000-1500 字，调用时需明确指定"字数下限 2000"）`);
+if (wordCount < minWords) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< ${minWords} — 请补充内容达到 ${minWords} 字以上${minWords === 2000 ? '（ljg-writes 默认 1000-1500 字，调用时需明确指定"字数下限 2000"）' : ""}`);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
@@ -132,5 +158,7 @@ if (existsSync(materialsPath)) {
   }
 }
 
-markStepDone(slug, 2, { title, date, category, blog_slug: blogSlug, source_url: sourceUrl, word_count: wordCount });
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount }) + "\n");
+const stateExtra = { title, date, category, blog_slug: blogSlug, source_url: sourceUrl, word_count: wordCount };
+if (noHumanizer) stateExtra.humanizer = "skip";
+markStepDone(slug, 2, stateExtra);
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount, humanizer: noHumanizer ? "skip" : undefined }) + "\n");
