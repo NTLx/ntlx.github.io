@@ -19,8 +19,8 @@
  *   1 参数错误 / 未知 flag；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败；5 目标文件已存在；6 非 main 分支
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markBlogDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
@@ -49,7 +49,7 @@ function captureStdout(cmd, args) {
 }
 
 function parseArgs(argv) {
-  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, autoRebase: false, slug: null, blogSlug: null, commitTemplate: null, postDir: null };
+  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, autoRebase: false, slug: null, blogSlug: null, targetPath: null, commitTemplate: null, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
@@ -61,6 +61,7 @@ function parseArgs(argv) {
     else if (a === "--auto-rebase") opts.autoRebase = true;
     else if (a === "--commit-template") opts.commitTemplate = argv[++i];
     else if (a === "--blog-slug") opts.blogSlug = argv[++i];
+    else if (a === "--target-path") opts.targetPath = argv[++i];
     else if (a === "--post-dir") opts.postDir = argv[++i];
     else if (a.startsWith("--")) { process.stderr.write(`publish-blog: unknown flag "${a}" (typo?)\n`); process.exit(1); }
     else if (!opts.slug) opts.slug = a;
@@ -78,7 +79,8 @@ function printHelp() {
 选项:
   --blog-slug <ascii-slug>  博客文章 URL slug（覆盖 frontmatter.blogSlug，必须纯 ASCII kebab-case）
   --post-dir <path>         posts/ 下的目录路径（替代 date-slug）
-  --overwrite               强制覆盖已存在的文章文件
+  --target-path <path>      目标路径，相对于 src/content/docs/（不含 .md）。优先级：CLI > frontmatter.targetPath > articles/{blogSlug}
+  --overwrite               强制覆盖已存在的文章文件（覆盖前自动备份）
   --allow-non-main          跳过 main 分支检查
   --auto-rebase             push 失败时自动尝试 git pull --rebase 再 push（最多 1 次）
   --no-push                 不执行 git commit/push，状态标记为 blocked
@@ -114,8 +116,8 @@ function parseFm(fmText) {
 }
 
 function buildBlogFm(fm) {
-  // 管线专用字段不写入博客文章：coverImage（微信轨专用）、sourceUrl（微信轨引用）、blogSlug（发布定位）。
-  const excluded = ["infographicPosition", "coverImage", "sourceUrl", "blogSlug"];
+  // 管线专用字段不写入博客文章：coverImage（微信轨专用）、sourceUrl（微信轨引用）、blogSlug（发布定位）、targetPath（自定义路径）。
+  const excluded = ["infographicPosition", "coverImage", "sourceUrl", "blogSlug", "targetPath"];
   for (const k of excluded) delete fm[k];
 
   // 字段顺序：$schema -> title -> description -> date -> category -> tags?
@@ -180,7 +182,7 @@ if (!opts.slug && opts.postDir) {
   opts.slug = stripped.split("/").filter(Boolean).pop() || null;
 }
 if (!opts.slug) {
-  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]\n");
+  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--target-path <path>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]\n");
   process.exit(1);
 }
 
@@ -212,8 +214,18 @@ if (!VALID_CATEGORIES.includes(fm.category)) {
 }
 
 const slug = resolveBlogSlug(dateSlug, opts.blogSlug, fm.blogSlug);
-validateSourceUrl(fm, slug);
-const targetPath = resolve(repoRoot(), "src/content/docs/articles", `${slug}.md`);
+
+// 目标路径解析：CLI --target-path > frontmatter.targetPath > 默认 articles/{blogSlug}
+const customTargetPath = opts.targetPath || fm.targetPath || null;
+const relativePath = customTargetPath || `articles/${slug}`;
+const targetPath = resolve(repoRoot(), "src/content/docs", `${relativePath}.md`);
+
+// sourceUrl 一致性检查：仅在默认路径（articles/{blogSlug}）下执行。
+// 自定义 targetPath 时（如教程策略），sourceUrl 指向博文实际地址，不与 blogSlug 绑定。
+if (!customTargetPath) {
+  validateSourceUrl(fm, slug);
+}
+
 const blogFm = buildBlogFm(fm);
 const blogContent = blogFm + split.body;
 
@@ -229,6 +241,18 @@ if (existsSync(targetPath) && !opts.overwrite) {
   process.stderr.write(`publish-blog: ${targetPath} 已存在（使用 --overwrite 强制覆盖）\n`);
   process.exit(5);
 }
+
+// 覆盖前自动备份已有文件
+let backupPath = null;
+if (existsSync(targetPath) && opts.overwrite) {
+  const ts = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "").replace("T", "T");
+  backupPath = resolve(repoRoot(), "src/content/docs", `${relativePath}.backup-${ts}.md`);
+  copyFileSync(targetPath, backupPath);
+  process.stdout.write(`backup: ${backupPath}\n`);
+}
+
+// 确保目标目录存在（自定义 targetPath 可能指向新目录）
+mkdirSync(dirname(targetPath), { recursive: true });
 
 writeFileSync(targetPath, blogContent);
 process.stdout.write(`written: ${targetPath}\n`);
@@ -352,4 +376,5 @@ process.stdout.write(JSON.stringify({
   no_push: opts.noPush,
   blocked: pushBlocked || opts.noPush,
   resume_file: resumeFile,
+  backup: backupPath,
 }) + "\n");
