@@ -155,13 +155,6 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
   → step4-images.mjs 门控校验
 ```
 
-**⛔ 禁止事项**：
-- **不要创建 `batch.json`** —— 这个文件已从流程中完全移除
-- **不要使用 `--batchfile` 参数** —— baoyu-imagine 的批量模式不适用于本流程
-- **不要调用 `step4-generate.mjs`** —— 这个脚本已被删除
-
-原因：subagent 模式下，每张图由独立的 subagent 生成，具有更好的失败隔离和额度控制。使用 batch.json 会导致脚本级别的超时和重试，浪费 API 额度。
-
 ### Agent 动作：按图片类型走对应的 prompt 构建流程
 
 #### 信息图（SLOT_IMG_00）：使用 baoyu-infographic 技能模板
