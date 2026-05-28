@@ -68,7 +68,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
 |------|------|--------|------|
 | 0 | 文章类型判定 | Agent | 选择策略文件 |
 | 1-3 | 内容创作 | Agent | 按策略文件执行 |
-| 4 | 图片生成 | Agent + 脚本 | 不变 |
+| 4 | 图片生成 | Agent 派发 subagent + 脚本门控 | 最多 2 个 subagent 并行 |
 | 5 | 产物构建 | 脚本 | 不变 |
 | 6 | 双轨发布 | 脚本 | 不变 |
 
@@ -131,7 +131,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
 
 ## Step 4: 图片生成
 
-**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；`step4-generate.mjs` 只负责串行逐张生成和失败重试。**Agent 不得绕过技能模板手写 prompt**。
+**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；然后通过 Agent 工具派发 subagent（最多 2 个并行）来调用 baoyu-imagine 逐张生成图片。**Agent 不得绕过技能模板手写 prompt**。
 
 ### 为什么必须用技能模板
 
@@ -151,7 +151,8 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 确认 OpenAI 后端
   → 调用 baoyu 子技能（走完整 prompt 构建流程）为每张图生成规范 prompt 文件
   → 编写 batch.json
-  → step4-generate.mjs 串行逐张生成（每张 300s 超时）
+  → 主 Agent 按批次派发 subagent 生成图片（每批最多 2 个并行，等本批全部完成再发下一批）
+  → 失败的图片由主 Agent 重新派发 subagent 重试（最多 1 次）
   → step4-images.mjs 门控校验
 ```
 
@@ -199,7 +200,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 }
 ```
 
-#### Prompt 质量检查清单（运行 step4-generate.mjs 前必须逐项确认）
+#### Prompt 质量检查清单（派发 subagent 前必须逐项确认）
 
 - [ ] 每个 prompt 文件包含文字渲染指令（large, prominent, readable）
 - [ ] 每个 prompt 文件包含防渲染污染指令（不显示 hex 色值/色名）
@@ -208,13 +209,39 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 - [ ] 信息图 prompt 包含完整的 Layout/Style Guidelines 段落
 - [ ] batch.json 中 `provider` 为 `"openai"`
 
-#### 执行生成
+#### 执行生成：Agent 派发 subagent
 
-```bash
-bun run .agents/skills/wechat-article-write/scripts/step4-generate.mjs <date-slug>
+**调度规则**：从 `batch.json` 读取任务列表，按批次派发 Agent 工具调用。每批最多 **2 个 subagent 并行**，等本批全部完成后再派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
+
+**每个 subagent 的 prompt 模板**：
+
+```
+生成一张图片。请严格按以下步骤执行：
+
+1. 加载环境变量：`set -a && source /home/lx/ntlx.github.io/.baoyu-skills/.env && set +a`
+2. 运行生图命令：
+   bun /home/lx/ntlx.github.io/.agents/skills/baoyu-imagine/scripts/main.ts \
+     --promptfiles {prompt文件的绝对路径} \
+     --image {输出图片的绝对路径} \
+     --provider openai \
+     --ar {ar值，默认16:9}
+3. 确认图片文件已生成（检查文件大小 > 0）
+4. 报告结果：成功返回图片路径，失败返回错误信息
+
+注意：不要修改 prompt 文件内容，直接读取使用。超时设为 5 分钟。
 ```
 
-脚本读取 `imgs/batch.json` → 跳过已有图片 → 逐张串行调用 baoyu-imagine（每张 300s 超时）→ 失败项重试一次（同样 300s 超时）。退出码：0 全部成功，4 部分失败。串行执行避免并行超时导致的假阳性重试和额度浪费。
+**调度伪代码**：
+
+```
+pending = batch.json 中所有任务
+while pending 非空:
+    batch = pending 取前 2 个（或剩余全部）
+    并行派发 len(batch) 个 Agent subagent（每个生成 1 张图）
+    等待本批全部完成
+    检查失败项 → 失败的重新入队（标记已重试，仅重试 1 次）
+    已完成 → 从 pending 移除
+```
 
 #### 门控脚本
 
@@ -288,7 +315,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - **图片必须 CDN URL**：博客文章中 `imgs/...` 本地路径会导致 Astro 构建失败
 - **GitHub 上传禁止中文 name**：`--name` 使用纯 ASCII slug
 - **CWD 敏感**：Edit 工具用绝对路径，脚本调用前确保在项目根目录
-- **图片生成串行执行**：step4-generate.mjs 逐张生成（每张 300s 超时），不使用并行，避免超时假阳性导致额度浪费
+- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。每个 subagent 独立调用 baoyu-imagine，失败隔离，避免单脚本超时导致额度浪费
 - **封面不嵌入文字**：封面是视觉锤，文字交给推送卡片和正文标题
 
 ## 工具索引
@@ -299,7 +326,6 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 | `scripts/step1-collect.mjs` | Step 1: 资料验证 + 状态 |
 | `scripts/step2-write.mjs` | Step 2: 质量门控 + 状态 |
 | `scripts/step3-polish.mjs` | Step 3: 后处理验证 + 状态 |
-| `scripts/step4-generate.mjs` | Step 4: 串行逐张生成 + 失败重试 |
 | `scripts/step4-images.mjs` | Step 4: 格式修正 + 引用验证 + 状态 |
 | `scripts/step5-build.mjs` | Step 5: CDN + 占位符替换 + HTML 转换 + 状态 |
 | `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 |
