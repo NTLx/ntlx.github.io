@@ -1,12 +1,12 @@
 ---
 $schema: starlight
-title: "从 Token 流到 Agent 流：LLM 应用正在经历它自己的\"协程革命\""
-description: "当 agent 不再是\"调个模型返回文本\"而是规划、委派、审批、多模态输出时，扁平的 token 流就成了最大的瓶颈。流式的本质不是让字快点出来，而是让复杂工作可观测。"
+title: "从 Token 流到 Agent 流：LLM 应用正在经历它自己的\\\"协程革命\\\""
+description: 当 agent 不再是调个模型返回文本而是规划、委派、审批、多模态输出时，扁平的 token 流就成了最大的瓶颈。流式的本质不是让字快点出来，而是让复杂工作可观测。
 date: 2026-05-22
 category: ai-agents
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-00-infographic-core-summary-1.png)
 
 2026 年 5 月，LangChain 发了一篇博客叫 [From Token Streams to Agent Streams](https://www.langchain.com/blog/token-streams-to-agent-streams)。标题看起来是技术细节的迭代——从 token 流升级到 agent 流嘛，加几个字段的事。但我读完之后第一反应是：**这大概是 LLM 应用开发里最接近"协程革命"的一次范式转移。**
 
@@ -28,7 +28,7 @@ LangChain 这次做的就是这件事。
 
 老式 token 流怎么解决这个问题？它不解决。它的设计前提是"一次模型调用，一串文本输出"。所有东西被拍平成一个 token 序列——主 agent 的输出、子 agent 的输出、工具调用的参数、状态变更——全搅在一起。前端收到后自己拆分、排序、去重、处理断线重连。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-01-architecture-diagram.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-01-architecture-diagram-1.png)
 
 ```
 老式 token 流：
@@ -70,7 +70,7 @@ async for subagent in run.subagents:
 
 同一份底层事件日志，不同的投影视角。这和数据库里 SELECT 同一个表写出不同视图是一个思路。**数据源只有一个，但消费方不需要协商谁来"读走"数据——各取所需，互不干扰。**
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-02-flow-comparison.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-02-flow-comparison-1.png)
 
 这个设计解决了一个很实际的问题：当你的 UI 有聊天面板、子 agent 检查器、调试控制台、进度指示器同时运行时，谁先消费流、谁后消费、怎么避免重复消费——在老方案里是个工程难题。在新方案里，这不是问题。
 
@@ -88,7 +88,7 @@ async for subagent in run.subagents:
 
 这些活儿不难，但繁琐。而且一旦 agent 的逻辑结构变了——比如多加了一个子 agent，或者审批流程多了一步——前端就要跟着改解析逻辑。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-03-ui-projections.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-03-ui-projections-1.png)
 
 新的做法把这些事儿从前端搬到了运行时。前端说"我要这个子 agent 的消息"，运行时就只给你那个子 agent 的消息。前端不用知道底层有多少个事件、怎么排序、哪些需要跳过。
 
@@ -102,7 +102,7 @@ async for subagent in run.subagents:
 
 文本、推理、工具活动、图片、音频、视频、自定义数据，全部使用相同的内容块格式、命名通道和命名空间定位。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-04-multimodal-future.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution-img-04-multimodal-future-1.png)
 
 这才是协议设计真正的前瞻性。如果多模态是 agent 的必然方向，那流式协议必须在第一天就支持它，而不是事后打补丁。内容块（content block）替代纯字符串（plain string）就是这个补丁的第一块砖。
 
