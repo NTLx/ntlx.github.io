@@ -150,10 +150,17 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ```
 确认 OpenAI 后端
   → 调用 baoyu 子技能（走完整 prompt 构建流程）为每张图生成规范 prompt 文件
-  → 主 Agent 按批次派发 subagent 生成图片（每批最多 2 个并行，等本批全部完成再发下一批）
+  → 主 Agent 直接派发 subagent 生成图片（每次最多 2 个并行，完成后立即派发下一批）
   → 失败的图片由主 Agent 重新派发 subagent 重试（最多 1 次）
   → step4-images.mjs 门控校验
 ```
+
+**⛔ 禁止事项**：
+- **不要创建 `batch.json`** —— 这个文件已从流程中完全移除
+- **不要使用 `--batchfile` 参数** —— baoyu-imagine 的批量模式不适用于本流程
+- **不要调用 `step4-generate.mjs`** —— 这个脚本已被删除
+
+原因：subagent 模式下，每张图由独立的 subagent 生成，具有更好的失败隔离和额度控制。使用 batch.json 会导致脚本级别的超时和重试，浪费 API 额度。
 
 ### Agent 动作：按图片类型走对应的 prompt 构建流程
 
@@ -193,7 +200,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 
 #### 执行生成：Agent 派发 subagent
 
-**调度规则**：从 `imgs/prompts/` 目录下的 prompt 文件列表构建任务清单，按批次派发 Agent 工具调用。每批最多 **2 个 subagent 并行**，等本批全部完成后再派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
+**调度规则**：从 `imgs/prompts/` 目录下的 prompt 文件列表构建任务清单，每次派发最多 **2 个 subagent**（使用 Agent 工具），完成后立即派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
 
 **每个 subagent 的 prompt 模板**：
 
@@ -218,9 +225,9 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ```
 pending = imgs/prompts/ 下所有 prompt 文件构建的任务列表
 while pending 非空:
-    batch = pending 取前 2 个（或剩余全部）
-    并行派发 len(batch) 个 Agent subagent（每个生成 1 张图）
-    等待本批全部完成
+    取 pending 前 2 个（或剩余全部）
+    并行派发 Agent subagent（每个生成 1 张图）
+    等待 subagent 完成
     检查失败项 → 失败的重新入队（标记已重试，仅重试 1 次）
     已完成 → 从 pending 移除
 ```
