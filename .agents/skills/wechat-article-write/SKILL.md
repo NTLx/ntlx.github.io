@@ -150,7 +150,6 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ```
 确认 OpenAI 后端
   → 调用 baoyu 子技能（走完整 prompt 构建流程）为每张图生成规范 prompt 文件
-  → 编写 batch.json
   → 主 Agent 按批次派发 subagent 生成图片（每批最多 2 个并行，等本批全部完成再发下一批）
   → 失败的图片由主 Agent 重新派发 subagent 重试（最多 1 次）
   → step4-images.mjs 门控校验
@@ -184,22 +183,6 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 3. 按模板创建 `imgs/prompts/00-cover-{slug}.md`
 4. 风格参数：type=conceptual, palette=cool, rendering=flat-vector, mood=bold
 
-#### 编写 batch.json
-
-```json
-{
-  "tasks": [
-    {
-      "id": "唯一标识",
-      "image": "相对 imgs/ 的路径（cover 用 ../cover.png）",
-      "promptFiles": ["prompts/相对 imgs/ 的路径"],
-      "ar": "16:9",
-      "provider": "openai"
-    }
-  ]
-}
-```
-
 #### Prompt 质量检查清单（派发 subagent 前必须逐项确认）
 
 - [ ] 每个 prompt 文件包含文字渲染指令（large, prominent, readable）
@@ -207,11 +190,10 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 - [ ] 每个 prompt 文件包含干净构图指令（clean composition, white space）
 - [ ] 每个 prompt 文件使用精确 hex 色值
 - [ ] 信息图 prompt 包含完整的 Layout/Style Guidelines 段落
-- [ ] batch.json 中 `provider` 为 `"openai"`
 
 #### 执行生成：Agent 派发 subagent
 
-**调度规则**：从 `batch.json` 读取任务列表，按批次派发 Agent 工具调用。每批最多 **2 个 subagent 并行**，等本批全部完成后再派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
+**调度规则**：从 `imgs/prompts/` 目录下的 prompt 文件列表构建任务清单，按批次派发 Agent 工具调用。每批最多 **2 个 subagent 并行**，等本批全部完成后再派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
 
 **每个 subagent 的 prompt 模板**：
 
@@ -234,7 +216,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 **调度伪代码**：
 
 ```
-pending = batch.json 中所有任务
+pending = imgs/prompts/ 下所有 prompt 文件构建的任务列表
 while pending 非空:
     batch = pending 取前 2 个（或剩余全部）
     并行派发 len(batch) 个 Agent subagent（每个生成 1 张图）
