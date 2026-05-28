@@ -24,7 +24,7 @@ description: >
 - **失败可恢复**：某步失败报告错误并写状态；`state.mjs next <date-slug>` 返回续跑位置
 - **脚本化**：所有校验和文件操作封装在 `scripts/` 下。Agent 负责调用脚本 + 解读退出码；禁止内联超过 5 行的 bash/python
 - **策略驱动**：Steps 1-3 的行为由策略文件决定（Step 0 选择），Steps 4-6 不受策略影响
-- **图片后端固定为 DashScope**：文内插图、信息图和封面必须使用 DashScope。Step 4 失败时只重试 DashScope，**不要自动降级到其他后端**
+- **图片后端固定为 OpenAI**：文内插图、信息图和封面必须使用 OpenAI。Step 4 失败时只重试 OpenAI，**不要自动降级到其他后端**
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
 - **信息图默认生成**：SLOT 00 不是可选的——它是文章视觉摘要的默认组件
@@ -131,7 +131,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
 
 ## Step 4: 图片生成
 
-**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；`step4-generate.mjs` 只负责执行批量生成和失败重试。**Agent 不得绕过技能模板手写 prompt**。
+**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；`step4-generate.mjs` 只负责串行逐张生成和失败重试。**Agent 不得绕过技能模板手写 prompt**。
 
 ### 为什么必须用技能模板
 
@@ -148,10 +148,10 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ### 整体流程
 
 ```
-确认 DashScope 后端
+确认 OpenAI 后端
   → 调用 baoyu 子技能（走完整 prompt 构建流程）为每张图生成规范 prompt 文件
   → 编写 batch.json
-  → step4-generate.mjs 执行批量生成
+  → step4-generate.mjs 串行逐张生成（每张 300s 超时）
   → step4-images.mjs 门控校验
 ```
 
@@ -187,14 +187,13 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 
 ```json
 {
-  "jobs": 2,
   "tasks": [
     {
       "id": "唯一标识",
       "image": "相对 imgs/ 的路径（cover 用 ../cover.png）",
       "promptFiles": ["prompts/相对 imgs/ 的路径"],
       "ar": "16:9",
-      "provider": "dashscope"
+      "provider": "openai"
     }
   ]
 }
@@ -207,15 +206,15 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 - [ ] 每个 prompt 文件包含干净构图指令（clean composition, white space）
 - [ ] 每个 prompt 文件使用精确 hex 色值
 - [ ] 信息图 prompt 包含完整的 Layout/Style Guidelines 段落
-- [ ] batch.json 中 `provider` 为 `"dashscope"`，`jobs` ≤ 3
+- [ ] batch.json 中 `provider` 为 `"openai"`
 
 #### 执行生成
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/step4-generate.mjs <date-slug> [--jobs N]
+bun run .agents/skills/wechat-article-write/scripts/step4-generate.mjs <date-slug>
 ```
 
-脚本读取 `imgs/batch.json` → 跳过已有图片 → 强制 provider 为 DashScope → 调用 baoyu-imagine batch → 失败项逐个用 DashScope 重试。退出码：0 全部成功，4 部分失败。DashScope QPS 有限，`--jobs` 建议 2，最多 3。遇到 429 限流等待 2-3 分钟后重跑。
+脚本读取 `imgs/batch.json` → 跳过已有图片 → 逐张串行调用 baoyu-imagine（每张 300s 超时）→ 失败项重试一次（同样 300s 超时）。退出码：0 全部成功，4 部分失败。串行执行避免并行超时导致的假阳性重试和额度浪费。
 
 #### 门控脚本
 
@@ -277,7 +276,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 
 任何步骤失败时：
 1. 报告哪一步失败、错误原因
-2. 图片生成失败只允许用 DashScope 重试；不要降级到其他后端
+2. 图片生成失败只允许用 OpenAI 重试；不要降级到其他后端
 3. 图床上传失败：修复后重跑 Step 5；若 `image-map.json` 已完整，用 `--reuse-image-map`
 4. 依赖缺失：脚本会自动 `bun install`；若自动安装失败则手动安装
 5. `state.mjs next <date-slug>` 返回下一个待执行步骤，全部完成返回 `done`
@@ -289,7 +288,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - **图片必须 CDN URL**：博客文章中 `imgs/...` 本地路径会导致 Astro 构建失败
 - **GitHub 上传禁止中文 name**：`--name` 使用纯 ASCII slug
 - **CWD 敏感**：Edit 工具用绝对路径，脚本调用前确保在项目根目录
-- **DashScope QPS 限流**：`--jobs` 建议 2（最多 3）。429 后脚本自动重试，仍失败则等待 2-3 分钟
+- **图片生成串行执行**：step4-generate.mjs 逐张生成（每张 300s 超时），不使用并行，避免超时假阳性导致额度浪费
 - **封面不嵌入文字**：封面是视觉锤，文字交给推送卡片和正文标题
 
 ## 工具索引
@@ -300,7 +299,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 | `scripts/step1-collect.mjs` | Step 1: 资料验证 + 状态 |
 | `scripts/step2-write.mjs` | Step 2: 质量门控 + 状态 |
 | `scripts/step3-polish.mjs` | Step 3: 后处理验证 + 状态 |
-| `scripts/step4-generate.mjs` | Step 4: batch 生成编排 + 失败重试 |
+| `scripts/step4-generate.mjs` | Step 4: 串行逐张生成 + 失败重试 |
 | `scripts/step4-images.mjs` | Step 4: 格式修正 + 引用验证 + 状态 |
 | `scripts/step5-build.mjs` | Step 5: CDN + 占位符替换 + HTML 转换 + 状态 |
 | `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 |
