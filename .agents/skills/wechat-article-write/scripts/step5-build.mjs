@@ -19,6 +19,7 @@ import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
+import { readFmValue } from "./frontmatter-lib.mjs";
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
@@ -59,13 +60,6 @@ function imageFiles(dir) {
   return readdirSync(dir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f)).sort();
 }
 
-function readFmValue(markdown, key) {
-  const m = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!m) return "";
-  const line = m[1].split(/\r?\n/).find(l => l.startsWith(`${key}:`));
-  if (!line) return "";
-  return line.slice(key.length + 1).trim().replace(/^["']|["']$/g, "");
-}
 
 function loadImageMap() {
   if (!existsSync(mapPath)) fail(3, "image-map.json missing; cannot --reuse-image-map");

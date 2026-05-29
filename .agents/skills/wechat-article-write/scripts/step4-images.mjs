@@ -76,12 +76,17 @@ if (slotRefs.length > 0) {
   const imgs = existsSync(imgsDir)
     ? readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
     : [];
+  const missingSlots = [];
   for (const slotNum of slotRefs) {
     const hasMatch = imgs.some(f => f.startsWith(`${slotNum}-`));
     if (!hasMatch) {
-      markStepFailed(slug, 4, `SLOT_IMG_${slotNum} has no matching image in imgs/`);
-      process.exit(2);
+      missingSlots.push(slotNum);
     }
+  }
+  if (missingSlots.length > 0) {
+    const detail = missingSlots.map(n => `SLOT_IMG_${n}`).join(", ");
+    markStepFailed(slug, 4, `Missing images for slots: ${detail}. Retry these specific images only.`);
+    process.exit(2);
   }
   // Keep existing warning for images with no slot references
   const nonInfoImgs = imgs.filter(f => !f.startsWith("00-"));

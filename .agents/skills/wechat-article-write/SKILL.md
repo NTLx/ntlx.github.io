@@ -82,6 +82,12 @@ rg -n "source-url|content_source_url|sourceUrl" \
 2. 必须符合 `^[a-z][a-z0-9-]*[a-z0-9]$`
 3. 低置信度时与分类一起向用户确认
 
+**示例**：
+```
+date-slug: 2026-05-29-社会科学中的编程智能体
+blog-slug:  coding-agents-social-sciences
+```
+
 ---
 
 ## Step 0: 文章类型判定与策略选择
@@ -100,7 +106,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
   → tutorial
 
 用户要求"AI 资讯简报"或"新闻汇总"？
-  → news-digest
+  → news-digest（⚠️ experimental，需用户确认）
 
 无法确定？
   → 默认 reader-response，并向用户确认
@@ -125,7 +131,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
 |------|------|---------|
 | reader-response | `references/strategies/reader-response.md` | 读后感/深度分析 |
 | tutorial | `references/strategies/tutorial.md` | 教程/配置指南 |
-| news-digest | `references/strategies/news-digest.md` | 资讯简报 |
+| news-digest | `references/strategies/news-digest.md` | 资讯简报（⚠️ experimental） |
 
 ---
 
@@ -194,6 +200,11 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 #### 执行生成：Agent 派发 subagent
 
 **调度规则**：从 `imgs/prompts/` 目录下的 prompt 文件列表构建任务清单，每次派发最多 **2 个 subagent**（使用 Agent 工具），完成后立即派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
+
+**重要约束**：
+- 严格控制并行度：每批最多 2 个 subagent，不要一次派发 3+ 个。OpenAI API 有速率限制，过度并行会导致全部失败
+- 重试仅限 1 次：如果一张图片重试后仍然失败，标记该图片为失败并继续生成其余图片，不要反复重试同一张图浪费额度
+- 逐张处理：每个 subagent 只生成 1 张图，不要让一个 subagent 生成多张。这样失败隔离，一张失败不影响其他
 
 **每个 subagent 的 prompt 模板**：
 
@@ -316,6 +327,8 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 | `scripts/config-lib.mjs` | 配置解析 |
 | `scripts/state-lib.mjs` | 状态读写库 |
 | `scripts/path-resolver.mjs` | 路径解析 |
+| `scripts/validation-lib.mjs` | 共享验证常量与字数统计 |
+| `scripts/frontmatter-lib.mjs` | 共享 frontmatter 解析 |
 | `scripts/suggest-category.mjs` | 分类 + blog-slug 推荐 |
 | `scripts/set-frontmatter.mjs` | Frontmatter 读写 |
 | `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 |

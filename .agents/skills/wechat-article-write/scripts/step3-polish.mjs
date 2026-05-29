@@ -21,12 +21,11 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
+import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
-
-const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
-const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
 function fail(code, msg) {
   process.stderr.write(`step3: FAIL - ${msg}\n`);
@@ -47,24 +46,6 @@ if (stat.size === 0) {
 // --- Re-validation after polish ---
 
 const content = readFileSync(draftPath, "utf8");
-
-// Parse frontmatter (inline, lightweight — no spawn needed)
-function parseFrontmatter(text) {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!m) return null;
-  const fm = {};
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = line.match(/^(\w[\w-]*):\s*(.+)/);
-    if (kv) fm[kv[1]] = kv[2].trim().replace(/^['"]|['"]$/g, "");
-  }
-  return fm;
-}
-
-// Extract body (content after closing --- of frontmatter)
-function extractBody(text) {
-  const m = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/);
-  return m ? text.slice(m[0].length) : text;
-}
 
 const fm = parseFrontmatter(content);
 const body = extractBody(content);
@@ -108,9 +89,7 @@ if (slotPlaceholders.length === 0) {
 // 4. Word count
 //    默认：≥ 2000 pass；≥ 1800 WARNING (humanizer trim); < 1800 FAIL
 //    humanizer: skip 模式：字数下限 1800，无 WARNING 区间
-const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
-const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
-const wordCount = chineseChars + englishWords;
+const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
 if (humanizerSkip) {
   // 教程策略：字数下限 1800（2000 × 90%），无弹性 WARNING
