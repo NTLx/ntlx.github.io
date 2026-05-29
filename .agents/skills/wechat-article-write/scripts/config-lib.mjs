@@ -66,7 +66,7 @@ function loadAll() {
     markdownToHtml: parseExtend(resolve(BAOYU_ROOT, "baoyu-markdown-to-html/EXTEND.md")),
     postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
     coverImage:     parseExtend(resolve(BAOYU_ROOT, "baoyu-cover-image/EXTEND.md")),
-    imagine:        parseExtend(resolve(BAOYU_ROOT, "baoyu-imagine/EXTEND.md")),
+    imagine:        parseExtend(resolve(BAOYU_ROOT, "baoyu-image-gen/EXTEND.md")),
     infographic:    parseExtend(resolve(BAOYU_ROOT, "baoyu-infographic/EXTEND.md")),
     illustrator:    parseExtend(resolve(BAOYU_ROOT, "baoyu-article-illustrator/EXTEND.md")),
   };
@@ -103,18 +103,18 @@ export function getPostToWechatConfig() {
 export function getCoverImageConfig() {
   const c = loadAll().coverImage;
   return {
-    preferredBackend: c.preferred_image_backend ?? "baoyu-imagine",
+    preferredBackend: c.preferred_image_backend ?? "openai",
     quickMode:        c.quick_mode               ?? true,
     language:         c.language                 ?? "zh",
     defaultAspect:    c.default_aspect           ?? "2.35:1",
   };
 }
 
-/** Step 4: baoyu-imagine（图片后端选择）配置 */
+/** Step 4: baoyu-image-gen（图片后端选择）配置 */
 export function getImagineConfig() {
   const c = loadAll().imagine;
   return {
-    preferredBackend: c.preferred_image_backend ?? "dashscope",
+    preferredBackend: c.preferred_image_backend ?? "openai",
     defaultModel:     c.default_model           ?? {},
   };
 }
@@ -123,7 +123,7 @@ export function getImagineConfig() {
 export function getInfographicConfig() {
   const c = loadAll().infographic;
   return {
-    preferredBackend: c.preferred_image_backend ?? "baoyu-imagine",
+    preferredBackend: c.preferred_image_backend ?? "openai",
     preferredStyle:   c.preferred_style         ?? "craft-handmade",
     preferredLayout:  c.preferred_layout        ?? "bento-grid",
   };
@@ -133,7 +133,7 @@ export function getInfographicConfig() {
 export function getArticleIllustratorConfig() {
   const c = loadAll().illustrator;
   return {
-    preferredBackend: c.preferred_image_backend ?? "baoyu-imagine",
+    preferredBackend: c.preferred_image_backend ?? "openai",
     preferredStyle:   c.preferred_style         ?? "vector-illustration",
     defaultOutputDir: c.default_output_dir      ?? "imgs-subdir",
   };

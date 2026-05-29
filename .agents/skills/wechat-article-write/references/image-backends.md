@@ -4,8 +4,8 @@
 
 ## OpenAI 使用原则
 
-- 确认 `.baoyu-skills/baoyu-imagine/EXTEND.md` 中 `preferred_image_backend: openai`
-- 每个 subagent 调用 baoyu-imagine 时使用 `--provider openai`
+- 确认 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中 `preferred_image_backend: openai`
+- 每个 subagent 调用 baoyu-image-gen 时使用 `--provider openai`
 - 失败时只用 OpenAI 重试，不切换后端
 - 如果 OpenAI 限流（429），稍后重试该图片
 - 如果内容审核失败，改 prompt，不换后端

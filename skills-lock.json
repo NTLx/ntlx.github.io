@@ -11,13 +11,13 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-article-illustrator/SKILL.md",
-      "computedHash": "ad7720b869c6ec83107ffca42cde601942647391ef9b19f12edfa6da00fb3a2b"
+      "computedHash": "14544d1f3b7ff8cfbb1e2604715059dd49d19af09c7a48a4ad75ff7ff21857b6"
     },
     "baoyu-comic": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-comic/SKILL.md",
-      "computedHash": "7bbfd552969e2eb3d954574d664bfd4e104e74132223416c623a546311fd6a81"
+      "computedHash": "b89c17fc16725a79905e4c59a10ac0947cde43c45164eabc37125df6d5be90f6"
     },
     "baoyu-compress-image": {
       "source": "JimLiu/baoyu-skills",
@@ -29,7 +29,7 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-cover-image/SKILL.md",
-      "computedHash": "8fd234433773716bc289d2ddbf4a1dfba77740070a095782174a9465108d3755"
+      "computedHash": "95523f6faca2c2f704b9379d2213cedf9b3579a91040cf1ec5ebda8e00dc5b0a"
     },
     "baoyu-diagram": {
       "source": "JimLiu/baoyu-skills",
@@ -49,6 +49,12 @@
       "skillPath": "skills/baoyu-image-cards/SKILL.md",
       "computedHash": "0a88e94444049988c4d7a3db20f33a53bae5052e7e6e1f4798b720f755ecc65c"
     },
+    "baoyu-image-gen": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baoyu-image-gen/SKILL.md",
+      "computedHash": "17cf61df4ed0c9d72d0c085013b2e6f50070e6be70b137681f0bfb3b5c64f8c6"
+    },
     "baoyu-imagine": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
@@ -59,19 +65,19 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-infographic/SKILL.md",
-      "computedHash": "641c85710c151fb1535a39e63475ddae36782a7cbebff89e9e8cdcd223000932"
+      "computedHash": "ab2d4a5c16c7e1e52a5467590ad141549ba3fd3cda7c6b43ffd443f495ea421d"
     },
     "baoyu-markdown-to-html": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-markdown-to-html/SKILL.md",
-      "computedHash": "68ec2028dbe345908d8df50422fbc79d28215a67b39d3e184bfcc8b45ec33b34"
+      "computedHash": "7b7142342002790b1de1f8fad625d1164a2b575f18591484bd693cba2175dcc8"
     },
     "baoyu-post-to-wechat": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-post-to-wechat/SKILL.md",
-      "computedHash": "cb697107d9323470e9c3a5c5adfdf55da6d07449036ab910642842fa6be6e7c9"
+      "computedHash": "16c2dbe74f7447b5738a98371085f1631de9172bd413ffe2d359c1052fca2514"
     },
     "baoyu-post-to-x": {
       "source": "JimLiu/baoyu-skills",
@@ -83,7 +89,7 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-slide-deck/SKILL.md",
-      "computedHash": "63a5ec3dd00d3a5d69b451fdd192a97f91bffffc82f9798b061c637ee4c663ea"
+      "computedHash": "b12fcd0b2d2c3af3d1a57e4623caea0d4b3d71b69aae19a279253a7a45b429f9"
     },
     "baoyu-translate": {
       "source": "JimLiu/baoyu-skills",
@@ -91,11 +97,30 @@
       "skillPath": "skills/baoyu-translate/SKILL.md",
       "computedHash": "3dc723aa4b86c4c6b8557faeec558e54f5bce5f9cf39aa629dd588ed6531df20"
     },
+    "baoyu-xhs-images": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baoyu-xhs-images/SKILL.md",
+      "computedHash": "5355c703ca1fccc9f43ccd1480a259cd5213175b6be6028e0ca9732dfa155bda"
+    },
+    "baoyu-youtube-transcript": {
+      "source": "JimLiu/baoyu-skills",
+      "sourceType": "github",
+      "skillPath": "skills/baoyu-youtube-transcript/SKILL.md",
+      "computedHash": "27582028cbdd9c81232fba1aafbfa609e4dc1167bff4f2e89ca48a3ecd07049b"
+    },
     "humanizer-zh": {
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
       "skillPath": "SKILL.md",
       "computedHash": "7bd195e3bcdcc24f078dfd4e3b3e37e8ac321c36f410a41241fc4175eab1825a"
+    },
+    "ljg-book": {
+      "source": "lijigang/ljg-skills",
+      "ref": "md",
+      "sourceType": "github",
+      "skillPath": "skills/ljg-book/SKILL.md",
+      "computedHash": "f27368a2af9b5798a3a364997180ba93134c051a79d3e8f9b3a7c1f0696f731a"
     },
     "ljg-card": {
       "source": "lijigang/ljg-skills",

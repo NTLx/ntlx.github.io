@@ -137,7 +137,7 @@ blog-slug:  coding-agents-social-sciences
 
 ## Step 4: 图片生成
 
-**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；然后通过 Agent 工具派发 subagent（最多 2 个并行）来调用 baoyu-imagine 逐张生成图片。**Agent 不得绕过技能模板手写 prompt**。
+**角色分工**：Agent 负责调用 baoyu 子技能 *走完其完整 prompt 构建流程*，生成符合规范的 prompt 文件；然后通过 Agent 工具派发 subagent（最多 2 个并行）来调用 baoyu-image-gen 逐张生成图片。**Agent 不得绕过技能模板手写 prompt**。
 
 ### 为什么必须用技能模板
 
@@ -213,7 +213,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 
 1. 加载环境变量：`set -a && source /home/lx/ntlx.github.io/.baoyu-skills/.env && set +a`
 2. 运行生图命令：
-   bun /home/lx/ntlx.github.io/.agents/skills/baoyu-imagine/scripts/main.ts \
+   bun /home/lx/ntlx.github.io/.agents/skills/baoyu-image-gen/scripts/main.ts \
      --promptfiles {prompt文件的绝对路径} \
      --image {输出图片的绝对路径} \
      --provider openai \
@@ -308,7 +308,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - **图片必须 CDN URL**：博客文章中 `imgs/...` 本地路径会导致 Astro 构建失败
 - **GitHub 上传禁止中文 name**：`--name` 使用纯 ASCII slug
 - **CWD 敏感**：Edit 工具用绝对路径，脚本调用前确保在项目根目录
-- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。每个 subagent 独立调用 baoyu-imagine，失败隔离，避免单脚本超时导致额度浪费
+- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。每个 subagent 独立调用 baoyu-image-gen，失败隔离，避免单脚本超时导致额度浪费
 - **封面不嵌入文字**：封面是视觉锤，文字交给推送卡片和正文标题
 
 ## 工具索引

@@ -61,13 +61,13 @@ interface ArticleOptions {
   title: string;
   author?: string;
   digest?: string;
-  sourceUrl?: string;
   content: string;
   thumbMediaId: string;
   articleType: ArticleType;
   imageMediaIds?: string[];
   needOpenComment?: number;
   onlyFansCanComment?: number;
+  contentSourceUrl?: string;
 }
 
 const TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token";
@@ -98,6 +98,63 @@ async function fetchAccessToken(
 function toHttpsUrl(url: string | undefined): string {
   if (!url) return "";
   return url.startsWith("http://") ? url.replace(/^http:\/\//i, "https://") : url;
+}
+
+function htmlToPlainText(html: string): string {
+  if (!html) return "";
+
+  let text = html;
+
+  // 1. 将 <br>, <br/>, <br /> 替换为换行符
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+
+  // 2. 将 </p>, </div>, </h1>, </h2>, </h3>, </h4>, </h5>, </h6>, </li> 替换为换行符
+  text = text.replace(/<\/(?:p|div|h[1-6]|li|tr|td|th)>/gi, "\n");
+
+  // 3. 去掉所有剩余的 HTML 标签
+  text = text.replace(/<[^>]+>/g, "");
+
+  // 4. 解码 HTML 实体
+  const entityMap: Record<string, string> = {
+    "&nbsp;": " ",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&amp;": "&",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&apos;": "'",
+    "&mdash;": "—",
+    "&ndash;": "–",
+    "&hellip;": "…",
+    "&ldquo;": "“",
+    "&rdquo;": "”",
+    "&lsquo;": "‘",
+    "&rsquo;": "’",
+  };
+  text = text.replace(/&(?:[a-zA-Z]+|#x[0-9a-fA-F]+|#\d+);/g, (entity) => {
+    if (entityMap[entity]) return entityMap[entity];
+    const hexMatch = entity.match(/^&#x([0-9a-fA-F]+);$/);
+    if (hexMatch) {
+      return String.fromCodePoint(Number.parseInt(hexMatch[1]!, 16));
+    }
+    const numMatch = entity.match(/^&#(\d+);$/);
+    if (numMatch) {
+      return String.fromCodePoint(Number.parseInt(numMatch[1]!, 10));
+    }
+    return entity;
+  });
+
+  // 5. 合并多个连续空白字符（空格、制表符、换行）为一个空格
+  text = text.replace(/[ \t]+/g, " ");
+
+  // 6. 合并多个连续换行为一个换行
+  text = text.replace(/\n{3,}/g, "\n\n");
+
+  // 7. 去掉行首行尾空白
+  text = text.split("\n").map(line => line.trim()).join("\n");
+
+  // 8. 最终 trim
+  return text.trim();
 }
 
 async function uploadImage(
@@ -296,10 +353,15 @@ async function publishToDraft(
     if (!options.imageMediaIds || options.imageMediaIds.length === 0) {
       throw new Error("newspic requires at least one image");
     }
+    // newspic 的 content 应该是纯文本，需要：
+    // 1. 去掉 HTML 标签
+    // 2. 解码 HTML 实体（&nbsp;、&lt; 等）
+    // 3. 合并多余空白字符
+    const plainContent = htmlToPlainText(options.content);
     article = {
       article_type: "newspic",
       title: options.title,
-      content: options.content,
+      content: plainContent,
       need_open_comment: noc,
       only_fans_can_comment: ofcc,
       image_info: {
@@ -307,7 +369,6 @@ async function publishToDraft(
       },
     };
     if (options.author) article.author = options.author;
-    if (options.sourceUrl) article.content_source_url = options.sourceUrl;
   } else {
     article = {
       article_type: "news",
@@ -319,7 +380,7 @@ async function publishToDraft(
     };
     if (options.author) article.author = options.author;
     if (options.digest) article.digest = options.digest;
-    if (options.sourceUrl) article.content_source_url = options.sourceUrl;
+    if (options.contentSourceUrl) article.content_source_url = options.contentSourceUrl;
   }
 
   const res = await client(url, {
@@ -420,10 +481,10 @@ Options:
   --title <title>     Override title
   --author <name>     Author name (max 16 chars)
   --summary <text>    Article summary/digest (max 128 chars)
-  --source-url <url>  Original article URL shown as "Read original" / 原文链接
   --theme <name>      Theme name for markdown (default, grace, simple, modern). Default: default
   --color <name|hex>  Primary color (blue, green, vermilion, etc. or hex)
   --cover <path>      Cover image path (local or URL)
+  --source-url <url>  Original article URL (shown as "原文链接" in WeChat)
   --account <alias>   Select account by alias (for multi-account setups)
   --no-cite           Disable bottom citations for ordinary external links in markdown mode
   --dry-run           Parse and render only, don't publish
@@ -442,7 +503,6 @@ Frontmatter Fields (markdown):
   title               Article title
   author              Author name
   digest/summary      Article summary
-  sourceUrl           Original article URL
   coverImage/featureImage/cover/image   Cover image path
 
 Comments:
@@ -476,11 +536,11 @@ interface CliArgs {
   title?: string;
   author?: string;
   summary?: string;
-  sourceUrl?: string;
   theme: string;
   color?: string;
   cover?: string;
   account?: string;
+  sourceUrl?: string;
   citeStatus: boolean;
   dryRun: boolean;
   remote: boolean;
@@ -522,8 +582,6 @@ function parseArgs(argv: string[]): CliArgs {
       args.author = argv[++i];
     } else if (arg === "--summary" && argv[i + 1]) {
       args.summary = argv[++i];
-    } else if (arg === "--source-url" && argv[i + 1]) {
-      args.sourceUrl = argv[++i];
     } else if (arg === "--theme" && argv[i + 1]) {
       args.theme = argv[++i]!;
     } else if (arg === "--color" && argv[i + 1]) {
@@ -532,6 +590,8 @@ function parseArgs(argv: string[]): CliArgs {
       args.cover = argv[++i];
     } else if (arg === "--account" && argv[i + 1]) {
       args.account = argv[++i];
+    } else if (arg === "--source-url" && argv[i + 1]) {
+      args.sourceUrl = argv[++i];
     } else if (arg === "--cite") {
       args.citeStatus = true;
     } else if (arg === "--no-cite") {
@@ -638,7 +698,6 @@ async function main(): Promise<void> {
   let title = args.title || "";
   let author = args.author || "";
   let digest = args.summary || "";
-  let sourceUrl = args.sourceUrl || "";
   let htmlPath: string;
   let htmlContent: string;
   let frontmatter: Record<string, string> = {};
@@ -655,7 +714,6 @@ async function main(): Promise<void> {
       if (!title && frontmatter.title) title = frontmatter.title;
       if (!author) author = frontmatter.author || "";
       if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
-      if (!sourceUrl) sourceUrl = frontmatter.sourceUrl || "";
     }
     if (!title) {
       title = extractHtmlTitle(fs.readFileSync(htmlPath, "utf-8"));
@@ -674,7 +732,6 @@ async function main(): Promise<void> {
     }
     if (!author) author = frontmatter.author || "";
     if (!digest) digest = frontmatter.digest || frontmatter.summary || frontmatter.description || "";
-    if (!sourceUrl) sourceUrl = frontmatter.sourceUrl || "";
 
     console.error(`[wechat-api] Theme: ${args.theme}${args.color ? `, color: ${args.color}` : ""}, citeStatus: ${args.citeStatus}`);
     const rendered = renderMarkdownWithPlaceholders(filePath, args.theme, args.color, args.citeStatus, args.title);
@@ -703,7 +760,6 @@ async function main(): Promise<void> {
   console.error(`[wechat-api] Title: ${title}`);
   if (author) console.error(`[wechat-api] Author: ${author}`);
   if (digest) console.error(`[wechat-api] Digest: ${digest.slice(0, 50)}...`);
-  if (sourceUrl) console.error(`[wechat-api] Source URL: ${sourceUrl}`);
   console.error(`[wechat-api] Type: ${args.articleType}`);
 
   const extConfig = loadWechatExtendConfig();
@@ -718,7 +774,6 @@ async function main(): Promise<void> {
       title,
       author: author || undefined,
       digest: digest || undefined,
-      sourceUrl: sourceUrl || undefined,
       htmlPath,
       contentLength: htmlContent.length,
       placeholderImageCount: contentImages.length || undefined,
@@ -787,13 +842,13 @@ async function main(): Promise<void> {
       title,
       author: author || undefined,
       digest: digest || undefined,
-      sourceUrl: sourceUrl || undefined,
       content: htmlContent,
       thumbMediaId,
       articleType: args.articleType,
       imageMediaIds: args.articleType === "newspic" ? imageMediaIds : undefined,
       needOpenComment: resolved.need_open_comment,
       onlyFansCanComment: resolved.only_fans_can_comment,
+      contentSourceUrl: args.sourceUrl || undefined,
     }, accessToken, client);
 
     console.log(JSON.stringify({
