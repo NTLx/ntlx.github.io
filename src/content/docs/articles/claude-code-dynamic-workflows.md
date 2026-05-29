@@ -6,7 +6,7 @@ date: 2026-05-29
 category: ai-coding
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-00-infographic-core-summary-1.png)
 
 5 月 28 号，Anthropic 在发布 Opus 4.8 的同时，悄悄放出了一个叫 Dynamic Workflows 的功能。研究预览，没有大肆宣传。
 
@@ -16,7 +16,7 @@ category: ai-coding
 
 ## 计划住在哪儿
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-01-orchestration-comparison.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-01-orchestration-comparison-1.png)
 
 Claude Code 的官方文档里有一张表，比较了 Subagents、Skills 和 Workflows。乍一看三者都是"让 AI 做多步任务"，区别只是调度方式不同。
 
@@ -38,7 +38,7 @@ Workflow 把计划搬到了 JavaScript 脚本里。`phase()` 定义阶段，`age
 
 ## 从管 Agent 到造编排器
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-02-eight-stages-evolution.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-02-eight-stages-evolution-1.png)
 
 徐靖峰画过一个 **AI 编程的 8 阶段模型**。前 7 个阶段描述的是人和 agent 之间越来越紧密的耦合：
 
@@ -62,7 +62,7 @@ Workflow 把计划搬到了 JavaScript 脚本里。`phase()` 定义阶段，`age
 
 ## 75 万行的证据
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-03-bun-rewrite-flow.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-29-claude-code-dynamic-workflows-img-03-bun-rewrite-flow-1.png)
 
 Bun 是一个 JavaScript 运行时，速度极快，最初用 Zig 写。Sumner 决定把它移植到 Rust。
 
