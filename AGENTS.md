@@ -38,7 +38,8 @@
 - 调用方式两种：**Skill 工具调用型**（读 `SKILL.md` 走工作流）/ **脚本执行型**（`bun run <skill>/scripts/...`）
 - 用 `npx skills` 管理版本，锁文件 `skills-lock.json` 入库
 - 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
-- **第三方技能本地补丁**：`baoyu-post-to-wechat` 由 `npx skills` 管理，升级可能覆盖本地补丁。当前 `wechat-article-write` 依赖 `.agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts` 支持 `--source-url` 并写入微信公众号草稿字段 `content_source_url`，用于把博客 URL 作为"原文链接"。升级后若微信草稿缺少原文链接，先检查 `wechat-article-write/SKILL.md` 的"第三方技能本地补丁记录"并复查 `source-url|content_source_url|sourceUrl`
+- **第三方技能本地补丁**：`baoyu-post-to-wechat`（基准版本 `1.118.0`）由 `npx skills` 管理，升级可能覆盖本地补丁。当前 `wechat-article-write` 依赖 `.agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts` 支持 `--source-url` 并写入微信公众号草稿字段 `content_source_url`，用于把博客 URL 作为"原文链接"。升级后若微信草稿缺少原文链接，先检查 `wechat-article-write/SKILL.md` 的"第三方技能本地补丁记录"并复查 `source-url|content_source_url|sourceUrl`
+- **第三方技能升级时的版本追踪**：当用户明确说第三方技能已升级或调整时，Agent 必须主动读取 `baoyu-post-to-wechat/SKILL.md` frontmatter 的 `version` 字段，与本文件及 `wechat-article-write/SKILL.md` 中的基准版本对比。若版本变化，同时更新两处的基准版本记录，并复查 `--source-url` 补丁是否被覆盖
 
 ## 管线概览（wechat-article-write）
 
@@ -74,6 +75,7 @@
 | **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
 | **Git 跟踪** | `.agents/skills/` ✅ 入库；`.claude/skills/` ❌（gitignore，符号链接）；`skills-lock.json` ✅；`posts/` ❌（gitignore） |
 | **Shell 安全引用** | 所有 shell 脚本中涉及用户提供的路径必须使用引号包裹（`"$var"`），防止路径含空格或特殊字符时命令注入或路径断裂 |
+| **第三方技能禁止擅自修改** | `.agents/skills/` 下由 `npx skills` 管理的第三方技能（`baoyu-*`、`ljg-*` 等），Agent 不得擅自修改其源码（SKILL.md、scripts、references）。必须征得用户明确同意才能修改。`npx skills` 更新版本不受此限制，但更新后必须复查已知本地补丁是否被覆盖（见 Skill 系统入口的补丁记录） |
 
 ## 部署
 

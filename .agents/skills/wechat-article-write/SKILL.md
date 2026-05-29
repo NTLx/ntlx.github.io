@@ -47,7 +47,7 @@ Skill 脚本查找优先级：项目级 `.agents/skills/` > 用户级 `~/.claude
 
 `baoyu-post-to-wechat` 是通过 `npx skills` 管理的第三方技能，升级后可能覆盖本地改动。当前项目依赖下列补丁：
 
-- 基准版本：`baoyu-post-to-wechat` SKILL frontmatter `version: 1.117.5`
+- 基准版本：`baoyu-post-to-wechat` SKILL frontmatter `version: 1.118.0`
 - 补丁文件：`.agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts`
 - 补丁内容：支持 CLI 参数 `--source-url`，并在调用微信公众号草稿 API 时写入 `content_source_url`
 - 调用方：`scripts/publish-wechat.mjs` 从 `article.md` frontmatter 读取 `sourceUrl`，传给 `wechat-api.ts --source-url`
