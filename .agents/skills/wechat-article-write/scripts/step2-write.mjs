@@ -20,9 +20,10 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
-import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { postsRoot } from "./path-resolver.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
+import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 
 const args = process.argv.slice(2);
 const allowNoReferences = args.includes("--allow-no-references");
@@ -52,15 +53,8 @@ if (!existsSync(draftPath)) {
   process.exit(2);
 }
 
-const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
-const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 const content = readFileSync(draftPath, "utf8");
 
-// Parse frontmatter
-function readFm(file, key) {
-  const r = spawnSync("bun", ["run", resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/set-frontmatter.mjs"), file, "get", key], { encoding: "utf8" });
-  return (r.stdout ?? "").trim();
-}
 
 function fail(code, msg) {
   process.stderr.write(`step2: FAIL - ${msg}\n`);
@@ -69,14 +63,14 @@ function fail(code, msg) {
 }
 
 // 1. Frontmatter completeness
-const title = readFm(draftPath, "title");
-const date = readFm(draftPath, "date");
-const summary = readFm(draftPath, "summary");
-const category = readFm(draftPath, "category");
-const blogSlug = readFm(draftPath, "blogSlug");
-const coverImage = readFm(draftPath, "coverImage");
-const sourceUrl = readFm(draftPath, "sourceUrl");
-const targetPath = readFm(draftPath, "targetPath");
+const title = readFmValue(content, "title");
+const date = readFmValue(content, "date");
+const summary = readFmValue(content, "summary");
+const category = readFmValue(content, "category");
+const blogSlug = readFmValue(content, "blogSlug");
+const coverImage = readFmValue(content, "coverImage");
+const sourceUrl = readFmValue(content, "sourceUrl");
+const targetPath = readFmValue(content, "targetPath");
 
 if (!title) fail(2, "frontmatter.title 缺失");
 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(2, `frontmatter.date 不合法: ${date}`);
@@ -109,11 +103,8 @@ if (!targetPath) {
 }
 
 // 2. Word count (Chinese characters + English words)
-const bodyStart = content.indexOf("\n---\n", 4);
-const body = bodyStart !== -1 ? content.slice(bodyStart + 5) : content;
-const chineseChars = (body.match(/[\u4e00-\u9fff]/g) ?? []).length;
-const englishWords = body.replace(/[\u4e00-\u9fff]/g, " ").split(/\s+/).filter(w => /^[a-zA-Z]/.test(w)).length;
-const wordCount = chineseChars + englishWords;
+const body = extractBody(content);
+const { total: wordCount, chineseChars, englishWords } = countWords(body);
 if (wordCount < minWords) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< ${minWords} — 请补充内容达到 ${minWords} 字以上${minWords === 2000 ? '（ljg-writes 默认 1000-1500 字，调用时需明确指定"字数下限 2000"）' : ""}`);
 
 // 3. H1 check

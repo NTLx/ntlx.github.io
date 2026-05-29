@@ -24,8 +24,9 @@ import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markBlogDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE } from "./validation-lib.mjs";
+import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 
-const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-models", "security", "engineering"];
 
 function run(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { stdio: "inherit", encoding: "utf8", ...opts });
@@ -96,25 +97,6 @@ function printHelp() {
 `);
 }
 
-function splitFm(raw) {
-  if (!raw.startsWith("---\n")) return null;
-  const end = raw.indexOf("\n---\n", 4);
-  if (end === -1) return null;
-  return { fm: raw.slice(4, end), body: raw.slice(end + 5) };
-}
-
-function parseFm(fmText) {
-  const out = {};
-  for (const line of fmText.split("\n")) {
-    const m = line.match(/^([\w$]+)\s*:\s*(.*)$/);
-    if (!m) continue;
-    let v = m[2].trim();
-    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
-    out[m[1]] = v;
-  }
-  return out;
-}
-
 function buildBlogFm(fm) {
   // 管线专用字段不写入博客文章：coverImage（微信轨专用）、sourceUrl（微信轨引用）、blogSlug（发布定位）、targetPath（自定义路径）。
   const excluded = ["infographicPosition", "coverImage", "sourceUrl", "blogSlug", "targetPath"];
@@ -138,7 +120,6 @@ function quote(v) {
 
 // date-slug -> blog slug：优先使用 --blog-slug，其次 frontmatter.blogSlug，否则去掉前导日期。
 // 项目硬规则：blog slug 必须为小写 ASCII kebab-case，禁止中文。
-const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 function validateBlogSlug(slug, label) {
   if (!ASCII_SLUG_RE.test(slug)) {
     process.stderr.write(`publish-blog: ${label} "${slug}" 不符合 ASCII kebab-case 规则（${ASCII_SLUG_RE}）\n`);
@@ -194,12 +175,12 @@ if (!existsSync(articlePath)) {
 }
 
 const raw = readFileSync(articlePath, "utf8");
-const split = splitFm(raw);
-if (!split) {
+const fm = parseFrontmatter(raw);
+if (!fm) {
   process.stderr.write("publish-blog: article.md 缺少 frontmatter\n");
   process.exit(2);
 }
-const fm = parseFm(split.fm);
+const body = extractBody(raw);
 
 // 必填字段校验
 for (const k of ["title", "date", "summary", "category"]) {
@@ -227,7 +208,7 @@ if (!customTargetPath) {
 }
 
 const blogFm = buildBlogFm(fm);
-const blogContent = blogFm + split.body;
+const blogContent = blogFm + body;
 
 if (opts.dryRun) {
   process.stdout.write(`[dry-run] would write ${targetPath} (${blogContent.length} bytes)\n`);
