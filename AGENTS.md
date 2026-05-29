@@ -1,9 +1,10 @@
 # AGENTS.md
 
-此文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的共享入口约定。详细规范分散在以下三个权威文件，本文件仅做入口聚合：
+此文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的共享入口约定。详细规范分散在以下权威文件，本文件仅做入口聚合：
 
 - 微信 + 博客双轨发布管线 → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
 - 技术博文编写规范 → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
+- 行为准则 → [`CLAUDE.md`](CLAUDE.md)（与用户级 `~/CLAUDE.md` 合并生效）
 
 ## 项目定位
 
@@ -27,7 +28,7 @@
 - `src/components/`：自定义 Astro 组件
 - `posts/YYYY-MM-DD-slug/`：管线中间产物（`.gitignore`），最终产物落到 `src/content/docs/articles/`
 - `.agents/skills/`：项目级技能源（必须入库）
-- `.baoyu-skills/<skill>/EXTEND.md`：技能偏好配置（必须入库；密钥单独放 `~/.baoyu-skills/.env`）
+- `.baoyu-skills/<skill>/EXTEND.md`：技能偏好配置（必须入库；密钥单独放项目级 `.baoyu-skills/.env`，已被 `.gitignore` 忽略）
 - `.github/workflows/deploy.yml`：推 `main` → 自动构建并部署到 GitHub Pages
 - `public/`：静态资源（`favicon.ico` / `CNAME`）
 
@@ -47,8 +48,20 @@
 - **微信原文链接**：Step 6.2 必须把博客 URL（`https://ntlx.github.io/articles/<blog-slug>`）作为微信公众号"原文链接"传入；该能力依赖 `baoyu-post-to-wechat` 的本地 `--source-url` 补丁
 - **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑。Step 6 博客/微信子状态独立管理：`state.mjs blog <slug> get` / `state.mjs wechat <slug> get` 查询
 - **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下本地目录名（可含中文）；blog-slug 是 `articles/` 下 URL 文件名（必须纯 ASCII kebab-case）
-- **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传
+- **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传。两轨零共享中间产物
 - 所有校验逻辑已封装在 step 脚本内，agent 只调用脚本、解读退出码
+
+## 管线脚本架构
+
+脚本分为三层：门控脚本（step1-4）、构建脚本（step5-6）、共享库。
+
+| 层 | 脚本 | 说明 |
+|---|---|---|
+| 门控 | `step1-collect` ~ `step4-images` | Agent 完成智能判断后运行，脚本做校验 + 状态写入 |
+| 构建 | `step5-build` / `publish-blog` / `publish-wechat` | 确定性自动化，无需 agent 干预 |
+| 共享 | `validation-lib` / `frontmatter-lib` / `state-lib` / `path-resolver` / `config-lib` | 被多个脚本 import，消除重复实现 |
+
+共享库中 `frontmatter-lib.mjs` 提供 `parseFrontmatter` / `readFmValue` / `extractBody`，替代此前 4 个脚本各自内联的 frontmatter 解析。`validation-lib.mjs` 提供 `VALID_CATEGORIES` / `ASCII_SLUG_RE` / `countWords`，统一分类白名单、slug 规则和字数统计。
 
 ## 硬规则
 
@@ -72,7 +85,7 @@
 
 为防止自动流水线在复杂操作中级联故障，agent 在执行任何多步内容构建或发布任务时，必须严格遵守以下工程铁律：
 
-1. **幂等操作与状态回滚**：多步文件处理（sed / Python / 内联脚本）出错后**严禁**对脏文件继续打补丁。验证失败必须从上一个干净备份（如 `draft.md` / `article-local.md`）重新生成，或 `git checkout` 恢复原状。复杂 DOM / 文本树修改优先用解析器或内置技能，不要临时拼凑内联 Python。
+1. **幂等操作与状态回滚**：多步文件处理出错后**严禁**对脏文件继续打补丁。验证失败必须从上一个干净备份（`draft.md`）重新生成，或 `git checkout` 恢复原状。复杂 DOM / 文本树修改优先用解析器或内置技能，不要临时拼凑内联 Python。
 
 2. **防呆检查与验证驱动执行（VDE）**：向外部生产环境（公众号 / GitHub）提交数据前必须做终态验证：
    - 检查最终 Markdown / HTML 格式（异常空行、未解析占位符）
