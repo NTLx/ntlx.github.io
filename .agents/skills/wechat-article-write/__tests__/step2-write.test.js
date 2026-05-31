@@ -14,6 +14,8 @@ import { spawnSync } from "node:child_process";
 const SCRIPT = resolve(import.meta.dir, "../scripts/step2-write.mjs");
 const TMP_ROOT = join(tmpdir(), `step2-write-test-${Date.now()}`);
 const VALID_BODY = `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
 ## 正文
 
 一些测试正文内容。
@@ -86,5 +88,26 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
     const r = runStep2(slug);
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("与 blogSlug");
+  });
+
+  test("missing SLOT_IMG placeholder fails", () => {
+    const slug = "2026-05-17-missing-slot-img";
+    const dir = join(TMP_ROOT, slug);
+    mkdirSync(dir, { recursive: true });
+    const fm = {
+      title: "测试文章",
+      date: "2026-05-17",
+      summary: "用于测试 Step 2 门控。",
+      category: "ai-coding",
+      blogSlug: "valid-blog-slug",
+      coverImage: "cover.png",
+      sourceUrl: "https://ntlx.github.io/articles/valid-blog-slug",
+    };
+    const lines = Object.entries(fm).map(([k, v]) => `${k}: ${v}`);
+    writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n一些正文内容。\n`);
+
+    const r = runStep2(slug);
+    expect(r.status).toBe(4);
+    expect(r.stderr).toContain("SLOT_IMG");
   });
 });

@@ -30,6 +30,7 @@
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { postsRoot } from "./path-resolver.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders } from "./validation-lib.mjs";
 
 function loadMap(p) {
   if (!existsSync(p)) {
@@ -64,9 +65,9 @@ function buildResolver(map, imgsDir) {
 
 function replaceWithCdn(md, resolver, map) {
   // 1) 替换注释占位符 <!-- SLOT_IMG_NN_xxx -->
-  let out = md.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
-    const r = resolver(raw);
-    if (!r || !r.cdn) return _full; // 留着触发后续 grep 校验
+  let out = replaceSlotPlaceholders(md, (match, slot, desc) => {
+    const r = resolver(match);
+    if (!r || !r.cdn) return match; // 留着触发后续 grep 校验
     return `![](${r.cdn})`;
   });
   // 2) 兼容：插图 agent 已经把占位符提前替换为 markdown 图片语法
@@ -82,9 +83,9 @@ function replaceWithCdn(md, resolver, map) {
 
 function replaceWithLocal(md, resolver) {
   // article-local.md 用于 CDN 不可达时的降级渲染，保留本地路径即可
-  return md.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
-    const r = resolver(raw);
-    if (!r) return _full;
+  return replaceSlotPlaceholders(md, (match, slot, desc) => {
+    const r = resolver(match);
+    if (!r) return match;
     return `![](imgs/${r.file})`;
   });
 }
@@ -139,12 +140,12 @@ const cdnMd = replaceWithCdn(draft, resolver, map);
 
 writeFileSync(resolve(baseDir, "article.md"), cdnMd);
 
-const stillHasSlot = /<!--\s*SLOT_IMG_/.test(cdnMd);
+const stillHasSlot = SLOT_RESIDUAL_RE.test(cdnMd);
 const stillHasLocal = /!\[[^\]]*\]\((?:\.\/)?imgs\//.test(cdnMd);
 if (stillHasSlot || stillHasLocal) {
   process.stderr.write("apply-image-map.mjs: 仍有未消解的占位符或本地路径，请检查 image-map.json 或 imgs/\n");
   if (stillHasSlot) {
-    const leftovers = [...cdnMd.matchAll(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g)].map((m) => m[1]);
+    const leftovers = [...cdnMd.matchAll(SLOT_EXTRACT_RE)].map((m) => m[0]);
     process.stderr.write("  unresolved SLOT placeholders: " + leftovers.join(", ") + "\n");
   }
   if (stillHasLocal) {
