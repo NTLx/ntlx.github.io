@@ -31,8 +31,6 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 
 1. 通过 **Skill 工具调用 ljg-writes**，传入：
    - 资料内容：`posts/{date-slug}/materials.md`
-   - 扩展模式：目标 2000-3500 字（材料丰富则 3500-5000），字数下限 2000 硬门控
-   - **必须明确强调字数下限 2000 字**：ljg-writes 自身默认 1000-1500 字，与本管线要求冲突。在 prompt 中使用"字数下限 2000 字，不可低于此数"覆盖 ljg-writes 的默认约束
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
@@ -86,7 +84,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
-脚本校验：字数 ≥ 2000（不足时提示需补充，并说明 ljg-writes 默认 1000-1500 字需明确指定下限）、frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 原文参考`。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。
+脚本校验：frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 原文参考`。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
 ## Step 3: 文本后处理
 行为: full
@@ -102,9 +100,9 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG 占位符存在、字数 ≥ 2000、原文参考存在）。任一不通过 fail。
+脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG 占位符存在、原文参考存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
-**字数弹性门控**：humanizer-zh 精简是预期行为。字数 ≥ 1800 但 < 2000 时，脚本打印 WARNING 并通过（输出含 `word_count_warning: true`），Agent 应补充 1-2 段落使字数达到 2000+；字数 < 1800 时 fail（说明文章本身内容不足，需回到 Step 2 补充）。
+若材料丰富度超出单篇承载能力，参考 SKILL.md 的 Split Decision 章节进行多文章拆分。
 
 ## 特殊约束
 - 必须采用读后感式原创表达，禁止写成翻译和摘要

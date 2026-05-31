@@ -24,11 +24,12 @@ description: >
 - **失败可恢复**：某步失败报告错误并写状态；`state.mjs next <date-slug>` 返回续跑位置
 - **脚本化**：所有校验和文件操作封装在 `scripts/` 下。Agent 负责调用脚本 + 解读退出码；禁止内联超过 5 行的 bash/python
 - **策略驱动**：Steps 1-3 的行为由策略文件决定（Step 0 选择），Steps 4-6 不受策略影响
-- **图片后端固定为 OpenAI**：文内插图、信息图和封面必须使用 OpenAI。Step 4 失败时只重试 OpenAI，**不要自动降级到其他后端**
+- **图片后端从 EXTEND.md 读取**：Step 4 开始前，Agent 必须读取 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `preferred_image_backend` 值，作为文生图 provider。Step 4 失败时只用该 provider 重试，**不要自动降级到其他后端**
 - **封面不使用文字**：封面是视觉锤，文字交给推送卡片
 - **分类全自动**：suggest-category.mjs 推荐，低置信度（top-2 分差 < 15%）时询问用户
 - **信息图默认生成**：SLOT 00 不是可选的——它是文章视觉摘要的默认组件
 - **金句摘要硬性必填**：frontmatter `summary` 是微信草稿箱 digest 字段的唯一来源，必须是一句"金句"式摘要（≤120 字）。publish-wechat.mjs 缺 summary 直接 fail
+- **字数控制委托给 ljg-writes**：ljg-writes 技能内置 1000-1500 字自律约束，本管线不再叠加字数门槛。管线脚本仅记录 word_count 供状态查询，不作为通过/失败条件
 - **原文链接必填**：微信公众号草稿必须把博客文章公网地址作为"原文链接"（`content_source_url`）。sourceUrl 在 Step 2 预先写入，Step 6.2 必须传给微信 API
 - **图片 prompt 必须从技能模板构建**：baoyu 系列技能的 prompt 模板包含针对特定模型的渲染指令。跳过模板手写 prompt 会导致文字模糊或变形
 
@@ -68,6 +69,7 @@ rg -n "source-url|content_source_url|sourceUrl" \
 |------|------|--------|------|
 | 0 | 文章类型判定 | Agent | 选择策略文件 |
 | 1-3 | 内容创作 | Agent | 按策略文件执行 |
+| Split | 多文章拆分评估 | Agent | Step 1 后判断是否拆分为多篇（见 Split Decision 章节） |
 | 4 | 图片生成 | Agent 派发 subagent + 脚本门控 | 最多 2 个 subagent 并行 |
 | 5 | 产物构建 | 脚本 | 不变 |
 | 6 | 双轨发布 | 脚本 | 不变 |
@@ -123,6 +125,42 @@ blog-slug:  coding-agents-social-sciences
 - Agent 必须在进入 Step 1 之前完成策略选择
 - 如果不确定策略选择，**必须**向用户确认，不得自行假设
 
+## Split Decision: 多文章拆分评估
+
+**在 Step 1 完成后、Step 2 开始前执行。** 当材料丰富度和价值密度超出单篇 ljg-writes 文章（1000-1500 字）的承载能力时，Agent 应有意识地判断是否拆分为多篇文章。
+
+### 为什么需要拆分判断
+
+ljg-writes 的自律约束保证每篇文章有锋利的观点和紧凑的篇幅。但如果调研材料包含多个相互独立、各有深度的主题，硬塞进一篇反而会稀释每个论点的穿透力。拆分不是"写更多字"，而是"让每篇文章更有力"。
+
+### 评估标准
+
+审视 materials.md，回答：用一篇 ljg-writes 文章能把最有价值的信息都传达给读者吗？
+
+- **信息丰富度**：材料是否包含 3 个以上相互独立的、各有深度的主题/论点？
+- **价值密度**：每个主题是否都值得独立展开（而非一句话带过）？
+- **主题独立性**：拆分后每篇文章是否能独立成立、有自洽的论证链？
+
+### 决策流程
+
+1. **单篇足够** → 继续正常 Step 2
+2. **多篇更优** → 向用户提出拆分方案，包括：
+   - 每篇文章的主题和核心论点
+   - 每篇文章覆盖的材料范围
+   - 建议的发布顺序
+3. **用户确认后** → 为每篇文章创建独立的 `posts/{date-slug}/` 目录
+4. 每篇文章从 Step 2 开始独立走完整管线（含双轨发布）
+
+### 拆分执行
+
+- 将 materials.md 复制到每个目录，各篇只引用相关部分
+- 每篇文章独立选择策略（不必与原文相同）
+- 每篇文章独立生成 blog-slug、封面、插图
+- 建议按逻辑关系排列发布顺序，但不强制
+- 每篇文章拥有完全独立的状态文件，与单篇文章管线无差异
+
+---
+
 ## Steps 1-3: 按策略文件执行
 
 读取 Step 0 选定的策略文件，按其定义的 Steps 1-3 执行。策略文件位于 `references/strategies/` 目录：
@@ -154,7 +192,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ### 整体流程
 
 ```
-确认 OpenAI 后端
+读取 EXTEND.md 确认 provider
   → 调用 baoyu 子技能（走完整 prompt 构建流程）为每张图生成规范 prompt 文件
   → 主 Agent 直接派发 subagent 生成图片（每次最多 2 个并行，完成后立即派发下一批）
   → 失败的图片由主 Agent 重新派发 subagent 重试（最多 1 次）
@@ -202,7 +240,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 **调度规则**：从 `imgs/prompts/` 目录下的 prompt 文件列表构建任务清单，每次派发最多 **2 个 subagent**（使用 Agent 工具），完成后立即派发下一批。失败的图片重新派发 1 次（同样限 2 并行）。
 
 **重要约束**：
-- 严格控制并行度：每批最多 2 个 subagent，不要一次派发 3+ 个。OpenAI API 有速率限制，过度并行会导致全部失败
+- 严格控制并行度：每批最多 2 个 subagent，不要一次派发 3+ 个。图片 API 有速率限制，过度并行会导致全部失败
 - 重试仅限 1 次：如果一张图片重试后仍然失败，标记该图片为失败并继续生成其余图片，不要反复重试同一张图浪费额度
 - 逐张处理：每个 subagent 只生成 1 张图，不要让一个 subagent 生成多张。这样失败隔离，一张失败不影响其他
 
@@ -211,15 +249,16 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 ```
 生成一张图片。请严格按以下步骤执行：
 
-1. 加载环境变量：`set -a && source /home/lx/ntlx.github.io/.baoyu-skills/.env && set +a`
-2. 运行生图命令：
+1. 读取图片后端配置：`grep 'preferred_image_backend' /home/lx/ntlx.github.io/.baoyu-skills/baoyu-image-gen/EXTEND.md | head -1 | awk '{print $2}'`，将结果记为 $PROVIDER
+2. 加载环境变量：`set -a && source /home/lx/ntlx.github.io/.baoyu-skills/.env && set +a`
+3. 运行生图命令：
    bun /home/lx/ntlx.github.io/.agents/skills/baoyu-image-gen/scripts/main.ts \
      --promptfiles {prompt文件的绝对路径} \
      --image {输出图片的绝对路径} \
-     --provider openai \
+     --provider $PROVIDER \
      --ar {ar值，默认16:9}
-3. 确认图片文件已生成（检查文件大小 > 0）
-4. 报告结果：成功返回图片路径，失败返回错误信息
+4. 确认图片文件已生成（检查文件大小 > 0）
+5. 报告结果：成功返回图片路径和使用的 provider，失败返回错误信息
 
 注意：不要修改 prompt 文件内容，直接读取使用。超时设为 5 分钟。
 ```
@@ -296,7 +335,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 
 任何步骤失败时：
 1. 报告哪一步失败、错误原因
-2. 图片生成失败只允许用 OpenAI 重试；不要降级到其他后端
+2. 图片生成失败只允许用 EXTEND.md 配置的 provider 重试；不要降级到其他后端
 3. 图床上传失败：修复后重跑 Step 5；若 `image-map.json` 已完整，用 `--reuse-image-map`
 4. 依赖缺失：脚本会自动 `bun install`；若自动安装失败则手动安装
 5. `state.mjs next <date-slug>` 返回下一个待执行步骤，全部完成返回 `done`
@@ -308,7 +347,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - **图片必须 CDN URL**：博客文章中 `imgs/...` 本地路径会导致 Astro 构建失败
 - **GitHub 上传禁止中文 name**：`--name` 使用纯 ASCII slug
 - **CWD 敏感**：Edit 工具用绝对路径，脚本调用前确保在项目根目录
-- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。每个 subagent 独立调用 baoyu-image-gen，失败隔离，避免单脚本超时导致额度浪费
+- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。provider 从 EXTEND.md 的 `preferred_image_backend` 读取。每个 subagent 独立调用 baoyu-image-gen，失败隔离，避免单脚本超时导致额度浪费
 - **封面不嵌入文字**：封面是视觉锤，文字交给推送卡片和正文标题
 
 ## 工具索引
@@ -317,8 +356,8 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 | 脚本 | 用途 |
 |------|------|
 | `scripts/step1-collect.mjs` | Step 1: 资料验证 + 状态 |
-| `scripts/step2-write.mjs` | Step 2: 质量门控 + 状态 |
-| `scripts/step3-polish.mjs` | Step 3: 后处理验证 + 状态 |
+| `scripts/step2-write.mjs` | Step 2: 质量门控（frontmatter/互动/原文参考）+ 状态 |
+| `scripts/step3-polish.mjs` | Step 3: 后处理验证（frontmatter/SLOT_IMG/无H1）+ 状态 |
 | `scripts/step4-images.mjs` | Step 4: 格式修正 + 引用验证 + 状态 |
 | `scripts/step5-build.mjs` | Step 5: CDN + 占位符替换 + HTML 转换 + 状态 |
 | `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 |

@@ -8,13 +8,14 @@
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
  *   - SLOT_IMG 占位符未丢失
- *   - 字数 ≥ 2000
  *   - 原文参考 区块未丢失（若原文存在）
+ *
+ * 字数控制由 ljg-writes 技能自律负责，本脚本仅记录字数不设门控。
  *
  * 用法:
  *   bun run step3-polish.mjs <date-slug>
  *
- * 退出码: 0 通过（含字数 WARNING）；2 frontmatter/内容损坏；3 字数严重不足（<1800）
+ * 退出码: 0 通过；2 frontmatter/内容损坏
  */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -86,27 +87,8 @@ if (slotPlaceholders.length === 0) {
   fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }
 
-// 4. Word count
-//    默认：≥ 2000 pass；≥ 1800 WARNING (humanizer trim); < 1800 FAIL
-//    humanizer: skip 模式：字数下限 1800，无 WARNING 区间
+// 4. Word count (informational only — ljg-writes controls its own word count)
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
-
-if (humanizerSkip) {
-  // 教程策略：字数下限 1800（2000 × 90%），无弹性 WARNING
-  if (wordCount < 1800) {
-    fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 1800（教程策略字数下限 1800）`);
-  }
-} else {
-  if (wordCount < 1800) {
-    fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< 1800（polish 后字数严重不足，需回到 Step 2 补充内容）`);
-  } else if (wordCount < 2000) {
-    process.stderr.write(`step3: WARNING 字数 ${wordCount} < 2000 但 ≥ 1800 — humanizer 精简导致字数略低，Agent 请补充 1-2 段落使字数达到 2000+\n`);
-    // Non-blocking: pass step but include warning for Agent to act on
-    markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, word_count_warning: true });
-    process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, word_count_warning: true }) + "\n");
-    process.exit(0);
-  }
-}
 
 // 5. 原文参考 preserved (if it existed before polish — check current content)
 //    Read后感/review-type articles should retain this section

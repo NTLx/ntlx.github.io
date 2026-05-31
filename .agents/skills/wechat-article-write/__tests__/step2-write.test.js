@@ -16,7 +16,7 @@ const TMP_ROOT = join(tmpdir(), `step2-write-test-${Date.now()}`);
 const VALID_BODY = `
 ## 正文
 
-${"这是用于满足字数下限的正文内容。".repeat(260)}
+一些测试正文内容。
 
 *你怎么看这个问题?*
 

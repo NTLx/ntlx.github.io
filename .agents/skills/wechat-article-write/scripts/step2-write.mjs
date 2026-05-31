@@ -3,7 +3,6 @@
  * Step 2: 文章创作质量门控
  *
  * 校验 draft.md：
- *   - 字数 >= 2000（中文字符+英文单词，硬性下限）
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 文末互动存在
@@ -12,10 +11,12 @@
  *   - 原文参考区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
  *
- * 用法:
- *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer] [--min-words <N>]
+ * 字数控制由 ljg-writes 技能自律负责（1000-1500 字），本脚本仅记录字数不设门控。
  *
- * 退出码: 0 通过；2 frontmatter 缺失；3 字数不足；4 互动/原文参考缺失
+ * 用法:
+ *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer]
+ *
+ * 退出码: 0 通过；2 frontmatter 缺失；4 互动/原文参考缺失
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -28,24 +29,14 @@ import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 const args = process.argv.slice(2);
 const allowNoReferences = args.includes("--allow-no-references");
 const noHumanizer = args.includes("--no-humanizer");
-let minWords = 2000;
-const minWordsIdx = args.indexOf("--min-words");
-if (minWordsIdx !== -1 && args[minWordsIdx + 1]) {
-  const parsed = parseInt(args[minWordsIdx + 1], 10);
-  if (!isNaN(parsed) && parsed > 0) minWords = parsed;
-}
-// Slug is the positional argument — find args that aren't flags or flag values
-const flagsWithValue = new Set(["--min-words"]);
+// Slug is the positional argument — find args that aren't flags
 let slug = null;
 for (let i = 0; i < args.length; i++) {
-  if (args[i].startsWith("--")) {
-    if (flagsWithValue.has(args[i])) i++; // skip value
-    continue;
-  }
+  if (args[i].startsWith("--")) continue;
   slug = args[i];
   break;
 }
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer] [--min-words <N>]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--no-humanizer]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -102,10 +93,9 @@ if (!targetPath) {
   if (!/^https?:\/\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（需为合法 URL）: ${sourceUrl}`);
 }
 
-// 2. Word count (Chinese characters + English words)
+// 2. Word count (informational only — ljg-writes controls its own word count)
 const body = extractBody(content);
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
-if (wordCount < minWords) fail(3, `字数 ${wordCount}（中文${chineseChars}+英文${englishWords}）< ${minWords} — 请补充内容达到 ${minWords} 字以上${minWords === 2000 ? '（ljg-writes 默认 1000-1500 字，调用时需明确指定"字数下限 2000"）' : ""}`);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
