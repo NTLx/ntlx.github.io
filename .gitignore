@@ -40,3 +40,6 @@ yarn-error.log*
 
 # YouTube transcript cache
 youtube-transcript/
+
+# Raw research materials
+raw/
