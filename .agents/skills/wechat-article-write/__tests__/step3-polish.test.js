@@ -18,7 +18,7 @@ const BODY = `
 
 ## 正文
 
-${"这是用于满足字数下限的正文内容。".repeat(260)}
+一些测试正文内容。
 
 *你怎么看这个问题?*
 
@@ -116,7 +116,7 @@ describe("step3-polish gates", () => {
     cleanup.push(fx.root);
     const slug = "2026-05-18-missing-slot";
     writeDraft(fx.postsRoot, slug, {
-      body: `\n## 正文\n\n${"这是用于满足字数下限的正文内容。".repeat(260)}\n`,
+      body: `\n## 正文\n\n一些正文内容。\n`,
     });
 
     const r = runStep3(slug, fx.postsRoot);

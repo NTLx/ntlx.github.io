@@ -51,7 +51,7 @@ if (!/https?:\/\//.test(backgroundSection)) {
 }
 
 if (charCount < 200) {
-  process.stderr.write(`step1: WARNING materials.md 仅 ${charCount} 字（非空白），可能不足以支撑 2500 字文章\n`);
+  process.stderr.write(`step1: WARNING materials.md 仅 ${charCount} 字（非空白），材料可能偏少，写作深度可能受限\n`);
   // 非阻塞，继续
 }
 

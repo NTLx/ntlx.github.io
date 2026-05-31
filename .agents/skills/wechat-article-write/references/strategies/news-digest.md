@@ -26,13 +26,11 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
 - 不需要深度分析和个人判断，重在信息密度和覆盖面
-- 字数下限 1500，目标 2000-3000
-- 使用 `--min-words 1500` 参数运行 step2-write.mjs
 
 **脚本验证**：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
-  --min-words 1500 --allow-no-references
+  --allow-no-references
 ```
 
 ## Step 3: 文本后处理
