@@ -20,6 +20,7 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders } from "./validation-lib.mjs";
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
@@ -91,7 +92,7 @@ function buildSyntheticMap(files, namePrefix) {
 
 function validateImageMapCoverage(draft, files, map) {
   const hasUrl = file => typeof map[file] === "string" && /^https?:\/\//.test(map[file]);
-  const slotRefs = [...draft.matchAll(/<!--\s*SLOT_IMG_(\d{2})[^>]*-->/g)].map(m => m[1]);
+  const slotRefs = [...draft.matchAll(SLOT_EXTRACT_RE)].map(m => m[1]);
   for (const slotNum of slotRefs) {
     const file = files.find(f => f.startsWith(`${slotNum}-`));
     if (!file) fail(4, `SLOT_IMG_${slotNum} has no matching image in imgs/`);
@@ -214,12 +215,10 @@ if (existsSync(htmlPkgJson) && !existsSync(htmlNodeModules)) {
 const tempLocalMd = resolve(base, "_temp_local.md");
 let localMd = draft;
 
-localMd = localMd.replace(/<!--\s*(SLOT_IMG_\d{2}[^>]*?)\s*-->/g, (_full, raw) => {
-  const m = raw.match(/SLOT_IMG_(\d{2})(?:_([A-Za-z0-9_-]+))?/);
-  if (!m) return _full;
-  const nn = m[1];
+localMd = replaceSlotPlaceholders(localMd, (_match, slot, _desc) => {
+  const nn = String(slot).padStart(2, "0");
   const file = imgs.find(f => f.startsWith(`${nn}-`));
-  if (!file) return _full;
+  if (!file) return _match;
   return `![](imgs/${file})`;
 });
 
@@ -274,7 +273,7 @@ if (existsSync(wechatHtmlPath)) {
   const wechatHtml = readFileSync(wechatHtmlPath, "utf8");
 
   // No SLOT_IMG residuals
-  if (/SLOT_IMG_/.test(wechatHtml)) {
+  if (SLOT_RESIDUAL_RE.test(wechatHtml)) {
     fail(4, "article-wechat.html still has SLOT_IMG_ placeholders");
   }
 
@@ -297,7 +296,7 @@ if (!readFileSync(wechatHtmlPath, "utf8").includes("style=")) {
 }
 
 const articleContent = readFileSync(articlePath, "utf8");
-if (/<!--\s*SLOT_IMG_/.test(articleContent)) fail(4, "article.md still has SLOT_IMG_ placeholders");
+if (SLOT_RESIDUAL_RE.test(articleContent)) fail(4, "article.md still has SLOT_IMG_ placeholders");
 if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) fail(4, "article.md still has local imgs/ paths");
 
 markStepDone(slug, 5, { article_md: "article.md", article_wechat_html: "article-wechat.html", theme, color, reuse_image_map: reuseImageMap });

@@ -22,7 +22,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, SLOT_EXTRACT_RE } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
@@ -82,7 +82,7 @@ if (/^# /m.test(body)) {
 }
 
 // 3. SLOT_IMG placeholders preserved
-const slotPlaceholders = body.match(/<!--\s*SLOT_IMG_\d{2}[^>]*-->/g) || [];
+const slotPlaceholders = [...body.matchAll(SLOT_EXTRACT_RE)].map(m => m[0]);
 if (slotPlaceholders.length === 0) {
   fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }

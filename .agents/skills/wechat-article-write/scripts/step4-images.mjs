@@ -16,6 +16,8 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_DETECT_RE } from "./validation-lib.mjs";
+import { extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); process.exit(1); }
@@ -62,6 +64,7 @@ spawnSync("bun", ["run", setFmScript, draftPath, "set", "coverImage", `cover.${c
 
 // 3. Read draft.md (already validated to exist)
 const draft = readFileSync(draftPath, "utf8");
+const body = extractBody(draft);
 
 // 4. SLOT-only enforcement: no local imgs/ Markdown references allowed
 const localImgRefs = [...draft.matchAll(/!\[[^\]]*\]\([^)]*imgs\//g)];
@@ -71,7 +74,7 @@ if (localImgRefs.length > 0) {
 }
 
 // 5. SLOT_IMG validation: every referenced slot must have a matching image file
-const slotRefs = [...draft.matchAll(/<!--\s*SLOT_IMG_(\d{2})[^>]*-->/g)].map(m => m[1]);
+const slotRefs = [...body.matchAll(SLOT_EXTRACT_RE)].map(m => m[1]);
 if (slotRefs.length > 0) {
   const imgs = existsSync(imgsDir)
     ? readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
@@ -111,22 +114,18 @@ if (slotRefs.length > 0) {
 // 6. Infographic validation
 const infoFiles = existsSync(imgsDir) ? readdirSync(imgsDir).filter(f => f.startsWith("00-infographic")) : [];
 if (infoFiles.length > 0) {
-  const hasInfoRef = /infographic|SLOT_IMG_00/i.test(draft);
+  const hasInfoRef = /infographic|SLOT_IMG_00/i.test(body);
   if (!hasInfoRef) {
     process.stderr.write("step4: WARNING infographic file exists but not referenced in draft.md\n");
   }
 }
 
 // 7. SLOT_IMG_00_INFOGRAPHIC position constraint (non-blocking warning)
-if (/SLOT_IMG_00_INFOGRAPHIC/i.test(draft)) {
-  // Find body text after frontmatter (---...---)
-  const fmEnd = draft.indexOf("---", draft.indexOf("---") + 3);
-  if (fmEnd !== -1) {
-    const body = draft.slice(fmEnd + 3).trimStart();
-    const slotPos = body.search(/SLOT_IMG_00_INFOGRAPHIC/i);
-    if (slotPos > 200) {
-      process.stderr.write("step4: WARNING SLOT_IMG_00_INFOGRAPHIC is not near the top of the article body (>200 chars after frontmatter)\n");
-    }
+const slot00Match = body.match(/SLOT_IMG_00_INFOGRAPHIC/i);
+if (slot00Match) {
+  const slotPos = body.indexOf(slot00Match[0]);
+  if (slotPos > 200) {
+    process.stderr.write("step4: WARNING SLOT_IMG_00_INFOGRAPHIC is not near the top of the article body (>200 chars after frontmatter)\n");
   }
 }
 

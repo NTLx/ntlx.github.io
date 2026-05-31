@@ -5,6 +5,8 @@
  * 校验 draft.md：
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
+ *   - 正文无 H1
+ *   - SLOT_IMG 占位符存在（至少一个）
  *   - 文末互动存在
  *   - 正文无 H1
  *   - ## 原文参考 区块（默认必须，--allow-no-references 可跳过）
@@ -23,7 +25,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, hasSlotPlaceholders } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -99,6 +101,9 @@ const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
+
+// 3a. SLOT_IMG placeholder check
+if (!hasSlotPlaceholders(body)) fail(4, "正文缺少 SLOT_IMG 占位符（至少需要 <!-- SLOT_IMG_00_INFOGRAPHIC -->）");
 
 // 4. Interaction check
 if (!/\*[^*]+\?/.test(body) && !body.includes("*")) {
