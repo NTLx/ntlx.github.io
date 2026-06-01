@@ -225,7 +225,8 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 1. 封面不使用文字（`--text none`）
 2. 读取 `.claude/skills/baoyu-cover-image/references/workflow/prompt-template.md`
 3. 按模板创建 `imgs/prompts/00-cover-{slug}.md`
-4. 风格参数：type=conceptual, palette=cool, rendering=flat-vector, mood=bold
+4. 生图输出必须保存到 post 根目录 `cover.png`（即 `posts/{date-slug}/cover.png`），不要保存到 `imgs/cover.png`。`imgs/` 只放 `SLOT_IMG_*` 对应的正文图片
+5. 风格参数：type=conceptual, palette=cool, rendering=flat-vector, mood=bold
 
 #### Prompt 质量检查清单（派发 subagent 前必须逐项确认）
 
@@ -257,6 +258,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
      --image {输出图片的绝对路径} \
      --provider $PROVIDER \
      --ar {ar值，默认16:9}
+   其中封面输出路径必须是 `posts/{date-slug}/cover.png`，正文图片输出路径必须是 `posts/{date-slug}/imgs/{编号}-{描述}.png`。
 4. 确认图片文件已生成（检查文件大小 > 0）
 5. 报告结果：成功返回图片路径和使用的 provider，失败返回错误信息
 

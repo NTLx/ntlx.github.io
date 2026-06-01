@@ -11,7 +11,7 @@
  *   bun run step4-images.mjs <date-slug>
  */
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
@@ -43,7 +43,19 @@ if (existsSync(imgsDir)) {
   }
 }
 
-// 2. Update coverImage extension in draft frontmatter
+// 2. Accept and repair the common wrong output location: imgs/cover.{png,jpg}.
+//    Cover is a WeChat/blog metadata asset and must live at post root; imgs/ is
+//    reserved for SLOT_IMG content images uploaded/replaced in Step 5.
+for (const ext of ["png", "jpg"]) {
+  const rootCover = resolve(base, `cover.${ext}`);
+  const nestedCover = resolve(imgsDir, `cover.${ext}`);
+  if (!existsSync(rootCover) && existsSync(nestedCover)) {
+    renameSync(nestedCover, rootCover);
+    process.stderr.write(`step4: moved imgs/cover.${ext} → cover.${ext}\n`);
+  }
+}
+
+// 3. Update coverImage extension in draft frontmatter
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 let coverExt = "png";
