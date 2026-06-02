@@ -15,7 +15,7 @@
  *   拼接得到，可以在 GitHub Pages 完成公网探活前先传入。
  *
  * 用法:
- *   bun run publish-wechat.mjs <date-slug> [--type news] [--theme <cfg>] [--color <cfg>]
+ *   bun run publish-wechat.mjs <date-slug> [--type news]
  *                              [--author <cfg>] [--no-skip-deploy-check] [--dry-run]
  * 退出码:
  *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
@@ -32,12 +32,10 @@ const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
 function parseArgs(argv) {
   const cfg = getPostToWechatConfig();
-  const o = { slug: null, theme: cfg.theme, color: cfg.color, type: "news", author: cfg.author, skipDeployCheck: true, dryRun: false, postDir: null };
+  const o = { slug: null, type: "news", author: cfg.author, skipDeployCheck: true, dryRun: false, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
-    else if (a === "--theme") o.theme = argv[++i];
-    else if (a === "--color") o.color = argv[++i];
     else if (a === "--type") o.type = argv[++i];
     else if (a === "--author") o.author = argv[++i];
     else if (a === "--no-skip-deploy-check") o.skipDeployCheck = false;

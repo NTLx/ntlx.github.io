@@ -8,7 +8,8 @@
  * 4. 验证
  *
  * 用法:
- *   bun run step5-build.mjs <date-slug> [--theme default] [--color blue] [--dry-run] [--reuse-image-map]
+ *   bun run step5-build.mjs <date-slug> [--dry-run] [--reuse-image-map]
+ *   bun run step5-build.mjs <date-slug> --theme T --color C --allow-style-override
  *
  * 退出码: 0 成功；2 输入缺失；3 上传失败；4 HTML 转换失败
  */
@@ -24,19 +25,34 @@ import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders } from "./va
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
-let slug = null, theme = cfg.theme, color = cfg.color, dryRun = false, reuseImageMap = false;
+let slug = null, theme = cfg.theme, color = cfg.color, dryRun = false, reuseImageMap = false, allowStyleOverride = false;
+let themeOverridden = false, colorOverridden = false;
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--theme" && args[i + 1]) { theme = args[++i]; }
-  else if (args[i] === "--color" && args[i + 1]) { color = args[++i]; }
+  if (args[i] === "--theme" && args[i + 1]) { theme = args[++i]; themeOverridden = true; }
+  else if (args[i] === "--color" && args[i + 1]) { color = args[++i]; colorOverridden = true; }
   else if (args[i] === "--dry-run") { dryRun = true; }
   else if (args[i] === "--reuse-image-map") { reuseImageMap = true; }
+  else if (args[i] === "--allow-style-override") { allowStyleOverride = true; }
   else if (args[i].startsWith("--")) {
     process.stderr.write(`step5: unknown flag ${args[i]}\n`);
     process.exit(1);
   }
   else if (!slug) slug = args[i];
 }
-if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--theme T] [--color C] [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--theme T --color C --allow-style-override] [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
+
+const styleOverrideDiffers =
+  (themeOverridden && theme !== cfg.theme) ||
+  (colorOverridden && color !== cfg.color);
+if (styleOverrideDiffers && !allowStyleOverride) {
+  process.stderr.write(
+    `step5: FAIL - refusing to override project WeChat HTML style config without --allow-style-override\n` +
+    `  project config (.baoyu-skills/baoyu-markdown-to-html/EXTEND.md): theme=${cfg.theme}, color=${cfg.color}\n` +
+    `  requested: theme=${theme}, color=${color}\n` +
+    `  Default pipeline runs must use project config. Add --allow-style-override only when the user explicitly asked for a different WeChat theme/color.\n`
+  );
+  process.exit(1);
+}
 
 const base = resolve(postsRoot(), slug);
 const draftPath = resolve(base, "draft.md");
