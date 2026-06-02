@@ -32,6 +32,7 @@ description: >
 - **字数控制委托给 ljg-writes**：ljg-writes 技能内置 1000-1500 字自律约束，本管线不再叠加字数门槛。管线脚本仅记录 word_count 供状态查询，不作为通过/失败条件
 - **原文链接必填**：微信公众号草稿必须把博客文章公网地址作为"原文链接"（`content_source_url`）。sourceUrl 在 Step 2 预先写入，Step 6.2 必须传给微信 API
 - **图片 prompt 必须从技能模板构建**：baoyu 系列技能的 prompt 模板包含针对特定模型的渲染指令。跳过模板手写 prompt 会导致文字模糊或变形
+- **正文图片文字默认中文**：信息图和文内插图中的可见文字（标题、标签、短句、图例）应尽量使用中文。只有模型名、产品名、论文名、API/代码标识、英文缩写、引用原文术语等不适合翻译的专有内容才保留原文
 - **微信公众号样式必须从项目级配置读取**：Step 5 默认必须使用 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 的 `default_theme` / `default_color`。不要凭经验传 `--theme default --color blue` 等硬编码参数；这会覆盖项目级主题样式。
 
 ## 配置文件
@@ -220,7 +221,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
    - `.claude/skills/baoyu-infographic/references/layouts/bento-grid.md`
    - `.claude/skills/baoyu-infographic/references/styles/craft-handmade.md`
 
-2. 按 `base-prompt.md` 模板填充：`{{LAYOUT}}` → bento-grid、`{{STYLE}}` → craft-handmade、`{{LAYOUT_GUIDELINES}}` → 从布局文件复制完整段落、`{{STYLE_GUIDELINES}}` → 从风格文件复制完整段落、`{{CONTENT}}` → 从 draft.md 提取核心数据点、`{{TEXT_LABELS}}` → 短标签列表
+2. 按 `base-prompt.md` 模板填充：`{{LAYOUT}}` → bento-grid、`{{STYLE}}` → craft-handmade、`{{LAYOUT_GUIDELINES}}` → 从布局文件复制完整段落、`{{STYLE_GUIDELINES}}` → 从风格文件复制完整段落、`{{LANGUAGE}}` → Chinese、`{{CONTENT}}` → 从 draft.md 提取核心数据点、`{{TEXT_LABELS}}` → 中文短标签列表。可见文字优先中文；仅保留模型名、产品名、API、代码标识、英文缩写等不适合翻译的专有名词
 
 3. 保存到 `imgs/prompts/00-infographic-core-summary.md`
 
@@ -230,7 +231,8 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 2. 为每张图选择匹配的 type 模板（对比 → Comparison、流程/架构 → Framework/Flowchart、数据 → Infographic）
 3. 每个 prompt 文件必须包含：`## Default Composition Requirements`、`## Text in Illustrations`、`## Color Specification Rules` 段落
 4. 色彩使用 `vector-illustration` 风格的精确 hex 色值（从 `references/styles/vector-illustration.md` 读取）
-5. 保存到 `imgs/prompts/{编号}-{描述}.md`
+5. `## Text in Illustrations` 段落必须明确：可见文字使用中文标签和中文短句；专有名词、模型名、产品名、API/代码标识、英文缩写、引用原文术语可保留原文；不要为追求英文视觉风格而把普通概念写成英文
+6. 保存到 `imgs/prompts/{编号}-{描述}.md`
 
 #### 封面（cover.png）：使用 baoyu-cover-image 技能模板
 
@@ -243,6 +245,7 @@ baoyu 系列技能的 prompt 模板包含针对特定文生图模型的渲染指
 #### Prompt 质量检查清单（派发 subagent 前必须逐项确认）
 
 - [ ] 每个 prompt 文件包含文字渲染指令（large, prominent, readable）
+- [ ] 信息图和文内插图的可见文字默认中文；仅专有名词、模型名、产品名、API/代码标识、英文缩写、引用原文术语保留原文
 - [ ] 每个 prompt 文件包含防渲染污染指令（不显示 hex 色值/色名）
 - [ ] 每个 prompt 文件包含干净构图指令（clean composition, white space）
 - [ ] 每个 prompt 文件使用精确 hex 色值
