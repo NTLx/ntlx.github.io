@@ -25,6 +25,12 @@
  * Notes:
  *   - The script automatically strips a trailing extension from --name / --name-prefix-derived names
  *     to avoid double-extension bugs (e.g. `01-foo.jpg.jpg`).
+ *   - Repository defaults can be configured via .github-image-hosting.env files:
+ *       Project-level: <git-root>/.github-image-hosting.env  (higher priority)
+ *       User-level:    ~/.github-image-hosting.env            (fallback)
+ *     CLI args (--repo / --folder) override env config.
+ *     Env keys: GITHUB_IMAGE_REPO_OWNER, GITHUB_IMAGE_REPO_NAME,
+ *               GITHUB_IMAGE_REPO_BRANCH, GITHUB_IMAGE_DEFAULT_FOLDER
  */
 
 import { execFileSync } from 'child_process';
@@ -35,7 +41,9 @@ import * as path from 'path';
 let REPO_OWNER = 'NTLx';
 let REPO_NAME = 'Pic';
 let REPO_BRANCH = 'master';
-const DEFAULT_FOLDER = 'Jarvis';
+let DEFAULT_FOLDER = 'Jarvis';
+
+const ENV_FILE_NAME = '.github-image-hosting.env';
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
@@ -55,6 +63,69 @@ interface UploadResult {
   githubUrl: string;
   cdnUrl: string;
   error?: string;
+}
+
+/** Walk up from CWD to find git project root */
+function findProjectRoot(): string | null {
+  let dir = process.cwd();
+  while (dir !== path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    dir = path.dirname(dir);
+  }
+  return null;
+}
+
+/** Parse simple KEY=VALUE env file (skips comments and blank lines) */
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!fs.existsSync(filePath)) return {};
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const config: Record<string, string> = {};
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIdx = trimmed.indexOf('=');
+    if (eqIdx < 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const value = trimmed.slice(eqIdx + 1).trim();
+    config[key] = value;
+  }
+  return config;
+}
+
+/**
+ * Apply config from env files to global defaults.
+ * Priority: project-level .github-image-hosting.env > user-level ~/.github-image-hosting.env > hardcoded defaults.
+ * CLI args (--repo / --folder) override env config later in parseArgs.
+ */
+function applyEnvConfig(): void {
+  const KEYS = [
+    ['GITHUB_IMAGE_REPO_OWNER', 'REPO_OWNER'],
+    ['GITHUB_IMAGE_REPO_NAME', 'REPO_NAME'],
+    ['GITHUB_IMAGE_REPO_BRANCH', 'REPO_BRANCH'],
+    ['GITHUB_IMAGE_DEFAULT_FOLDER', 'DEFAULT_FOLDER'],
+  ] as const;
+
+  // User-level config (~/.github-image-hosting.env) — lower priority
+  const userConfig = parseEnvFile(path.join(os.homedir(), ENV_FILE_NAME));
+
+  // Project-level config (.github-image-hosting.env at git root) — higher priority
+  const projectRoot = findProjectRoot();
+  const projectConfig = projectRoot
+    ? parseEnvFile(path.join(projectRoot, ENV_FILE_NAME))
+    : {};
+
+  // Apply user config first, then project config overrides it
+  for (const [envKey, globalVar] of KEYS) {
+    if (userConfig[envKey] || projectConfig[envKey]) {
+      const value = projectConfig[envKey] || userConfig[envKey];
+      switch (globalVar) {
+        case 'REPO_OWNER':    REPO_OWNER    = value; break;
+        case 'REPO_NAME':     REPO_NAME     = value; break;
+        case 'REPO_BRANCH':   REPO_BRANCH   = value; break;
+        case 'DEFAULT_FOLDER': DEFAULT_FOLDER = value; break;
+      }
+    }
+  }
 }
 
 function parseRepoSpec(spec: string, options: UploadOptions): void {
@@ -340,6 +411,7 @@ async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; m
 }
 
 // Main
+applyEnvConfig(); // Load env config before parsing CLI args (CLI args override env)
 const options = parseArgs();
 
 if (!options.imagePath) {
