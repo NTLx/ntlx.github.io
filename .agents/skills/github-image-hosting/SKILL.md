@@ -1,6 +1,7 @@
 ---
 name: github-image-hosting
 description: Upload images to a GitHub repository for image hosting and return jsDelivr CDN URLs. Use when user wants to upload images for blog, WeChat articles, or needs CDN-accessible image URLs. Supports automatic filename collision detection, custom naming, and per-project repository configuration via .github-image-hosting.env files.
+license: MIT
 ---
 
 # GitHub Image Hosting
