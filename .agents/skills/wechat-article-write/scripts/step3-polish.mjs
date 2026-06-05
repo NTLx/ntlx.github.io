@@ -22,7 +22,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, SLOT_EXTRACT_RE } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, SLOT_EXTRACT_RE, extractSlotNumbers } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
@@ -54,6 +54,8 @@ const body = extractBody(content);
 // Load pipeline state to check for humanizer skip flag
 const state = loadState(slug);
 const humanizerSkip = state?.humanizer === "skip";
+const allowNoInteraction = state?.allow_no_interaction === true;
+const allowNoReferences = state?.allow_no_references === true;
 const hasTargetPath = !!fm.targetPath;
 
 // 1. Frontmatter integrity
@@ -86,18 +88,27 @@ const slotPlaceholders = [...body.matchAll(SLOT_EXTRACT_RE)].map(m => m[0]);
 if (slotPlaceholders.length === 0) {
   fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }
+const slotNumbers = extractSlotNumbers(body);
+if (!slotNumbers.includes(0)) {
+  fail(2, "正文缺少 SLOT_IMG_00 信息图占位符（polish 可能清除）");
+}
 
 // 4. Word count (informational only — ljg-writes controls its own word count)
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
-// 5. 原文参考 preserved (if it existed before polish — check current content)
-//    Read后感/review-type articles should retain this section
-//    humanizerSkip (教程策略) 不要求原文参考
-if (!humanizerSkip) {
-  const isReviewType = /读后感|书评|影评|转述|翻译|review|thoughts on/i.test(body);
-  if (isReviewType && !/^## 原文参考/m.test(body)) {
-    fail(2, "读后感类文章缺少 ## 原文参考 区块（polish 可能删除）");
-  }
+// 5. Interaction preserved unless Step 2 explicitly allowed skipping it
+const bodyBeforeRefs = body.split(/^## 原文参考/m)[0];
+const interactionTail = bodyBeforeRefs.slice(-1200);
+const hasInteractionQuestion = /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m.test(interactionTail);
+if (!allowNoInteraction && !hasInteractionQuestion) {
+  fail(2, "缺少文末互动问题（polish 可能删除；需要靠近正文末尾的 *斜体提问？*）");
+}
+
+// 6. 原文参考 preserved unless Step 2 explicitly allowed skipping it
+//    Keep humanizerSkip as a backward-compatible exemption for older tutorial states.
+const referencesRequired = !allowNoReferences && !humanizerSkip;
+if (referencesRequired && !/^## 原文参考/m.test(body)) {
+  fail(2, "缺少 ## 原文参考 区块（polish 可能删除）");
 }
 
 markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined });

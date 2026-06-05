@@ -337,15 +337,15 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-di
 if (opts.noPush) {
   markBlogDone(dateSlug, {
     pushed: false,
-    extra: { commit: null, slug, pushed: false, no_push: true, local_only: true },
+    extra: { commit: null, blog_slug: slug, pushed: false, no_push: true, local_only: true },
   });
   process.stderr.write("publish-blog: --no-push enabled; local article written but blog state is blocked until commit/push completes.\n");
 } else if (pushBlocked) {
-  const stateExtra = { commit: sha, slug, pushed: false, push_error: pushError, resume_file: resumeFile };
+  const stateExtra = { commit: sha, blog_slug: slug, pushed: false, push_error: pushError, resume_file: resumeFile };
   markBlogDone(dateSlug, { pushed: false, extra: stateExtra });
   process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push origin HEAD:main' manually then mark step complete.\n");
 } else {
-  const stateExtra = { commit: sha, slug, pushed };
+  const stateExtra = { commit: sha, blog_slug: slug, pushed };
   markBlogDone(dateSlug, { pushed: true, extra: stateExtra });
 }
 

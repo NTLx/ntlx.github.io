@@ -22,12 +22,41 @@ import { dirname } from "node:path";
 import { statePath } from "./path-resolver.mjs";
 
 const DEFAULT_PUBLISH = { blog: "pending", wechat: "pending" };
+const RESERVED_STATE_KEYS = new Set([
+  "slug",
+  "started_at",
+  "last_complete_step",
+  "publish",
+  "failed_step",
+]);
+
+function applyExtra(state, extra = {}) {
+  for (const [key, value] of Object.entries(extra ?? {})) {
+    if (RESERVED_STATE_KEYS.has(key)) continue;
+    state[key] = value;
+  }
+}
 
 /** 加载已有状态，不存在则返回 null */
 export function loadState(slug) {
   const p = statePath(slug);
   if (!existsSync(p)) return null;
-  try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; }
+  try {
+    const state = JSON.parse(readFileSync(p, "utf8"));
+    let changed = false;
+    if (state.slug !== slug) {
+      state.slug = slug;
+      changed = true;
+    }
+    if (!state.publish) {
+      state.publish = { ...DEFAULT_PUBLISH };
+      changed = true;
+    }
+    if (changed) saveState(slug, state);
+    return state;
+  } catch {
+    return null;
+  }
 }
 
 /** 写状态文件（自动创建目录） */
@@ -65,7 +94,7 @@ export function markStepDone(slug, step, extra = {}) {
     // 向后兼容：如果直接标记 Step 6 done，设置双轨完成
     state.publish = { blog: "done", wechat: "done" };
   }
-  Object.assign(state, extra);
+  applyExtra(state, extra);
   saveState(slug, state);
   return true;
 }
@@ -87,7 +116,7 @@ export function markBlogDone(slug, { pushed, extra = {} } = {}) {
   state.last_complete_step = 6;
   state.failed_step = null;
   state.publish = { ...state.publish, blog: pushed ? "done" : "blocked" };
-  Object.assign(state, extra);
+  applyExtra(state, extra);
   saveState(slug, state);
   return true;
 }
@@ -98,7 +127,7 @@ export function markWechatDone(slug, extra = {}) {
   state.last_complete_step = 6;
   state.failed_step = null;
   state.publish = { ...state.publish, wechat: "done" };
-  Object.assign(state, extra);
+  applyExtra(state, extra);
   saveState(slug, state);
   return true;
 }

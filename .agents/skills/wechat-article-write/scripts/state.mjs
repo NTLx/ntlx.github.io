@@ -24,10 +24,16 @@ import {
   nextStep, getPublishState
 } from "./state-lib.mjs";
 
+const KNOWN_COMMANDS = new Set(["init", "get", "next", "done", "fail", "blog", "wechat", "dump"]);
+
 function fail(msg) { process.stderr.write(`state.mjs: ${msg}\n`); process.exit(1); }
 
 // 解析参数：支持 --slug 标志和位置参数两种风格
 function parseGlobalArgs(argv) {
+  if (/^\d{4}-\d{2}-\d{2}-/.test(argv[0] ?? "") && KNOWN_COMMANDS.has(argv[1])) {
+    return { cmd: argv[1], slug: argv[0], rest: argv.slice(2) };
+  }
+
   let cmd = null;
   let slug = null;
   const rest = [];

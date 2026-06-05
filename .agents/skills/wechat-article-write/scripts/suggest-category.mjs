@@ -20,6 +20,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
+import { ASCII_SLUG_RE } from "./validation-lib.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 const KEYWORDS_PATH = resolve(SCRIPT_DIR, "../references/category-keywords.json");
@@ -69,6 +70,19 @@ function extractTags(fm) {
   return raw.split(",").map((t) => t.trim());
 }
 
+function cleanAnalysisText(text) {
+  return text
+    .replace(/^## 原文参考[\s\S]*$/m, " ")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/\bSLOT_IMG_\d{2}(?:_[A-Za-z0-9_-]+)?\b/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/https?:\/\/[^\s)]+/g, " ")
+    .replace(/\b(?:title|date|summary|category|blogSlug|coverImage|sourceUrl|targetPath)\b/gi, " ");
+}
+
 function score(text, weight, scores, rules) {
   const lower = text.toLowerCase();
 
@@ -102,6 +116,8 @@ function rank(scores) {
   if (entries.length === 0) return { recommended: "ai-industry", confidence: 0, low_confidence: true, alternative: null };
 
   const top = entries[0];
+  if (top[1] <= 0) return { recommended: "ai-industry", confidence: 0, low_confidence: true, alternative: entries[1]?.[0] ?? null };
+
   const total = entries.reduce((s, [, v]) => s + Math.max(v, 0), 0) || 1;
   const confidence = +(top[1] / total).toFixed(2);
 
@@ -118,17 +134,68 @@ function rank(scores) {
   };
 }
 
-function generateBlogSlug(body, title) {
+const CN_SLUG_TERMS = [
+  { re: /\bAGI\b|通用人工智能/i, words: ["agi"] },
+  { re: /稀缺|稀缺性/i, words: ["scarcity"] },
+  { re: /关系部门|关系型部门|关系型产业|关系行业/i, words: ["relational", "sector"] },
+  { re: /劳动|劳动力/i, words: ["labor"] },
+  { re: /资本/i, words: ["capital"] },
+  { re: /经济|经济学/i, words: ["economics"] },
+  { re: /自动化/i, words: ["automation"] },
+  { re: /生产率|生产力/i, words: ["productivity"] },
+  { re: /增长/i, words: ["growth"] },
+  { re: /分配/i, words: ["allocation"] },
+  { re: /智能体|代理/i, words: ["agents"] },
+  { re: /模型/i, words: ["models"] },
+  { re: /安全|风险/i, words: ["security"] },
+  { re: /编程|代码/i, words: ["coding"] },
+  { re: /工程|架构/i, words: ["engineering"] },
+];
+
+function mappedSlugWords(text) {
+  const words = [];
+  const seen = new Set();
+  for (const { re, words: mapped } of CN_SLUG_TERMS) {
+    if (!re.test(text)) continue;
+    for (const word of mapped) {
+      if (!seen.has(word)) {
+        seen.add(word);
+        words.push(word);
+      }
+    }
+  }
+  return words;
+}
+
+function uniqueWords(...groups) {
+  const seen = new Set();
+  const words = [];
+  for (const group of groups) {
+    for (const word of group) {
+      if (seen.has(word)) continue;
+      seen.add(word);
+      words.push(word);
+    }
+  }
+  return words;
+}
+
+function generateBlogSlug({ body, title, summary, tags, fmBlogSlug }) {
+  if (ASCII_SLUG_RE.test(fmBlogSlug)) return fmBlogSlug;
+
   const STOP_WORDS = new Set([
     "the", "and", "for", "with", "from", "that", "this", "have", "been",
     "into", "your", "will", "what", "when", "where", "which", "about",
     "their", "there", "would", "could", "should", "using", "makes", "more",
     "some", "than", "then", "also", "just", "like", "over", "very", "much",
-    "such", "only", "other", "into",
+    "such", "only", "other", "into", "article", "draft", "markdown", "html",
+    "slot", "img", "image", "infographic", "cover", "coverimage", "sourceurl",
+    "blogslug", "targetpath", "github", "ntlx", "http", "https", "www", "com",
+    "org", "net", "cdn", "url", "png", "jpg", "jpeg", "md",
   ]);
 
   function extractEnglishWords(text) {
-    const matches = text.match(/[a-zA-Z]{3,}/g) ?? [];
+    const matches = text.match(/[a-zA-Z][a-zA-Z0-9]{1,}/g) ?? [];
     const seen = new Set();
     const result = [];
     for (const w of matches) {
@@ -141,29 +208,30 @@ function generateBlogSlug(body, title) {
     return result;
   }
 
-  // a. Extract from title first
-  let words = extractEnglishWords(title);
+  const cleanBody = cleanAnalysisText(body);
+  const titleContext = [title, summary, tags.join(" ")].join(" ");
+  const headings = (cleanBody.match(/^##\s+.+$/gm) ?? []).join(" ");
 
-  // e. Fall back to headings if title doesn't yield enough
+  let words = uniqueWords(
+    mappedSlugWords(titleContext),
+    extractEnglishWords(titleContext),
+    mappedSlugWords(cleanBody),
+  );
+
   if (words.length < 2) {
-    const headings = (body.match(/^##\s+.+$/gm) ?? []).join(" ");
-    words = extractEnglishWords(title + " " + headings);
+    words = uniqueWords(words, extractEnglishWords(headings));
   }
 
-  // f. Fall back to body if still insufficient
   if (words.length < 2) {
-    words = extractEnglishWords(title + " " + body);
+    words = uniqueWords(words, extractEnglishWords(cleanBody));
   }
 
-  // c. Take first 2-4 unique words, join with hyphens
   const slug = words.slice(0, 4).join("-");
 
-  // d. Ensure result matches ^[a-z][a-z0-9-]*[a-z0-9]$
-  if (/^[a-z][a-z0-9-]*[a-z0-9]$/.test(slug) && slug.length >= 2) {
+  if (ASCII_SLUG_RE.test(slug) && slug.length >= 2) {
     return slug;
   }
 
-  // f. Fallback
   return "article";
 }
 
@@ -183,13 +251,15 @@ const raw = loadDoc(file);
 const { fm, body } = splitDoc(raw);
 const title = extractFmField(fm, "title");
 const summary = extractFmField(fm, "summary");
+const fmBlogSlug = extractFmField(fm, "blogSlug");
 const tags = extractTags(fm);
-const headings = (body.match(/^##\s+.+$/gm) ?? []).join("\n");
+const analysisBody = cleanAnalysisText(body);
+const headings = (analysisBody.match(/^##\s+.+$/gm) ?? []).join("\n");
 
 const scores = {};
 score(title + " " + summary, WEIGHTS.title, scores, rules);
 score(headings, WEIGHTS.heading, scores, rules);
-score(body, WEIGHTS.body, scores, rules);
+score(analysisBody, WEIGHTS.body, scores, rules);
 
 // E4: frontmatter tags 加权（+6）——tags 是作者显式标注，信号强度远高于正文偶现
 if (tags.length > 0) {
@@ -197,5 +267,9 @@ if (tags.length > 0) {
   score(tagsText, WEIGHTS.tags, scores, rules);
 }
 
-const result = { ...rank(scores), blogSlug: generateBlogSlug(body, title), scores };
+const result = {
+  ...rank(scores),
+  blogSlug: generateBlogSlug({ body, title, summary, tags, fmBlogSlug }),
+  scores,
+};
 process.stdout.write(JSON.stringify(result) + "\n");
