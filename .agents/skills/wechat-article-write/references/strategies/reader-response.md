@@ -40,7 +40,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
-4. 信任度低时用当前运行时的用户确认工具确认分类和 blog-slug；否则自动采纳
+4. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
 5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的唯一来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空或替换为原始素材链接
 
 **draft.md 模板**（强制使用语义占位符）：

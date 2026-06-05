@@ -33,14 +33,19 @@
       "partnership", "合作", "生态", "产业", "芯片", "算力", "数据中心",
       "startup", "founder", "entrepreneur", "playbook", "创业", "创始人",
       "增长", "增长黑客", "product market fit", "PMF", "商业模式",
-      "融资轮", "天使轮", "A轮", "B轮", "VC", "venture capital"
+      "融资轮", "天使轮", "A轮", "B轮", "VC", "venture capital",
+      "agi", "automation", "labor", "capital", "economics", "economist",
+      "scarcity", "productivity", "allocation", "relational sector",
+      "稀缺", "稀缺性", "劳动", "劳动力", "资本", "经济", "经济学",
+      "自动化", "生产率", "生产力", "分配", "关系部门", "关系型部门"
     ],
     "antiKeywords": [],
     "ngrams": [
       ["融资", "轮"], ["裁员", "比例"], ["ipo", "上市"],
       ["openai", "valuation"], ["算力", "短缺"],
       ["product", "market"], ["商业", "模式"], ["创业", "公司"],
-      ["增长", "策略"], ["创始人", "模式"]
+      ["增长", "策略"], ["创始人", "模式"], ["relational", "sector"],
+      ["labor", "capital"], ["资本", "劳动"], ["关系", "部门"]
     ]
   },
   "ai-models": {
