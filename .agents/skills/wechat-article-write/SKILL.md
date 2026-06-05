@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.0.0"
+version: "1.1.0"
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
   Takes raw materials (text, URLs, direction) and produces a complete article with cover,
