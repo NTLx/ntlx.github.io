@@ -53,7 +53,7 @@ function compactText(text, max = 900) {
   const cleaned = text
     .replace(/^## 原文参考[\s\S]*$/m, " ")
     .replace(/```[\s\S]*?```/g, " ")
-    .replace(/`[^`]*`/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/https?:\/\/[^\s)]+/g, " ")
@@ -80,10 +80,19 @@ function extractLabels(body, fm) {
 }
 
 function extractSection(markdown, header) {
-  const escaped = header.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`^## ${escaped}\\n([\\s\\S]*?)(?=\\n## |\\n# |$)`, "m");
-  const m = markdown.match(re);
-  return m ? `## ${header}\n${m[1].trim()}` : "";
+  const lines = markdown.split(/\r?\n/);
+  const heading = `## ${header}`;
+  const start = lines.findIndex((line) => line.trim() === heading);
+  if (start === -1) return "";
+
+  const section = [heading];
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^##\s+/.test(line) || /^#\s+/.test(line)) break;
+    section.push(line);
+  }
+
+  return section.join("\n").trimEnd();
 }
 
 function sectionContext(body, index) {
