@@ -1,6 +1,7 @@
 ---
 name: wechat-article-write
-version: "1.1.0"
+version: "1.2.0"
+author: NTLx
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
   Takes raw materials (text, URLs, direction) and produces a complete article with cover,
@@ -319,6 +320,34 @@ while pending 非空:
     已完成 → 从 pending 移除
 ```
 
+#### Subagent 不可用时的降级路径
+
+subagent 派发依赖模型路由层（API 网关分配特定模型）。当网关对 subagent 目标模型返回 503（`No available channel for model ...`）或 subagent 连续 2 次因模型路由失败时，不要在同一个模型上反复重试——这只会浪费时间和额度。
+
+**降级触发条件**（满足任一即触发）：
+- subagent 返回 `503 No available channel` 错误
+- subagent 返回 `model ... not available` 或类似模型不可用错误
+- 同一批次的 2 个 subagent 都因非图片 API 原因失败（说明是路由层问题，不是单张图片问题）
+
+**降级执行方式**：在主会话中直接用 Bash 串行执行生图命令（主会话模型不受 subagent 路由限制）：
+
+```bash
+# 1. 读取 provider
+PROVIDER=$(grep 'preferred_image_backend' /home/lx/ntlx.github.io/.baoyu-skills/baoyu-image-gen/EXTEND.md | head -1 | awk '{print $2}')
+
+# 2. 加载环境变量
+set -a && source /home/lx/ntlx.github.io/.baoyu-skills/.env && set +a
+
+# 3. 逐张生成（对每个 prompt 文件执行一次）
+bun /home/lx/ntlx.github.io/.agents/skills/baoyu-image-gen/scripts/main.ts \
+  --promptfiles {prompt文件的绝对路径} \
+  --image {输出图片的绝对路径} \
+  --provider $PROVIDER \
+  --ar {ar值，默认16:9}
+```
+
+串行执行虽慢于并行 subagent，但保证端到端不阻塞。降级后仍遵守同样的重试规则：每张图最多重试 1 次。
+
 #### 门控脚本
 
 ```bash
@@ -336,9 +365,19 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> \
   [--dry-run] [--reuse-image-map]
 ```
-脚本执行：读取项目级 `baoyu-markdown-to-html/EXTEND.md` 主题配置 → 预检 → 上传图片到 GitHub 图床 → 占位符替换为 CDN URL → article.md → 占位符替换为本地路径 → baoyu-markdown-to-html → article-wechat.html → 验证 → img 标签规范化 → 写状态。
+脚本执行：读取项目级 `baoyu-markdown-to-html/EXTEND.md` 主题配置 → 预检 → 从 `.github-image-hosting.env` 读取图床仓库配置 → 上传图片到 GitHub 图床（自带超时重试，最多 3 次） → 占位符替换为 CDN URL → article.md → 占位符替换为本地路径 → baoyu-markdown-to-html → article-wechat.html → 验证 → img 标签规范化 → 写状态。
 
 辅助模式：`--dry-run`（只预检不上传）、`--reuse-image-map`（复用已有 image-map.json，跳过上传）。
+
+### CDN 上传超时处理
+
+图床上传（`github-image-hosting` 的 `upload.ts`）需要拉取远端仓库文件树做冲突检测，在网络不稳定时可能触发 `spawnSync gh ETIMEDOUT`。这是瞬态网络问题，不是配置错误。
+
+**处理策略**（已内置于脚本，无需 agent 干预）：
+1. **upload.ts 内部**：网络超时自动重试 2 次（指数退避），文件树拉取超时 60s
+2. **step5-build.mjs 层面**：如果整个上传进程失败，最多重试 3 次，间隔 30s
+3. **部分成功后续跑**：如果 `image-map.json` 已经写入（检查文件是否存在且包含所有图片的 CDN URL），使用 `--reuse-image-map` 跳过上传直接进入后续步骤
+4. **不要修改 upload 脚本**：`github-image-hosting` 是自建技能（`author: NTLx`），可以直接修改，但改动应通用而非 wechat 专属
 
 临时覆盖主题/颜色只有在用户明确要求时才允许：
 
@@ -388,11 +427,33 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 
 任何步骤失败时：
 1. 报告哪一步失败、错误原因
-2. 图片生成失败只允许用 EXTEND.md 配置的 provider 重试；不要降级到其他后端
-3. 图床上传失败：修复后重跑 Step 5；若 `image-map.json` 已完整，用 `--reuse-image-map`
+2. 图片生成失败只允许用 EXTEND.md 配置的 provider 重试；不要降级到其他后端。subagent 模型路由不可用时，切到降级路径（见 Step 4 "Subagent 不可用时的降级路径"）
+3. 图床上传 ETIMEDOUT：upload.ts 和 step5-build.mjs 已内置多层重试（见 Step 5 "CDN 上传超时处理"）。若仍失败，检查 `gh auth status` 和网络连接。若 `image-map.json` 已完整写入，用 `--reuse-image-map` 跳过上传
 4. 依赖缺失：脚本会自动 `bun install`；若自动安装失败则手动安装
 5. `state.mjs next <date-slug>` 返回下一个待执行步骤，全部完成返回 `done`
 6. Step 6 博客/微信子状态独立查询：`state.mjs blog/wechat <slug> get`
+
+## 门控脚本常见错误速查
+
+门控脚本的错误信息描述了"缺什么"，但格式类校验的正则和条件判断藏在源码中。以下列出常见错误及其修复方式，避免每次都去读脚本源码。
+
+### step2-write.mjs
+
+| 错误信息 | 期望格式 | 修复方式 |
+|---------|---------|---------|
+| `缺少文末互动问题` | 正则 `/(^\|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m` | 在正文末尾添加一行：`*你的提问内容？*`（单行、星号包裹的斜体、以中文问号结尾、至少 4 个字符） |
+| `summary 超过 120 字` | ≤120 字的金句式摘要 | 这是 WARNING 不阻塞，但微信 digest 会截断。精简到核心洞察的一句话 |
+| `summary 看起来像内容简介` | 不以"本文介绍了…"开头 | 改为概括核心洞察或最反直觉结论的金句 |
+| `blogSlug 不符合 ASCII kebab-case` | `^[a-z][a-z0-9-]*[a-z0-9]$` | 纯小写 ASCII + 数字 + 连字符，首尾必须是字母或数字。示例：`coding-agents-social-sciences` |
+| `sourceUrl 不合法` | `https://ntlx.github.io/articles/{blogSlug}` | 必须是博客文章的完整公网 URL，且与 blogSlug 一致 |
+
+### step3-polish.mjs
+
+step3 复用 step2 的大部分校验逻辑（frontmatter 完整性、H1 检测、SLOT_IMG 占位符、互动问题、原文参考），错误信息格式相同。如果 step3 报了和 step2 一样的错，说明 humanizer/format-markdown 后处理过程中丢失了某些内容。
+
+### 通用排查原则
+
+如果门控脚本报了一个你不熟悉的错误，先读脚本源码中的校验函数（通常在文件前 50 行的 `validate` / `check` 函数中），找到对应的正则或条件判断，再对照正文修复。错误信息中的"当前值"和"阈值"可以直接用于定位问题。
 
 ## 已知约束
 
@@ -400,33 +461,48 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - **图片必须 CDN URL**：博客文章中 `imgs/...` 本地路径会导致 Astro 构建失败
 - **GitHub 上传禁止中文 name**：`--name` 使用纯 ASCII slug
 - **CWD 敏感**：Edit 工具用绝对路径，脚本调用前确保在项目根目录
-- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。provider 从 EXTEND.md 的 `preferred_image_backend` 读取。每个 subagent 独立调用 baoyu-image-gen，失败隔离，避免单脚本超时导致额度浪费
+- **图片生成 subagent 派发**：主 Agent 派发 subagent 生成图片，每批最多 2 个并行。provider 从 EXTEND.md 的 `preferred_image_backend` 读取。subagent 模型路由不可用（503）时，降级到主会话串行执行（见 Step 4 "Subagent 不可用时的降级路径"）
 - **封面不嵌入文字**：封面是视觉锤，文字交给推送卡片和正文标题
 
 ## 工具索引
 
 ### 核心脚本
-| 脚本 | 用途 |
+
+大多数脚本的第一个位置参数是 `<date-slug>`（`posts/` 下的目录名）。以下表格标注例外情况。
+
+| 脚本 | 用途 | 参数签名 |
+|------|------|---------|
+| `scripts/step1-collect.mjs` | Step 1: 资料验证 + 状态 | `<date-slug> [--sources N] [--failed N]` |
+| `scripts/step2-write.mjs` | Step 2: 质量门控 + 状态 | `<date-slug> [--allow-no-references] [--allow-no-interaction]` |
+| `scripts/step3-polish.mjs` | Step 3: 后处理验证 + 状态 | `<date-slug>` |
+| `scripts/generate-image-prompts.mjs` | Step 4 helper: 生成图片 prompt | `<date-slug> [--overwrite]` |
+| `scripts/step4-images.mjs` | Step 4: 格式修正 + 引用验证 + 状态 | `<date-slug>` |
+| `scripts/step5-build.mjs` | Step 5: CDN + HTML 转换 + 状态 | `<date-slug> [--dry-run] [--reuse-image-map] [--theme T --color C --allow-style-override]` |
+| `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 | `<date-slug> [--target-path P] [--overwrite] [--no-push] [--no-build] [--dry-run]` 或 `--post-dir <path>` 替代 date-slug |
+| `scripts/publish-wechat.mjs` | Step 6.2: 微信草稿编排 | `<date-slug> [--type news\|newspic] [--author N]` 或 `--post-dir <path>` 替代 date-slug |
+| `scripts/state.mjs` | 状态 CLI | `<command> <date-slug> [args...]`；command: init/get/next/done/fail/blog/wechat/dump |
+| `scripts/pipeline.mjs` | 最小编排器 | `<date-slug> [--auto]` |
+
+### ⚠️ 参数风格例外的脚本
+
+以下 3 个脚本**不**以 `<date-slug>` 作为第一个参数，调用时注意区分：
+
+| 脚本 | 用途 | 参数签名 | 第一个参数语义 |
+|------|------|---------|-------------|
+| `scripts/suggest-category.mjs` | 分类 + blog-slug 推荐 | `<draft.md 绝对路径> [--json]` | **文件路径**（draft.md 的绝对路径，不是 date-slug） |
+| `scripts/set-frontmatter.mjs` | Frontmatter 读写 | `<file> set\|remove\|get <key> [value]` | **文件路径** + subcommand 风格（如 `set category ai-coding`，不是 `category=ai-coding`） |
+| `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 | `<postDir 绝对路径> [--dry-run]` | **目录绝对路径**（不是 date-slug） |
+
+### 辅助库（不直接调用，被其他脚本 import）
+
+| 脚本 | 职责 |
 |------|------|
-| `scripts/step1-collect.mjs` | Step 1: 资料验证 + 状态 |
-| `scripts/step2-write.mjs` | Step 2: 质量门控（frontmatter/互动/原文参考）+ 状态 |
-| `scripts/step3-polish.mjs` | Step 3: 后处理验证（frontmatter/SLOT_IMG/无H1）+ 状态 |
-| `scripts/generate-image-prompts.mjs` | Step 4 helper: 读取 baoyu 模板生成封面/信息图/文内插图 prompt |
-| `scripts/step4-images.mjs` | Step 4: 格式修正 + 引用验证 + 状态 |
-| `scripts/step5-build.mjs` | Step 5: CDN + 占位符替换 + HTML 转换 + 状态 |
-| `scripts/publish-blog.mjs` | Step 6.1: 博客发布编排 |
-| `scripts/publish-wechat.mjs` | Step 6.2: 微信草稿编排 |
-| `scripts/state.mjs` | 状态 CLI（init/get/next/done/fail/blog/wechat/dump） |
-| `scripts/config-lib.mjs` | 配置解析 |
-| `scripts/state-lib.mjs` | 状态读写库 |
-| `scripts/path-resolver.mjs` | 路径解析 |
-| `scripts/validation-lib.mjs` | 共享验证常量与字数统计 |
-| `scripts/frontmatter-lib.mjs` | 共享 frontmatter 解析 |
-| `scripts/suggest-category.mjs` | 分类 + blog-slug 推荐 |
-| `scripts/set-frontmatter.mjs` | Frontmatter 读写 |
-| `scripts/normalize-image-formats.mjs` | MIME 检测 + 扩展名修正 |
-| `scripts/apply-image-map.mjs` | 占位符 → CDN URL / 本地路径 |
-| `scripts/pipeline.mjs` | 最小编排器 |
+| `scripts/config-lib.mjs` | 配置解析（EXTEND.md / .env） |
+| `scripts/state-lib.mjs` | 状态读写 |
+| `scripts/path-resolver.mjs` | 路径解析（date-slug → 绝对路径） |
+| `scripts/validation-lib.mjs` | 共享验证常量（VALID_CATEGORIES / ASCII_SLUG_RE）与字数统计 |
+| `scripts/frontmatter-lib.mjs` | 共享 frontmatter 解析（parseFrontmatter / readFmValue / extractBody） |
+| `scripts/apply-image-map.mjs` | 占位符替换；两种模式：`<date-slug>` 或 `--html-rewrite <html-path> <image-map.json>` |
 
 ### 参考文档
 | 文件 | 内容 |

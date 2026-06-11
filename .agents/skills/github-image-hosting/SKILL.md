@@ -1,7 +1,8 @@
 ---
 name: github-image-hosting
 description: Upload images to a GitHub repository for image hosting and return jsDelivr CDN URLs. Use when user wants to upload images for blog, WeChat articles, or needs CDN-accessible image URLs. Supports automatic filename collision detection, custom naming, and per-project repository configuration via .github-image-hosting.env files.
-version: 1.0.0
+version: 1.1.0
+author: NTLx
 license: MIT
 ---
 
@@ -144,6 +145,20 @@ Filenames are automatically sanitized:
 ### Default Folder
 
 Folder defaults to `GITHUB_IMAGE_DEFAULT_FOLDER` from config (or `blog` if unset). Use `--folder` to override per invocation.
+
+### Directory Mode Optimization
+
+When uploading a directory of images (batch mode), the script fetches the repository file tree **once** and shares it across all uploads in the batch. This avoids N redundant API calls for N images, significantly reducing the chance of `ETIMEDOUT` errors on large repositories.
+
+### Network Timeout Retry
+
+All GitHub API calls (`gh api`) have built-in retry logic for network-level failures (`ETIMEDOUT`, `ECONNRESET`, `ECONNREFUSED`):
+- File tree fetch: 60s timeout (accommodates large repos with 1000+ files)
+- Other API calls: 30s timeout
+- Up to 2 automatic retries with exponential backoff (2s → 4s) on network timeouts
+- Git reference conflicts (422/409) are retried up to 3 times with exponential backoff
+
+This means transient network issues should not require manual intervention from the caller.
 
 ## Requirements
 

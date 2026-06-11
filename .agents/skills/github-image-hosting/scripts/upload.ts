@@ -47,6 +47,11 @@ const ENV_FILE_NAME = '.github-image-hosting.env';
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
+const DEFAULT_API_TIMEOUT = 30000;
+const TREE_FETCH_TIMEOUT = 60000;
+const NETWORK_RETRY_MAX = 2;
+const NETWORK_RETRY_BASE_MS = 2000;
+
 interface UploadOptions {
   imagePath: string;
   customName?: string;
@@ -170,13 +175,42 @@ function parseArgs(): UploadOptions {
   return options;
 }
 
+/** Check if an error from execFileSync is a network-level timeout */
+function isNetworkTimeout(error: any): boolean {
+  const code = error?.code ?? '';
+  const msg = error?.message ?? '';
+  return code === 'ETIMEDOUT' || /ETIMEDOUT|ECONNRESET|ECONNREFUSED/.test(msg);
+}
+
+/** Retry wrapper for execFileSync on network timeout errors */
+function execWithNetworkRetry(args: string[], timeout: number, label: string): string {
+  for (let attempt = 0; attempt <= NETWORK_RETRY_MAX; attempt++) {
+    try {
+      return execFileSync('gh', args, {
+        encoding: 'utf-8',
+        timeout,
+        stdio: ['pipe', 'pipe', 'pipe']
+      }).trim();
+    } catch (error: any) {
+      if (isNetworkTimeout(error) && attempt < NETWORK_RETRY_MAX) {
+        const delay = NETWORK_RETRY_BASE_MS * Math.pow(2, attempt);
+        console.warn(`[${label}] network timeout (attempt ${attempt + 1}/${NETWORK_RETRY_MAX + 1}), retrying in ${delay}ms...`);
+        const end = Date.now() + delay;
+        while (Date.now() < end) { /* blocking wait */ }
+        continue;
+      }
+      throw error;
+    }
+  }
+  return ''; // unreachable
+}
+
 function ghApiGet(endpoint: string): string {
-  const result = execFileSync('gh', ['api', endpoint, '--jq', '.sha // .object.sha // empty'], {
-    encoding: 'utf-8',
-    timeout: 30000,
-    stdio: ['pipe', 'pipe', 'pipe']
-  });
-  return result.trim();
+  return execWithNetworkRetry(
+    ['api', endpoint, '--jq', '.sha // .object.sha // empty'],
+    DEFAULT_API_TIMEOUT,
+    'ghApiGet'
+  );
 }
 
 function ghApiPost(endpoint: string, payload: object): string {
@@ -184,12 +218,11 @@ function ghApiPost(endpoint: string, payload: object): string {
   const tempFile = path.join(tempDir, 'payload.json');
   fs.writeFileSync(tempFile, JSON.stringify(payload));
   try {
-    const result = execFileSync('gh', ['api', endpoint, '--input', tempFile, '--jq', '.sha // empty'], {
-      encoding: 'utf-8',
-      timeout: 60000,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    return result.trim();
+    return execWithNetworkRetry(
+      ['api', endpoint, '--input', tempFile, '--jq', '.sha // empty'],
+      60000,
+      'ghApiPost'
+    );
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -200,11 +233,11 @@ function ghApiPatch(endpoint: string, payload: object): void {
   const tempFile = path.join(tempDir, 'payload.json');
   fs.writeFileSync(tempFile, JSON.stringify(payload));
   try {
-    execFileSync('gh', ['api', endpoint, '--input', tempFile], {
-      encoding: 'utf-8',
-      timeout: 30000,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
+    execWithNetworkRetry(
+      ['api', endpoint, '--input', tempFile],
+      DEFAULT_API_TIMEOUT,
+      'ghApiPatch'
+    );
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
@@ -212,19 +245,15 @@ function ghApiPatch(endpoint: string, payload: object): void {
 
 async function getExistingFiles(): Promise<Set<string>> {
   try {
-    const result = execFileSync('gh', [
-      'api',
-      `repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1`,
-      '--jq',
-      '.tree[].path',
-    ], {
-      encoding: 'utf-8',
-      timeout: 30000,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    return new Set(result.trim().split('\n').filter(Boolean));
-  } catch {
-    console.warn('Warning: Could not fetch existing files, proceeding without collision check');
+    const result = execWithNetworkRetry(
+      ['api', `repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1`,
+       '--jq', '.tree[].path'],
+      TREE_FETCH_TIMEOUT,
+      'getExistingFiles'
+    );
+    return new Set(result.split('\n').filter(Boolean));
+  } catch (error: any) {
+    console.warn(`Warning: Could not fetch existing files (${error?.message ?? error}), proceeding without collision check`);
     return new Set();
   }
 }
@@ -263,7 +292,7 @@ function stripTrailingExt(name: string, ext: string): string {
   return name;
 }
 
-async function uploadImage(options: UploadOptions): Promise<UploadResult> {
+async function uploadImage(options: UploadOptions, existingFiles?: Set<string>): Promise<UploadResult> {
   const { imagePath, customName, folder, dryRun } = options;
 
   if (!fs.existsSync(imagePath)) {
@@ -283,8 +312,9 @@ async function uploadImage(options: UploadOptions): Promise<UploadResult> {
   const rawName = customName ? stripTrailingExt(customName, ext) : originalBasename;
   const baseName = sanitizeFilename(rawName);
 
-  const existingFiles = await getExistingFiles();
-  const filename = generateUniqueFilename(baseName, ext, folder, existingFiles);
+  // Reuse pre-fetched file set if provided (directory mode); fetch fresh otherwise (single-file mode)
+  const files = existingFiles ?? await getExistingFiles();
+  const filename = generateUniqueFilename(baseName, ext, folder, files);
   const repoPath = `${folder}/${filename}`;
 
   if (dryRun) {
@@ -389,6 +419,11 @@ async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; m
   if (files.length === 0) {
     throw new Error(`no images found under directory: ${dir}`);
   }
+
+  // Fetch existing files ONCE for the entire batch (avoids N redundant API calls)
+  const existingFiles = await getExistingFiles();
+  console.log(`[upload] fetched ${existingFiles.size} existing files for collision check`);
+
   const map: Record<string, string> = {};
   const results: UploadResult[] = [];
   let ok = true;
@@ -397,11 +432,13 @@ async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; m
     const base = path.basename(file, ext); // e.g. 01-spectrum-comparison
     // name 由 prefix + base 拼接；upload 内部会再去掉重复 ext
     const name = options.namePrefix ? `${options.namePrefix}-${base}` : base;
-    const r = await uploadImage({ ...options, imagePath: file, customName: name });
+    const r = await uploadImage({ ...options, imagePath: file, customName: name }, existingFiles);
     results.push(r);
     if (r.success) {
       // image-map.json key 用本地原始文件名（含扩展名），与 apply-image-map.mjs 约定一致
       map[`${base}${ext}`] = r.cdnUrl;
+      // Update the shared set so the next upload detects this file for collision avoidance
+      existingFiles.add(`${r.folder}/${r.filename}`);
     } else {
       ok = false;
       console.error(`[upload] FAIL: ${file} → ${r.error}`);
