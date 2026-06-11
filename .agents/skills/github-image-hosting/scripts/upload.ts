@@ -17,7 +17,7 @@
  * Options:
  *   --name <name>          Custom filename (without extension). Single-file mode only.
  *   --name-prefix <prefix> Filename prefix for directory mode.
- *   --folder <path>        Target folder in repo (default: Jarvis). Equivalent to `:folder` part of --repo.
+ *   --folder <path>        Target folder in repo (default: blog). Equivalent to `:folder` part of --repo.
  *   --repo <spec>          Spec format: `owner/name@branch:folder`. Overrides REPO_OWNER/REPO_NAME/folder.
  *   --output <path>        Directory mode only: write image-map.json to <path>.
  *   --dry-run              Show what would be uploaded without actually uploading.
@@ -41,7 +41,7 @@ import * as path from 'path';
 let REPO_OWNER = 'NTLx';
 let REPO_NAME = 'Pic';
 let REPO_BRANCH = 'master';
-let DEFAULT_FOLDER = 'Jarvis';
+let DEFAULT_FOLDER = 'blog';
 
 const ENV_FILE_NAME = '.github-image-hosting.env';
 
