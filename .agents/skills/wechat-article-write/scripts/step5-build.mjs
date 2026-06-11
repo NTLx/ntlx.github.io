@@ -102,7 +102,7 @@ function resolveAssetSlug(draft) {
 function buildSyntheticMap(files, namePrefix) {
   return Object.fromEntries(files.map(file => [
     file,
-    `https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/${namePrefix}-${file}`,
+    buildCdnUrl(`${WECHAT_IMAGE_FOLDER}/${namePrefix}-${file}`),
   ]));
 }
 
@@ -136,6 +136,34 @@ function findScriptDir(name) {
   ];
   for (const d of candidates) if (existsSync(d)) return d;
   return null;
+}
+
+// Read github-image-hosting config from .github-image-hosting.env
+// Falls back to the same defaults as upload.ts, keeping both sides in sync.
+function readGithubImageConfig() {
+  const envPath = resolve(repoRoot(), ".github-image-hosting.env");
+  const cfg = { owner: "NTLx", name: "Pic", branch: "master", folder: "blog" };
+  if (existsSync(envPath)) {
+    for (const line of readFileSync(envPath, "utf8").split("\n")) {
+      const t = line.trim();
+      if (!t || t.startsWith("#")) continue;
+      const eq = t.indexOf("=");
+      if (eq < 0) continue;
+      const k = t.slice(0, eq).trim(), v = t.slice(eq + 1).trim();
+      if (k === "GITHUB_IMAGE_REPO_OWNER") cfg.owner = v;
+      else if (k === "GITHUB_IMAGE_REPO_NAME") cfg.name = v;
+      else if (k === "GITHUB_IMAGE_REPO_BRANCH") cfg.branch = v;
+      else if (k === "GITHUB_IMAGE_DEFAULT_FOLDER") cfg.folder = v;
+    }
+  }
+  return cfg;
+}
+
+const ghImgCfg = readGithubImageConfig();
+const WECHAT_IMAGE_FOLDER = "wechat-articles";
+
+function buildCdnUrl(repoPath) {
+  return `https://cdn.jsdelivr.net/gh/${ghImgCfg.owner}/${ghImgCfg.name}@${ghImgCfg.branch}/${repoPath}`;
 }
 
 // 1. Upload images to CDN
@@ -173,15 +201,29 @@ if (dryRun) {
 }
 
 if (!reuseImageMap) {
-  const uploadResult = spawnSync("bun", [
-    "run", resolve(githubDir, "scripts/upload.ts"),
-    imgsDir,
-    "--repo", "NTLx/Pic@master:wechat-articles",
-    "--name-prefix", namePrefix,
-    "--output", mapPath,
-  ], { stdio: "inherit", encoding: "utf8" });
+  const uploadScript = resolve(githubDir, "scripts/upload.ts");
+  const repoSpec = `${ghImgCfg.owner}/${ghImgCfg.name}@${ghImgCfg.branch}:${WECHAT_IMAGE_FOLDER}`;
+  const UPLOAD_MAX_RETRIES = 3;
 
-  if (uploadResult.status !== 0) fail(3, "CDN upload failed");
+  for (let attempt = 1; attempt <= UPLOAD_MAX_RETRIES; attempt++) {
+    const uploadResult = spawnSync("bun", [
+      "run", uploadScript,
+      imgsDir,
+      "--repo", repoSpec,
+      "--name-prefix", namePrefix,
+      "--output", mapPath,
+    ], { stdio: "inherit", encoding: "utf8" });
+
+    if (uploadResult.status === 0) break;
+
+    if (attempt < UPLOAD_MAX_RETRIES) {
+      process.stderr.write(`step5: CDN upload failed (attempt ${attempt}/${UPLOAD_MAX_RETRIES}), retrying in 30s...\n`);
+      const end = Date.now() + 30000;
+      while (Date.now() < end) { /* blocking wait */ }
+    } else {
+      fail(3, `CDN upload failed after ${UPLOAD_MAX_RETRIES} attempts`);
+    }
+  }
 
   if (!existsSync(mapPath)) fail(3, "image-map.json not created");
   imageMap = loadImageMap();
