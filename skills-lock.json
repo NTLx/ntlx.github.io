@@ -109,6 +109,12 @@
       "skillPath": "skills/baoyu-youtube-transcript/SKILL.md",
       "computedHash": "27582028cbdd9c81232fba1aafbfa609e4dc1167bff4f2e89ca48a3ecd07049b"
     },
+    "beautiful-article": {
+      "source": "ConardLi/garden-skills",
+      "sourceType": "github",
+      "skillPath": "skills/beautiful-article/SKILL.md",
+      "computedHash": "fe10753d840d0db3a35ede9673f104e2934ea9b0c926a095a64d17acf82dc481"
+    },
     "humanizer-zh": {
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
