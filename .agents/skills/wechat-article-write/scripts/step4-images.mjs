@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
-import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_DETECT_RE } from "./validation-lib.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_DETECT_RE, hasSlotPlaceholders } from "./validation-lib.mjs";
 import { extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
@@ -139,7 +139,7 @@ for (let i = 0; i < h2Sections.length; i++) {
   const start = section.index;
   const end = i + 1 < h2Sections.length ? h2Sections[i + 1].index : body.length;
   const sectionBody = body.slice(start, end);
-  if (!SLOT_EXTRACT_RE.test(sectionBody)) {
+  if (!hasSlotPlaceholders(sectionBody)) {
     sectionsWithoutSlots.push(section.title);
   }
 }
