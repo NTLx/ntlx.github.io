@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.5.0"
+version: "1.6.0"
 author: NTLx
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
@@ -34,6 +34,7 @@ description: >
 - **字数控制委托给 ljg-writes**：ljg-writes 技能内置 1000-1500 字自律约束，本管线不再叠加字数门槛。管线脚本仅记录 word_count 供状态查询，不作为通过/失败条件
 - **原文链接必填**：微信公众号草稿必须把博客文章公网地址作为"原文链接"（`content_source_url`）。sourceUrl 在 Step 2 预先写入，Step 6.2 必须传给微信 API
 - **图片 prompt 必须从技能模板构建**：baoyu 系列技能的 prompt 模板包含针对特定模型的渲染指令。跳过模板手写 prompt 会导致文字模糊或变形
+- **微信文章顶部 Banner 固化**：Step 5 自动在 `article-wechat.html` 顶部注入图片质量提示 banner，告知读者微信图片可能被压缩，点击"阅读原文"查看高清大图。此 banner 仅影响微信轨 HTML，不影响博客轨 `article.md`
 - **正文图片文字默认中文**：信息图和文内插图中的可见文字（标题、标签、短句、图例）应尽量使用中文。只有模型名、产品名、论文名、API/代码标识、英文缩写、引用原文术语等不适合翻译的专有内容才保留原文
 - **微信公众号样式必须从项目级配置读取**：Step 5 默认必须使用 `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` 的 `default_theme` / `default_color`。不要凭经验传 `--theme default --color blue` 等硬编码参数；这会覆盖项目级主题样式。
 
@@ -328,7 +329,7 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> \
   [--dry-run] [--reuse-image-map]
 ```
-脚本执行：读取项目级 `baoyu-markdown-to-html/EXTEND.md` 主题配置 → 预检 → 从 `.github-image-hosting.env` 读取图床仓库配置 → 上传图片到 GitHub 图床（自带超时重试，最多 3 次） → 占位符替换为 CDN URL → article.md → 占位符替换为本地路径 → baoyu-markdown-to-html → article-wechat.html → 验证 → img 标签规范化 → 写状态。
+脚本执行：读取项目级 `baoyu-markdown-to-html/EXTEND.md` 主题配置 → 预检 → 从 `.github-image-hosting.env` 读取图床仓库配置 → 上传图片到 GitHub 图床（自带超时重试，最多 3 次） → 占位符替换为 CDN URL → article.md → 占位符替换为本地路径 → baoyu-markdown-to-html → article-wechat.html → 注入图片质量提示 banner → font-family 清理 + img 标签规范化 → 验证 → 写状态。
 
 辅助模式：`--dry-run`（只预检不上传）、`--reuse-image-map`（复用已有 image-map.json，跳过上传）。
 

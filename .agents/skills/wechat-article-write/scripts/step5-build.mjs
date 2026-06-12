@@ -323,6 +323,18 @@ if (existsSync(wechatHtmlPath)) {
   // Injecting `data-img` before `src` guarantees whitespace exists before `src`.
   html = html.replace(/<img(\s)src=/gi, '<img data-img src=');
 
+  // Inject WeChat image-quality banner at top of article content
+  const WECHAT_BANNER_HTML =
+    '<section style="margin: 0 0 1.5em 0; padding: 12px 16px; background: #f8f8f8; ' +
+    'border-left: 3px solid #ccc; border-radius: 4px; font-size: 14px; ' +
+    'line-height: 1.6; color: #888; text-align: center;">' +
+    '在微信公众号上发布的图片可能会被压缩且有水印，点击底部<strong style="color: #576b95;">「阅读原文」</strong>可查看高清大图' +
+    '</section>';
+  html = html.replace(
+    /(<div\s+id="output"\s*>)/,
+    `$1\n${WECHAT_BANNER_HTML}`
+  );
+
   writeFileSync(wechatHtmlPath, html);
 }
 
