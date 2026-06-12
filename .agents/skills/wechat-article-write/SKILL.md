@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.2.0"
+version: "1.3.0"
 author: NTLx
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
@@ -510,3 +510,4 @@ step3 复用 step2 的大部分校验逻辑（frontmatter 完整性、H1 检测�
 | `references/strategies/*.md` | 文章类型策略文件（Steps 1-3 定义） |
 | `references/category-keywords.json` | 6 分类关键词/反关键词 |
 | `references/image-backends.md` | 各图片后端构图特性与 prompt 策略 |
+| `references/image-template-catalog.md` | 内容类型→图片模板组合映射规则 |
