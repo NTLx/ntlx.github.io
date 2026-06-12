@@ -26,6 +26,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
 - 不需要深度分析和个人判断，重在信息密度和覆盖面
+- 每个 `## ` 章节必须至少一个 SLOT_IMG 占位符（step4-images.mjs 会校验）
 
 **脚本验证**：
 ```bash
