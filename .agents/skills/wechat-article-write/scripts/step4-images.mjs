@@ -123,6 +123,32 @@ if (slotRefs.length > 0) {
   }
 }
 
+// 5b. Per-section SLOT_IMG validation: every H2 content section must have at least one SLOT_IMG
+const h2Sections = [];
+const h2Regex = /^## (.+)$/gm;
+let h2Match;
+while ((h2Match = h2Regex.exec(body)) !== null) {
+  h2Sections.push({ title: h2Match[1].trim(), index: h2Match.index });
+}
+// Known non-content sections that don't need illustrations
+const skipSections = new Set(["原文参考", "信息来源汇总", "参考资料", "references"]);
+const sectionsWithoutSlots = [];
+for (let i = 0; i < h2Sections.length; i++) {
+  const section = h2Sections[i];
+  if (skipSections.has(section.title)) continue;
+  const start = section.index;
+  const end = i + 1 < h2Sections.length ? h2Sections[i + 1].index : body.length;
+  const sectionBody = body.slice(start, end);
+  if (!SLOT_EXTRACT_RE.test(sectionBody)) {
+    sectionsWithoutSlots.push(section.title);
+  }
+}
+if (sectionsWithoutSlots.length > 0) {
+  const detail = sectionsWithoutSlots.map(t => `"${t}"`).join(", ");
+  markStepFailed(slug, 4, `H2 sections missing SLOT_IMG placeholders: ${detail}. Each content section must have at least one illustration.`);
+  process.exit(2);
+}
+
 // 6. Infographic validation
 const infoFiles = existsSync(imgsDir) ? readdirSync(imgsDir).filter(f => f.startsWith("00-infographic")) : [];
 if (infoFiles.length > 0) {
