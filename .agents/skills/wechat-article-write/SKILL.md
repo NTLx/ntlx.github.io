@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.6.0"
+version: "1.6.1"
 author: NTLx
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
