@@ -149,9 +149,33 @@ function writePrompt(path, content) {
   return true;
 }
 
+function resolveTemplateFile(sourceSkill, subPath) {
+  const candidates = [
+    resolve(repoRoot(), ".agents/skills", sourceSkill, subPath),
+    resolve(repoRoot(), ".claude/skills", sourceSkill, subPath),
+  ];
+  const found = candidates.find((p) => existsSync(p));
+  if (!found) {
+    process.stderr.write(`generate-image-prompts: WARN - template not found: ${sourceSkill}/${subPath}, using fallback\n`);
+    return null;
+  }
+  return readFileSync(found, "utf8");
+}
+
 const dir = postDir(slug);
 const draftPath = resolve(dir, "draft.md");
 if (!existsSync(draftPath)) fail(`draft.md missing: ${draftPath}`);
+
+// --- image-plan.json: content-aware template selection ---
+const imagePlanPath = resolve(dir, "image-plan.json");
+let imagePlan = null;
+if (existsSync(imagePlanPath)) {
+  try {
+    imagePlan = JSON.parse(readFileSync(imagePlanPath, "utf8"));
+  } catch (e) {
+    process.stderr.write(`generate-image-prompts: WARN - invalid image-plan.json, falling back to defaults: ${e.message}\n`);
+  }
+}
 
 const raw = readRequired(draftPath);
 const fm = parseFrontmatter(raw);
@@ -185,10 +209,16 @@ const coreContent = [
 ].join("\n");
 
 const coverSlug = safeDesc(fm.blogSlug ?? slug, "article");
+const coverConfig = imagePlan?.cover ?? {};
+const coverType = coverConfig.type ?? "conceptual";
+const coverPalette = coverConfig.palette ?? "cool";
+const coverRendering = coverConfig.rendering ?? "flat-vector";
+const coverText = coverConfig.text ?? "none";
+const coverMood = coverConfig.mood ?? "bold";
 const coverPrompt = `---
 type: cover
-palette: cool
-rendering: flat-vector
+palette: ${coverPalette}
+rendering: ${coverRendering}
 ---
 
 # Content Context
@@ -198,12 +228,12 @@ Keywords: ${labels.replace(/^- /gm, "").split("\n").filter(Boolean).slice(0, 8).
 
 # Visual Design
 Cover theme: conceptual visual hammer
-Type: conceptual
-Palette: cool
-Rendering: flat-vector
+Type: ${coverType}
+Palette: ${coverPalette}
+Rendering: ${coverRendering}
 Font: none
-Text level: none
-Mood: bold
+Text level: ${coverText}
+Mood: ${coverMood}
 Aspect ratio: 16:9
 Language: Chinese
 
@@ -214,16 +244,24 @@ No text elements. Do not render title, labels, captions, logos, watermarks, colo
 Type composition: abstract shapes representing the article's central tension; information hierarchy, clean zones.
 Visual composition: one strong symbolic metaphor derived from the article, centered with generous negative space.
 Color constraint: Color values (#hex) and color names are rendering guidance only — do NOT display color names, hex codes, or palette labels as visible text in the image.
-Rendering notes: flat vector, clean outlines, bold contrast, no photorealism.
+Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photorealism.
 `;
 
+const infographicConfig = imagePlan?.infographic ?? {};
+const infoLayout = infographicConfig.layout ?? "bento-grid";
+const infoStyle = infographicConfig.style ?? "craft-handmade";
+const infoAspect = infographicConfig.aspect ?? "16:9";
+
+const infoLayoutContent = resolveTemplateFile("baoyu-infographic", `references/layouts/${infoLayout}.md`);
+const infoStyleContent = resolveTemplateFile("baoyu-infographic", `references/styles/${infoStyle}.md`);
+
 const infographicPrompt = infographicBase
-  .replaceAll("{{LAYOUT}}", "bento-grid")
-  .replaceAll("{{STYLE}}", "craft-handmade")
-  .replaceAll("{{ASPECT_RATIO}}", "16:9")
+  .replaceAll("{{LAYOUT}}", infoLayout)
+  .replaceAll("{{STYLE}}", infoStyle)
+  .replaceAll("{{ASPECT_RATIO}}", infoAspect)
   .replaceAll("{{LANGUAGE}}", "Chinese")
-  .replaceAll("{{LAYOUT_GUIDELINES}}", bentoGrid.trim())
-  .replaceAll("{{STYLE_GUIDELINES}}", craftHandmade.trim())
+  .replaceAll("{{LAYOUT_GUIDELINES}}", (infoLayoutContent ?? bentoGrid).trim())
+  .replaceAll("{{STYLE_GUIDELINES}}", (infoStyleContent ?? craftHandmade).trim())
   .replaceAll("{{CONTENT}}", coreContent)
   .replaceAll("{{TEXT_LABELS}}", labels);
 
@@ -240,13 +278,20 @@ if (writePrompt(resolve(promptsDir, "00-infographic-core-summary.md"), infograph
 
 for (const slot of slots.filter((s) => s.slot > 0)) {
   const context = sectionContext(body, slot.index);
-  const type = inferIllustrationType(context, slot.desc);
+
+  const planEntry = imagePlan?.illustrations?.find((e) => e.slot === slot.slot);
+  const type = planEntry?.type ?? inferIllustrationType(context, slot.desc);
+  const style = planEntry?.style ?? "vector-illustration";
+
   const nn = String(slot.slot).padStart(2, "0");
-  const desc = safeDesc(slot.desc, "illustration");
+  const desc = safeDesc(planEntry?.description ?? slot.desc, "illustration");
+
+  const styleContent = resolveTemplateFile("baoyu-article-illustrator", `references/styles/${style}.md`);
+
   const prompt = `---
 illustration_id: ${nn}
 type: ${type}
-style: vector-illustration
+style: ${style}
 ---
 
 # Article Illustration Prompt
@@ -269,9 +314,9 @@ ${commonChineseRule}
 
 ${colorRules}
 
-## Style: vector-illustration
+## Style: ${style}
 
-${vectorStyle.trim()}
+${(styleContent ?? vectorStyle).trim()}
 
 ## Final Rendering Instructions
 

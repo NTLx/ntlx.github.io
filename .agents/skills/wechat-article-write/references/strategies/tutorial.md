@@ -27,7 +27,16 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
 7. 手动设置 blogSlug 和 sourceUrl（不遵循 `articles/{blogSlug}` 规则——sourceUrl 直接指向博文实际地址）
 8. 在 frontmatter 中写入 `targetPath` 字段（如 `targetPath: ai-tools/claude-code-config`），告诉 publish-blog.mjs 写入自定义路径
 9. 保存为 `posts/{date-slug}/draft.md`
-10. 运行 step2-write.mjs 进行基础门控验证：
+10. **视觉规划**：分析文章内容结构，为每张 SLOT_IMG 选择最匹配的图片模板组合。读取 `references/image-template-catalog.md` 获取推荐规则，产出 `posts/{date-slug}/image-plan.json`。
+
+    教程类文章的推荐默认值：
+    - `article_type`: `tutorial`
+    - `infographic`: `linear-progression` + `ikea-manual`（步骤流程图）
+    - 文内插图：`flowchart` + `minimal`（简洁步骤图）
+    - 封面：`hero` + `vivid` + `digital`
+
+    详见 catalog 中"tutorial"类型的推荐组合。Agent 应根据文章实际内容调整，不必拘泥于默认值。image-plan.json 格式和约束同 reader-response 策略。
+11. 运行 step2-write.mjs 进行基础门控验证：
     ```bash
     bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
       --no-humanizer --allow-no-references

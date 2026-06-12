@@ -42,6 +42,49 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
 4. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
 5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的唯一来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空或替换为原始素材链接
+6. **视觉规划**：写完 draft.md 后，分析文章内容结构，为每张 SLOT_IMG 选择最匹配的图片模板组合。读取 `references/image-template-catalog.md` 获取推荐规则，产出 `posts/{date-slug}/image-plan.json`。
+
+   **产出要求**：
+   - `article_type`：从 catalog 中选择最匹配的内容类型（technical-deep-dive / opinion-essay / deep-analysis / 等）
+   - `cover`：根据文章主题选择 type/palette/rendering（参考 catalog 的"封面自动选择规则"）
+   - `infographic`：根据核心数据类型选择 layout/style
+   - `illustrations`：为每个 SLOT_IMG 根据上下文语义选择 type/style
+   - 所有图片保持风格一致（同一 style family，参考 catalog 的"风格一致性规则"）
+
+   **image-plan.json 格式**：
+   ```json
+   {
+     "article_type": "deep-analysis",
+     "cover": {
+       "source_skill": "baoyu-cover-image",
+       "type": "scene",
+       "palette": "elegant",
+       "rendering": "painterly",
+       "text": "none",
+       "mood": "balanced"
+     },
+     "infographic": {
+       "source_skill": "baoyu-infographic",
+       "layout": "dense-modules",
+       "style": "morandi-journal",
+       "aspect": "16:9"
+     },
+     "illustrations": [
+       {
+         "slot": 1,
+         "source_skill": "baoyu-article-illustrator",
+         "type": "framework",
+         "style": "warm",
+         "description": "核心概念框架图"
+       }
+     ]
+   }
+   ```
+
+   **约束**：
+   - `illustrations` 数组中的 `slot` 编号必须与 draft.md 中的 `SLOT_IMG_XX` 占位符一一对应
+   - 若某个 slot 在 draft.md 中存在但 image-plan.json 中缺失，脚本将 fallback 到自动推断
+   - 若 image-plan.json 整体缺失，脚本 fallback 到当前硬编码逻辑（向后兼容）
 
 **draft.md 模板**（强制使用语义占位符）：
 ```markdown
