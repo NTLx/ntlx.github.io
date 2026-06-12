@@ -1,116 +1,192 @@
 # 图片模板注册表
 
-本文件定义文章内容类型与图片模板组合的映射规则。Agent 在 Step 2 写作时参考此文件，
-为每张 SLOT_IMG 选择最匹配的模板组合，产出 `image-plan.json`。
+本文件定义文章内容类型与图片模板组合的映射规则。Agent 在 Step 2.6 只需选择 `article_type`，脚本自动解析完整模板配置。
 
-## 内容类型 → 模板推荐
+## 风格家族（Style Family）
 
-### technical-deep-dive（技术深度分析）
+同一风格家族的信息图和文内插图视觉语言一致。Agent 选 article_type 后，脚本自动使用对应的 style family。
 
-适用场景：系统架构、技术原理、工程实践、性能分析等深度技术文章。
+| 家族 ID | 信息图 style | 文内插图 style | 视觉特征 | 适用场景 |
+|---------|-------------|---------------|---------|---------|
+| `journal` | `morandi-journal` | `warm` | 莫兰迪色调、手绘笔记质感、温暖知性 | 深度分析、读后感、观点文章 |
+| `tech` | `technical-schematic` | `blueprint` | 蓝图/技术制图风、精密线条、工程感 | 技术深度、架构分析、性能 |
+| `editorial` | `craft-handmade` | `editorial` | 手工拼贴感、杂志编辑风、叙事性强 | 叙事、人物、行业观察 |
+| `bold` | `bold-graphic` | `notion` | 大色块、高对比、信息密度高 | 清单、数据密集、对比分析 |
+| `minimal` | `ikea-manual` | `minimal` | 极简线条、说明书风、清晰步骤 | 教程、操作指南 |
+| `retro` | `retro-pop-grid` | `retro` | 波普色彩、复古网点、视觉冲击 | 资讯、趋势、文化评论 |
+| `elegant` | `aged-academia` | `elegant` | 学术古典、羊皮纸质感、沉稳优雅 | 论文解读、书评、历史 |
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: structural-breakdown | style: technical-schematic | 结构分解图适合展示系统分层 |
-| 文内插图（架构） | baoyu-article-illustrator | type: framework | style: blueprint | 框架图展示组件关系 |
-| 文内插图（流程） | baoyu-article-illustrator | type: flowchart | style: blueprint | 流程图展示数据/控制流 |
-| 文内插图（对比） | baoyu-article-illustrator | type: comparison | style: blueprint | 方案对比 |
-| 封面 | baoyu-cover-image | type: conceptual | palette: cool, rendering: flat-vector | 抽象概念视觉 |
+**用户偏好**：项目默认偏好 `journal` 风格家族（信息图倾向、莫兰迪色调）。Agent 不指定 direction 时使用 journal。
 
-### opinion-essay（观点文章）
+## 文章类型 → 模板配置
 
-适用场景：个人见解、评论、思辨、"为什么我认为 X"类型文章。
+每个 article_type 对应完整的模板配置。Agent 只需在 image-plan.json 中写 article_type，脚本自动解析。
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: hub-spoke | style: craft-handmade | 中心辐射适合"核心观点+支撑论据" |
-| 文内插图 | baoyu-article-illustrator | type: scene / infographic | style: editorial / notion | 叙事场景或数据可视化 |
-| 封面 | baoyu-cover-image | type: metaphor | palette: warm, rendering: hand-drawn | 隐喻式视觉 |
+### `deep-analysis`（深度分析/读后感）
 
-### tutorial（教程/操作指南）
+```yaml
+style_family: journal
+infographic:
+  layout: dense-modules
+  style: morandi-journal
+illustration:
+  style: warm
+cover:
+  type: scene
+  palette: elegant
+  rendering: painterly
+```
 
-适用场景：步骤教程、配置指南、How-to 文章。
+适用：读后感、论文解读、书评、深度剖析
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: linear-progression | style: ikea-manual | 线性步骤流程 |
-| 文内插图 | baoyu-article-illustrator | type: flowchart | style: minimal | 简洁步骤图 |
-| 封面 | baoyu-cover-image | type: hero | palette: vivid, rendering: digital | 吸引眼球的主视觉 |
+### `opinion-essay`（观点文章）
 
-### news-digest（资讯简报）
+```yaml
+style_family: journal
+infographic:
+  layout: hub-spoke
+  style: morandi-journal
+illustration:
+  style: warm
+cover:
+  type: metaphor
+  palette: warm
+  rendering: hand-drawn
+```
 
-适用场景：AI 日报、行业动态、新闻汇总。
+适用：个人见解、评论、思辨
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: bento-grid | style: retro-pop-grid | 多话题模块化概览 |
-| 文内插图 | baoyu-article-illustrator | type: infographic | style: notion | 数据密集型可视化 |
-| 封面 | baoyu-cover-image | type: typography | palette: mono, rendering: screen-print | 文字主导的现代感 |
+### `technical-deep-dive`（技术深度分析）
 
-### deep-analysis（深度分析/读后感）
+```yaml
+style_family: tech
+infographic:
+  layout: structural-breakdown
+  style: technical-schematic
+illustration:
+  style: blueprint
+cover:
+  type: conceptual
+  palette: cool
+  rendering: flat-vector
+```
 
-适用场景：读后感、论文解读、书评、深度剖析。
+适用：系统架构、技术原理、工程实践、性能分析
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: dense-modules | style: morandi-journal | 高密度知识模块 |
-| 文内插图 | baoyu-article-illustrator | type: framework / comparison | style: warm / editorial | 框架图或对比图 |
-| 封面 | baoyu-cover-image | type: scene | palette: elegant, rendering: painterly | 优雅叙事感 |
+### `tutorial`（教程/操作指南）
 
-### listicle（清单/盘点）
+```yaml
+style_family: minimal
+infographic:
+  layout: linear-progression
+  style: ikea-manual
+illustration:
+  style: minimal
+cover:
+  type: conceptual
+  palette: vivid
+  rendering: digital
+```
 
-适用场景：TOP N 排行、工具推荐、资源合集。
+适用：步骤教程、配置指南、How-to
 
-| 图片位置 | source_skill | 推荐模板 | 推荐风格 | 说明 |
-|---------|-------------|---------|---------|------|
-| 信息图 | baoyu-infographic | layout: comparison-matrix | style: bold-graphic | 矩阵式对比 |
-| 文内插图 | baoyu-article-illustrator | type: infographic | style: vector-illustration | 信息密集可视化 |
-| 封面 | baoyu-cover-image | type: hero | palette: vivid, rendering: flat-vector | 鲜明主视觉 |
+### `news-digest`（资讯简报）
 
-## Slot 上下文 → 插图类型映射
+```yaml
+style_family: retro
+infographic:
+  layout: bento-grid
+  style: retro-pop-grid
+illustration:
+  style: retro
+cover:
+  type: conceptual
+  palette: mono
+  rendering: screen-print
+```
 
-当 Agent 为某个 SLOT_IMG 选择插图类型时，根据占位符附近文字的语义信号判断：
+适用：AI 日报、行业动态、新闻汇总
 
-| 上下文信号关键词 | 推荐 illustration type | 推荐 infographic layout |
-|----------------|----------------------|------------------------|
-| 对比、比较、vs、两种方案、优劣、trade-off | comparison | binary-comparison |
-| 流程、步骤、循环、转化、pipeline、workflow | flowchart | linear-progression |
-| 架构、结构、层次、组件、模块、系统 | framework | structural-breakdown |
-| 数据、指标、统计、占比、趋势 | infographic | dashboard |
-| 时间线、演进、历史、发展、阶段 | timeline | linear-progression |
-| 关系、利益相关方、生态、网络 | framework | hub-spoke |
-| 概念、原理、机制、因果 | framework | hub-spoke |
-| 多主题概览、全景、总览 | — | bento-grid |
+### `listicle`（清单/盘点）
 
-## 风格一致性规则
+```yaml
+style_family: bold
+infographic:
+  layout: comparison-matrix
+  style: bold-graphic
+illustration:
+  style: notion
+cover:
+  type: conceptual
+  palette: vivid
+  rendering: flat-vector
+```
 
-1. **同一篇文章的信息图和文内插图应使用同一 style family**：
-   - `technical-schematic` ↔ `blueprint`（技术类）
-   - `craft-handmade` ↔ `editorial`（叙事类）
-   - `ikea-manual` ↔ `minimal`（教程类）
-   - `corporate-memphis` ↔ `notion`（商业/数据类）
+适用：TOP N 排行、工具推荐、资源合集
 
-2. **封面可以独立于正文图片风格**：封面是"视觉锤"，风格可以更自由
+### `data-story`（数据叙事）
 
-3. **推荐组合中已内置风格一致性**，Agent 通常只需按表选择即可
+```yaml
+style_family: bold
+infographic:
+  layout: dashboard
+  style: bold-graphic
+illustration:
+  style: notion
+cover:
+  type: conceptual
+  palette: cool
+  rendering: digital
+```
 
-## 封面自动选择规则
+适用：数据驱动的分析、统计报告、趋势解读
 
-当 `image-plan.json` 中封面配置为 `auto` 时，按以下规则自动推断：
+## Slot 上下文 → 插图类型自动推断
 
-| 文章 category | 推荐 type | 推荐 palette | 推荐 rendering |
-|--------------|-----------|-------------|---------------|
-| ai-coding / engineering | conceptual | cool | flat-vector |
-| ai-agents / ai-industry | metaphor | warm | hand-drawn |
-| ai-models | conceptual | elegant | digital |
-| security | minimal | dark | flat-vector |
-| （其他） | scene | cool | flat-vector |
+脚本根据 SLOT_IMG 占位符附近文字自动推断 type，Agent 无需逐张指定：
+
+| 上下文信号关键词 | 推断 type | 推荐 infographic layout |
+|----------------|-----------|------------------------|
+| 对比、比较、vs、两种方案、优劣、trade-off | `comparison` | `binary-comparison` |
+| 流程、步骤、循环、转化、pipeline、workflow | `flowchart` | `linear-progression` |
+| 架构、结构、层次、组件、模块、系统 | `framework` | `structural-breakdown` |
+| 数据、指标、统计、占比、趋势 | `framework` | `dashboard` |
+| 时间线、演进、历史、发展、阶段 | `flowchart` | `linear-progression` |
+| 关系、利益相关方、生态、网络 | `framework` | `hub-spoke` |
+| 概念、原理、机制、因果 | `framework` | `hub-spoke` |
+| 多主题概览、全景、总览 | `framework` | `bento-grid` |
+
+## 可用模板清单
+
+Agent 想用 `direction` 覆盖默认值时，参考此清单。
+
+### baoyu-infographic layouts（21 种）
+
+bento-grid, binary-comparison, bridge, circular-flow, comic-strip, comparison-matrix, dashboard, dense-modules, funnel, hierarchical-layers, hub-spoke, iceberg, isometric-map, jigsaw, linear-progression, periodic-table, story-mountain, structural-breakdown, tree-branching, venn-diagram, winding-roadmap
+
+### baoyu-infographic styles（22 种）
+
+aged-academia, bold-graphic, chalkboard, claymation, corporate-memphis, craft-handmade, cyberpunk-neon, hand-drawn-edu, ikea-manual, kawaii, knolling, lego-brick, morandi-journal, origami, pixel-art, pop-laboratory, retro-pop-grid, retro-popup-pop, storybook-watercolor, subway-map, technical-schematic, ui-wireframe
+
+### baoyu-article-illustrator styles（23 种）
+
+blueprint, chalkboard, editorial, elegant, fantasy-animation, flat-doodle, flat, ink-notes, intuition-machine, minimal, nature, notion, pixel-art, playful, retro, scientific, screen-print, sketch, sketch-notes, vector-illustration, vintage, warm, watercolor
+
+### baoyu-cover-image palettes（11 种）
+
+cool, dark, duotone, earth, elegant, macaron, mono, pastel, retro, vivid, warm
+
+### baoyu-cover-image renderings（7 种）
+
+chalk, digital, flat-vector, hand-drawn, painterly, pixel, screen-print
 
 ## 使用方式
 
 Agent 在 Step 2 写完 draft.md 后：
 
-1. 确定文章的内容类型（从上方"内容类型 → 模板推荐"中选择最匹配的）
-2. 为每个 SLOT_IMG 根据上下文信号选择插图类型
-3. 按风格一致性规则确认所有图片的 style family 一致
-4. 将选择结果写入 `posts/{date-slug}/image-plan.json`
+1. 从上方"文章类型"中选择最匹配的 `article_type`
+2. 统计 draft.md 中的 SLOT_IMG_01+ 占位符数量
+3. （可选）如果要覆盖默认风格，写 `direction` 字段
+4. 写入 `posts/{date-slug}/image-plan.json`
+
+脚本自动处理：风格家族解析 → 信息图模板选择 → 插图类型推断 → 封面参数填充 → prompt 生成。

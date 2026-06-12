@@ -149,6 +149,47 @@ function writePrompt(path, content) {
   return true;
 }
 
+// --- Style families and article_type → template defaults ---
+const STYLE_FAMILIES = {
+  journal:   { infoStyle: "morandi-journal",      illStyle: "warm" },
+  tech:      { infoStyle: "technical-schematic",   illStyle: "blueprint" },
+  editorial: { infoStyle: "craft-handmade",        illStyle: "editorial" },
+  bold:      { infoStyle: "bold-graphic",          illStyle: "notion" },
+  minimal:   { infoStyle: "ikea-manual",           illStyle: "minimal" },
+  retro:     { infoStyle: "retro-pop-grid",        illStyle: "retro" },
+  elegant:   { infoStyle: "aged-academia",          illStyle: "elegant" },
+};
+
+const ARTICLE_TYPE_DEFAULTS = {
+  "deep-analysis":       { family: "journal",   infoLayout: "dense-modules",        cover: { type: "scene",      palette: "elegant", rendering: "painterly" } },
+  "opinion-essay":       { family: "journal",   infoLayout: "hub-spoke",            cover: { type: "metaphor",   palette: "warm",    rendering: "hand-drawn" } },
+  "technical-deep-dive": { family: "tech",      infoLayout: "structural-breakdown", cover: { type: "conceptual", palette: "cool",    rendering: "flat-vector" } },
+  "tutorial":            { family: "minimal",   infoLayout: "linear-progression",   cover: { type: "conceptual", palette: "vivid",   rendering: "digital" } },
+  "news-digest":         { family: "retro",     infoLayout: "bento-grid",           cover: { type: "conceptual", palette: "mono",    rendering: "screen-print" } },
+  "listicle":            { family: "bold",      infoLayout: "comparison-matrix",    cover: { type: "conceptual", palette: "vivid",   rendering: "flat-vector" } },
+  "data-story":          { family: "bold",      infoLayout: "dashboard",            cover: { type: "conceptual", palette: "cool",    rendering: "digital" } },
+};
+
+function resolveConfigDefaults(imagePlan) {
+  const articleType = imagePlan?.article_type ?? "deep-analysis";
+  const typeDefaults = ARTICLE_TYPE_DEFAULTS[articleType];
+
+  if (!typeDefaults) {
+    process.stderr.write(`generate-image-prompts: WARN - unknown article_type "${articleType}", falling back to deep-analysis\n`);
+  }
+  const td = typeDefaults ?? ARTICLE_TYPE_DEFAULTS["deep-analysis"];
+
+  const direction = imagePlan?.direction;
+  const familyId = (direction && STYLE_FAMILIES[direction]) ? direction : td.family;
+  const family = STYLE_FAMILIES[familyId] ?? STYLE_FAMILIES.journal;
+
+  return {
+    cover: { ...td.cover },
+    infographic: { layout: td.infoLayout, style: family.infoStyle, aspect: "16:9" },
+    illustrationStyle: family.illStyle,
+  };
+}
+
 function resolveTemplateFile(sourceSkill, subPath) {
   const candidates = [
     resolve(repoRoot(), ".agents/skills", sourceSkill, subPath),
@@ -176,6 +217,12 @@ if (existsSync(imagePlanPath)) {
     process.stderr.write(`generate-image-prompts: WARN - invalid image-plan.json, falling back to defaults: ${e.message}\n`);
   }
 }
+
+// --- Resolve template configuration ---
+const defaults = resolveConfigDefaults(imagePlan);
+const useOldCover = imagePlan?.cover && (imagePlan.cover.type || imagePlan.cover.palette);
+const useOldInfo = imagePlan?.infographic && (imagePlan.infographic.layout || imagePlan.infographic.style);
+const useOldIllArray = Array.isArray(imagePlan?.illustrations) && imagePlan.illustrations.length > 0;
 
 const raw = readRequired(draftPath);
 const fm = parseFrontmatter(raw);
@@ -209,7 +256,7 @@ const coreContent = [
 ].join("\n");
 
 const coverSlug = safeDesc(fm.blogSlug ?? slug, "article");
-const coverConfig = imagePlan?.cover ?? {};
+const coverConfig = useOldCover ? imagePlan.cover : defaults.cover;
 const coverType = coverConfig.type ?? "conceptual";
 const coverPalette = coverConfig.palette ?? "cool";
 const coverRendering = coverConfig.rendering ?? "flat-vector";
@@ -247,7 +294,7 @@ Color constraint: Color values (#hex) and color names are rendering guidance onl
 Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photorealism.
 `;
 
-const infographicConfig = imagePlan?.infographic ?? {};
+const infographicConfig = useOldInfo ? imagePlan.infographic : defaults.infographic;
 const infoLayout = infographicConfig.layout ?? "bento-grid";
 const infoStyle = infographicConfig.style ?? "craft-handmade";
 const infoAspect = infographicConfig.aspect ?? "16:9";
@@ -281,7 +328,7 @@ for (const slot of slots.filter((s) => s.slot > 0)) {
 
   const planEntry = imagePlan?.illustrations?.find((e) => e.slot === slot.slot);
   const type = planEntry?.type ?? inferIllustrationType(context, slot.desc);
-  const style = planEntry?.style ?? "vector-illustration";
+  const style = planEntry?.style ?? defaults.illustrationStyle;
 
   const nn = String(slot.slot).padStart(2, "0");
   const desc = safeDesc(planEntry?.description ?? slot.desc, "illustration");
