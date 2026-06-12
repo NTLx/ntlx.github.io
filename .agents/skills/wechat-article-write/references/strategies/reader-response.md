@@ -35,56 +35,29 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - 必须包含文末互动 + 原文参考区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
-   - **同时规划插图占位符位置**：按 SLOT_IMG 编号规则在写作时插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过
-   - **必须做文内插图决策**：尽量保留原文中有信息价值的插图；根据正文内容判断是否新增插图。新增图优先覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
+   - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01 和 SLOT_IMG_02 必须插入**——每篇 1000-1500 字的文章至少需要 2 张文内插图来可视化核心论点。优先覆盖逻辑关系、流程/架构、概念对比、时间线等高信息密度内容
+   - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
 4. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
 5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的唯一来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空或替换为原始素材链接
-6. **视觉规划**：写完 draft.md 后，分析文章内容结构，为每张 SLOT_IMG 选择最匹配的图片模板组合。读取 `references/image-template-catalog.md` 获取推荐规则，产出 `posts/{date-slug}/image-plan.json`。
+6. **视觉规划**：写完 draft.md 后，选择文章的内容类型，产出 `posts/{date-slug}/image-plan.json`。读取 `references/image-template-catalog.md` 的"文章类型 → 模板配置"章节选择最匹配的 article_type。脚本会根据 article_type 自动解析风格家族、信息图模板、插图风格和封面参数。
 
-   **产出要求**：
-   - `article_type`：从 catalog 中选择最匹配的内容类型（technical-deep-dive / opinion-essay / deep-analysis / 等）
-   - `cover`：根据文章主题选择 type/palette/rendering（参考 catalog 的"封面自动选择规则"）
-   - `infographic`：根据核心数据类型选择 layout/style
-   - `illustrations`：为每个 SLOT_IMG 根据上下文语义选择 type/style
-   - 所有图片保持风格一致（同一 style family，参考 catalog 的"风格一致性规则"）
-
-   **image-plan.json 格式**：
+   **image-plan.json 格式**（极简）：
    ```json
    {
-     "article_type": "deep-analysis",
-     "cover": {
-       "source_skill": "baoyu-cover-image",
-       "type": "scene",
-       "palette": "elegant",
-       "rendering": "painterly",
-       "text": "none",
-       "mood": "balanced"
-     },
-     "infographic": {
-       "source_skill": "baoyu-infographic",
-       "layout": "dense-modules",
-       "style": "morandi-journal",
-       "aspect": "16:9"
-     },
-     "illustrations": [
-       {
-         "slot": 1,
-         "source_skill": "baoyu-article-illustrator",
-         "type": "framework",
-         "style": "warm",
-         "description": "核心概念框架图"
-       }
-     ]
+     "article_type": "deep-analysis"
    }
    ```
 
+   可选字段：
+   - `direction`：覆盖默认风格家族（可选值见 catalog "风格家族"表）。例如 `"direction": "tech"` 让一篇 opinion-essay 使用技术蓝图风格
+   - 不指定 direction 时使用 article_type 的默认风格家族（项目偏好 journal / 莫兰迪色调）
+
    **约束**：
-   - `illustrations` 数组中的 `slot` 编号必须与 draft.md 中的 `SLOT_IMG_XX` 占位符一一对应
-   - 若某个 slot 在 draft.md 中存在但 image-plan.json 中缺失，脚本将 fallback 到自动推断
-   - 若 image-plan.json 整体缺失，脚本 fallback 到当前硬编码逻辑（向后兼容）
+   - `image-plan.json` 缺失时脚本 fallback 到 `deep-analysis` 默认配置（向后兼容）
+   - 脚本自动处理：风格家族解析 → 信息图 layout/style → 文内插图 style → 封面 type/palette/rendering → 每张图的 type 从上下文推断
 
 **draft.md 模板**（强制使用语义占位符）：
 ```markdown
