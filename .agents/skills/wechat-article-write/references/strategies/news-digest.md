@@ -26,7 +26,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
 - 不需要深度分析和个人判断，重在信息密度和覆盖面
-- 每个 `## ` 章节必须至少一个 SLOT_IMG 占位符（step4-images.mjs 会校验）
+- 每个 `## ` 章节必须有一个 SLOT_IMG 占位符，且**紧跟在 `## ` 标题之后、章节正文之前**（`## 标题` → `<!-- SLOT_IMG_0X_描述 -->` → 段落文字）。**描述词必须反映该章节核心内容**，禁止泛化词。step4-images.mjs 校验存在性和位置约束
 
 **脚本验证**：
 ```bash
@@ -43,7 +43,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 ## Step 3: 文本后处理
 行为: full
 
-- 通过 Skill 工具调用 renwei-writing 处理正文（两层：操作规则 + 事后检查清单）
+- **⚠️ 强制执行 — 禁止跳过**：通过 Skill 工具调用 renwei-writing 处理正文（两层：操作规则 + 事后检查清单）。这是消除 AI 写作痕迹的唯一防线，不得以任何理由跳过
 - 通过 Skill 工具调用 baoyu-format-markdown 格式化
 
 **脚本验证**：
