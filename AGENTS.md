@@ -98,6 +98,43 @@
 
 4. **发布输入源校验**：Step 6.1（博客）输入必须是 `article.md`（CDN URL 版）；Step 6.2（微信）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
+## 联网工具选择指南
+
+Agent 在需要联网时，根据场景自主选择最合适的工具，无需强制走统一入口。
+
+### 工具对比
+
+| 工具 | 适用场景 | 限制 |
+|------|---------|------|
+| **Tavily Search** | 搜索摘要、发现信息来源；支持按时间/域名过滤，返回结构化结果 | 每次最多 10 条 |
+| **Tavily Extract** | URL 已知，需要提取页面正文内容（Markdown 格式）；支持批量多 URL | 基础/高级两档深度 |
+| **Exa Web Search** | 语义搜索，适合找"与 X 类似的页面"、人物/公司等精准语义查询 | 免费额度有限 |
+| **WebFetch** | URL 已知，拉取原始内容供 Agent 直接分析 | 动态渲染页面可能拿不到完整内容 |
+| **curl** | URL 已知，需要原始 HTML（检查 meta 标签、JSON-LD、HTTP headers 等） | 不处理 JS 渲染；反爬站点可能返回 403 |
+| **Jina Reader** | URL 已知，转为干净 Markdown（详见下方） | 20 RPM；非文章结构页面可能提取错误 |
+
+### Jina Reader 使用经验
+
+Jina 是第三方网页转 Markdown 服务，调用方式：
+
+```
+curl https://r.jina.ai/https://example.com/article
+```
+
+- URL 不保留原网址的 `http://` / `https://` 前缀
+- 返回干净 Markdown，大幅节省 token
+- **限制**：20 RPM（每分钟 20 次请求）
+- **适用场景**：文章、博客、文档、PDF 等以正文为核心的页面
+- **不适用场景**：数据面板、商品页、图片墙等非文章结构页面（可能提取到错误区块）
+- **微信反爬**：微信公众号文章（`mp.weixin.qq.com`）通过 Jina 可以获取到内容，但有概率触发 CAPTCHA 验证，批量抓取时不推荐
+- **组合使用**：可与 Tavily Search 搭配——Tavily 发现 URL → Jina 提取正文，效果优于单独使用 Tavily Extract
+
+### 选择策略
+
+1. **需要搜索发现** → Tavily Search 或 Exa（按语义/精确需求选择）
+2. **URL 已知，提取正文** → Jina（文章类）或 Tavily Extract（通用）；需要原始 HTML 时用 curl
+3. **验证信息** → 搜索发现来源后，直接访问一手来源读取原文，不依赖二手报道
+
 ## 技术博文编写规范
 
 迁移至 [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)（联网工具、跨平台命令、Asides、代码块、Git 提交等）。
