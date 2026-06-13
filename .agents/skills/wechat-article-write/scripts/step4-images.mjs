@@ -149,6 +149,38 @@ if (sectionsWithoutSlots.length > 0) {
   process.exit(2);
 }
 
+// 5c. SLOT_IMG position validation: SLOT must be the first non-empty line after H2 heading
+const misplacedSlotSections = [];
+const bodyLines = body.split(/\r?\n/);
+for (let i = 0; i < h2Sections.length; i++) {
+  const section = h2Sections[i];
+  if (skipSections.has(section.title)) continue;
+
+  // Find which line index this heading is on
+  const headingLineIdx = bodyLines.findIndex((line, idx) => {
+    return /^## /.test(line) && line.replace(/^## /, "").trim() === section.title;
+  });
+  if (headingLineIdx === -1) continue;
+
+  // First non-empty line after heading must be a SLOT_IMG placeholder
+  let firstContentLine = null;
+  for (let j = headingLineIdx + 1; j < bodyLines.length; j++) {
+    const trimmed = bodyLines[j].trim();
+    if (trimmed === "") continue;
+    firstContentLine = trimmed;
+    break;
+  }
+
+  if (firstContentLine && !SLOT_DETECT_RE.test(firstContentLine)) {
+    misplacedSlotSections.push(section.title);
+  }
+}
+if (misplacedSlotSections.length > 0) {
+  const detail = misplacedSlotSections.map(t => `"${t}"`).join(", ");
+  markStepFailed(slug, 4, `SLOT_IMG not positioned immediately after H2 heading in sections: ${detail}. Rule: ## heading → <!-- SLOT_IMG_XX --> → paragraph text. Move the SLOT_IMG placeholder to the first line after each heading.`);
+  process.exit(2);
+}
+
 // 6. Infographic validation
 const infoFiles = existsSync(imgsDir) ? readdirSync(imgsDir).filter(f => f.startsWith("00-infographic")) : [];
 if (infoFiles.length > 0) {
