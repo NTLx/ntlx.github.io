@@ -73,7 +73,6 @@
 | **文件名 kebab-case** | `articles/` 下文件名必须为小写 ASCII kebab-case；`AI-Foo.md` 与 `ai-foo.md` 视为同名冲突；标题字段可任意语言 |
 | **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
 | **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
-| **Git 跟踪** | `.agents/skills/` ✅ 入库；`.claude/skills/` ❌（gitignore，符号链接）；`skills-lock.json` ✅；`posts/` ❌（gitignore） |
 | **Shell 安全引用** | 所有 shell 脚本中涉及用户提供的路径必须使用引号包裹（`"$var"`），防止路径含空格或特殊字符时命令注入或路径断裂 |
 | **第三方技能禁止擅自修改** | `.agents/skills/` 下由 `npx skills` 管理的第三方技能（`baoyu-*`、`ljg-*` 等），Agent 不得擅自修改其源码（SKILL.md、scripts、references）。必须征得用户明确同意才能修改。`npx skills` 更新版本不受此限制，但更新后必须复查已知本地补丁是否被覆盖（见 Skill 系统入口的补丁记录）。自建技能（frontmatter 含 `author: NTLx`，如 `wechat-article-write`、`github-image-hosting`）不受此限制 |
 | **自建技能改动必须升版本** | 每次修改自建技能（`author: NTLx`）的任何文件（SKILL.md、scripts、references、策略文件）后，必须在同一批改动中递增该技能 SKILL.md frontmatter 的 `version` 字段。行为变更（增删步骤、替换调用技能、修改门控逻辑）升 minor；纯文档/注释修正升 patch。不升版本 = 改动不完整 |
