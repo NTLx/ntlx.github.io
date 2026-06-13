@@ -105,12 +105,12 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ## Step 3: 文本后处理
 行为: full
 
-1. 通过 **Skill 工具调用 humanizer-zh** 处理 `posts/{date-slug}/draft.md` 正文
+1. 通过 **Skill 工具调用 renwei-writing** 处理 `posts/{date-slug}/draft.md` 正文（两层：先按操作规则做减法打磨，再跑事后检查清单逐条扫 AI 痕迹）
 2. 通过 **Skill 工具调用 baoyu-format-markdown** 格式化 `posts/{date-slug}/draft.md`
 
-处理范围为正文内容（frontmatter 之后，原文参考之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，humanizer-zh 和格式化都不会修改它们。
+处理范围为正文内容（frontmatter 之后，原文参考之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，renwei-writing 和格式化都不会修改它们。
 
-后处理目标不是"润色得更正式"，而是去掉 AI 生成痕迹：删除空泛排比、机械转折、宣传腔和翻译腔，保留清晰的个人判断、具体细节和自然的中文节奏。不要把第一人称观察和读后感式判断磨平。
+后处理目标不是"润色得更正式"，而是保住作者存在感的同时去掉 AI 痕迹：只做减法，毛边先假设是手迹而非瑕疵；改完跑事后检查清单（破折号、排比三连、意义拔高、宣传腔、万能展望结尾等）逐条验收。不要把第一人称观察和读后感式判断磨平。
 
 **脚本验证**：
 ```bash

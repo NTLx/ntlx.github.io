@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.6.1"
+version: "1.7.0"
 author: NTLx
 description: >
   End-to-end WeChat Official Account article writing and dual publishing (blog + WeChat).
@@ -413,7 +413,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 
 ### step3-polish.mjs
 
-step3 复用 step2 的大部分校验逻辑（frontmatter 完整性、H1 检测、SLOT_IMG 占位符、互动问题、原文参考），错误信息格式相同。如果 step3 报了和 step2 一样的错，说明 humanizer/format-markdown 后处理过程中丢失了某些内容。
+step3 复用 step2 的大部分校验逻辑（frontmatter 完整性、H1 检测、SLOT_IMG 占位符、互动问题、原文参考），错误信息格式相同。如果 step3 报了和 step2 一样的错，说明 renwei-writing/format-markdown 后处理过程中丢失了某些内容。
 
 ### 通用排查原则
 
