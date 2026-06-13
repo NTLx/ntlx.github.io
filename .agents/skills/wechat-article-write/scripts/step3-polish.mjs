@@ -2,7 +2,7 @@
 /**
  * Step 3: 文本后处理验证
  *
- * 验证 draft.md 经过 humanizer-zh + baoyu-format-markdown 处理后：
+ * 验证 draft.md 经过 renwei-writing + baoyu-format-markdown 处理后：
  *   - 文件存在且非空
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致

@@ -43,7 +43,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 ## Step 3: 文本后处理
 行为: full
 
-- 通过 Skill 工具调用 humanizer-zh 处理正文
+- 通过 Skill 工具调用 renwei-writing 处理正文（两层：操作规则 + 事后检查清单）
 - 通过 Skill 工具调用 baoyu-format-markdown 格式化
 
 **脚本验证**：

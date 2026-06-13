@@ -37,7 +37,7 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
     bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
       --no-humanizer --allow-no-references
     ```
-    - `--no-humanizer`：跳过 humanizer-zh 相关检查（教程不需要去 AI 痕迹），并在状态文件中写入 `humanizer: skip` 标记
+    - `--no-humanizer`：跳过 renwei-writing 相关检查（教程不需要去 AI 痕迹），并在状态文件中写入 `humanizer: skip` 标记
     - `--allow-no-references`：教程不要求"原文参考"区块
 
 ## Step 2: 跳过
@@ -48,9 +48,9 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
 ## Step 3: 门控验证（精简）
 行为: custom
 
-教程策略的 Step 3 不执行 humanizer-zh 和 baoyu-format-markdown，但仍然运行 step3-polish.mjs 进行门控验证：
+教程策略的 Step 3 不执行 renwei-writing 和 baoyu-format-markdown，但仍然运行 step3-polish.mjs 进行门控验证：
 
-1. 跳过 humanizer-zh 处理（保留技术文档风格）
+1. 跳过 renwei-writing 处理（保留技术文档风格）
 2. 跳过 baoyu-format-markdown（内容在 Step 1 已完成适配）
 3. 运行 step3-polish.mjs 进行门控验证：
    ```bash
@@ -64,4 +64,4 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
 - frontmatter 必须包含 `targetPath` 字段，指定文章在 `src/content/docs/` 下的实际路径（不含 `.md` 扩展名）
 - 不需要文末互动问题（教程不是读后感）
 - 不需要原文参考区块
-- 不需要 humanizer-zh 处理（保留技术文档风格）
+- 不需要 renwei-writing 处理（保留技术文档风格）

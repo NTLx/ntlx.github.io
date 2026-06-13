@@ -260,6 +260,12 @@
       "sourceType": "github",
       "skillPath": "skills/ljg-writes/SKILL.md",
       "computedHash": "a9d6d0c222b40a10e09a161ce1a786cc80a13fc36575756024b3279a8660f848"
+    },
+    "renwei-writing": {
+      "source": "orange2ai/renwei-writing",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "1ae0c529b9054cbe46c44c850aa07e1fb3404d446c983cc3aac7bd6e61f86451"
     }
   }
 }
