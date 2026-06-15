@@ -30,13 +30,13 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 行为: full
 
 1. 通过 **Skill 工具调用 ljg-writes**，传入：
-   - **⚠️ 结构预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节）。对每个章节明确：(a) 章节标题、(b) 该章节要传达的核心信息、(c) 该章节配图的视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题和 SLOT_IMG 占位符描述中
+   - **⚠️ 结构与图片预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节），再根据内容判断至少 3 个最值得视觉化的位置。每个插图位置明确：(a) 它解释的核心信息，(b) 放在正文的哪个论证节点附近，(c) 视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题、正文段落和 SLOT_IMG 占位符描述中
    - 资料内容：`posts/{date-slug}/materials.md`
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 原文参考区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
-   - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**每个 `## ` 章节必须包含一个 SLOT_IMG 占位符**（SLOT_IMG_01、02、03…），且**必须紧跟在 `## ` 标题之后、章节正文之前**（顺序：`## 标题` → `<!-- SLOT_IMG_XX_描述 -->` → 段落文字），step4-images.mjs 会校验存在性和位置约束，缺失或位置不符则 fail。**占位符描述必须是该章节核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 所在章节上下文构建图片 prompt
+   - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01+ 文内插图总数必须不少于 3 张**（不含封面图和 SLOT 00 头部信息图），但不要求每个 `## ` 章节都有图。Agent 应根据正文内容把占位符放在最需要视觉解释的位置，可以在 H2 标题后、关键段落后或小结前，关键是靠近其解释的概念/数据/关系。step2/3/4 会校验文内插图总数，step4-images.mjs 会校验占位符与图片文件一一对应。**占位符描述必须是附近正文核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 附近上下文构建图片 prompt
    - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
@@ -76,17 +76,23 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 ## {章节一标题}
 
-<!-- SLOT_IMG_01_{该章节核心内容的视觉关键词} -->
+<!-- SLOT_IMG_01_{该处论证的视觉关键词} -->
 
 {章节一正文段落…}
 
 ## {章节二标题}
 
-<!-- SLOT_IMG_02_{该章节核心内容的视觉关键词} -->
+<!-- SLOT_IMG_02_{该处论证的视觉关键词} -->
 
 {章节二正文段落…}
 
-…（3-6 个章节，每个章节结构相同）
+## {章节三标题}
+
+{章节三正文段落…}
+
+<!-- SLOT_IMG_03_{该处论证的视觉关键词} -->
+
+…（3-6 个章节，至少 3 个根据内容选择的位置放置文内插图）
 
 *{文末互动问题}*
 
@@ -96,7 +102,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 > {原文URL，纯文本形式}
 ```
 
-**关键**：每个 `## ` 标题的下一行必须是对应的 `<!-- SLOT_IMG -->` 占位符，再下一行才是正文段落。占位符描述必须具体——例如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`。generate-image-prompts.mjs 依赖描述词 + 所在章节上下文构建图片 prompt，描述越具体，生成图与章节内容的匹配度越高。
+**关键**：文内插图不是每章打卡，而是为需要视觉解释的论证节点服务。写作时至少规划 3 个 SLOT_IMG_01+ 占位符，放在相关正文附近；可紧跟 H2，也可放在关键段落后或小结前。占位符描述必须具体——例如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`。generate-image-prompts.mjs 依赖描述词 + 附近上下文构建图片 prompt，描述越具体，生成图与正文内容的匹配度越高。
 
 **SLOT_IMG 编号规则**：
 
@@ -105,11 +111,11 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 | 编号 | 含义 | 位置约定 | 文件名示例 |
 |------|------|---------|-----------|
 | `00` | 信息图（默认生成） | 正文开头 frontmatter 之后 | `00-infographic-core-summary.png` |
-| `01` | 第一个核心概念/架构图 | 紧跟第一个 H2 标题之后 | `01-app-architecture.png` |
-| `02` | 第二个关键流程/对比图 | 紧跟第二个 H2 标题之后 | `02-sensors-overview.png` |
-| `03-05` | 补充插图 | 紧跟对应 H2 标题之后 | `03-workflow-steps.png` |
+| `01` | 第一个核心概念/架构图 | 靠近相关论证节点 | `01-app-architecture.png` |
+| `02` | 第二个关键流程/对比图 | 靠近相关论证节点 | `02-sensors-overview.png` |
+| `03+` | 补充插图（总数至少 3 张） | 靠近相关论证节点 | `03-workflow-steps.png` |
 
-命名格式：`{编号}-{2-3词英文描述}.png`。编号与 `<!-- SLOT_IMG_{编号}_{英文描述} -->` 中的编号必须一致。**描述词必须反映该章节的核心内容**（概念名/数据趋势/关系类型），禁止使用 `chart`、`diagram`、`illustration` 等泛化词。
+命名格式：`{编号}-{2-3词英文描述}.png`。编号与 `<!-- SLOT_IMG_{编号}_{英文描述} -->` 中的编号必须一致。**描述词必须反映附近正文的核心内容**（概念名/数据趋势/关系类型），禁止使用 `chart`、`diagram`、`illustration` 等泛化词。
 
 **脚本验证**：
 ```bash
@@ -131,7 +137,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG 占位符存在、原文参考存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
+脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG_00 信息图和至少 3 张文内插图占位符存在、原文参考存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
 若材料丰富度超出单篇承载能力，参考 SKILL.md 的 Split Decision 章节进行多文章拆分。
 

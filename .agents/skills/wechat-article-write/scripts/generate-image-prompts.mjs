@@ -79,6 +79,14 @@ function extractLabels(body, fm) {
     .join("\n");
 }
 
+function compactLabels(body, fm, max = 7) {
+  return extractLabels(body, fm)
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^- /, "").trim())
+    .filter(Boolean)
+    .slice(0, max);
+}
+
 function extractSection(markdown, header) {
   const lines = markdown.split(/\r?\n/);
   const heading = `## ${header}`;
@@ -147,6 +155,92 @@ function writePrompt(path, content) {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, content.trimEnd() + "\n");
   return true;
+}
+
+const GPT_IMAGE_2_INFOGRAPHIC_VARIANTS = {
+  "hand-drawn": {
+    source: "infographics/hand-drawn-infographic.md",
+    style: "high-quality bullet journal infographic with hand-drawn wobble, warm Morandi colors, readable Chinese hand-lettered labels",
+    palette: "warm cream or off-white paper, dusty sage, terracotta, muted mustard, taupe, charcoal ink",
+  },
+  "bento": {
+    source: "infographics/bento-grid-infographic.md",
+    style: "Apple Newsroom / Notion-style bento grid infographic with rounded modules and clear hierarchy",
+    palette: "warm off-white background, deep ink text, restrained accent color, soft module tints",
+  },
+  "comparison": {
+    source: "infographics/comparison-infographic.md",
+    style: "clean comparison infographic with balanced columns, clear contrast, and concise callouts",
+    palette: "neutral background, two restrained comparison colors, one accent for the conclusion",
+  },
+  "dashboard": {
+    source: "infographics/kpi-dashboard-infographic.md",
+    style: "polished KPI dashboard infographic with large numbers, concise charts, and editorial spacing",
+    palette: "clean light dashboard palette, deep ink text, one vivid metric accent",
+  },
+  "step-by-step": {
+    source: "infographics/step-by-step-infographic.md",
+    style: "warm step-by-step infographic with numbered badges, simple illustrations, and clear connectors",
+    palette: "warm cream background, friendly orange, sage green, deep brown text",
+  },
+};
+
+const INFO_STYLE_TO_GPT_VARIANT = {
+  "morandi-journal": "hand-drawn",
+  "craft-handmade": "hand-drawn",
+  "aged-academia": "hand-drawn",
+  "technical-schematic": "bento",
+  "bold-graphic": "bento",
+  "retro-pop-grid": "bento",
+};
+
+const INFO_LAYOUT_TO_GPT_VARIANT = {
+  "linear-progression": "step-by-step",
+  "circular-flow": "step-by-step",
+  "winding-roadmap": "step-by-step",
+  "comparison-matrix": "comparison",
+  "binary-comparison": "comparison",
+  "venn-diagram": "comparison",
+  "dashboard": "dashboard",
+  "dense-modules": "bento",
+  "bento-grid": "bento",
+};
+
+function selectGptImage2InfographicVariant(config) {
+  const explicit = config.gpt_variant ?? config.gptVariant;
+  const variantId = explicit
+    ?? INFO_STYLE_TO_GPT_VARIANT[config.style]
+    ?? INFO_LAYOUT_TO_GPT_VARIANT[config.layout]
+    ?? "bento";
+  return GPT_IMAGE_2_INFOGRAPHIC_VARIANTS[variantId] ?? GPT_IMAGE_2_INFOGRAPHIC_VARIANTS.bento;
+}
+
+function warnIfGptImage2TemplateMissing(source) {
+  const path = resolve(repoRoot(), ".agents/skills/gpt-image-2/references", source);
+  if (!existsSync(path)) {
+    process.stderr.write(`generate-image-prompts: WARN - gpt-image-2 template not found: ${source}; using compact fallback text\n`);
+  }
+}
+
+function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect }) {
+  const labelText = labels.map((label) => `"${label}"`).join(", ");
+  const gptTemplate = selectGptImage2InfographicVariant({ layout, style });
+  warnIfGptImage2TemplateMissing(gptTemplate.source);
+  const subject = compactText(body, 760).replace(/\n+/g, " / ");
+
+  return [
+    `Template source: gpt-image-2/references/${gptTemplate.source}`,
+    "Use case: infographic-diagram",
+    `Primary request: Create an article-opening infographic that summarizes the central argument of "${fm.title}" for a WeChat/blog article.`,
+    "Scene/background: clean light neutral editorial canvas",
+    `Subject: ${subject}`,
+    `Style/medium: ${gptTemplate.style}`,
+    `Composition/framing: ${aspect} landscape header; layout hint ${layout}; 4-6 clearly separated information zones; strong hierarchy; generous whitespace; arrows or callouts only where they explain relationships`,
+    `Color palette: ${gptTemplate.palette}`,
+    `Text (verbatim): ${labelText}`,
+    "Constraints: Chinese labels must be readable and rendered exactly; use short labels only; strong contrast; no tiny text; no logos, trademarks, watermark, QR code, color names, hex codes, or decorative filler",
+    "Avoid: photorealism, dense small print, cluttered dashboards, stock icons, extra slogans, invented data",
+  ].join("\n");
 }
 
 // --- Style families and article_type → template defaults ---
@@ -230,13 +324,9 @@ if (!fm) fail("frontmatter missing in draft.md");
 const body = extractBody(raw);
 
 const promptsDir = resolve(dir, "imgs/prompts");
-const infographicDir = skillDir("baoyu-infographic");
 const illustratorDir = skillDir("baoyu-article-illustrator");
 const coverDir = skillDir("baoyu-cover-image");
 
-const infographicBase = readRequired(resolve(infographicDir, "references/base-prompt.md"));
-const bentoGrid = readRequired(resolve(infographicDir, "references/layouts/bento-grid.md"));
-const craftHandmade = readRequired(resolve(infographicDir, "references/styles/craft-handmade.md"));
 const promptConstruction = readRequired(resolve(illustratorDir, "references/prompt-construction.md"));
 const vectorStyle = readRequired(resolve(illustratorDir, "references/styles/vector-illustration.md"));
 readRequired(resolve(coverDir, "references/workflow/prompt-template.md"));
@@ -248,12 +338,6 @@ const slots = [...body.matchAll(SLOT_EXTRACT_RE)].map((m) => {
 if (!slots.some((s) => s.slot === 0)) fail("SLOT_IMG_00 is required before generating prompts");
 
 const labels = extractLabels(body, fm);
-const coreContent = [
-  `Title: ${fm.title}`,
-  `Summary: ${fm.summary ?? ""}`,
-  "",
-  compactText(body, 1400),
-].join("\n");
 
 const coverSlug = safeDesc(fm.blogSlug ?? slug, "article");
 const coverConfig = useOldCover ? imagePlan.cover : defaults.cover;
@@ -299,18 +383,14 @@ const infoLayout = infographicConfig.layout ?? "bento-grid";
 const infoStyle = infographicConfig.style ?? "craft-handmade";
 const infoAspect = infographicConfig.aspect ?? "16:9";
 
-const infoLayoutContent = resolveTemplateFile("baoyu-infographic", `references/layouts/${infoLayout}.md`);
-const infoStyleContent = resolveTemplateFile("baoyu-infographic", `references/styles/${infoStyle}.md`);
-
-const infographicPrompt = infographicBase
-  .replaceAll("{{LAYOUT}}", infoLayout)
-  .replaceAll("{{STYLE}}", infoStyle)
-  .replaceAll("{{ASPECT_RATIO}}", infoAspect)
-  .replaceAll("{{LANGUAGE}}", "Chinese")
-  .replaceAll("{{LAYOUT_GUIDELINES}}", (infoLayoutContent ?? bentoGrid).trim())
-  .replaceAll("{{STYLE_GUIDELINES}}", (infoStyleContent ?? craftHandmade).trim())
-  .replaceAll("{{CONTENT}}", coreContent)
-  .replaceAll("{{TEXT_LABELS}}", labels);
+const infographicPrompt = buildCompactInfographicPrompt({
+  fm,
+  body,
+  labels: compactLabels(body, fm),
+  layout: infoLayout,
+  style: infoStyle,
+  aspect: infoAspect,
+});
 
 const defaultComposition = extractSection(promptConstruction, "Default Composition Requirements");
 const textRequirements = extractSection(promptConstruction, "Text in Illustrations");

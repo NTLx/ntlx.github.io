@@ -7,7 +7,7 @@
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
- *   - SLOT_IMG 占位符未丢失
+ *   - SLOT_IMG_00 信息图和至少 3 张文内插图占位符未丢失
  *   - 原文参考 区块未丢失（若原文存在）
  *
  * 字数控制由 ljg-writes 技能自律负责，本脚本仅记录字数不设门控。
@@ -22,7 +22,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, SLOT_EXTRACT_RE, extractSlotNumbers } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, MIN_BODY_ILLUSTRATIONS, countWords, countBodyIllustrationSlots, SLOT_EXTRACT_RE, extractSlotNumbers } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
@@ -91,6 +91,10 @@ if (slotPlaceholders.length === 0) {
 const slotNumbers = extractSlotNumbers(body);
 if (!slotNumbers.includes(0)) {
   fail(2, "正文缺少 SLOT_IMG_00 信息图占位符（polish 可能清除）");
+}
+const bodyIllustrationCount = countBodyIllustrationSlots(body);
+if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
+  fail(2, `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张（polish 可能删除）`);
 }
 
 // 4. Word count (informational only — ljg-writes controls its own word count)

@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
-import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_DETECT_RE, hasSlotPlaceholders } from "./validation-lib.mjs";
+import { MIN_BODY_ILLUSTRATIONS, SLOT_EXTRACT_RE } from "./validation-lib.mjs";
 import { extractBody } from "./frontmatter-lib.mjs";
 
 const slug = process.argv[2];
@@ -123,62 +123,13 @@ if (slotRefs.length > 0) {
   }
 }
 
-// 5b. Per-section SLOT_IMG validation: every H2 content section must have at least one SLOT_IMG
-const h2Sections = [];
-const h2Regex = /^## (.+)$/gm;
-let h2Match;
-while ((h2Match = h2Regex.exec(body)) !== null) {
-  h2Sections.push({ title: h2Match[1].trim(), index: h2Match.index });
-}
-// Known non-content sections that don't need illustrations
-const skipSections = new Set(["原文参考", "信息来源汇总", "参考资料", "references"]);
-const sectionsWithoutSlots = [];
-for (let i = 0; i < h2Sections.length; i++) {
-  const section = h2Sections[i];
-  if (skipSections.has(section.title)) continue;
-  const start = section.index;
-  const end = i + 1 < h2Sections.length ? h2Sections[i + 1].index : body.length;
-  const sectionBody = body.slice(start, end);
-  if (!hasSlotPlaceholders(sectionBody)) {
-    sectionsWithoutSlots.push(section.title);
-  }
-}
-if (sectionsWithoutSlots.length > 0) {
-  const detail = sectionsWithoutSlots.map(t => `"${t}"`).join(", ");
-  markStepFailed(slug, 4, `H2 sections missing SLOT_IMG placeholders: ${detail}. Each content section must have at least one illustration.`);
-  process.exit(2);
-}
-
-// 5c. SLOT_IMG position validation: SLOT must be the first non-empty line after H2 heading
-const misplacedSlotSections = [];
-const bodyLines = body.split(/\r?\n/);
-for (let i = 0; i < h2Sections.length; i++) {
-  const section = h2Sections[i];
-  if (skipSections.has(section.title)) continue;
-
-  // Find which line index this heading is on
-  const headingLineIdx = bodyLines.findIndex((line, idx) => {
-    return /^## /.test(line) && line.replace(/^## /, "").trim() === section.title;
-  });
-  if (headingLineIdx === -1) continue;
-
-  // First non-empty line after heading must be a SLOT_IMG placeholder
-  let firstContentLine = null;
-  for (let j = headingLineIdx + 1; j < bodyLines.length; j++) {
-    const trimmed = bodyLines[j].trim();
-    if (trimmed === "") continue;
-    firstContentLine = trimmed;
-    break;
-  }
-
-  if (firstContentLine && !SLOT_DETECT_RE.test(firstContentLine)) {
-    misplacedSlotSections.push(section.title);
-  }
-}
-if (misplacedSlotSections.length > 0) {
-  const detail = misplacedSlotSections.map(t => `"${t}"`).join(", ");
-  markStepFailed(slug, 4, `SLOT_IMG not positioned immediately after H2 heading in sections: ${detail}. Rule: ## heading → <!-- SLOT_IMG_XX --> → paragraph text. Move the SLOT_IMG placeholder to the first line after each heading.`);
-  process.exit(2);
+// 5b. Body illustration count validation: cover and SLOT_IMG_00 do not count.
+const bodyIllustrationCount = new Set(slotRefs.map(n => parseInt(n, 10)).filter(n => n > 0)).size;
+if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
+  const msg = `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张。请在适合的位置规划 SLOT_IMG_01+ 占位符并生成对应图片。`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(4);
 }
 
 // 6. Infographic validation

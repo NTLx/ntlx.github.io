@@ -6,7 +6,7 @@
 
 同一风格家族的信息图和文内插图视觉语言一致。Agent 选 article_type 后，脚本自动使用对应的 style family。
 
-| 家族 ID | 信息图 style | 文内插图 style | 视觉特征 | 适用场景 |
+| 家族 ID | 信息图 style hint | 文内插图 style | 视觉特征 | 适用场景 |
 |---------|-------------|---------------|---------|---------|
 | `journal` | `morandi-journal` | `warm` | 莫兰迪色调、手绘笔记质感、温暖知性 | 深度分析、读后感、观点文章 |
 | `tech` | `technical-schematic` | `blueprint` | 蓝图/技术制图风、精密线条、工程感 | 技术深度、架构分析、性能 |
@@ -160,13 +160,15 @@ cover:
 
 Agent 想用 `direction` 覆盖默认值时，参考此清单。
 
-### baoyu-infographic layouts（21 种）
+### 信息图 layout hints（映射到 gpt-image-2 compact templates）
 
 bento-grid, binary-comparison, bridge, circular-flow, comic-strip, comparison-matrix, dashboard, dense-modules, funnel, hierarchical-layers, hub-spoke, iceberg, isometric-map, jigsaw, linear-progression, periodic-table, story-mountain, structural-breakdown, tree-branching, venn-diagram, winding-roadmap
 
-### baoyu-infographic styles（22 种）
+### 信息图 style hints（映射到 gpt-image-2 compact templates）
 
 aged-academia, bold-graphic, chalkboard, claymation, corporate-memphis, craft-handmade, cyberpunk-neon, hand-drawn-edu, ikea-manual, kawaii, knolling, lego-brick, morandi-journal, origami, pixel-art, pop-laboratory, retro-pop-grid, retro-popup-pop, storybook-watercolor, subway-map, technical-schematic, ui-wireframe
+
+SLOT 00 头部信息图不再展开 `baoyu-infographic` 的完整 layout/style 文档。`generate-image-prompts.mjs` 会把上述 layout/style hint 映射成 `gpt-image-2/references/infographics/*.md` 的短模板引用，并输出更短、更稳定的文生图 prompt。当前默认映射：journal/morandi → `hand-drawn-infographic.md`；教程流程 → `step-by-step-infographic.md`；对比 → `comparison-infographic.md`；dashboard → `kpi-dashboard-infographic.md`；其它总览 → `bento-grid-infographic.md`。
 
 ### baoyu-article-illustrator styles（23 种）
 
@@ -189,4 +191,4 @@ Agent 在 Step 2 写完 draft.md 后：
 3. （可选）如果要覆盖默认风格，写 `direction` 字段
 4. 写入 `posts/{date-slug}/image-plan.json`
 
-脚本自动处理：风格家族解析 → 信息图模板选择 → 插图类型推断 → 封面参数填充 → prompt 生成。
+脚本自动处理：风格家族解析 → 信息图 gpt-image-2 compact template 映射 → 插图类型推断 → 封面参数填充 → prompt 生成。
