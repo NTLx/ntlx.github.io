@@ -20,6 +20,16 @@ const BODY = `
 
 一些测试正文内容。
 
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+继续展开第一处关键概念。
+
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+
+继续展开第二处关键关系。
+
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
 *你怎么看这个问题?*
 
 ## 原文参考

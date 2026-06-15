@@ -20,6 +20,16 @@ const VALID_BODY = `
 
 一些测试正文内容。
 
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+继续展开第一处关键概念。
+
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+
+继续展开第二处关键关系。
+
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
 *你怎么看这个问题?*
 
 ## 原文参考
@@ -109,5 +119,41 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
     const r = runStep2(slug);
     expect(r.status).toBe(4);
     expect(r.stderr).toContain("SLOT_IMG");
+  });
+
+  test("fewer than 3 body illustration slots fails", () => {
+    const slug = "2026-05-17-too-few-body-slots";
+    const dir = join(TMP_ROOT, slug);
+    mkdirSync(dir, { recursive: true });
+    const fm = {
+      title: "测试文章",
+      date: "2026-05-17",
+      summary: "用于测试 Step 2 门控。",
+      category: "ai-coding",
+      blogSlug: "valid-blog-slug",
+      coverImage: "cover.png",
+      sourceUrl: "https://ntlx.github.io/articles/valid-blog-slug",
+    };
+    const lines = Object.entries(fm).map(([k, v]) => `${k}: ${v}`);
+    writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+一些正文内容。
+
+*你怎么看这个问题?*
+
+## 原文参考
+
+> 来源
+> https://example.com/source
+`);
+
+    const r = runStep2(slug);
+    expect(r.status).toBe(4);
+    expect(r.stderr).toContain("3 张文内插图");
   });
 });

@@ -67,7 +67,6 @@ function loadAll() {
     postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
     coverImage:     parseExtend(resolve(BAOYU_ROOT, "baoyu-cover-image/EXTEND.md")),
     imagine:        parseExtend(resolve(BAOYU_ROOT, "baoyu-image-gen/EXTEND.md")),
-    infographic:    parseExtend(resolve(BAOYU_ROOT, "baoyu-infographic/EXTEND.md")),
     illustrator:    parseExtend(resolve(BAOYU_ROOT, "baoyu-article-illustrator/EXTEND.md")),
   };
   return _cache;
@@ -119,16 +118,6 @@ export function getImagineConfig() {
   };
 }
 
-/** Step 4: baoyu-infographic 配置 */
-export function getInfographicConfig() {
-  const c = loadAll().infographic;
-  return {
-    preferredBackend: c.preferred_image_backend ?? "openai",
-    preferredStyle:   c.preferred_style         ?? "craft-handmade",
-    preferredLayout:  c.preferred_layout        ?? "bento-grid",
-  };
-}
-
 /** Step 4: baoyu-article-illustrator 配置 */
 export function getArticleIllustratorConfig() {
   const c = loadAll().illustrator;
@@ -146,7 +135,6 @@ export function getAllConfig() {
     postToWechat:   getPostToWechatConfig(),
     coverImage:     getCoverImageConfig(),
     imagine:        getImagineConfig(),
-    infographic:    getInfographicConfig(),
     illustrator:    getArticleIllustratorConfig(),
   };
 }

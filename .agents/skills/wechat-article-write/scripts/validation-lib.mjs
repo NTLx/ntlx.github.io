@@ -19,6 +19,8 @@ export const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-mo
 
 export const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
+export const MIN_BODY_ILLUSTRATIONS = 3;
+
 /* ── SLOT_IMG 统一正则 ── */
 
 /** 完整注释检测，不捕获 */
@@ -50,6 +52,11 @@ export function extractSlotNumbers(text) {
     nums.add(parseInt(m[1], 10));
   }
   return [...nums].sort((a, b) => a - b);
+}
+
+/** Count unique body illustration slots, excluding SLOT_IMG_00 infographic. */
+export function countBodyIllustrationSlots(text) {
+  return extractSlotNumbers(text).filter(n => n > 0).length;
 }
 
 /**

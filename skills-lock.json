@@ -115,6 +115,12 @@
       "skillPath": "skills/beautiful-article/SKILL.md",
       "computedHash": "fe10753d840d0db3a35ede9673f104e2934ea9b0c926a095a64d17acf82dc481"
     },
+    "gpt-image-2": {
+      "source": "ConardLi/garden-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gpt-image-2/SKILL.md",
+      "computedHash": "ed104c6ec2b34ffcf1ac4005c3fb5466624eccc0cb60bc88170046aa36d2e4b1"
+    },
     "humanizer-zh": {
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
