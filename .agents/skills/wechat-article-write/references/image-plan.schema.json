@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "wechat-article-write image-plan",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "article_type": {
+      "type": "string",
+      "enum": ["deep-analysis", "opinion-essay", "technical-deep-dive", "tutorial", "news-digest", "listicle", "data-story"]
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["journal", "tech", "editorial", "bold", "minimal", "retro", "elegant"]
+    },
+    "cover": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string" },
+        "palette": { "type": "string" },
+        "rendering": { "type": "string" },
+        "text": { "type": "string" },
+        "mood": { "type": "string" }
+      }
+    },
+    "infographic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": ["linear-progression", "circular-flow", "winding-roadmap", "comparison-matrix", "binary-comparison", "venn-diagram", "dashboard", "dense-modules", "bento-grid", "hub-spoke", "structural-breakdown"]
+        },
+        "style": {
+          "type": "string",
+          "enum": ["morandi-journal", "craft-handmade", "aged-academia", "technical-schematic", "bold-graphic", "retro-pop-grid", "ikea-manual"]
+        },
+        "gpt_variant": {
+          "type": "string",
+          "enum": ["hand-drawn", "bento", "comparison", "dashboard", "step-by-step"]
+        },
+        "gptVariant": {
+          "type": "string",
+          "enum": ["hand-drawn", "bento", "comparison", "dashboard", "step-by-step"]
+        },
+        "aspect": { "type": "string" }
+      }
+    },
+    "illustrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["slot"],
+        "properties": {
+          "slot": { "type": "integer", "minimum": 1 },
+          "type": { "type": "string", "enum": ["comparison", "flowchart", "framework"] },
+          "style": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  }
+}

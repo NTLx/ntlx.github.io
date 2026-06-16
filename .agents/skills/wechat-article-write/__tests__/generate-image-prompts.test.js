@@ -71,6 +71,10 @@ function runGenerator(slug, postsRoot) {
   });
 }
 
+function writeImagePlan(postDir, content) {
+  writeFileSync(join(postDir, "image-plan.json"), JSON.stringify(content, null, 2));
+}
+
 describe("generate-image-prompts head infographic prompt", () => {
   let cleanup = [];
 
@@ -103,5 +107,17 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(prompt).not.toContain("## Layout Guidelines");
     expect(prompt).not.toContain("## Style Guidelines");
     expect(wordCount).toBeLessThan(360);
+  });
+
+  test("fails on unknown image-plan article_type instead of silently falling back", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-invalid-plan";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, { article_type: "technical-deepdive" });
+
+    const r = runGenerator(slug, fx.postsRoot);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('unknown article_type "technical-deepdive"');
   });
 });

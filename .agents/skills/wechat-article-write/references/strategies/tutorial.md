@@ -20,7 +20,8 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
    - 正文中不得有 H1（Starlight 自动渲染 title 为 H1）
 3. 插入 SLOT_IMG 占位符：
    - `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 在 frontmatter 之后、正文第一个段落之前
-   - 每个 `## ` 章节必须有一个 SLOT_IMG，且**紧跟在 `## ` 标题之后、章节正文之前**（`## 标题` → `<!-- SLOT_IMG_0X_描述 -->` → 段落文字）。**描述词必须反映该章节核心内容**，禁止泛化词（如 `chart`、`diagram`）。step4-images.mjs 校验存在性和位置约束
+   - 文内 `SLOT_IMG_01+` 不少于 3 张，不含封面和 SLOT 00 信息图；根据教程内容放在最需要视觉解释的位置，可位于关键步骤后、概念解释后、流程小结前或章节标题后，但不要为凑数机械塞图
+   - 每个占位符描述词必须反映附近正文核心内容，禁止泛化词（如 `chart`、`diagram`、`illustration`）。step2/3/4 会校验数量、格式和图片文件对应关系
 4. 确定 sourceUrl：指向已有博文的公网地址（如 `https://ntlx.github.io/ai-tools/claude-code-config/`）
 5. 生成金句式 summary（≤120 字）
 6. 运行 `suggest-category.mjs` 获取分类

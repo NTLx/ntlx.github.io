@@ -19,10 +19,12 @@ import { SLOT_EXTRACT_RE, resolveSlotImg } from "./validation-lib.mjs";
 
 const args = process.argv.slice(2);
 const overwrite = args.includes("--overwrite");
+const allowDefaultImagePlan = args.includes("--allow-default-image-plan");
+const allowCompactFallback = args.includes("--allow-compact-fallback");
 const slug = args.find((a) => !a.startsWith("--"));
 
 if (!slug) {
-  process.stderr.write("usage: generate-image-prompts.mjs <date-slug> [--overwrite]\n");
+  process.stderr.write("usage: generate-image-prompts.mjs <date-slug> [--overwrite] [--allow-default-image-plan] [--allow-compact-fallback]\n");
   process.exit(1);
 }
 
@@ -157,54 +159,12 @@ function writePrompt(path, content) {
   return true;
 }
 
-const GPT_IMAGE_2_INFOGRAPHIC_VARIANTS = {
-  "hand-drawn": {
-    source: "infographics/hand-drawn-infographic.md",
-    style: "high-quality bullet journal infographic with hand-drawn wobble, warm Morandi colors, readable Chinese hand-lettered labels",
-    palette: "warm cream or off-white paper, dusty sage, terracotta, muted mustard, taupe, charcoal ink",
-  },
-  "bento": {
-    source: "infographics/bento-grid-infographic.md",
-    style: "Apple Newsroom / Notion-style bento grid infographic with rounded modules and clear hierarchy",
-    palette: "warm off-white background, deep ink text, restrained accent color, soft module tints",
-  },
-  "comparison": {
-    source: "infographics/comparison-infographic.md",
-    style: "clean comparison infographic with balanced columns, clear contrast, and concise callouts",
-    palette: "neutral background, two restrained comparison colors, one accent for the conclusion",
-  },
-  "dashboard": {
-    source: "infographics/kpi-dashboard-infographic.md",
-    style: "polished KPI dashboard infographic with large numbers, concise charts, and editorial spacing",
-    palette: "clean light dashboard palette, deep ink text, one vivid metric accent",
-  },
-  "step-by-step": {
-    source: "infographics/step-by-step-infographic.md",
-    style: "warm step-by-step infographic with numbered badges, simple illustrations, and clear connectors",
-    palette: "warm cream background, friendly orange, sage green, deep brown text",
-  },
-};
-
-const INFO_STYLE_TO_GPT_VARIANT = {
-  "morandi-journal": "hand-drawn",
-  "craft-handmade": "hand-drawn",
-  "aged-academia": "hand-drawn",
-  "technical-schematic": "bento",
-  "bold-graphic": "bento",
-  "retro-pop-grid": "bento",
-};
-
-const INFO_LAYOUT_TO_GPT_VARIANT = {
-  "linear-progression": "step-by-step",
-  "circular-flow": "step-by-step",
-  "winding-roadmap": "step-by-step",
-  "comparison-matrix": "comparison",
-  "binary-comparison": "comparison",
-  "venn-diagram": "comparison",
-  "dashboard": "dashboard",
-  "dense-modules": "bento",
-  "bento-grid": "bento",
-};
+const IMAGE_TEMPLATE_MAP = JSON.parse(readRequired(resolve(repoRoot(), ".agents/skills/wechat-article-write/references/image-template-map.json")));
+const GPT_IMAGE_2_INFOGRAPHIC_VARIANTS = IMAGE_TEMPLATE_MAP.gpt_image_2_templates;
+const INFO_STYLE_TO_GPT_VARIANT = IMAGE_TEMPLATE_MAP.infographic_variant_by_style;
+const INFO_LAYOUT_TO_GPT_VARIANT = IMAGE_TEMPLATE_MAP.infographic_variant_by_layout;
+const STYLE_FAMILIES = IMAGE_TEMPLATE_MAP.style_families;
+const ARTICLE_TYPE_DEFAULTS = IMAGE_TEMPLATE_MAP.article_type_defaults;
 
 function selectGptImage2InfographicVariant(config) {
   const explicit = config.gpt_variant ?? config.gptVariant;
@@ -218,7 +178,9 @@ function selectGptImage2InfographicVariant(config) {
 function warnIfGptImage2TemplateMissing(source) {
   const path = resolve(repoRoot(), ".agents/skills/gpt-image-2/references", source);
   if (!existsSync(path)) {
-    process.stderr.write(`generate-image-prompts: WARN - gpt-image-2 template not found: ${source}; using compact fallback text\n`);
+    const msg = `gpt-image-2 template not found: ${source}`;
+    if (!allowCompactFallback) fail(`${msg}; pass --allow-compact-fallback only for legacy migration`);
+    process.stderr.write(`generate-image-prompts: WARN - ${msg}; using compact fallback text\n`);
   }
 }
 
@@ -243,37 +205,20 @@ function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect
   ].join("\n");
 }
 
-// --- Style families and article_type → template defaults ---
-const STYLE_FAMILIES = {
-  journal:   { infoStyle: "morandi-journal",      illStyle: "warm" },
-  tech:      { infoStyle: "technical-schematic",   illStyle: "blueprint" },
-  editorial: { infoStyle: "craft-handmade",        illStyle: "editorial" },
-  bold:      { infoStyle: "bold-graphic",          illStyle: "notion" },
-  minimal:   { infoStyle: "ikea-manual",           illStyle: "minimal" },
-  retro:     { infoStyle: "retro-pop-grid",        illStyle: "retro" },
-  elegant:   { infoStyle: "aged-academia",          illStyle: "elegant" },
-};
-
-const ARTICLE_TYPE_DEFAULTS = {
-  "deep-analysis":       { family: "journal",   infoLayout: "dense-modules",        cover: { type: "scene",      palette: "elegant", rendering: "painterly" } },
-  "opinion-essay":       { family: "journal",   infoLayout: "hub-spoke",            cover: { type: "metaphor",   palette: "warm",    rendering: "hand-drawn" } },
-  "technical-deep-dive": { family: "tech",      infoLayout: "structural-breakdown", cover: { type: "conceptual", palette: "cool",    rendering: "flat-vector" } },
-  "tutorial":            { family: "minimal",   infoLayout: "linear-progression",   cover: { type: "conceptual", palette: "vivid",   rendering: "digital" } },
-  "news-digest":         { family: "retro",     infoLayout: "bento-grid",           cover: { type: "conceptual", palette: "mono",    rendering: "screen-print" } },
-  "listicle":            { family: "bold",      infoLayout: "comparison-matrix",    cover: { type: "conceptual", palette: "vivid",   rendering: "flat-vector" } },
-  "data-story":          { family: "bold",      infoLayout: "dashboard",            cover: { type: "conceptual", palette: "cool",    rendering: "digital" } },
-};
-
 function resolveConfigDefaults(imagePlan) {
   const articleType = imagePlan?.article_type ?? "deep-analysis";
   const typeDefaults = ARTICLE_TYPE_DEFAULTS[articleType];
 
   if (!typeDefaults) {
+    if (!allowDefaultImagePlan) fail(`unknown article_type "${articleType}" in image-plan.json`);
     process.stderr.write(`generate-image-prompts: WARN - unknown article_type "${articleType}", falling back to deep-analysis\n`);
   }
   const td = typeDefaults ?? ARTICLE_TYPE_DEFAULTS["deep-analysis"];
 
   const direction = imagePlan?.direction;
+  if (direction && !STYLE_FAMILIES[direction] && !allowDefaultImagePlan) {
+    fail(`unknown direction "${direction}" in image-plan.json`);
+  }
   const familyId = (direction && STYLE_FAMILIES[direction]) ? direction : td.family;
   const family = STYLE_FAMILIES[familyId] ?? STYLE_FAMILIES.journal;
 
@@ -282,6 +227,30 @@ function resolveConfigDefaults(imagePlan) {
     infographic: { layout: td.infoLayout, style: family.infoStyle, aspect: "16:9" },
     illustrationStyle: family.illStyle,
   };
+}
+
+function validateImagePlan(imagePlan) {
+  if (!imagePlan) return;
+  if (imagePlan.article_type && !ARTICLE_TYPE_DEFAULTS[imagePlan.article_type] && !allowDefaultImagePlan) {
+    fail(`unknown article_type "${imagePlan.article_type}" in image-plan.json`);
+  }
+  if (imagePlan.direction && !STYLE_FAMILIES[imagePlan.direction] && !allowDefaultImagePlan) {
+    fail(`unknown direction "${imagePlan.direction}" in image-plan.json`);
+  }
+
+  const info = imagePlan.infographic;
+  if (info) {
+    const explicit = info.gpt_variant ?? info.gptVariant;
+    if (explicit && !GPT_IMAGE_2_INFOGRAPHIC_VARIANTS[explicit] && !allowDefaultImagePlan) {
+      fail(`unknown infographic gpt_variant "${explicit}" in image-plan.json`);
+    }
+    if (info.style && !INFO_STYLE_TO_GPT_VARIANT[info.style] && !allowDefaultImagePlan) {
+      fail(`unknown infographic style "${info.style}" in image-plan.json`);
+    }
+    if (info.layout && !INFO_LAYOUT_TO_GPT_VARIANT[info.layout] && !allowDefaultImagePlan) {
+      fail(`unknown infographic layout "${info.layout}" in image-plan.json`);
+    }
+  }
 }
 
 function resolveTemplateFile(sourceSkill, subPath) {
@@ -308,9 +277,11 @@ if (existsSync(imagePlanPath)) {
   try {
     imagePlan = JSON.parse(readFileSync(imagePlanPath, "utf8"));
   } catch (e) {
+    if (!allowDefaultImagePlan) fail(`invalid image-plan.json: ${e.message}`);
     process.stderr.write(`generate-image-prompts: WARN - invalid image-plan.json, falling back to defaults: ${e.message}\n`);
   }
 }
+validateImagePlan(imagePlan);
 
 // --- Resolve template configuration ---
 const defaults = resolveConfigDefaults(imagePlan);

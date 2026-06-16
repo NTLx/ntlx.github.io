@@ -1,6 +1,13 @@
 # 图片模板注册表
 
-本文件定义文章内容类型与图片模板组合的映射规则。Agent 在 Step 2.6 只需选择 `article_type`，脚本自动解析完整模板配置。
+本文件解释文章内容类型与图片模板组合的映射规则。机器可读权威来源是 `references/image-template-map.json`；脚本只读取该 JSON。Agent 在 Step 2.6 只需选择 `article_type`，脚本自动解析完整模板配置。
+
+## 机器来源与优先级
+
+- 映射来源：`references/image-template-map.json`
+- schema：`references/image-plan.schema.json`
+- 信息图 variant 选择优先级：`gpt_variant` / `gptVariant` 显式指定 > `infographic.style` 映射 > `infographic.layout` 映射 > `bento`
+- `gpt-image-2` 在本技能中只作为文生图模板来源；不调用它的 `check-mode.js`、`generate.js` 或完整出图工作流
 
 ## 风格家族（Style Family）
 

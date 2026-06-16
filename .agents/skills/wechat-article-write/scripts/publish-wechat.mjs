@@ -89,6 +89,17 @@ function ensureDepsInstalled(scriptsDir) {
   }
 }
 
+function runPublishPreflight() {
+  const preflight = spawnSync("bun", ["run", resolve(SCRIPT_DIR, "check-deps.mjs"), "--stage", "publish"], {
+    cwd: repoRoot(),
+    stdio: "inherit",
+  });
+  if (preflight.status !== 0) {
+    process.stderr.write(`publish-wechat: dependency preflight failed (exit ${preflight.status})\n`);
+    process.exit(4);
+  }
+}
+
 function resolveWechatApiScript() {
   if (process.env.BAOYU_POST_TO_WECHAT_BIN) {
     return process.env.BAOYU_POST_TO_WECHAT_BIN;
@@ -144,6 +155,8 @@ if (!opts.skipDeployCheck) {
     process.exit(3);
   }
 }
+
+runPublishPreflight();
 
 const wechatBin = resolveWechatApiScript();
 const scriptsDir = dirname(wechatBin);
