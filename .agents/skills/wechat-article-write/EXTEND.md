@@ -28,21 +28,22 @@ default_publish_method: api
 
 ## 依赖技能配置
 
-本技能依赖以下技能的 EXTEND.md，需在相应位置配置：
+本技能依赖项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env`。完整依赖清单见 `references/dependency-manifest.md`；本文件只保留运行时偏好。
 
 | 技能 | 配置路径 | 必需配置项 |
 |-----|---------|-----------|
-| baoyu-cover-image | `~/.baoyu-skills/baoyu-cover-image/EXTEND.md` | `quick_mode: true` |
-| baoyu-article-illustrator | `~/.baoyu-skills/baoyu-article-illustrator/EXTEND.md` | `quick_mode: true`, `preferred_image_backend` |
-| baoyu-markdown-to-html | `~/.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | `default_theme`, `default_color` |
-| baoyu-post-to-wechat | `~/.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | `default_author`, `default_publish_method` |
+| baoyu-cover-image | `.baoyu-skills/baoyu-cover-image/EXTEND.md` | `quick_mode: true` |
+| baoyu-article-illustrator | `.baoyu-skills/baoyu-article-illustrator/EXTEND.md` | `quick_mode: true` |
+| baoyu-image-gen | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `preferred_image_backend` |
+| baoyu-markdown-to-html | `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | `default_theme`, `default_color` |
+| baoyu-post-to-wechat | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | `default_author`, `default_publish_method` |
 
 ## 环境变量
 
 baoyu 系列技能使用的 `.env` 文件位于：
 
 ```
-~/.baoyu-skills/.env
+.baoyu-skills/.env
 ```
 
 需包含以下变量（根据使用的技能）：
