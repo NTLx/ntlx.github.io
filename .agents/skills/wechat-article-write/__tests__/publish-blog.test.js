@@ -109,4 +109,35 @@ describe("publish-blog", () => {
     expect(state.no_push).toBe(true);
     expect(state.local_only).toBe(true);
   });
+
+  test("commits target article even when src/content/docs is ignored", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-ignored-docs";
+    writeArticle(fx.postsRoot, dateSlug);
+
+    writeFileSync(join(fx.repoRoot, ".gitignore"), "docs/\n");
+    expect(spawnSync("git", ["init", "-b", "main"], { cwd: fx.repoRoot }).status).toBe(0);
+    expect(spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: fx.repoRoot }).status).toBe(0);
+    expect(spawnSync("git", ["config", "user.name", "Test User"], { cwd: fx.repoRoot }).status).toBe(0);
+
+    const r = runPublish([dateSlug, "--no-build"], fx);
+    expect(r.status).toBe(0);
+    expect(r.stderr).toContain("git push exited");
+
+    const target = join(fx.repoRoot, "src/content/docs/articles/frontmatter-blog-slug.md");
+    expect(existsSync(target)).toBe(true);
+
+    const show = spawnSync("git", ["show", "--name-only", "--oneline", "HEAD"], {
+      cwd: fx.repoRoot,
+      encoding: "utf8",
+    });
+    expect(show.status).toBe(0);
+    expect(show.stdout).toContain("frontmatter-blog-slug.md");
+
+    const state = JSON.parse(readFileSync(join(fx.postsRoot, dateSlug, ".pipeline-state.json"), "utf8"));
+    expect(state.publish.blog).toBe("blocked");
+    expect(state.pushed).toBe(false);
+    expect(state.push_error).toContain("git push exited");
+  });
 });

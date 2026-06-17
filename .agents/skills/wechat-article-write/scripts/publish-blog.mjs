@@ -251,7 +251,9 @@ let pushError = null;
 
 if (!opts.noPush) {
   // Step 5: git add + commit（失败 => exit 4，因为 commit 失败说明本地仓库异常，必须中止）
-  run("git", ["add", targetPath], { cwd: repoRoot() });
+  // src/content/docs can be matched by broad ignore rules like "docs/".
+  // The target path is script-owned output, so force-add only this article.
+  run("git", ["add", "--force", targetPath], { cwd: repoRoot() });
   const tmpl = opts.commitTemplate ?? `post: ${fm.title} (${slug})`;
   run("git", ["commit", "-m", tmpl], { cwd: repoRoot() });
 
