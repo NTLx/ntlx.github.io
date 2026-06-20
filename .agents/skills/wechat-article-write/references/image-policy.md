@@ -55,3 +55,29 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
+
+## 生图命名契约（防断裂）
+
+imgs/ 下每张 SLOT 图的文件名**必须**以 `NN-` 开头（NN = slot 编号，2 位），且与 `imgs/prompts/NN-<desc>.md` 去掉 `.md` 一致。后续所有脚本（step4 校验、step5 上传映射、apply-image-map 占位符替换）都靠 `NN-` 前缀匹配 SLOT——**provider 默认随机名（nanoid）会导致全线断裂**。
+
+| SLOT | prompt 文件 | 图片文件 |
+|---|---|---|
+| 00 信息图 | `00-infographic-core-summary.md` | `00-infographic-core-summary.png` |
+| 01 | `01-mosaic_effect_fragments.md` | `01-mosaic_effect_fragments.png` |
+
+生图时**必须显式指定输出文件名**为 `imgs/NN-<desc>.png`，不要依赖 provider 默认名或批量模式默认名。封面用 `baoyu-cover-image` 输出到 post 根目录 `cover.png`。
+
+## 命名断裂修复（不重生图）
+
+若 step4 报 `Missing images for slots` 且 imgs/ 下存在非 `NN-` 前缀的随机名图，说明生图产物命名断裂。**不要重新生图**，按多模态识别 → 归位的流程修复：
+
+```bash
+# 1. 派多模态 subagent 读图，输出 map.json（格式见 align-image-names.mjs 头注释）:
+#    { "mapping": [{ "file": "随机名.png", "target_name": "01-desc.png", "confidence": "..." }] }
+# 2. 归位（--discard-unmapped 把废弃图移到 imgs/_discard/）:
+bun run .agents/skills/wechat-article-write/scripts/align-image-names.mjs <date-slug> map.json --discard-unmapped
+# 3. 验证:
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
+```
+
+`align-image-names.mjs` 直接消费多模态 subagent 的 `{mapping:[{file,target_name}]}` 输出，确定性重命名，可重复运行。

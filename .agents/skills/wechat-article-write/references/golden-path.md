@@ -95,6 +95,8 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-example-article
 ```
 
+生图时务必让每张图输出到 `imgs/NN-<desc>.png`（与 `imgs/prompts/NN-<desc>.md` 同名），不要用 provider 默认随机名——否则 step4 会报 `Missing images for slots` 且 step5 无法匹配占位符。若已生成但落盘成随机名，用 `align-image-names.mjs` 归位（见 `references/image-policy.md`），不要重新生图。
+
 ## 5. 构建和发布
 
 ```bash
