@@ -100,7 +100,14 @@ if (slotRefs.length > 0) {
   }
   if (missingSlots.length > 0) {
     const detail = missingSlots.map(n => `SLOT_IMG_${n}`).join(", ");
-    markStepFailed(slug, 4, `Missing images for slots: ${detail}. Retry these specific images only.`);
+    // 区分"真缺图" vs "命名断裂"：imgs/ 有非 NN- 前缀图 = 产物命名未归位，应归位而非重生
+    const unprefixed = imgs.filter(f => !/^\d{2}-/.test(f));
+    const hint = unprefixed.length > 0
+      ? `imgs/ 下有 ${unprefixed.length} 张图片未遵循 NN-<desc> 命名约定（如 ${unprefixed.slice(0, 3).join(", ")}），图片可能已生成但命名断裂。用多模态识别后运行 align-image-names.mjs 归位，不要重新生图。`
+      : `imgs/ 下无对应图片，需生成这些 SLOT 的图（生图时显式指定输出名为 NN-<desc>.png）。`;
+    const msg = `Missing images for slots: ${detail}. ${hint}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
     process.exit(2);
   }
   // Keep existing warning for images with no slot references
