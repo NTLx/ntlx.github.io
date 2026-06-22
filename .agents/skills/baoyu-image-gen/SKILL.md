@@ -1,6 +1,6 @@
 ---
 name: baoyu-image-gen
-description: AI image generation with OpenAI GPT Image 2, Azure OpenAI, Google, OpenRouter, DashScope, Z.AI GLM-Image, MiniMax, Jimeng, Seedream and Replicate APIs. Supports text-to-image, reference images, aspect ratios, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
+description: AI image generation with OpenAI GPT Image 2, Azure OpenAI, Google, OpenRouter, DashScope, Z.AI GLM-Image, MiniMax, Jimeng, Seedream, Replicate and Agnes APIs. Supports text-to-image, reference images, aspect ratios, and batch generation from saved prompt files. Sequential by default; use batch parallel generation when the user already has multiple prompts or wants stable multi-image throughput. Use when user asks to generate, create, or draw images.
 version: 2.1.0
 metadata:
   openclaw:
@@ -13,7 +13,7 @@ metadata:
 
 # Image Generation (AI SDK)
 
-Official API-based image generation. Supports OpenAI GPT Image 2, Azure OpenAI, Google, OpenRouter, DashScope (阿里通义万象), Z.AI GLM-Image, MiniMax, Jimeng (即梦), Seedream (豆包) and Replicate.
+Official API-based image generation. Supports OpenAI GPT Image 2, Azure OpenAI, Google, OpenRouter, DashScope (阿里通义万象), Z.AI GLM-Image, MiniMax, Jimeng (即梦), Seedream (豆包), Replicate and Agnes.
 
 ## User Input Tools
 
@@ -111,7 +111,7 @@ When the user wants a person/object preserved from reference images:
 | `--image <path>` | Output image path (required in single-image mode) |
 | `--batchfile <path>` | JSON batch file for multi-image generation |
 | `--jobs <count>` | Worker count for batch mode (default: auto, max from config, built-in default 10) |
-| `--provider google\|openai\|azure\|openrouter\|dashscope\|zai\|minimax\|jimeng\|seedream\|replicate\|codex-cli` | Force provider (default: auto-detect; `codex-cli` is never auto-selected — must be pinned via CLI or EXTEND.md) |
+| `--provider google\|openai\|azure\|openrouter\|dashscope\|zai\|minimax\|jimeng\|seedream\|replicate\|codex-cli\|agnes` | Force provider (default: auto-detect; `codex-cli` is never auto-selected — must be pinned via CLI or EXTEND.md) |
 | `--model <id>`, `-m` | Model ID — see provider references for defaults and allowed values |
 | `--ar <ratio>` | Aspect ratio (`16:9`, `1:1`, `4:3`, …) |
 | `--size <WxH>` | Explicit size (e.g., `1024x1024`; for `gpt-image-2`, width/height must be multiples of 16, max edge 3840px, ratio no wider than 3:1) |
@@ -136,7 +136,7 @@ When the user wants a person/object preserved from reference images:
 | `REPLICATE_API_TOKEN` | Replicate API token |
 | `JIMENG_ACCESS_KEY_ID`, `JIMENG_SECRET_ACCESS_KEY` | Jimeng (即梦) Volcengine credentials |
 | `ARK_API_KEY` | Seedream (豆包) Volcengine ARK API key |
-| `<PROVIDER>_IMAGE_MODEL` | Per-provider model override (`OPENAI_IMAGE_MODEL`, `GOOGLE_IMAGE_MODEL`, `DASHSCOPE_IMAGE_MODEL`, `ZAI_IMAGE_MODEL`/`BIGMODEL_IMAGE_MODEL`, `MINIMAX_IMAGE_MODEL`, `OPENROUTER_IMAGE_MODEL`, `REPLICATE_IMAGE_MODEL`, `JIMENG_IMAGE_MODEL`, `SEEDREAM_IMAGE_MODEL`) |
+| `<PROVIDER>_IMAGE_MODEL` | Per-provider model override (`OPENAI_IMAGE_MODEL`, `GOOGLE_IMAGE_MODEL`, `DASHSCOPE_IMAGE_MODEL`, `ZAI_IMAGE_MODEL`/`BIGMODEL_IMAGE_MODEL`, `MINIMAX_IMAGE_MODEL`, `OPENROUTER_IMAGE_MODEL`, `REPLICATE_IMAGE_MODEL`, `JIMENG_IMAGE_MODEL`, `SEEDREAM_IMAGE_MODEL`, `AGNES_IMAGE_MODEL`) |
 | `AZURE_OPENAI_DEPLOYMENT` (alias `AZURE_OPENAI_IMAGE_MODEL`) | Azure default deployment |
 | `<PROVIDER>_BASE_URL` | Per-provider endpoint override |
 | `AZURE_API_VERSION` | Azure image API version (default `2025-04-01-preview`) |
@@ -179,7 +179,7 @@ For OpenAI, the built-in default is `gpt-image-2`. `gpt-image-1.5`, `gpt-image-1
 
 For Azure, `--model` / `default_model.azure` is the Azure deployment name. `AZURE_OPENAI_DEPLOYMENT` is the preferred env var; `AZURE_OPENAI_IMAGE_MODEL` is kept as a backward-compatible alias. If your Azure deployment is named after the underlying model, use `gpt-image-2`; otherwise use the exact custom deployment name.
 
-EXTEND.md overrides env vars: if EXTEND.md sets `default_model.google: "gemini-3-pro-image-preview"` and the env var sets `GOOGLE_IMAGE_MODEL=gemini-3.1-flash-image-preview`, EXTEND.md wins.
+EXTEND.md overrides env vars: if EXTEND.md sets `default_model.google: "gemini-3-pro-image"` and the env var sets `GOOGLE_IMAGE_MODEL=gemini-3.1-flash-image`, EXTEND.md wins.
 
 **Display model info before each generation**:
 
@@ -207,13 +207,14 @@ Each provider has its own quirks (model families, size rules, ref support, limit
 | OpenRouter (multimodal models, `/chat/completions` flow) | `references/providers/openrouter.md` |
 | Replicate (nano-banana, Seedream, Wan) | `references/providers/replicate.md` |
 | Codex CLI (wraps bundled `scripts/codex-imagegen/`; Codex login, no `OPENAI_API_KEY`) | `references/providers/codex-cli.md` |
+| Agnes (agnes-image-2.1-flash, reference-image support) | `references/providers/agnes.md` |
 
 ## Provider Selection
 
-1. `--ref` provided + no `--provider` → auto-select Google → OpenAI → Azure → OpenRouter → Replicate → Seedream → MiniMax (MiniMax's subject reference is more specialized toward character/portrait consistency)
-2. `--provider` specified → use it (if `--ref`, must be google/openai/azure/openrouter/replicate/seedream/minimax/codex-cli)
+1. `--ref` provided + no `--provider` → auto-select Google → OpenAI → Azure → OpenRouter → Replicate → Seedream → MiniMax → Agnes (MiniMax's subject reference is more specialized toward character/portrait consistency)
+2. `--provider` specified → use it (if `--ref`, must be google/openai/azure/openrouter/replicate/seedream/minimax/codex-cli/agnes)
 3. Only one API key present → use that provider
-4. Multiple keys → default priority: Google → OpenAI → Azure → OpenRouter → DashScope → Z.AI → MiniMax → Replicate → Jimeng → Seedream
+4. Multiple keys → default priority: Google → OpenAI → Azure → OpenRouter → DashScope → Z.AI → MiniMax → Replicate → Jimeng → Seedream → Agnes
 5. `codex-cli` is **never auto-selected** — set `default_provider: codex-cli` in EXTEND.md or pass `--provider codex-cli`. It spawns `codex exec` via the bundled `scripts/codex-imagegen/main.ts` TS entrypoint (run with `bun`) and uses the user's Codex subscription (no `OPENAI_API_KEY`). Requires `codex` on `PATH` with an active `codex login`.
 
 ## Quality Presets
@@ -281,6 +282,7 @@ If `--provider openai --model gpt-image-2` fails because `OPENAI_API_KEY` is mis
 | `references/providers/minimax.md` | MiniMax image-01 + subject reference |
 | `references/providers/openrouter.md` | OpenRouter multimodal flow |
 | `references/providers/replicate.md` | Replicate supported families + guardrails |
+| `references/providers/agnes.md` | Agnes (agnes-image-2.1-flash) sizing, refs, and limits |
 | `references/config/preferences-schema.md` | EXTEND.md schema |
 | `references/config/first-time-setup.md` | First-time setup flow |
 

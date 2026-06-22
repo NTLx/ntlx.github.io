@@ -34,13 +34,13 @@ ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider a
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cinematic landscape" --image out.png --provider openai --model gpt-image-2 --size 3840x2160
 
 # Google with explicit model
-${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider google --model gemini-3-pro-image-preview --ref source.png
+${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider google --model gemini-3-pro-image --ref source.png
 
 # OpenRouter (recommended default)
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cat" --image out.png --provider openrouter
 
 # OpenRouter with reference
-${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider openrouter --model google/gemini-3.1-flash-image-preview --ref source.png
+${BUN_X} {baseDir}/scripts/main.ts --prompt "Make blue" --image out.png --provider openrouter --model google/gemini-3.1-flash-image --ref source.png
 
 # DashScope (default model)
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "一只可爱的猫" --image out.png --provider dashscope
@@ -83,6 +83,15 @@ ${BUN_X} {baseDir}/scripts/main.ts --prompt "A cinematic portrait" --image out.p
 
 # Codex CLI with reference images (style/composition guidance)
 ${BUN_X} {baseDir}/scripts/main.ts --prompt "Match this color palette" --image out.png --provider codex-cli --ref source.png --ar 1:1
+
+# Agnes (default model)
+${BUN_X} {baseDir}/scripts/main.ts --prompt "A detailed infographic" --image out.png --provider agnes
+
+# Agnes with aspect ratio and URL output
+${BUN_X} {baseDir}/scripts/main.ts --prompt "A cinematic scene" --image out.txt --provider agnes --ar 16:9 --response-format url
+
+# Agnes with reference image
+${BUN_X} {baseDir}/scripts/main.ts --prompt "Apply this style" --image out.png --provider agnes --ref source.png
 ```
 
 Notes on `codex-cli`:

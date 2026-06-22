@@ -1,7 +1,7 @@
 ---
 name: baoyu-post-to-wechat
 description: Posts content to WeChat Official Account (微信公众号) via API or Chrome CDP. Supports article posting (文章) with HTML, markdown, or plain text input, and image-text posting (贴图, formerly 图文) with multiple images. Markdown article workflows default to converting ordinary external links into bottom citations for WeChat-friendly output. Use when user mentions "发布公众号", "post to wechat", "微信公众号", or "贴图/图文/文章".
-version: 1.118.0
+version: 1.118.2
 metadata:
   openclaw:
     homepage: https://github.com/JimLiu/baoyu-skills#baoyu-post-to-wechat
@@ -180,6 +180,7 @@ Ask method unless specified in EXTEND.md or CLI:
 | Title | Ask, or press Enter to auto-generate from content |
 | Summary | Frontmatter `description` → `summary` → ask or auto-generate |
 | Author | CLI `--author` → frontmatter `author` → EXTEND.md `default_author` |
+| Source URL | CLI `--source-url` → frontmatter `sourceUrl`/`contentSourceUrl`/`content_source_url` |
 
 Auto-generation: title = first H1/H2 or first sentence; summary = first paragraph, truncated to 120 chars.
 
@@ -194,7 +195,7 @@ Auto-generation: title = first H1/H2 or first sentence; summary = first paragrap
 **API method** (accepts `.md` or `.html`):
 
 ```bash
-${BUN_X} {baseDir}/scripts/wechat-api.ts <file> --theme <theme> [--color <color>] [--title <title>] [--summary <summary>] [--author <author>] [--cover <cover_path>] [--no-cite]
+${BUN_X} {baseDir}/scripts/wechat-api.ts <file> --theme <theme> [--color <color>] [--title <title>] [--summary <summary>] [--author <author>] [--cover <cover_path>] [--source-url <url>] [--no-cite]
 ```
 
 Always pass `--theme` even if it's `default`. Only pass `--color` when explicitly set by the user or EXTEND.md.
@@ -212,6 +213,7 @@ Any `--remote-*` flag implies `--remote`. CLI values override account-level then
 - `article_type`: `news` (default) or `newspic`
 - For `news`, include `thumb_media_id` (cover required)
 - Always include `need_open_comment` (default `1`) and `only_fans_can_comment` (default `0`) in the request body, even if the CLI doesn't expose them
+- For `news`, optionally include `content_source_url` (original article URL, shown as "阅读原文" link, max 1KB). Provide via `--source-url` CLI flag or frontmatter `sourceUrl`/`contentSourceUrl`/`content_source_url`
 
 **Browser method** (accepts `--markdown` or `--html`):
 

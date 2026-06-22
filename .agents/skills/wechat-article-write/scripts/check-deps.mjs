@@ -90,22 +90,6 @@ function checkImageTemplates() {
 
 function checkPublishDeps() {
   checkSkillDirs(["github-image-hosting", "baoyu-markdown-to-html", "baoyu-post-to-wechat"]);
-
-  const skill = readIfExists(".agents/skills/baoyu-post-to-wechat/SKILL.md");
-  if (skill && !/^version:\s*1\.118\.0\s*$/m.test(skill)) {
-    warnings.push("baoyu-post-to-wechat version differs from baseline 1.118.0; re-check source-url patch");
-  }
-
-  const api = readIfExists(".agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts");
-  if (!api) {
-    errors.push("wechat-api.ts missing: .agents/skills/baoyu-post-to-wechat/scripts/wechat-api.ts");
-    return;
-  }
-  for (const token of ["source-url", "content_source_url", "sourceUrl"]) {
-    if (!api.includes(token)) {
-      errors.push(`wechat source-url patch token missing in wechat-api.ts: ${token}`);
-    }
-  }
 }
 
 checkProjectConfig();
