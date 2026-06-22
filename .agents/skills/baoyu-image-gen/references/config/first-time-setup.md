@@ -59,6 +59,8 @@ options:
     description: "MiniMax image generation with subject-reference character workflows"
   - label: "Replicate"
     description: "Curated Replicate image families - nano-banana-2, Seedream, and Wan image models"
+  - label: "Agnes"
+    description: "Sapiens AI Agnes - optimized for high information density, complex layouts, reference-image support"
 ```
 
 ### Question 2: Default Google Model
@@ -69,9 +71,9 @@ Only show if user selected Google or auto-detect (no explicit provider).
 header: "Google Model"
 question: "Default Google image generation model?"
 options:
-  - label: "gemini-3-pro-image-preview (Recommended)"
+  - label: "gemini-3-pro-image (Recommended)"
     description: "Highest quality, best for production use"
-  - label: "gemini-3.1-flash-image-preview"
+  - label: "gemini-3.1-flash-image"
     description: "Fast generation, good quality, lower cost"
   - label: "gemini-3-flash-preview"
     description: "Fast generation, balanced quality and speed"
@@ -85,7 +87,7 @@ Only show if user selected OpenRouter.
 header: "OpenRouter Model"
 question: "Default OpenRouter image generation model?"
 options:
-  - label: "google/gemini-3.1-flash-image-preview (Recommended)"
+  - label: "google/gemini-3.1-flash-image (Recommended)"
     description: "Best general-purpose OpenRouter image model with reference-image workflows"
   - label: "google/gemini-2.5-flash-image-preview"
     description: "Fast Gemini preview model on OpenRouter"
@@ -187,6 +189,7 @@ default_model:
   zai: [selected Z.AI model or null]
   minimax: [selected minimax model or null]
   replicate: null
+  agnes: null
 ---
 ```
 
@@ -202,9 +205,9 @@ When EXTEND.md exists but `default_model.[current_provider]` is null, ask ONLY t
 header: "Google Model"
 question: "Choose a default Google image generation model?"
 options:
-  - label: "gemini-3-pro-image-preview (Recommended)"
+  - label: "gemini-3-pro-image (Recommended)"
     description: "Highest quality, best for production use"
-  - label: "gemini-3.1-flash-image-preview"
+  - label: "gemini-3.1-flash-image"
     description: "Fast generation, good quality, lower cost"
   - label: "gemini-3-flash-preview"
     description: "Fast generation, balanced quality and speed"
@@ -249,7 +252,7 @@ Notes for Azure setup:
 header: "OpenRouter Model"
 question: "Choose a default OpenRouter image generation model?"
 options:
-  - label: "google/gemini-3.1-flash-image-preview (Recommended)"
+  - label: "google/gemini-3.1-flash-image (Recommended)"
     description: "Recommended for image output and reference-image edits"
   - label: "google/gemini-2.5-flash-image-preview"
     description: "Fast preview-oriented image generation"
@@ -358,6 +361,7 @@ default_model:
   zai: [value or null]
   minimax: [value or null]
   replicate: [value or null]
+  agnes: [value or null]
 ```
 
 Only set the selected provider's model; leave others as their current value or null.

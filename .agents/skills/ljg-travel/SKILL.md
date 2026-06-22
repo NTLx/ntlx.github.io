@@ -95,9 +95,9 @@ version: "1.0.0"
 **文档结构：**
 
 ```org
-#+title: {城市}旅行研究
-#+date: {当前日期}
-#+filetags: :travel:museum:architecture:
+title: {城市}旅行研究
+date: {当前日期}
+filetags: :travel:museum:architecture:
 
 * 城市概览
   {城市}的文明坐标——为什么值得去，去了看什么。一段话勾勒这座城市在中国文明史中的位置。

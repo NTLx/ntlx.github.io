@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.13.0"
+version: "1.14.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -22,7 +22,7 @@ description: >
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
 | 构建、博客发布、微信草稿 | `references/publishing.md` |
-| 依赖、环境、第三方补丁 | `references/dependency-manifest.md`、`references/third-party-patches.md` |
+| 依赖、环境 | `references/dependency-manifest.md` |
 | 排错 | `references/troubleshooting.md` |
 | 最小正确例子 | `references/golden-path.md` |
 

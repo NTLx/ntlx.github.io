@@ -37,10 +37,9 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 
 - `cover.png` 或 `cover.jpg` 存在；
 - `article-wechat.html` 存在；
-- frontmatter `title`、`summary`、`sourceUrl` 存在；
-- `baoyu-post-to-wechat` 的 `--source-url` / `content_source_url` 补丁存在。
+- frontmatter `title`、`summary`、`sourceUrl` 存在。
 
-`sourceUrl` 会作为微信“原文链接”传入。
+`sourceUrl` 会作为微信”原文链接”传入。
 
 ## 编排器
 
