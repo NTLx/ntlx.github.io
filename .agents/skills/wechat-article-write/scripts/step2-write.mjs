@@ -113,14 +113,20 @@ if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
 }
 
 // 4. Interaction check
+// 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：
+//   - 强制 `*…？*` 斜体 + 行尾（拒绝 "…？* 欢迎留言聊聊"）
+//   - 单行锚定（拒绝 "*问1？* *问2？*" 同行多问）
+//   - 不接受纯文本问句
+// 新规则：正文末尾 1200 字符内出现至少一个中/英文问号即算有互动。
+// 仍保留 --allow-no-interaction 作为彻底跳过校验的逃生口（教程策略等场景）。
 const bodyBeforeRefs = body.split(/^## 原文参考/m)[0];
 const interactionTail = bodyBeforeRefs.slice(-1200);
-const hasInteractionQuestion = /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m.test(interactionTail);
+const hasInteractionQuestion = /[？?]/.test(interactionTail);
 if (!hasInteractionQuestion) {
   if (allowNoInteraction) {
     process.stderr.write("step2: WARNING 未检测到文末互动问题（--allow-no-interaction 已允许跳过）\n");
   } else {
-    fail(4, "缺少文末互动问题（需要靠近正文末尾的 *斜体提问？*）");
+    fail(4, "缺少文末互动问题（正文末尾附近需含至少一个中/英文问号；如确无互动，使用 --allow-no-interaction 跳过）");
   }
 }
 

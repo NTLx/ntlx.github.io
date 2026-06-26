@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.14.0"
+version: "1.15.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -37,7 +37,7 @@ description: >
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 信息图默认生成；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；随机名断裂用 `align-image-names.mjs` 归位 |
-| 图片模板 | 信息图只借用 `gpt-image-2` 文生图模板；封面和文内图继续走 baoyu 模板 |
+| 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × styles 正交组合；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
 | 样式 | Step 5 默认不传 `--theme` / `--color`；让脚本读取项目级主题配置 |
 | 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |
