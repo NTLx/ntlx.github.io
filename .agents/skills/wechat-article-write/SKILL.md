@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.17.0"
+version: "1.19.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -21,6 +21,7 @@ description: >
 | Steps 1-3 策略选择 | `references/strategies/{reader-response,tutorial,news-digest}.md` |
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
+| 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
 | 构建、博客发布、微信草稿 | `references/publishing.md` |
 | 依赖、环境 | `references/dependency-manifest.md` |
 | 排错 | `references/troubleshooting.md` |
@@ -32,10 +33,11 @@ description: >
 |---|---|
 | 双轨分离 | 博客轨消费 `article.md` + CDN URL；微信轨消费 `article-wechat.html` + 本地图片 |
 | 状态续跑 | 任一步失败先读 `scripts/state.mjs next <date-slug>`，不要从头重做 |
-| sourceUrl | Step 2 预写博客公网 URL；Step 6.2 必须传给微信 API 作为 `content_source_url` |
+| sourceUrl | Step 2 预写博客公网 URL；Step 6.2 只负责转发给 `baoyu-post-to-wechat` 的原生 `--source-url` 支持 |
 | summary | frontmatter `summary` 是微信 digest 唯一来源，必须是 ≤120 字金句式摘要 |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 信息图默认生成；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
+| 图片后端 | Step 4 默认通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI 生图；Codex 失败后才回退到项目配置的 baoyu provider |
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；随机名断裂用 `align-image-names.mjs` 归位 |
 | 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × styles 正交组合；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
@@ -46,7 +48,7 @@ description: >
 
 1. Step 0：选择策略文件；不确定时向用户确认。
 2. Step 1-3：按策略完成资料、写作、后处理，并运行对应门控脚本。
-3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后串行生图，再运行 `step4-images.mjs`。
+3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 优先、baoyu fallback 串行生图，再运行 `step4-images.mjs`。
 4. Step 5：运行 `step5-build.mjs` 构建博客/微信双轨产物。
 5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
 
@@ -71,6 +73,6 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 ## 快速失败规则
 
 - 依赖缺失先跑 `check-deps.mjs`，不要静默降级。
-- 图片生成失败只用项目配置的 provider 重试，每张最多 1 次。
-- 微信原文链接补丁缺失时禁止发布微信草稿。
+- Codex CLI 生图失败才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
+- 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
 - 任何会改变发布内容的修复，都必须重新运行对应 step 门控。

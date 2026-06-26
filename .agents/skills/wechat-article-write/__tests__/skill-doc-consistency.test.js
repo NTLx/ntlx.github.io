@@ -60,4 +60,28 @@ describe("wechat-article-write documentation consistency", () => {
     expect(manifest).toContain("文生图模板");
     expect(manifest).toContain("renwei-writing");
   });
+
+  test("image backend docs prefer Codex CLI and keep baoyu fallback explicit", () => {
+    const policy = read("references/image-policy.md");
+    const backends = read("references/image-backends.md");
+
+    expect(policy).toContain("--provider codex-cli");
+    expect(policy).toContain("preferred_image_backend");
+    expect(backends).toContain("codex-cli");
+    expect(backends).toContain("baoyu fallback");
+    expect(backends).not.toContain("固定使用 OpenAI");
+    expect(backends).not.toContain("不要把 Google");
+  });
+
+  test("docs do not require source-url patch checks owned by baoyu-post-to-wechat", () => {
+    for (const rel of [
+      "SKILL.md",
+      "references/publishing.md",
+      "references/troubleshooting.md",
+      "scripts/publish-wechat.mjs",
+    ]) {
+      const text = read(rel);
+      expect(text).not.toMatch(/source-url patch|原文链接补丁/i);
+    }
+  });
 });

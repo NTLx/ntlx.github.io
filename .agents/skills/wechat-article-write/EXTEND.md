@@ -34,7 +34,7 @@ default_publish_method: api
 |-----|---------|-----------|
 | baoyu-cover-image | `.baoyu-skills/baoyu-cover-image/EXTEND.md` | `quick_mode: true` |
 | baoyu-article-illustrator | `.baoyu-skills/baoyu-article-illustrator/EXTEND.md` | `quick_mode: true` |
-| baoyu-image-gen | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `preferred_image_backend` |
+| baoyu-image-gen | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `preferred_image_backend`（Codex CLI 失败后的 baoyu fallback） |
 | baoyu-markdown-to-html | `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | `default_theme`, `default_color` |
 | baoyu-post-to-wechat | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | `default_author`, `default_publish_method` |
 
@@ -57,6 +57,6 @@ WECHAT_APP_SECRET=your_app_secret
 GITHUB_TOKEN=your_github_token
 GITHUB_REPO=NTLx/Pic
 
-# OpenAI API（baoyu-cover-image, baoyu-article-illustrator）
+# OpenAI API（仅在 baoyu fallback 或模板技能需要 OpenAI API 时使用）
 OPENAI_API_KEY=your_openai_key
 ```

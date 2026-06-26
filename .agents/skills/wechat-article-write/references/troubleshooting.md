@@ -17,7 +17,6 @@
 | step4 报 Missing images 但 imgs/ 有图 | 生图落盘成随机名，命名断裂。多模态识别后跑 `align-image-names.mjs` 归位，勿重生 |
 | prompt 模板缺失 | 先跑 `check-deps.mjs --stage images`，不要静默降级 |
 | 图床 ETIMEDOUT | Step 5 内置重试；若 `image-map.json` 完整，用 `--reuse-image-map` |
-| 微信无原文链接 | 跑 `check-deps.mjs --stage publish` 检查 source-url 补丁 |
 | CWD 错误 | 回项目根目录 `/home/lx/ntlx.github.io` 后重跑 |
 
 ## 依赖检查
@@ -26,4 +25,4 @@
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all
 ```
 
-`images` 阶段只检查图片模板和图片技能；`publish` 阶段检查微信发布依赖和原文链接补丁。
+`images` 阶段只检查图片模板和图片技能；`publish` 阶段只检查微信发布依赖。

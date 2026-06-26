@@ -46,11 +46,38 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 
 ## 生图执行
 
-1. 从 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 读取 `preferred_image_backend`。
-2. 加载 `.baoyu-skills/.env`。
-3. 主会话 Bash 逐张串行运行 `baoyu-image-gen`，不要并行，不使用 subagent。
-4. 每张失败最多重试 1 次，仍失败则标记并继续。
-5. 最后运行：
+1. 默认先通过 `baoyu-image-gen --provider codex-cli` 调用本机 `codex` CLI 生图；这是通用 Agent 路径，不依赖当前运行时是否有原生 imagegen 工具。
+2. 从 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 读取 `preferred_image_backend` 作为 baoyu fallback provider。该值应保持为 `openai` / `dashscope` / `google` 等非 `codex-cli` 后端。
+3. 加载 `.baoyu-skills/.env`，供 baoyu fallback provider 和后续发布步骤使用。Codex CLI 路径使用 `codex login` 的账号态，不读取 `OPENAI_API_KEY`。
+4. 主会话 Bash 逐张串行运行 `baoyu-image-gen`，不要并行，不使用 subagent。每张图先跑 Codex CLI；Codex CLI 失败后，对同一输出文件再用 fallback provider 生成一次。
+5. fallback 仍失败则标记并继续；不要在同一张图上无限重试。内容审核失败时先改 prompt，再重新进入 Codex CLI → fallback 流程。
+
+命令形态：
+
+```bash
+# cover: prompt 文件名由 generate-image-prompts.mjs 输出决定，产物固定在 post 根目录
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider codex-cli \
+  --promptfiles posts/<date-slug>/imgs/prompts/00-cover-<desc>.md \
+  --image posts/<date-slug>/cover.png \
+  --ar 16:9
+
+# SLOT 图：输出名必须与 prompt 文件同名，只把 .md 换成 .png
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider codex-cli \
+  --promptfiles posts/<date-slug>/imgs/prompts/01-<desc>.md \
+  --image posts/<date-slug>/imgs/01-<desc>.png \
+  --ar 16:9
+
+# 仅当 Codex CLI 失败时，使用 preferred_image_backend 作为 baoyu fallback
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider <preferred_image_backend> \
+  --promptfiles posts/<date-slug>/imgs/prompts/01-<desc>.md \
+  --image posts/<date-slug>/imgs/01-<desc>.png \
+  --ar 16:9
+```
+
+最终验证：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>

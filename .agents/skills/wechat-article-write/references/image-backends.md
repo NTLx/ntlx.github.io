@@ -1,14 +1,24 @@
 # 图片后端策略
 
-本管线的封面、信息图、文内插图固定使用 OpenAI（GPT Image 2）。不要把 Google Gemini、DashScope、Seedream、minimax 或其他后端作为自动降级选项；这些后端在中文文字、公众号图风格或构图一致性上不可控，容易拉低整篇文章质量。
+本管线的封面、信息图、文内插图默认走 Codex CLI：通过 `baoyu-image-gen --provider codex-cli` 间接调用本机 `codex exec` 和 Codex 内置 image generation。这样任何 AI Agent 只要能执行 shell 命令，并且机器上已有 `codex login`，都能使用同一条文生图路径。
 
-## OpenAI 使用原则
+Codex CLI 失败后才走 baoyu fallback。fallback provider 来自 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `preferred_image_backend`，通常是 `openai` / `dashscope` / `google` 等 API 后端。不要修改第三方 `baoyu-image-gen` 源码；它已经提供 `codex-cli` provider、输出路径、PNG 校验、错误分类和重试。
 
-- 确认 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中 `preferred_image_backend: openai`
-- 每个 subagent 调用 baoyu-image-gen 时使用 `--provider openai`
-- 失败时只用 OpenAI 重试，不切换后端
-- 如果 OpenAI 限流（429），稍后重试该图片
-- 如果内容审核失败，改 prompt，不换后端
+## 后端顺序
+
+1. **默认后端**：`baoyu-image-gen --provider codex-cli`
+2. **fallback 后端**：`baoyu-image-gen --provider <preferred_image_backend>`
+3. **验证门控**：无论哪个后端成功，最后都必须运行 `step4-images.mjs`
+
+Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_API_KEY`。如果 fallback 设为 OpenAI API，才需要 `.baoyu-skills/.env` 中的 `OPENAI_API_KEY`，默认模型可继续是 `gpt-image-2`。
+
+## 调用原则
+
+- 每张图片先用 `--provider codex-cli`，明确传 `--image` 到目标文件。
+- 只有 Codex CLI 命令非零退出、超时、未产出 PNG、登录态失效或内容被拒时，才调用 baoyu fallback。
+- fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
+- 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
+- 不并行调用 Codex CLI；它会启动完整 `codex exec`，并发只会增加锁、限额和上下文风险。
 
 ## 审核失败处理
 
@@ -38,8 +48,8 @@
 
 ## 重试策略
 
-1. 第一次重试：简化 prompt，保留核心信息。
-2. 第二次重试：改变构图概念，如居中主体改为左右对比或流程图。
+1. 第一次失败：如果是 Codex CLI 环境问题，直接进入 baoyu fallback。
+2. fallback 失败：简化 prompt，保留核心信息后重新从 Codex CLI 开始。
 3. 仍失败：停止并报告失败项，等待用户决定是否继续调整或稍后重试。
 
-核心原则：为了质量一致性，宁可等待或改 prompt，也不要用非 OpenAI 后端补图。
+核心原则：默认节省 API 成本并保持通用 Agent 可用性；失败路径必须显式、有限、可验证。
