@@ -10,7 +10,7 @@
 | 图片 | 模板来源 | 说明 |
 |---|---|---|
 | 封面 `cover.png` | `baoyu-cover-image` | 不使用文字，输出在 post 根目录 |
-| SLOT 00 信息图 | `gpt-image-2/references/infographics/*.md` | 只借用文生图模板风格，不使用 gpt-image-2 的模式检测或出图脚本 |
+| SLOT 00 信息图 | `baoyu-infographic/references/{layouts,styles}/*.md` | 直接拼装 layout + style 两份模板到 prompt，本技能不调用其完整出图工作流 |
 | SLOT 01+ 文内图 | `baoyu-article-illustrator` | 根据占位符附近正文构建 prompt |
 
 ## Prompt 生成
@@ -24,7 +24,7 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 - 读取 `draft.md` 和 `image-plan.json`。
 - SLOT 00 输出紧凑模板引用 prompt，包含 `Template source`，不展开完整模板。
 - 文内图 prompt 必须包含附近正文上下文、中文可见文字规则、构图和色彩规则。
-- 缺少被引用的 `gpt-image-2` 模板时直接失败；只有历史迁移可显式传 `--allow-compact-fallback`。
+- 缺少被引用的 `baoyu-infographic` 模板文件时直接失败（layout/style 不在白名单）。
 
 ## image-plan.json
 
@@ -39,7 +39,7 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 可选字段：
 
 - `direction`：覆盖默认风格家族，如 `tech`、`journal`。
-- `infographic.layout` / `infographic.style` / `infographic.gpt_variant`：仅在需要覆盖默认信息图映射时使用。
+- `infographic.layout` / `infographic.style`：仅在需要覆盖默认信息图模板时使用，值必须取自 baoyu-infographic 的 layouts / styles 命名（见 `references/image-template-catalog.md`）。
 - `illustrations[]`：按 slot 覆盖文内图 type/style/description。
 
 允许值和映射以 `references/image-template-map.json` 为准；schema 见 `references/image-plan.schema.json`。

@@ -19,20 +19,19 @@
 | baoyu-cover-image | 图片技能 | 封面 prompt 模板 |
 | baoyu-article-illustrator | 图片技能 | 文内插图 prompt 模板 |
 | baoyu-image-gen | 图片技能 | 实际文生图执行 |
+| baoyu-infographic | 图片技能 | SLOT 00 信息图 prompt 的 layout/style 模板来源 |
 | github-image-hosting | 发布技能 | Step 5 CDN 上传 |
 | baoyu-markdown-to-html | 发布技能 | Step 5 微信 HTML |
 | baoyu-post-to-wechat | 发布技能 | Step 6 微信草稿 |
-| gpt-image-2 | 模板来源 | 仅借用 `references/infographics/*.md` 文生图模板，不使用其模式检测或出图脚本 |
 
-## gpt-image-2 模板文件
+## baoyu-infographic 模板目录
 
-必须存在：
+`generate-image-prompts.mjs` 在运行时动态读取以下两个目录：
 
-- `.agents/skills/gpt-image-2/references/infographics/hand-drawn-infographic.md`
-- `.agents/skills/gpt-image-2/references/infographics/bento-grid-infographic.md`
-- `.agents/skills/gpt-image-2/references/infographics/comparison-infographic.md`
-- `.agents/skills/gpt-image-2/references/infographics/kpi-dashboard-infographic.md`
-- `.agents/skills/gpt-image-2/references/infographics/step-by-step-infographic.md`
+- `.agents/skills/baoyu-infographic/references/layouts/` — 21 个 layout 模板
+- `.agents/skills/baoyu-infographic/references/styles/` — 22 个 style 模板
+
+合法命名见 `references/image-template-map.json` 的 `infographic_layouts` / `infographic_styles` 数组，或 `references/image-template-catalog.md`。`check-deps.mjs --stage images` 校验目录存在；模板文件缺失会在 `generate-image-prompts.mjs` 运行时报错。
 
 ## 环境变量
 

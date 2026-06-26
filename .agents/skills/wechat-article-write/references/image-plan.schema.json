@@ -29,19 +29,11 @@
       "properties": {
         "layout": {
           "type": "string",
-          "enum": ["linear-progression", "circular-flow", "winding-roadmap", "comparison-matrix", "binary-comparison", "venn-diagram", "dashboard", "dense-modules", "bento-grid", "hub-spoke", "structural-breakdown"]
+          "enum": ["bento-grid", "binary-comparison", "bridge", "circular-flow", "comic-strip", "comparison-matrix", "dashboard", "dense-modules", "funnel", "hierarchical-layers", "hub-spoke", "iceberg", "isometric-map", "jigsaw", "linear-progression", "periodic-table", "story-mountain", "structural-breakdown", "tree-branching", "venn-diagram", "winding-roadmap"]
         },
         "style": {
           "type": "string",
-          "enum": ["morandi-journal", "craft-handmade", "aged-academia", "technical-schematic", "bold-graphic", "retro-pop-grid", "ikea-manual"]
-        },
-        "gpt_variant": {
-          "type": "string",
-          "enum": ["hand-drawn", "bento", "comparison", "dashboard", "step-by-step"]
-        },
-        "gptVariant": {
-          "type": "string",
-          "enum": ["hand-drawn", "bento", "comparison", "dashboard", "step-by-step"]
+          "enum": ["aged-academia", "bold-graphic", "chalkboard", "claymation", "corporate-memphis", "craft-handmade", "cyberpunk-neon", "hand-drawn-edu", "ikea-manual", "kawaii", "knolling", "lego-brick", "morandi-journal", "origami", "pixel-art", "pop-laboratory", "retro-pop-grid", "retro-popup-pop", "storybook-watercolor", "subway-map", "technical-schematic", "ui-wireframe"]
         },
         "aspect": { "type": "string" }
       }
