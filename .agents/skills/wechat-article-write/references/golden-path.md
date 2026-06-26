@@ -89,7 +89,17 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs 2026-06-16-
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2026-06-16-example-article
 ```
 
-串行生成图片后：
+默认先用 Codex CLI 后端串行生成图片；只有该命令失败时，才把 `--provider codex-cli` 换成 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback：
+
+```bash
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider codex-cli \
+  --promptfiles posts/2026-06-16-example-article/imgs/prompts/01-decision_flow.md \
+  --image posts/2026-06-16-example-article/imgs/01-decision_flow.png \
+  --ar 16:9
+```
+
+串行生成所有图片后：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-example-article

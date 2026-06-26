@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { repoRoot } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
@@ -62,6 +63,11 @@ function checkSkillDirs(names) {
   }
 }
 
+function commandExists(command) {
+  const r = spawnSync(command, ["--version"], { stdio: "ignore" });
+  return !r.error && r.status === 0;
+}
+
 function checkProjectConfig() {
   requirePath(".baoyu-skills/.env", "project env");
   for (const rel of [
@@ -75,6 +81,9 @@ function checkProjectConfig() {
 
 function checkImageTemplates() {
   checkSkillDirs(["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-image-gen", "baoyu-infographic"]);
+  if (!commandExists("codex")) {
+    warnings.push("codex CLI unavailable: Step 4 defaults to baoyu-image-gen --provider codex-cli; install/login codex or use baoyu-image-gen fallback");
+  }
   // baoyu-infographic 的 layouts/ 和 styles/ 目录是 SLOT 00 信息图 prompt 的模板来源。
   // 第三方技能可能升级或更换目录名，仅校验关键目录存在，不展开列举每个模板文件。
   requirePath(".agents/skills/baoyu-infographic/SKILL.md", "baoyu-infographic SKILL.md");

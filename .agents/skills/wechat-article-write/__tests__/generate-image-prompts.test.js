@@ -2,7 +2,7 @@
 /**
  * generate-image-prompts.mjs regression tests.
  *
- * Covers the compact GPT Image 2-style head infographic prompt.
+ * Covers the baoyu-infographic layout/style head infographic prompt.
  */
 
 import { describe, test, expect, afterEach } from "bun:test";
@@ -85,7 +85,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     cleanup = [];
   });
 
-  test("uses compact gpt-image-2 template reference instead of bulky baoyu infographic sections", () => {
+  test("uses baoyu-infographic layout and style template sections", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-prompt-style";
@@ -97,16 +97,12 @@ describe("generate-image-prompts head infographic prompt", () => {
     const promptPath = join(dir, "imgs/prompts/00-infographic-core-summary.md");
     expect(existsSync(promptPath)).toBe(true);
     const prompt = readFileSync(promptPath, "utf8");
-    const wordCount = prompt.split(/\s+/).filter(Boolean).length;
-
-    expect(prompt).toContain("Template source: gpt-image-2/references/infographics/hand-drawn-infographic.md");
+    expect(prompt).toContain("Template source: baoyu-infographic (layout=");
     expect(prompt).toContain("Use case: infographic-diagram");
-    expect(prompt).toContain("Style/medium: high-quality bullet journal infographic");
     expect(prompt).toContain("Text (verbatim):");
     expect(prompt).toContain("Constraints:");
-    expect(prompt).not.toContain("## Layout Guidelines");
-    expect(prompt).not.toContain("## Style Guidelines");
-    expect(wordCount).toBeLessThan(360);
+    expect(prompt).toContain("## Layout specification (from baoyu-infographic/references/layouts/)");
+    expect(prompt).toContain("## Style specification (from baoyu-infographic/references/styles/)");
   });
 
   test("fails on unknown image-plan article_type instead of silently falling back", () => {

@@ -10,8 +10,8 @@
  *   5. 成功后 markWechatDone
  *
  * 说明:
- *   sourceUrl 是博客文章公网地址，必须作为微信公众号草稿的“原文链接”
- *   传给底层 wechat-api.ts。该地址由固定规则 https://ntlx.github.io/articles/{blogSlug}
+ *   sourceUrl 是博客文章公网地址；本脚本只转发给 baoyu-post-to-wechat 的
+ *   原生 --source-url 支持。该地址由固定规则 https://ntlx.github.io/articles/{blogSlug}
  *   拼接得到，可以在 GitHub Pages 完成公网探活前先传入。
  *
  * 用法:

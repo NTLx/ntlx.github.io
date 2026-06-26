@@ -39,7 +39,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 - `article-wechat.html` 存在；
 - frontmatter `title`、`summary`、`sourceUrl` 存在。
 
-`sourceUrl` 会作为微信”原文链接”传入。
+`publish-wechat.mjs` 会把 `sourceUrl` 转发给 `baoyu-post-to-wechat --source-url`；底层技能原生负责写入微信草稿的“阅读原文”链接。
 
 ## 编排器
 
