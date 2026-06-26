@@ -74,16 +74,12 @@ function checkProjectConfig() {
 }
 
 function checkImageTemplates() {
-  checkSkillDirs(["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-image-gen", "gpt-image-2"]);
-  for (const rel of [
-    ".agents/skills/gpt-image-2/references/infographics/hand-drawn-infographic.md",
-    ".agents/skills/gpt-image-2/references/infographics/bento-grid-infographic.md",
-    ".agents/skills/gpt-image-2/references/infographics/comparison-infographic.md",
-    ".agents/skills/gpt-image-2/references/infographics/kpi-dashboard-infographic.md",
-    ".agents/skills/gpt-image-2/references/infographics/step-by-step-infographic.md",
-  ]) {
-    requirePath(rel, "gpt-image-2 text-to-image template");
-  }
+  checkSkillDirs(["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-image-gen", "baoyu-infographic"]);
+  // baoyu-infographic 的 layouts/ 和 styles/ 目录是 SLOT 00 信息图 prompt 的模板来源。
+  // 第三方技能可能升级或更换目录名，仅校验关键目录存在，不展开列举每个模板文件。
+  requirePath(".agents/skills/baoyu-infographic/SKILL.md", "baoyu-infographic SKILL.md");
+  warnPath(".agents/skills/baoyu-infographic/references/layouts", "baoyu-infographic layouts directory");
+  warnPath(".agents/skills/baoyu-infographic/references/styles", "baoyu-infographic styles directory");
   requirePath(".agents/skills/wechat-article-write/references/image-template-map.json", "image template map");
   requirePath(".agents/skills/wechat-article-write/references/image-plan.schema.json", "image-plan schema");
 }

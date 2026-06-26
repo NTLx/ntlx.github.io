@@ -20,11 +20,10 @@ import { SLOT_EXTRACT_RE, resolveSlotImg } from "./validation-lib.mjs";
 const args = process.argv.slice(2);
 const overwrite = args.includes("--overwrite");
 const allowDefaultImagePlan = args.includes("--allow-default-image-plan");
-const allowCompactFallback = args.includes("--allow-compact-fallback");
 const slug = args.find((a) => !a.startsWith("--"));
 
 if (!slug) {
-  process.stderr.write("usage: generate-image-prompts.mjs <date-slug> [--overwrite] [--allow-default-image-plan] [--allow-compact-fallback]\n");
+  process.stderr.write("usage: generate-image-prompts.mjs <date-slug> [--overwrite] [--allow-default-image-plan]\n");
   process.exit(1);
 }
 
@@ -160,48 +159,53 @@ function writePrompt(path, content) {
 }
 
 const IMAGE_TEMPLATE_MAP = JSON.parse(readRequired(resolve(repoRoot(), ".agents/skills/wechat-article-write/references/image-template-map.json")));
-const GPT_IMAGE_2_INFOGRAPHIC_VARIANTS = IMAGE_TEMPLATE_MAP.gpt_image_2_templates;
-const INFO_STYLE_TO_GPT_VARIANT = IMAGE_TEMPLATE_MAP.infographic_variant_by_style;
-const INFO_LAYOUT_TO_GPT_VARIANT = IMAGE_TEMPLATE_MAP.infographic_variant_by_layout;
+// baoyu-infographic 的正交模型：21 layouts × 22 styles。
+// SLOT 00 信息图 prompt 同时读取两个文件并组合，而不是单一 hybrid 模板。
+const VALID_INFOGRAPHIC_LAYOUTS = new Set(IMAGE_TEMPLATE_MAP.infographic_layouts);
+const VALID_INFOGRAPHIC_STYLES = new Set(IMAGE_TEMPLATE_MAP.infographic_styles);
 const STYLE_FAMILIES = IMAGE_TEMPLATE_MAP.style_families;
 const ARTICLE_TYPE_DEFAULTS = IMAGE_TEMPLATE_MAP.article_type_defaults;
 
-function selectGptImage2InfographicVariant(config) {
-  const explicit = config.gpt_variant ?? config.gptVariant;
-  const variantId = explicit
-    ?? INFO_STYLE_TO_GPT_VARIANT[config.style]
-    ?? INFO_LAYOUT_TO_GPT_VARIANT[config.layout]
-    ?? "bento";
-  return GPT_IMAGE_2_INFOGRAPHIC_VARIANTS[variantId] ?? GPT_IMAGE_2_INFOGRAPHIC_VARIANTS.bento;
+// 动态定位 baoyu-infographic skill 目录。
+// 这是 baoyu 系列（`npx skills` 管理）的第三方技能，路径可能因 home 目录不同而异。
+const BAOYU_INFOGRAPHIC_DIR = skillDir("baoyu-infographic");
+const BAOYU_INFOGRAPHIC_LAYOUTS_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/layouts");
+const BAOYU_INFOGRAPHIC_STYLES_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/styles");
+
+function readBaoyuInfographicLayout(layoutName) {
+  const path = resolve(BAOYU_INFOGRAPHIC_LAYOUTS_DIR, `${layoutName}.md`);
+  if (!existsSync(path)) fail(`baoyu-infographic layout not found: ${layoutName}.md`);
+  return readFileSync(path, "utf8");
 }
 
-function warnIfGptImage2TemplateMissing(source) {
-  const path = resolve(repoRoot(), ".agents/skills/gpt-image-2/references", source);
-  if (!existsSync(path)) {
-    const msg = `gpt-image-2 template not found: ${source}`;
-    if (!allowCompactFallback) fail(`${msg}; pass --allow-compact-fallback only for legacy migration`);
-    process.stderr.write(`generate-image-prompts: WARN - ${msg}; using compact fallback text\n`);
-  }
+function readBaoyuInfographicStyle(styleName) {
+  const path = resolve(BAOYU_INFOGRAPHIC_STYLES_DIR, `${styleName}.md`);
+  if (!existsSync(path)) fail(`baoyu-infographic style not found: ${styleName}.md`);
+  return readFileSync(path, "utf8");
 }
 
 function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect }) {
   const labelText = labels.map((label) => `"${label}"`).join(", ");
-  const gptTemplate = selectGptImage2InfographicVariant({ layout, style });
-  warnIfGptImage2TemplateMissing(gptTemplate.source);
+  const layoutDoc = readBaoyuInfographicLayout(layout);
+  const styleDoc = readBaoyuInfographicStyle(style);
   const subject = compactText(body, 760).replace(/\n+/g, " / ");
 
   return [
-    `Template source: gpt-image-2/references/${gptTemplate.source}`,
+    `Template source: baoyu-infographic (layout=${layout}, style=${style})`,
     "Use case: infographic-diagram",
     `Primary request: Create an article-opening infographic that summarizes the central argument of "${fm.title}" for a WeChat/blog article.`,
     "Scene/background: clean light neutral editorial canvas",
     `Subject: ${subject}`,
-    `Style/medium: ${gptTemplate.style}`,
-    `Composition/framing: ${aspect} landscape header; layout hint ${layout}; 4-6 clearly separated information zones; strong hierarchy; generous whitespace; arrows or callouts only where they explain relationships`,
-    `Color palette: ${gptTemplate.palette}`,
+    `Composition/framing: ${aspect} landscape header; 4-6 clearly separated information zones; strong hierarchy; generous whitespace; arrows or callouts only where they explain relationships`,
     `Text (verbatim): ${labelText}`,
     "Constraints: Chinese labels must be readable and rendered exactly; use short labels only; strong contrast; no tiny text; no logos, trademarks, watermark, QR code, color names, hex codes, or decorative filler",
     "Avoid: photorealism, dense small print, cluttered dashboards, stock icons, extra slogans, invented data",
+    "",
+    "## Layout specification (from baoyu-infographic/references/layouts/)",
+    layoutDoc.trim(),
+    "",
+    "## Style specification (from baoyu-infographic/references/styles/)",
+    styleDoc.trim(),
   ].join("\n");
 }
 
@@ -240,15 +244,11 @@ function validateImagePlan(imagePlan) {
 
   const info = imagePlan.infographic;
   if (info) {
-    const explicit = info.gpt_variant ?? info.gptVariant;
-    if (explicit && !GPT_IMAGE_2_INFOGRAPHIC_VARIANTS[explicit] && !allowDefaultImagePlan) {
-      fail(`unknown infographic gpt_variant "${explicit}" in image-plan.json`);
+    if (info.style && !VALID_INFOGRAPHIC_STYLES.has(info.style)) {
+      fail(`unknown infographic style "${info.style}" in image-plan.json (must be one of baoyu-infographic styles)`);
     }
-    if (info.style && !INFO_STYLE_TO_GPT_VARIANT[info.style] && !allowDefaultImagePlan) {
-      fail(`unknown infographic style "${info.style}" in image-plan.json`);
-    }
-    if (info.layout && !INFO_LAYOUT_TO_GPT_VARIANT[info.layout] && !allowDefaultImagePlan) {
-      fail(`unknown infographic layout "${info.layout}" in image-plan.json`);
+    if (info.layout && !VALID_INFOGRAPHIC_LAYOUTS.has(info.layout)) {
+      fail(`unknown infographic layout "${info.layout}" in image-plan.json (must be one of baoyu-infographic layouts)`);
     }
   }
 }

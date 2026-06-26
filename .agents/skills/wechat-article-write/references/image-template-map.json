@@ -1,53 +1,51 @@
 {
-  "gpt_image_2_templates": {
-    "hand-drawn": {
-      "source": "infographics/hand-drawn-infographic.md",
-      "style": "high-quality bullet journal infographic with hand-drawn wobble, warm Morandi colors, readable Chinese hand-lettered labels",
-      "palette": "warm cream or off-white paper, dusty sage, terracotta, muted mustard, taupe, charcoal ink"
-    },
-    "bento": {
-      "source": "infographics/bento-grid-infographic.md",
-      "style": "Apple Newsroom / Notion-style bento grid infographic with rounded modules and clear hierarchy",
-      "palette": "warm off-white background, deep ink text, restrained accent color, soft module tints"
-    },
-    "comparison": {
-      "source": "infographics/comparison-infographic.md",
-      "style": "clean comparison infographic with balanced columns, clear contrast, and concise callouts",
-      "palette": "neutral background, two restrained comparison colors, one accent for the conclusion"
-    },
-    "dashboard": {
-      "source": "infographics/kpi-dashboard-infographic.md",
-      "style": "polished KPI dashboard infographic with large numbers, concise charts, and editorial spacing",
-      "palette": "clean light dashboard palette, deep ink text, one vivid metric accent"
-    },
-    "step-by-step": {
-      "source": "infographics/step-by-step-infographic.md",
-      "style": "warm step-by-step infographic with numbered badges, simple illustrations, and clear connectors",
-      "palette": "warm cream background, friendly orange, sage green, deep brown text"
-    }
-  },
-  "infographic_variant_by_style": {
-    "morandi-journal": "hand-drawn",
-    "craft-handmade": "hand-drawn",
-    "aged-academia": "hand-drawn",
-    "technical-schematic": "bento",
-    "bold-graphic": "bento",
-    "retro-pop-grid": "bento",
-    "ikea-manual": "step-by-step"
-  },
-  "infographic_variant_by_layout": {
-    "linear-progression": "step-by-step",
-    "circular-flow": "step-by-step",
-    "winding-roadmap": "step-by-step",
-    "comparison-matrix": "comparison",
-    "binary-comparison": "comparison",
-    "venn-diagram": "comparison",
-    "dashboard": "dashboard",
-    "dense-modules": "bento",
-    "bento-grid": "bento",
-    "hub-spoke": "bento",
-    "structural-breakdown": "bento"
-  },
+  "infographic_layouts": [
+    "bento-grid",
+    "binary-comparison",
+    "bridge",
+    "circular-flow",
+    "comic-strip",
+    "comparison-matrix",
+    "dashboard",
+    "dense-modules",
+    "funnel",
+    "hierarchical-layers",
+    "hub-spoke",
+    "iceberg",
+    "isometric-map",
+    "jigsaw",
+    "linear-progression",
+    "periodic-table",
+    "story-mountain",
+    "structural-breakdown",
+    "tree-branching",
+    "venn-diagram",
+    "winding-roadmap"
+  ],
+  "infographic_styles": [
+    "aged-academia",
+    "bold-graphic",
+    "chalkboard",
+    "claymation",
+    "corporate-memphis",
+    "craft-handmade",
+    "cyberpunk-neon",
+    "hand-drawn-edu",
+    "ikea-manual",
+    "kawaii",
+    "knolling",
+    "lego-brick",
+    "morandi-journal",
+    "origami",
+    "pixel-art",
+    "pop-laboratory",
+    "retro-pop-grid",
+    "retro-popup-pop",
+    "storybook-watercolor",
+    "subway-map",
+    "technical-schematic",
+    "ui-wireframe"
+  ],
   "style_families": {
     "journal": { "infoStyle": "morandi-journal", "illStyle": "warm" },
     "tech": { "infoStyle": "technical-schematic", "illStyle": "blueprint" },

@@ -6,8 +6,8 @@
 
 - 映射来源：`references/image-template-map.json`
 - schema：`references/image-plan.schema.json`
-- 信息图 variant 选择优先级：`gpt_variant` / `gptVariant` 显式指定 > `infographic.style` 映射 > `infographic.layout` 映射 > `bento`
-- `gpt-image-2` 在本技能中只作为文生图模板来源；不调用它的 `check-mode.js`、`generate.js` 或完整出图工作流
+- 信息图 template 选择：image-plan.json 直接给出 `infographic.layout` 和 `infographic.style`，对应 `baoyu-infographic/references/layouts/*.md` 与 `references/styles/*.md` 的文件名（去掉 `.md`）。
+- SLOT 00 信息图的模板来源是 `baoyu-infographic`（属于 baoyu 系列）。本技能**只读取模板文本用于拼装文生图 prompt**，不调用其完整出图工作流。
 
 ## 风格家族（Style Family）
 
@@ -167,15 +167,15 @@ cover:
 
 Agent 想用 `direction` 覆盖默认值时，参考此清单。
 
-### 信息图 layout hints（映射到 gpt-image-2 compact templates）
+### 信息图 layouts（baoyu-infographic 全部 21 个，引用时去掉 `.md`）
 
 bento-grid, binary-comparison, bridge, circular-flow, comic-strip, comparison-matrix, dashboard, dense-modules, funnel, hierarchical-layers, hub-spoke, iceberg, isometric-map, jigsaw, linear-progression, periodic-table, story-mountain, structural-breakdown, tree-branching, venn-diagram, winding-roadmap
 
-### 信息图 style hints（映射到 gpt-image-2 compact templates）
+### 信息图 styles（baoyu-infographic 全部 22 个，引用时去掉 `.md`）
 
 aged-academia, bold-graphic, chalkboard, claymation, corporate-memphis, craft-handmade, cyberpunk-neon, hand-drawn-edu, ikea-manual, kawaii, knolling, lego-brick, morandi-journal, origami, pixel-art, pop-laboratory, retro-pop-grid, retro-popup-pop, storybook-watercolor, subway-map, technical-schematic, ui-wireframe
 
-SLOT 00 头部信息图不再展开 `baoyu-infographic` 的完整 layout/style 文档。`generate-image-prompts.mjs` 会把上述 layout/style hint 映射成 `gpt-image-2/references/infographics/*.md` 的短模板引用，并输出更短、更稳定的文生图 prompt。当前默认映射：journal/morandi → `hand-drawn-infographic.md`；教程流程 → `step-by-step-infographic.md`；对比 → `comparison-infographic.md`；dashboard → `kpi-dashboard-infographic.md`；其它总览 → `bento-grid-infographic.md`。
+SLOT 00 头部信息图的 prompt 由 `generate-image-prompts.mjs` 拼接：直接把上面选中的 `layout` 对应 `baoyu-infographic/references/layouts/{layout}.md` 与 `style` 对应 `references/styles/{style}.md` 的全文拼入 prompt 末尾的 `## Layout specification` / `## Style specification` 段，让模型同时拿到结构约束和视觉语言，不再做"先归并到 5 个 hybrid 模板"的间接层。默认组合来自 `article_type_defaults.infoLayout` × `style_families.{family}.infoStyle`。
 
 ### baoyu-article-illustrator styles（23 种）
 
@@ -198,4 +198,4 @@ Agent 在 Step 2 写完 draft.md 后：
 3. （可选）如果要覆盖默认风格，写 `direction` 字段
 4. 写入 `posts/{date-slug}/image-plan.json`
 
-脚本自动处理：风格家族解析 → 信息图 gpt-image-2 compact template 映射 → 插图类型推断 → 封面参数填充 → prompt 生成。
+脚本自动处理：风格家族解析 → 信息图 layout × style 直查 baoyu-infographic → 插图类型推断 → 封面参数填充 → prompt 生成。
