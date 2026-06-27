@@ -6,7 +6,7 @@ date: 2026-06-26
 category: ai-coding
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-00-cover.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-00-infographic-core-summary.png)
 
 你的 coding agent 写出了一个按钮。颜色对、圆角对、hover 态也有。但destructive action 的按钮用了"确认"而不是"删除项目"——它从训练数据里学了一个通用模式，而不是从你的代码库里学你的模式。
 
@@ -24,7 +24,7 @@ Vercel 上周发了一篇博客，标题叫 Teaching agents product design at Ve
 
 Vercel 把这叫做 context gap。我觉得更准确的说法是：**代码是结果的快照，不是推理的录像。**
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-01-code_vs_context_divide.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-01-code_vs_context_divide-1.png)
 
 ## 三层系统：skill + lint + 证据流
 
@@ -38,7 +38,7 @@ Vercel 的解法不是写一个更长的 AGENTS.md。他们造了一个三个齿
 
 **三层缺一不可。** Skill 给 agent 判断力，lint 把确定性规则从 agent 肩上卸下来，证据流保证指南不是死文档。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-02-three_gears_system.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-02-three_gears_system-1.png)
 
 ## 什么该交给 lint，什么该留给 agent
 
@@ -58,7 +58,7 @@ Vercel 的解法不是写一个更长的 AGENTS.md。他们造了一个三个齿
 
 OTF 的一篇博客补充了一个好的观察：**语义化 token 对 LLM 比 hex 值更有效。** `bg-card` 携带意图——agent 知道这是卡片的背景色。`#1A1816` 不携带任何意义——agent 得记住这是卡片色，它记不住。名字就是上下文。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-03-lint_vs_agent_decision_tree.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-03-lint_vs_agent_decision_tree-1.png)
 
 ## 把代码当证据，不当先例
 
@@ -80,7 +80,7 @@ Vercel 的做法是建一条从 Slack 到指南的管道，但中间有两道人
 
 这种"分离收集与判断"的设计，好的代码 review 流程也是这个味道。先理解问题，再下判断。不要在还不了解情况时就急着开处方。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-04-evidence_flow_pipeline.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-26-vercel-agent-product-design-img-04-evidence_flow_pipeline-1.png)
 
 ## 对我们自己的启示
 
