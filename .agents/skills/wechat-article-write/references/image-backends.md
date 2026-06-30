@@ -14,8 +14,10 @@ Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_AP
 
 ## 调用原则
 
+- Codex CLI 单张图超时要设得长一些，建议显式导出 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`（30 分钟）后再跑 Step 4。
 - 每张图片先用 `--provider codex-cli`，明确传 `--image` 到目标文件。
-- 只有 Codex CLI 命令非零退出、超时、未产出 PNG、登录态失效或内容被拒时，才调用 baoyu fallback。
+- 只有 Codex CLI 返回**明确失败信号**时，才调用 baoyu fallback。明确失败信号包括：命令非零退出、输出中出现明确 error/fail/rejected 结果、登录态失效、内容审核拒绝、或进程确定结束但没有产出 PNG。
+- **不要**把“长时间没有新输出”当成失败信号。`codex exec`/`image_gen` 可能静默运行较久；只要进程仍在，就继续等待，不要因为沉默而提前切 fallback。
 - fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
 - 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
 - 不并行调用 Codex CLI；它会启动完整 `codex exec`，并发只会增加锁、限额和上下文风险。
@@ -49,7 +51,7 @@ Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_AP
 
 ## 重试策略
 
-1. 第一次失败：如果是 Codex CLI 环境问题，直接进入 baoyu fallback。
+1. 第一次失败：先确认失败是**明确失败**，不是静默长跑；如果是 Codex CLI 环境问题或明确报错，再进入 baoyu fallback。
 2. fallback 失败：简化 prompt，保留核心信息后重新从 Codex CLI 开始。
 3. 仍失败：停止并报告失败项，等待用户决定是否继续调整或稍后重试。
 
