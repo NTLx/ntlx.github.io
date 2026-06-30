@@ -139,7 +139,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
 脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG_00 信息图和至少 3 张文内插图占位符存在、原文参考存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
-若材料丰富度超出单篇承载能力，参考 SKILL.md 的 Split Decision 章节进行多文章拆分。
+若材料丰富度超出单篇承载能力，参考 `references/pipeline-overview.md` 的多文章拆分说明。
 
 ## 特殊约束
 - 必须采用读后感式原创表达，禁止写成翻译和摘要

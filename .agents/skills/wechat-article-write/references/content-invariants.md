@@ -20,6 +20,8 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - `summary` 不是内容简介，不以“本文介绍了”开头；它是微信 digest 唯一来源。
 - `blogSlug` 必须符合 `^[a-z][a-z0-9-]*[a-z0-9]$`。
 - `sourceUrl` 是微信“原文链接”的唯一来源，不能为空。
+- 默认文章的 `sourceUrl` 必须是 `https://ntlx.github.io/articles/{blogSlug}`。
+- 教程/已有文档适配可写入 `targetPath: path/under/src-content-docs`，此时 `sourceUrl` 指向该文档真实公网 URL，不要求匹配 `articles/{blogSlug}`；`blogSlug` 仍必须是 ASCII kebab-case，用于本地管线标识和图片命名。
 
 ## SLOT 图片占位符
 

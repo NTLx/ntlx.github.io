@@ -47,18 +47,18 @@
     "ui-wireframe"
   ],
   "style_families": {
-    "journal": { "infoStyle": "morandi-journal", "illStyle": "warm" },
-    "tech": { "infoStyle": "technical-schematic", "illStyle": "blueprint" },
+    "journal": { "infoStyle": "craft-handmade", "illStyle": "warm" },
+    "tech": { "infoStyle": "craft-handmade", "illStyle": "blueprint" },
     "editorial": { "infoStyle": "craft-handmade", "illStyle": "editorial" },
-    "bold": { "infoStyle": "bold-graphic", "illStyle": "notion" },
-    "minimal": { "infoStyle": "ikea-manual", "illStyle": "minimal" },
-    "retro": { "infoStyle": "retro-pop-grid", "illStyle": "retro" },
-    "elegant": { "infoStyle": "aged-academia", "illStyle": "elegant" }
+    "bold": { "infoStyle": "craft-handmade", "illStyle": "notion" },
+    "minimal": { "infoStyle": "craft-handmade", "illStyle": "minimal" },
+    "retro": { "infoStyle": "craft-handmade", "illStyle": "retro" },
+    "elegant": { "infoStyle": "craft-handmade", "illStyle": "elegant" }
   },
   "article_type_defaults": {
     "deep-analysis": {
       "family": "journal",
-      "infoLayout": "dense-modules",
+      "infoLayout": "bento-grid",
       "cover": { "type": "scene", "palette": "elegant", "rendering": "painterly" }
     },
     "opinion-essay": {

@@ -89,9 +89,21 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs 2026-06-16-
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2026-06-16-example-article
 ```
 
-默认先用 Codex CLI 后端串行生成图片；只有该命令失败时，才把 `--provider codex-cli` 换成 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback：
+默认先用 Codex CLI 后端串行生成图片；不要使用 batch.json。只有该命令失败时，才把 `--provider codex-cli` 换成 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback：
 
 ```bash
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider codex-cli \
+  --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-cover-example-article.md \
+  --image posts/2026-06-16-example-article/cover.png \
+  --ar 16:9
+
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --provider codex-cli \
+  --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-infographic-core-summary.md \
+  --image posts/2026-06-16-example-article/imgs/00-infographic-core-summary.png \
+  --ar 16:9
+
 bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
   --provider codex-cli \
   --promptfiles posts/2026-06-16-example-article/imgs/prompts/01-decision_flow.md \
@@ -105,7 +117,7 @@ bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-example-article
 ```
 
-生图时务必让每张图输出到 `imgs/NN-<desc>.png`（与 `imgs/prompts/NN-<desc>.md` 同名），不要用 provider 默认随机名——否则 step4 会报 `Missing images for slots` 且 step5 无法匹配占位符。若已生成但落盘成随机名，用 `align-image-names.mjs` 归位（见 `references/image-policy.md`），不要重新生图。
+生图时务必让封面输出到 post 根目录 `cover.png`，让 SLOT 图输出到 `imgs/NN-<desc>.png`（与 `imgs/prompts/NN-<desc>.md` 同名），不要用 provider 默认随机名——否则 step4 会报 `Missing images for slots` 且 step5 无法匹配占位符。若已生成但落盘成随机名，用 `align-image-names.mjs` 归位（见 `references/image-policy.md`），不要重新生图。
 
 ## 5. 构建和发布
 

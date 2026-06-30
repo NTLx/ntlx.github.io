@@ -32,14 +32,15 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
     ```json
     {"article_type": "tutorial"}
     ```
-    脚本自动解析：linear-progression 信息图 + ikea-manual 风格 + minimal 插图 + vivid 封面。如需覆盖风格家族，加 `"direction": "tech"` 等（见 `references/image-template-catalog.md` 风格家族表）。
+    脚本自动解析：linear-progression 信息图 + craft-handmade 风格 + minimal 插图 + vivid 封面。如需覆盖文内插图风格家族，加 `"direction": "tech"` 等（见 `references/image-template-catalog.md` 风格家族表）。
 11. 运行 step2-write.mjs 进行基础门控验证：
     ```bash
     bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
-      --no-humanizer --allow-no-references
+      --no-humanizer --allow-no-references --allow-no-interaction
     ```
     - `--no-humanizer`：跳过 renwei-writing 相关检查（教程不需要去 AI 痕迹），并在状态文件中写入 `humanizer: skip` 标记
     - `--allow-no-references`：教程不要求"原文参考"区块
+    - `--allow-no-interaction`：教程不要求文末互动问题
 
 ## Step 2: 跳过
 行为: skip

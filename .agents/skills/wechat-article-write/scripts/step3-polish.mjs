@@ -103,9 +103,9 @@ const { total: wordCount, chineseChars, englishWords } = countWords(body);
 // 5. Interaction preserved unless Step 2 explicitly allowed skipping it
 const bodyBeforeRefs = body.split(/^## 原文参考/m)[0];
 const interactionTail = bodyBeforeRefs.slice(-1200);
-const hasInteractionQuestion = /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m.test(interactionTail);
+const hasInteractionQuestion = /[？?]/.test(interactionTail);
 if (!allowNoInteraction && !hasInteractionQuestion) {
-  fail(2, "缺少文末互动问题（polish 可能删除；需要靠近正文末尾的 *斜体提问？*）");
+  fail(2, "缺少文末互动问题（polish 可能删除；正文末尾附近需含至少一个中/英文问号；如确无互动，使用 Step 2 的 --allow-no-interaction 跳过）");
 }
 
 // 6. 原文参考 preserved unless Step 2 explicitly allowed skipping it

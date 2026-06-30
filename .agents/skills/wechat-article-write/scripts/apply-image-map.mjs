@@ -30,7 +30,7 @@
 import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { postsRoot } from "./path-resolver.mjs";
-import { SLOT_EXTRACT_RE, SLOT_RESOLVE_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders } from "./validation-lib.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
 
 function loadMap(p) {
   if (!existsSync(p)) {
@@ -48,15 +48,12 @@ function listImgs(dir) {
 
 /**
  * 占位符语法约定：`<!-- SLOT_IMG_NN_DESC -->`，NN 必须 2 位数字。
- * 通过 NN 在 imgs/ 目录里找文件名前缀匹配 `^NN-` 的图片，再去 image-map.json 拿 CDN URL。
+ * 通过 SLOT 语义在 imgs/ 目录里找确定图片，再去 image-map.json 拿 CDN URL。
  */
 function buildResolver(map, imgsDir) {
   const files = listImgs(imgsDir);
   return (placeholder) => {
-    const m = placeholder.match(/SLOT_IMG_(\d{2})(?:_([A-Za-z0-9_-]+))?/);
-    if (!m) return null;
-    const nn = m[1];
-    const file = files.find((f) => f.startsWith(`${nn}-`));
+    const file = resolveSlotImageFile(placeholder, files);
     if (!file) return null;
     const cdn = map[file];
     return { file, cdn };

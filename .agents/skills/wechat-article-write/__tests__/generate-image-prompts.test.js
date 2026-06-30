@@ -105,6 +105,25 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(prompt).toContain("## Style specification (from baoyu-infographic/references/styles/)");
   });
 
+  test("frames the head infographic as a whole-article compression rather than a local illustration", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-whole-article-infographic";
+    const dir = writeDraft(fx.postsRoot, slug);
+
+    const r = runGenerator(slug, fx.postsRoot);
+    expect(r.status).toBe(0);
+
+    const prompt = readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8");
+    expect(prompt).toContain("Whole-article compression contract");
+    expect(prompt).toContain("not a local body illustration");
+    expect(prompt).toContain("central thesis");
+    expect(prompt).toContain("argument path");
+    expect(prompt).toContain("final takeaway or action cue");
+    expect(prompt).toContain("A time-poor reader who only sees this image");
+    expect(prompt).toContain("Do not merely visualize one nearby section");
+  });
+
   test("fails on unknown image-plan article_type instead of silently falling back", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
@@ -115,5 +134,20 @@ describe("generate-image-prompts head infographic prompt", () => {
     const r = runGenerator(slug, fx.postsRoot);
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain('unknown article_type "technical-deepdive"');
+  });
+
+  test("keeps head infographic style craft-handmade even for tech direction", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-tech-infographic-style";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, { article_type: "deep-analysis", direction: "tech" });
+
+    const r = runGenerator(slug, fx.postsRoot);
+    expect(r.status).toBe(0);
+
+    const prompt = readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8");
+    expect(prompt).toContain("style=craft-handmade");
+    expect(prompt).not.toContain("style=technical-schematic");
   });
 });

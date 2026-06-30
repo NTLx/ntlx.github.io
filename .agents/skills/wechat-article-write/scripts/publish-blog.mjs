@@ -297,7 +297,7 @@ if (pushBlocked) {
 ## 当前状态
 
 - **Step 6.1 (博客发布)**：commit 已创建（${sha}），但 **push 未完成**，状态 = \`blocked\`
-- **Step 6.2 (微信发布)**：依赖 sourceUrl HTTP 200，未执行
+- **Step 6.2 (微信发布)**：未执行；默认可跳过 sourceUrl 探活并预填微信"阅读原文"链接
 
 ## 需要手动完成的操作
 
@@ -323,6 +323,8 @@ SLUG="${dateSlug}"
 # Step 6 微信发布
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-dir posts/"$SLUG"
 \`\`\`
+
+如需等 GitHub Pages 部署完成并强制探活，再给 publish-wechat.mjs 传 \`--no-skip-deploy-check\`。
 
 ## 排查 push 失败常见原因
 

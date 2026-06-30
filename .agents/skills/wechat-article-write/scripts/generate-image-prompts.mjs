@@ -188,12 +188,15 @@ function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect
   const labelText = labels.map((label) => `"${label}"`).join(", ");
   const layoutDoc = readBaoyuInfographicLayout(layout);
   const styleDoc = readBaoyuInfographicStyle(style);
-  const subject = compactText(body, 760).replace(/\n+/g, " / ");
+  const subject = compactText(body, 1200).replace(/\n+/g, " / ");
 
   return [
     `Template source: baoyu-infographic (layout=${layout}, style=${style})`,
     "Use case: infographic-diagram",
-    `Primary request: Create an article-opening infographic that summarizes the central argument of "${fm.title}" for a WeChat/blog article.`,
+    `Primary request: Create an article-opening infographic that compresses the full article "${fm.title}" into one self-contained visual summary for a WeChat/blog reader.`,
+    "Whole-article compression contract: this is not a local body illustration. A time-poor reader who only sees this image should understand the article's core message, reasoning structure, and conclusion.",
+    "Required information architecture: central thesis; argument path with 3-5 major supporting points; key contrast, cause-effect link, or decision fork; final takeaway or action cue.",
+    "Do not merely visualize one nearby section. Synthesize the full article into a readable map of the author's reasoning.",
     "Scene/background: clean light neutral editorial canvas",
     `Subject: ${subject}`,
     `Composition/framing: ${aspect} landscape header; 4-6 clearly separated information zones; strong hierarchy; generous whitespace; arrows or callouts only where they explain relationships`,
@@ -228,7 +231,7 @@ function resolveConfigDefaults(imagePlan) {
 
   return {
     cover: { ...td.cover },
-    infographic: { layout: td.infoLayout, style: family.infoStyle, aspect: "16:9" },
+    infographic: { layout: td.infoLayout, style: "craft-handmade", aspect: "16:9" },
     illustrationStyle: family.illStyle,
   };
 }

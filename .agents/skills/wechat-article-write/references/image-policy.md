@@ -77,6 +77,8 @@ bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
   --ar 16:9
 ```
 
+本管线禁止 batch 模式：不要创建 `batch.json`，不要调用 `--batchfile`，不要设置 `jobs`。Step 4 必须由主 Agent 在同一会话里逐张串行生图，并显式传 `--image` 到目标文件。若 `step4-images.mjs` 发现 post 根目录或 `imgs/` 下存在 `batch.json`，会直接失败。
+
 最终验证：
 
 ```bash
@@ -85,14 +87,24 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 
 ## 生图命名契约（防断裂）
 
-imgs/ 下每张 SLOT 图的文件名**必须**以 `NN-` 开头（NN = slot 编号，2 位），且与 `imgs/prompts/NN-<desc>.md` 去掉 `.md` 一致。后续所有脚本（step4 校验、step5 上传映射、apply-image-map 占位符替换）都靠 `NN-` 前缀匹配 SLOT——**provider 默认随机名（nanoid）会导致全线断裂**。
+imgs/ 下每张 SLOT 图的文件名**必须**以 `NN-` 开头（NN = slot 编号，2 位），且与 `imgs/prompts/NN-<desc>.md` 去掉 `.md` 一致。后续所有脚本会按 SLOT 语义和 prompt basename 精确解析图片；只靠 `NN-` 前缀的模糊匹配不再被接受。
 
 | SLOT | prompt 文件 | 图片文件 |
 |---|---|---|
 | 00 信息图 | `00-infographic-core-summary.md` | `00-infographic-core-summary.png` |
 | 01 | `01-mosaic_effect_fragments.md` | `01-mosaic_effect_fragments.png` |
 
-生图时**必须显式指定输出文件名**为 `imgs/NN-<desc>.png`，不要依赖 provider 默认名或批量模式默认名。封面用 `baoyu-cover-image` 输出到 post 根目录 `cover.png`。
+生图时**必须显式指定输出文件名**为 `imgs/NN-<desc>.png`，不要依赖 provider 默认名。封面输出到 post 根目录 `cover.png`；`imgs/00-cover.*` 不属于正文图集，`step4-images.mjs` 会归位或移入 `imgs/_discard/`，防止它抢占 `SLOT_IMG_00`。
+
+## 信息图内容契约
+
+SLOT 00 是文章开头的全文速读版，不是文内局部插图。目标读者即使只看这一张图，也应能抓住整篇文章的核心论点、论证路径、关键对比/因果/决策分叉，以及最终结论或行动提示。
+
+生成 `00-infographic-core-summary.md` 时，prompt 必须要求模型综合全文，而不是只可视化 SLOT 附近段落。文内 `SLOT_IMG_01+` 才负责解释局部论点、流程或对比。
+
+## 信息图风格
+
+SLOT 00 是文章开头的核心信息图，默认使用 baoyu-infographic 的 `craft-handmade` 风格和低密度 summary 布局。`direction: tech` 可以影响文内插图风格，但不改变头部信息图的默认 `craft-handmade` 风格。只有用户明确要求另一种信息图风格时，才在 `image-plan.json` 里写 `infographic.style` 覆盖。
 
 ## 命名断裂修复（不重生图）
 
