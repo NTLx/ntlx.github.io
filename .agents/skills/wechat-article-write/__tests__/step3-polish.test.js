@@ -38,6 +38,31 @@ const BODY = `
 > https://example.com/source
 `;
 
+const BODY_WITH_PLAIN_QUESTION = `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+一些测试正文内容。
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+继续展开第一处关键概念。
+
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+
+继续展开第二处关键关系。
+
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
+你怎么看这个问题？
+
+## 原文参考
+
+> 来源
+> https://example.com/source
+`;
+
 function makeFixture() {
   const root = join(tmpdir(), `step3-polish-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const postsRoot = join(root, "posts");
@@ -95,6 +120,19 @@ describe("step3-polish gates", () => {
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
     expect(state.last_complete_step).toBe(3);
     expect(state.blog_slug).toBe("step-three-test");
+  });
+
+  test("plain question near the end counts as interaction", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-plain-question-step3";
+    const dir = writeDraft(fx.postsRoot, slug, { body: BODY_WITH_PLAIN_QUESTION });
+
+    const r = runStep3(slug, fx.postsRoot);
+    expect(r.status).toBe(0);
+
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    expect(state.last_complete_step).toBe(3);
   });
 
   test("missing blogSlug fails after polish", () => {

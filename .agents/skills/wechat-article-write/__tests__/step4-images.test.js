@@ -140,4 +140,112 @@ describe("step4-images body illustration policy", () => {
     expect(r.stderr).toContain("3 张文内插图");
     expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
   });
+
+  test("moves mistakenly generated imgs/00-cover.png to post root cover.png", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-nested-zero-cover";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+一些正文内容。
+
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+
+继续解释关系。
+
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
+## 原文参考
+
+> 来源
+> https://example.com/source
+`, [
+      "00-cover.png",
+      "00-infographic-core-summary.png",
+      "01-core-tension.png",
+      "02-stakeholder-map.png",
+      "03-decision-flow.png",
+    ]);
+    rmSync(join(dir, "cover.png"), { force: true });
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(0);
+    expect(r.stderr).toContain("moved imgs/00-cover.png");
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "imgs", "00-cover.png"))).toBe(false);
+  });
+
+  test("fails when batch.json exists because Step 4 must be serial", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-batch-json-present";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
+## 原文参考
+
+> 来源
+> https://example.com/source
+`, [
+      "00-infographic-core-summary.png",
+      "01-core-tension.png",
+      "02-stakeholder-map.png",
+      "03-decision-flow.png",
+    ]);
+    writeFileSync(join(dir, "imgs", "batch.json"), JSON.stringify({ jobs: 3, tasks: [] }));
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("batch.json");
+    expect(r.stderr).toContain("串行");
+  });
+
+  test("fails when generated image does not match prompt basename", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-prompt-image-mismatch";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+<!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
+<!-- SLOT_IMG_03_DECISION_FLOW -->
+
+## 原文参考
+
+> 来源
+> https://example.com/source
+`, [
+      "00-infographic.png",
+      "01-core-tension.png",
+      "02-stakeholder-map.png",
+      "03-decision-flow.png",
+    ]);
+    const promptsDir = join(dir, "imgs", "prompts");
+    mkdirSync(promptsDir, { recursive: true });
+    writeFileSync(join(promptsDir, "00-infographic-core-summary.md"), "infographic prompt\n");
+    writeFileSync(join(promptsDir, "01-core-tension.md"), "prompt\n");
+    writeFileSync(join(promptsDir, "02-stakeholder-map.md"), "prompt\n");
+    writeFileSync(join(promptsDir, "03-decision-flow.md"), "prompt\n");
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("00-infographic-core-summary");
+  });
 });

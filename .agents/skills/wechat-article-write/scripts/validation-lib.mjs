@@ -69,6 +69,40 @@ export function resolveSlotImg(placeholder) {
   return { slot: parseInt(m[1], 10), desc: m[2] ?? null };
 }
 
+/** Normalize SLOT description text to the prompt/image basename convention. */
+export function normalizeSlotDesc(desc) {
+  return String(desc ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Resolve one SLOT_IMG placeholder to an image file from imgs/.
+ *
+ * SLOT 00 is reserved for the opening infographic and must never resolve to
+ * cover images. Body slots prefer the exact normalized placeholder suffix.
+ */
+export function resolveSlotImageFile(placeholder, files) {
+  const parsed = resolveSlotImg(placeholder);
+  if (!parsed) return null;
+
+  const nn = String(parsed.slot).padStart(2, "0");
+  const candidates = files.filter((f) => f.startsWith(`${nn}-`));
+
+  if (parsed.slot === 0) {
+    return candidates.find((f) => /^00-infographic-core-summary\.(?:png|jpe?g|webp|gif)$/i.test(f)) ?? null;
+  }
+
+  const desc = normalizeSlotDesc(parsed.desc);
+  if (desc) {
+    const exact = candidates.find((f) => f.startsWith(`${nn}-${desc}.`) || f.startsWith(`${nn}-${desc}-`));
+    if (exact) return exact;
+  }
+
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
 /**
  * 替换文本中所有 SLOT_IMG 占位符。
  * @param {string} text - 源文本

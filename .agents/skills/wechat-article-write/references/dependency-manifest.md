@@ -25,6 +25,10 @@
 | baoyu-markdown-to-html | 发布技能 | Step 5 微信 HTML |
 | baoyu-post-to-wechat | 发布技能 | Step 6 微信草稿 |
 
+## 技能路径解析
+
+脚本执行型调用第三方技能时，优先使用项目级 `.agents/skills/<skill>`，例如 `.agents/skills/baoyu-format-markdown/scripts/...`。不要硬编码 `~/.claude/skills/<skill>`；不同运行时的 Skill loader 可能把 `{baseDir}` 指到用户级目录，但本仓库的实际安装位置通常是项目级 `.agents/skills/`。不确定时先 `ls .agents/skills/<skill>`，再退到 `~/.agents/skills/<skill>` 或 `~/.claude/skills/<skill>`。
+
 ## baoyu-infographic 文生图模板目录
 
 `generate-image-prompts.mjs` 在运行时动态读取以下两个目录：

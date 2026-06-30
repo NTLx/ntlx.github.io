@@ -33,14 +33,14 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 **脚本验证**：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
-  --allow-no-references
+  --allow-no-references --allow-no-interaction
 ```
 
 6. **视觉规划**：产出 `posts/{date-slug}/image-plan.json`：
    ```json
    {"article_type": "news-digest"}
    ```
-   脚本自动解析：bento-grid 信息图 + retro-pop-grid 风格 + retro 插图。
+   脚本自动解析：bento-grid 信息图 + craft-handmade 风格 + retro 插图。
 
 ## Step 3: 文本后处理
 行为: full

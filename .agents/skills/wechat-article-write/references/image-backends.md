@@ -19,6 +19,7 @@ Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_AP
 - fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
 - 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
 - 不并行调用 Codex CLI；它会启动完整 `codex exec`，并发只会增加锁、限额和上下文风险。
+- 若 Codex CLI 返回 `lock_busy` 并指向 `/home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock`，先确认没有仍在运行的 `codex exec` / `baoyu-image-gen` 进程，再删除这个 stale lock 后按串行方式重试。
 
 ## 审核失败处理
 

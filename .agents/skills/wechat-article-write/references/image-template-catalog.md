@@ -11,19 +11,19 @@
 
 ## 风格家族（Style Family）
 
-同一风格家族的信息图和文内插图视觉语言一致。Agent 选 article_type 后，脚本自动使用对应的 style family。
+风格家族只控制文内插图的默认视觉语言。SLOT 00 信息图默认 style 为 `craft-handmade`；只有 `image-plan.json` 显式写入 `infographic.style` 时才覆盖。direction 只影响文内插图 style，不影响 SLOT 00 信息图。
 
 | 家族 ID | 信息图 style hint | 文内插图 style | 视觉特征 | 适用场景 |
 |---------|-------------|---------------|---------|---------|
-| `journal` | `morandi-journal` | `warm` | 莫兰迪色调、手绘笔记质感、温暖知性 | 深度分析、读后感、观点文章 |
-| `tech` | `technical-schematic` | `blueprint` | 蓝图/技术制图风、精密线条、工程感 | 技术深度、架构分析、性能 |
+| `journal` | `craft-handmade` | `warm` | 手写卡片、拼贴纸张、温暖知性 | 深度分析、读后感、观点文章 |
+| `tech` | `craft-handmade` | `blueprint` | 手工信息图 + 蓝图/技术制图插图 | 技术深度、架构分析、性能 |
 | `editorial` | `craft-handmade` | `editorial` | 手工拼贴感、杂志编辑风、叙事性强 | 叙事、人物、行业观察 |
-| `bold` | `bold-graphic` | `notion` | 大色块、高对比、信息密度高 | 清单、数据密集、对比分析 |
-| `minimal` | `ikea-manual` | `minimal` | 极简线条、说明书风、清晰步骤 | 教程、操作指南 |
-| `retro` | `retro-pop-grid` | `retro` | 波普色彩、复古网点、视觉冲击 | 资讯、趋势、文化评论 |
-| `elegant` | `aged-academia` | `elegant` | 学术古典、羊皮纸质感、沉稳优雅 | 论文解读、书评、历史 |
+| `bold` | `craft-handmade` | `notion` | 手工信息图 + 清单化插图 | 清单、数据密集、对比分析 |
+| `minimal` | `craft-handmade` | `minimal` | 手工信息图 + 极简步骤插图 | 教程、操作指南 |
+| `retro` | `craft-handmade` | `retro` | 手工信息图 + 复古插图 | 资讯、趋势、文化评论 |
+| `elegant` | `craft-handmade` | `elegant` | 手工信息图 + 学术古典插图 | 论文解读、书评、历史 |
 
-**用户偏好**：项目默认偏好 `journal` 风格家族（信息图倾向、莫兰迪色调）。Agent 不指定 direction 时使用 journal。
+**用户偏好**：项目默认偏好 `journal` 风格家族；SLOT 00 信息图默认使用 `craft-handmade`，突出“手工整理出来的核心结构”。
 
 ## 文章类型 → 模板配置
 
@@ -35,7 +35,7 @@
 style_family: journal
 infographic:
   layout: dense-modules
-  style: morandi-journal
+  style: craft-handmade
 illustration:
   style: warm
 cover:
@@ -52,7 +52,7 @@ cover:
 style_family: journal
 infographic:
   layout: hub-spoke
-  style: morandi-journal
+  style: craft-handmade
 illustration:
   style: warm
 cover:
@@ -69,7 +69,7 @@ cover:
 style_family: tech
 infographic:
   layout: structural-breakdown
-  style: technical-schematic
+  style: craft-handmade
 illustration:
   style: blueprint
 cover:
@@ -86,7 +86,7 @@ cover:
 style_family: minimal
 infographic:
   layout: linear-progression
-  style: ikea-manual
+  style: craft-handmade
 illustration:
   style: minimal
 cover:
@@ -103,7 +103,7 @@ cover:
 style_family: retro
 infographic:
   layout: bento-grid
-  style: retro-pop-grid
+  style: craft-handmade
 illustration:
   style: retro
 cover:
@@ -120,7 +120,7 @@ cover:
 style_family: bold
 infographic:
   layout: comparison-matrix
-  style: bold-graphic
+  style: craft-handmade
 illustration:
   style: notion
 cover:
@@ -137,7 +137,7 @@ cover:
 style_family: bold
 infographic:
   layout: dashboard
-  style: bold-graphic
+  style: craft-handmade
 illustration:
   style: notion
 cover:
@@ -165,7 +165,7 @@ cover:
 
 ## 可用模板清单
 
-Agent 想用 `direction` 覆盖默认值时，参考此清单。
+Agent 想显式覆盖默认值时，参考此清单。常规文章不要覆盖 SLOT 00 信息图 style；保持 `craft-handmade`。
 
 ### 信息图 layouts（baoyu-infographic 全部 21 个，引用时去掉 `.md`）
 
@@ -175,7 +175,7 @@ bento-grid, binary-comparison, bridge, circular-flow, comic-strip, comparison-ma
 
 aged-academia, bold-graphic, chalkboard, claymation, corporate-memphis, craft-handmade, cyberpunk-neon, hand-drawn-edu, ikea-manual, kawaii, knolling, lego-brick, morandi-journal, origami, pixel-art, pop-laboratory, retro-pop-grid, retro-popup-pop, storybook-watercolor, subway-map, technical-schematic, ui-wireframe
 
-SLOT 00 头部信息图的 prompt 由 `generate-image-prompts.mjs` 拼接：直接把上面选中的 `layout` 对应 `baoyu-infographic/references/layouts/{layout}.md` 与 `style` 对应 `references/styles/{style}.md` 的全文拼入 prompt 末尾的 `## Layout specification` / `## Style specification` 段，让模型同时拿到结构约束和视觉语言，不再做"先归并到 5 个 hybrid 模板"的间接层。默认组合来自 `article_type_defaults.infoLayout` × `style_families.{family}.infoStyle`。
+SLOT 00 头部信息图的 prompt 由 `generate-image-prompts.mjs` 拼接：直接把上面选中的 `layout` 对应 `baoyu-infographic/references/layouts/{layout}.md` 与 `style` 对应 `references/styles/{style}.md` 的全文拼入 prompt 末尾的 `## Layout specification` / `## Style specification` 段，让模型同时拿到结构约束和视觉语言，不再做"先归并到 5 个 hybrid 模板"的间接层。默认组合来自 `article_type_defaults.infoLayout` × `craft-handmade`。
 
 ### baoyu-article-illustrator styles（23 种）
 
@@ -195,7 +195,7 @@ Agent 在 Step 2 写完 draft.md 后：
 
 1. 从上方"文章类型"中选择最匹配的 `article_type`
 2. 统计 draft.md 中的 SLOT_IMG_01+ 占位符数量
-3. （可选）如果要覆盖默认风格，写 `direction` 字段
+3. （可选）如果要覆盖文内插图风格，写 `direction` 字段；如果确需覆盖 SLOT 00 信息图，显式写 `infographic.layout` / `infographic.style`
 4. 写入 `posts/{date-slug}/image-plan.json`
 
-脚本自动处理：风格家族解析 → 信息图 layout × style 直查 baoyu-infographic → 插图类型推断 → 封面参数填充 → prompt 生成。
+脚本自动处理：article_type 解析信息图 layout 与封面参数 → SLOT 00 使用 craft-handmade → direction 解析文内插图 style → 插图类型推断 → prompt 生成。

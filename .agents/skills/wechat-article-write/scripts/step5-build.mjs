@@ -21,7 +21,7 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
-import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders } from "./validation-lib.mjs";
+import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
@@ -108,10 +108,11 @@ function buildSyntheticMap(files, namePrefix) {
 
 function validateImageMapCoverage(draft, files, map) {
   const hasUrl = file => typeof map[file] === "string" && /^https?:\/\//.test(map[file]);
-  const slotRefs = [...draft.matchAll(SLOT_EXTRACT_RE)].map(m => m[1]);
-  for (const slotNum of slotRefs) {
-    const file = files.find(f => f.startsWith(`${slotNum}-`));
-    if (!file) fail(4, `SLOT_IMG_${slotNum} has no matching image in imgs/`);
+  const slotRefs = [...draft.matchAll(SLOT_EXTRACT_RE)];
+  for (const match of slotRefs) {
+    const file = resolveSlotImageFile(match[0], files);
+    const slotNum = match[1];
+    if (!file) fail(4, `SLOT_IMG_${slotNum} has no unambiguous matching image in imgs/`);
     if (!hasUrl(file)) fail(4, `image-map.json missing valid CDN URL for ${file}`);
   }
 
@@ -273,10 +274,9 @@ if (existsSync(htmlPkgJson) && !existsSync(htmlNodeModules)) {
 const tempLocalMd = resolve(base, "_temp_local.md");
 let localMd = draft;
 
-localMd = replaceSlotPlaceholders(localMd, (_match, slot, _desc) => {
-  const nn = String(slot).padStart(2, "0");
-  const file = imgs.find(f => f.startsWith(`${nn}-`));
-  if (!file) return _match;
+localMd = replaceSlotPlaceholders(localMd, (match, _slot, _desc) => {
+  const file = resolveSlotImageFile(match, imgs);
+  if (!file) return match;
   return `![](imgs/${file})`;
 });
 
