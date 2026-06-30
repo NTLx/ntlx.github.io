@@ -72,6 +72,8 @@ export default defineConfig({
 			},
 			// Favicon
 			favicon: '/favicon.svg',
+			// 404.md in docs is the custom 404 page; avoid a duplicate injected route.
+			disable404Route: true,
 			// 自定义 CSS：引入霞鹜文楷 Screen，仅作用于文章正文
 			customCss: ['./src/styles/fonts.css'],
 			// 显示最后更新时间
