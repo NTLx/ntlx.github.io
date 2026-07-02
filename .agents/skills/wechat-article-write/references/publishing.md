@@ -17,6 +17,7 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 - `article.md` 保留 draft 中的 Markdown 链接，用于博客点击。
 - `article-wechat.html` 生成前会将非图片 Markdown 链接转换为纯文本 URL。
+- `## 原文参考` 中的 `- [标题](URL)` 在微信轨会展开成“标题一行 + 纯文本 URL 一行”，博客轨仍保留标准 Markdown 列表链接。
 - HTML 转换后会移除普通 `<a href>`，防止微信公众号正文出现不可控外链。
 - `sourceUrl` 仍由 Step 6.2 写入微信"阅读原文"，与正文里的引用链接是两回事。
 

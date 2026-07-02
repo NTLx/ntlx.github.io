@@ -41,6 +41,23 @@ function isStandaloneListLink(linkNode, parent, ancestors) {
   return parent.children.every((child) => child === linkNode || isWhitespaceText(child));
 }
 
+function isReferenceHeading(node) {
+  return node?.type === "heading" && toPlainText(node.children) === "原文参考";
+}
+
+function isReferenceOnlyLinkListItem(node) {
+  if (node?.type !== "listItem") return false;
+  if (!Array.isArray(node.children) || node.children.length !== 1) return false;
+  const paragraph = node.children[0];
+  if (paragraph?.type !== "paragraph") return false;
+  const significant = paragraph.children.filter((child) => !isWhitespaceText(child));
+  return significant.length === 1 && significant[0]?.type === "link";
+}
+
+function paragraphNode(value) {
+  return { type: "paragraph", children: [textNode(value)] };
+}
+
 function replacementForLink(linkNode, parent, ancestors) {
   const label = toPlainText(linkNode.children) || linkNode.url;
   const url = linkNode.url;
@@ -55,24 +72,61 @@ function replacementForLink(linkNode, parent, ancestors) {
   return [textNode(`${label}（链接：${url}）`)];
 }
 
-function transformChildren(node, ancestors = []) {
+function expandReferenceList(node) {
+  const out = [];
+  for (const item of node.children ?? []) {
+    if (!isReferenceOnlyLinkListItem(item)) return null;
+    const linkNode = item.children[0].children.find((child) => child.type === "link");
+    const label = toPlainText(linkNode.children) || linkNode.url;
+    out.push(paragraphNode(label), paragraphNode(linkNode.url));
+  }
+  return out;
+}
+
+function transformChildren(node, ancestors = [], context = { inReferenceSection: false }) {
   if (!Array.isArray(node.children)) return;
   for (let i = 0; i < node.children.length; i++) {
     const child = node.children[i];
+    if (node.type === "root" && child.type === "heading") {
+      context.inReferenceSection = isReferenceHeading(child);
+    }
+    if (context.inReferenceSection && child.type === "list") {
+      const expanded = expandReferenceList(child);
+      if (expanded) {
+        node.children.splice(i, 1, ...expanded);
+        i += expanded.length - 1;
+        continue;
+      }
+    }
     if (child.type === "link") {
       const replacement = replacementForLink(child, node, ancestors);
       node.children.splice(i, 1, ...replacement);
       i += replacement.length - 1;
       continue;
     }
-    transformChildren(child, [...ancestors, node]);
+    transformChildren(child, [...ancestors, node], context);
   }
+}
+
+function normalizeReferenceSectionSpacing(markdown) {
+  return String(markdown).replace(
+    /(## 原文参考\s*\n\n)([\s\S]*?)(?=\n## |\n# |$)/g,
+    (_full, heading, sectionBody) => {
+      const lines = sectionBody
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .filter((line) => line !== "");
+      return `${heading}${lines.join("\n")}`;
+    },
+  );
 }
 
 export function normalizeLinksForWechat(markdown) {
   const tree = processor.parse(markdown);
-  transformChildren(tree, []);
-  return String(processor.stringify(tree)).replace(/\b(https?)\\:\/\//g, "$1://");
+  transformChildren(tree, [], { inReferenceSection: false });
+  return normalizeReferenceSectionSpacing(
+    String(processor.stringify(tree)).replace(/\b(https?)\\:\/\//g, "$1://"),
+  );
 }
 
 function stripTags(html) {
