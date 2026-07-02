@@ -6,7 +6,7 @@ date: 2026-07-02
 category: ai-agents
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-00-infographic-core-summary-1.png)
 
 Anthropic 这篇 [Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) 很容易被读成一篇“Claude 提示词技巧总结”。表面上它确实在讲 initializer agent、coding agent、feature list、`init.sh`、browser testing 这些做法。但我读完以后脑子里留下来的，不是几个 prompt pattern，而是另一件事：**长跑 Agent 缺的，先是一套像工程团队交接班那样可靠的制度。**
 
@@ -16,7 +16,7 @@ Anthropic 这篇 [Effective harnesses for long-running agents](https://www.anthr
 
 ## 问题先出在交接
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-01-context_window_handoff_chain.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-01-context_window_handoff_chain-1.png)
 
 Anthropic 先把症状说得很清楚：单靠 compaction 不够。模型跨 context window 以后，经常会出现两类典型故障。第一类是一次想做太多，在上下文快耗尽时留下一个半做完的现场；第二类更隐蔽，项目已经有了一点进展，下一轮进来扫一眼，就开始宣布大功告成。
 
@@ -26,7 +26,7 @@ Anthropic 先把症状说得很清楚：单靠 compaction 不够。模型跨 con
 
 ## Anthropic 真正搭出来的，是四个控制点
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-02-four_control_points.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-02-four_control_points-1.png)
 
 如果把原文拆开看，我更愿意把它收束成四个控制点。
 
@@ -42,7 +42,7 @@ Anthropic 先把症状说得很清楚：单靠 compaction 不够。模型跨 con
 
 ## 这已经不是 prompt engineering，而是环境治理
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-03-browser_testing_feedback.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-03-browser_testing_feedback-1.png)
 
 原文里最容易被低估的一点，是 Anthropic 自己也在把这套经验从工程博客推回官方文档。那份 [Claude prompt best practices](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices#multi-context-window-workflows) 里，同样强调第一轮先搭框架、写结构化测试文件、准备 `init.sh`、每次 fresh context 先做基础验证。这说明他们不是碰巧试出一套内部偏方，而是在收敛一条更一般的多窗口工作流。
 
@@ -52,7 +52,7 @@ Anthropic 先把症状说得很清楚：单靠 compaction 不够。模型跨 con
 
 ## 为什么它看起来像在重造项目管理
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-04-failure_modes_responsibility_table.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-02-anthropic-long-running-agent-harness-img-04-failure_modes_responsibility_table-1.png)
 
 Hacker News 上有个挺尖刻的评论，说 Anthropic 这套东西“很像在重造 project tracker”。我觉得这句吐槽其实打中了核心。因为 feature list、progress log、git checkpoints、基础验证、验收测试，这些本来就都是项目管理和工程治理里的老东西。Anthropic 只是把它们翻译成了 Agent 读得懂、也会被硬约束的形态。
 
