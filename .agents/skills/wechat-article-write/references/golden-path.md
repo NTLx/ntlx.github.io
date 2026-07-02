@@ -25,6 +25,7 @@ mkdir -p posts/2026-06-16-example-article
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs 2026-06-16-example-article
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 2026-06-16-example-article
 ```
 
 ## 3. 写 draft.md
@@ -61,6 +62,12 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 正文……
 
 *你会把哪类判断交给 Agent？*
+
+这和我之前在 [《旧文标题》](https://ntlx.github.io/articles/old-post) 里写过的判断有关。
+
+## 延伸阅读
+
+- [《旧文标题》](https://ntlx.github.io/articles/old-post)
 
 ## 原文参考
 

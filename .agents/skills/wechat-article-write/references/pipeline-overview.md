@@ -6,11 +6,22 @@
 |---|---|---|---|
 | 0 | 文章类型判定 | Agent | 选择 `references/strategies/` 下的策略 |
 | 1 | 资料收集 | Agent + 门控 | 写 `materials.md`，运行 `step1-collect.mjs` |
+| 1.5 | 站内记忆检索 | 脚本 | 读取 `materials.md` 和已发布博客，生成 `blog-memory.md/json` |
 | 2 | 文章创作 | Agent + 门控 | 写 `draft.md` / `image-plan.json`，运行 `step2-write.mjs` |
 | 3 | 文本后处理 | Agent + 门控 | 调用 humanizer / formatter，运行 `step3-polish.mjs` |
 | 4 | 图片生成 | Agent + 门控 | 生成 prompt、串行生图，运行 `step4-images.mjs` |
 | 5 | 产物构建 | 脚本 | 上传 CDN、生成 `article.md` 和 `article-wechat.html` |
 | 6 | 双轨发布 | 脚本 | 博客先发，微信草稿后发 |
+
+## Step 1.5 站内记忆检索
+
+Step 1 通过后运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
+```
+
+脚本扫描 `src/content/docs/articles/*.md`，忽略 `.backup-*` 文件，基于 `materials.md` 生成当前文章可联动的旧文候选。Step 2 写作时必须读取 `blog-memory.md`，正文自然联动 1-2 篇旧文，文末放 2-4 篇站内延伸阅读；如果候选不适合当前文章，运行 Step 2 时使用 `--allow-no-related` 并在最终说明中交代理由。
 
 ## Step 0 策略选择
 
