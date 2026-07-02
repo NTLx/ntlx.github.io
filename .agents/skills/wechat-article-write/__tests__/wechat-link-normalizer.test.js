@@ -27,6 +27,19 @@ describe("wechat-link-normalizer", () => {
     expect(output).not.toContain("[《旧文》]");
   });
 
+  test("reference list links become title line plus plain URL line without bullet in wechat output", () => {
+    const input = [
+      "## 原文参考",
+      "",
+      "- [OpenAI 发布会直播](https://example.com/source)",
+      "",
+    ].join("\n");
+    const output = normalizeLinksForWechat(input);
+    expect(output).toContain("OpenAI 发布会直播\nhttps://example.com/source");
+    expect(output).not.toContain("- OpenAI 发布会直播");
+    expect(output).not.toContain("[OpenAI 发布会直播]");
+  });
+
   test("images are not converted as links", () => {
     const input = "![图](imgs/01-detail.png)";
     const output = normalizeLinksForWechat(input);

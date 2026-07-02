@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.24.0"
+version: "1.25.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -36,7 +36,7 @@ description: >
 | sourceUrl | Step 2 预写博客公网 URL；Step 6.2 只负责转发给 `baoyu-post-to-wechat` 的原生 `--source-url` 支持 |
 | summary | frontmatter `summary` 是微信 digest 唯一来源，必须是 ≤120 字金句式摘要 |
 | 站内记忆 | Step 1 后运行 `select-related-articles.mjs` 生成 `blog-memory.md/json`；Step 2 必须读取并自然联动相关旧文，或用 `--allow-no-related` 显式跳过 |
-| 链接双轨 | `draft.md` 使用 Markdown inline links；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，`article-wechat.html` 不得含普通 `<a href>` |
+| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 原文参考` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，且会把原文参考列表展开为“标题 + 纯文本 URL”，`article-wechat.html` 不得含普通 `<a href>` |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 图片后端 | Step 4 默认通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI 生图；单张图超时建议设为 30 分钟；只有返回明确失败信号才算失败，Codex 明确失败后才回退到项目配置的 baoyu provider |

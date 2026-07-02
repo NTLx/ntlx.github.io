@@ -13,8 +13,7 @@ mkdir -p posts/2026-06-16-example-article
 
 ## 原文
 
-> 来源
-> https://example.com/source
+- [OpenAI 发布会直播](https://example.com/source)
 
 原文要点……
 
@@ -71,8 +70,7 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 ## 原文参考
 
-> 来源
-> https://example.com/source
+- [OpenAI 发布会直播](https://example.com/source)
 ```
 
 `image-plan.json`：

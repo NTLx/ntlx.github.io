@@ -108,8 +108,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 ## 原文参考
 
-> {来源信息}
-> {原文URL，纯文本形式}
+- [{来源标题}](https://example.com/source)
 ```
 
 **关键**：文内插图不是每章打卡，而是为需要视觉解释的论证节点服务。写作时至少规划 3 个 SLOT_IMG_01+ 占位符，放在相关正文附近；可紧跟 H2，也可放在关键段落后或小结前。占位符描述必须具体——例如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`。generate-image-prompts.mjs 依赖描述词 + 附近上下文构建图片 prompt，描述越具体，生成图与正文内容的匹配度越高。
@@ -154,5 +153,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ## 特殊约束
 - 必须采用读后感式原创表达，禁止写成翻译和摘要
 - 必须包含文末互动问题和原文参考区块
+- 原文参考区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨自动展开成标题 + 纯文本 URL
 - frontmatter summary 必须是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail
 - sourceUrl 必须使用固定规则 `https://ntlx.github.io/articles/{blogSlug}`
