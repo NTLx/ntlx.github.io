@@ -31,6 +31,7 @@ import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 const args = process.argv.slice(2);
 const allowNoReferences = args.includes("--allow-no-references");
 const allowNoInteraction = args.includes("--allow-no-interaction");
+const allowNoRelated = args.includes("--allow-no-related");
 const noHumanizer = args.includes("--no-humanizer");
 // Slug is the positional argument — find args that aren't flags
 let slug = null;
@@ -39,7 +40,7 @@ for (let i = 0; i < args.length; i++) {
   slug = args[i];
   break;
 }
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--no-humanizer]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--allow-no-related] [--no-humanizer]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -99,6 +100,10 @@ if (!targetPath) {
 // 2. Word count (informational only — ljg-writes controls its own word count)
 const body = extractBody(content);
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
+
+if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
+  fail(4, "正文使用了 reference-style Markdown 链接。请改用 inline links: [文本](URL)，以便 Step 5 为博客/微信生成不同链接形态");
+}
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
@@ -163,6 +168,27 @@ if (existsSync(materialsPath)) {
   }
 }
 
+const blogMemoryPath = resolve(postsRoot(), slug, "blog-memory.json");
+let blogMemoryUsed = false;
+let blogMemoryCandidates = 0;
+if (existsSync(blogMemoryPath)) {
+  try {
+    const memory = JSON.parse(readFileSync(blogMemoryPath, "utf8"));
+    const highConfidence = (memory.candidates ?? []).filter((c) => c.high_confidence === true || Number(c.score ?? 0) >= 6);
+    blogMemoryCandidates = highConfidence.length;
+    blogMemoryUsed = highConfidence.some((c) => {
+      return (c.url && body.includes(c.url)) || (c.title && body.includes(c.title));
+    });
+    if (highConfidence.length > 0 && !blogMemoryUsed && !allowNoRelated) {
+      fail(4, "站内记忆包中存在高相关旧文，但 draft.md 未提及任何候选标题或 URL；如确实不适合联动，使用 --allow-no-related");
+    }
+  } catch (err) {
+    fail(4, `blog-memory.json 解析失败: ${err.message}`);
+  }
+} else {
+  process.stderr.write("step2: WARNING 未找到 blog-memory.json；Step 1.5 站内记忆检索可能未执行\n");
+}
+
 const stateExtra = {
   title,
   date,
@@ -172,6 +198,9 @@ const stateExtra = {
   word_count: wordCount,
   allow_no_references: allowNoReferences,
   allow_no_interaction: allowNoInteraction,
+  allow_no_related: allowNoRelated,
+  blog_memory_candidates: blogMemoryCandidates,
+  blog_memory_used: blogMemoryUsed,
 };
 if (noHumanizer) stateExtra.humanizer = "skip";
 markStepDone(slug, 2, stateExtra);

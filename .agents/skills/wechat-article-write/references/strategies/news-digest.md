@@ -21,11 +21,21 @@ applies_when: 用户要求汇总 AI 资讯、行业动态、新闻简报
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 ```
 
+## Step 1.5: 站内记忆检索
+行为: script
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
+```
+
+简报类文章可以只在文末放站内延伸阅读；如果当天资讯与既有文章有明显主线关系，也可以在正文小结里轻轻联动。旧文链接在 draft 中使用 Markdown inline link，Step 5 会为博客和微信生成不同链接形态。
+
 ## Step 2: 文章创作
 行为: full
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
 - 不需要深度分析和个人判断，重在信息密度和覆盖面
+- 读取 `posts/{date-slug}/blog-memory.md`，在文末 `## 延伸阅读` 放 2-4 篇站内旧文；如无合适旧文，运行 Step 2 时使用 `--allow-no-related`
 - `SLOT_IMG_00` 信息图必须放在正文开头，作为当日/当周要点总览
 - 文内 `SLOT_IMG_01+` 不少于 3 张，不含封面和 SLOT 00 信息图；按资讯之间的共同趋势、关键对比、时间线、公司/模型关系或影响路径放置，不按章节打卡
 - 每个占位符描述词必须反映附近正文核心内容，禁止泛化词（如 `chart`、`diagram`、`illustration`）。step2/3/4 会校验数量、格式和图片文件对应关系

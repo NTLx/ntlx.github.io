@@ -26,6 +26,15 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
 ```
 脚本验证 materials.md 存在且非空、含 `## 背景调研` 且该章节至少有一个 URL；低质量检测（字数 < 200 打印警告，非阻塞），写状态。
 
+## Step 1.5: 站内记忆检索
+行为: script
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
+```
+
+写作前必须读取 `posts/{date-slug}/blog-memory.md`。正文自然联动 1-2 篇旧文；文末 `## 延伸阅读` 放 2-4 篇站内旧文。旧文链接在 draft 中使用 Markdown inline link，Step 5 会为博客和微信生成不同链接形态。
+
 ## Step 2: 文章创作
 行为: full
 
@@ -36,6 +45,7 @@ bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug
    - 必须包含文末互动 + 原文参考区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
+   - 必须吸收 Step 1.5 的 `blog-memory.md`：正文自然联动 1-2 篇旧文，文末 `## 延伸阅读` 放 2-4 篇站内旧文；如确实不适合联动，运行 Step 2 时使用 `--allow-no-related` 并交代理由
    - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01+ 文内插图总数必须不少于 3 张**（不含封面图和 SLOT 00 头部信息图），但不要求每个 `## ` 章节都有图。Agent 应根据正文内容把占位符放在最需要视觉解释的位置，可以在 H2 标题后、关键段落后或小结前，关键是靠近其解释的概念/数据/关系。step2/3/4 会校验文内插图总数，step4-images.mjs 会校验占位符与图片文件一一对应。**占位符描述必须是附近正文核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 附近上下文构建图片 prompt
    - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail

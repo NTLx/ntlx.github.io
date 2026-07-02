@@ -13,6 +13,13 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 - 生成博客轨 `article.md`。
 - 生成微信轨 `article-wechat.html`，并注入图片质量提示 banner。
 
+链接处理：
+
+- `article.md` 保留 draft 中的 Markdown 链接，用于博客点击。
+- `article-wechat.html` 生成前会将非图片 Markdown 链接转换为纯文本 URL。
+- HTML 转换后会移除普通 `<a href>`，防止微信公众号正文出现不可控外链。
+- `sourceUrl` 仍由 Step 6.2 写入微信"阅读原文"，与正文里的引用链接是两回事。
+
 辅助参数：
 
 - `--dry-run`：只预检，不上传。

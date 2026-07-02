@@ -22,6 +22,7 @@ import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
+import { normalizeLinksForWechat, stripWechatAnchors } from "./wechat-link-normalizer.mjs";
 
 const cfg = getMarkdownToHtmlConfig();
 const args = process.argv.slice(2);
@@ -280,6 +281,8 @@ localMd = replaceSlotPlaceholders(localMd, (match, _slot, _desc) => {
   return `![](imgs/${file})`;
 });
 
+localMd = normalizeLinksForWechat(localMd);
+
 writeFileSync(tempLocalMd, localMd);
 
 // Convert to HTML
@@ -335,6 +338,8 @@ if (existsSync(wechatHtmlPath)) {
     `$1\n${WECHAT_BANNER_HTML}`
   );
 
+  html = stripWechatAnchors(html);
+
   writeFileSync(wechatHtmlPath, html);
 }
 
@@ -345,6 +350,10 @@ if (existsSync(wechatHtmlPath)) {
   // No SLOT_IMG residuals
   if (SLOT_RESIDUAL_RE.test(wechatHtml)) {
     fail(4, "article-wechat.html still has SLOT_IMG_ placeholders");
+  }
+
+  if (/<a\b[^>]*\bhref\s*=/i.test(wechatHtml)) {
+    fail(4, "article-wechat.html contains clickable HTML links; WeChat正文链接必须是纯文本 URL");
   }
 
   // No empty img src

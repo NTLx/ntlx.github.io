@@ -42,6 +42,18 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - `tutorial` 可跳过 humanizer，并通过 `--no-humanizer` 写入状态。
 - 后处理不应磨平第一人称判断、疑问和读后感式表达。
 
+## 站内记忆与链接双轨
+
+- Step 1 后必须运行 `select-related-articles.mjs <date-slug>`，生成 `blog-memory.md` 和 `blog-memory.json`。
+- Step 2 写作时读取 `blog-memory.md`，优先做到两类联动：
+  - 正文自然提及 1-2 篇旧文，用旧判断承接当前论证；
+  - 文末 `## 延伸阅读` 放 2-4 篇站内旧文。
+- draft 中所有正文链接使用 inline Markdown 形式：`[文本](URL)`。
+- 禁止 reference-style 链接定义：`[id]: https://example.com`。
+- 博客轨保留 Markdown 链接。
+- 微信轨由 Step 5 自动转换为纯文本 URL，`article-wechat.html` 不得含普通 `<a href>`。
+- 图片 Markdown 和 `SLOT_IMG` 占位符不是正文链接，不参与纯文本链接转换。
+
 ## 质量门控
 
 每个 Step 结束都运行对应脚本。脚本失败时按错误修复，再重跑同一 Step；不要跨过失败门继续发布。
