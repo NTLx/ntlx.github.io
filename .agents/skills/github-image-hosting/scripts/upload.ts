@@ -49,6 +49,8 @@ const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
 const DEFAULT_API_TIMEOUT = 30000;
 const TREE_FETCH_TIMEOUT = 60000;
+const POST_API_TIMEOUT = 300000;
+const PATCH_API_TIMEOUT = 60000;
 const NETWORK_RETRY_MAX = 2;
 const NETWORK_RETRY_BASE_MS = 2000;
 
@@ -220,7 +222,7 @@ function ghApiPost(endpoint: string, payload: object): string {
   try {
     return execWithNetworkRetry(
       ['api', endpoint, '--input', tempFile, '--jq', '.sha // empty'],
-      60000,
+      POST_API_TIMEOUT,
       'ghApiPost'
     );
   } finally {
@@ -235,7 +237,7 @@ function ghApiPatch(endpoint: string, payload: object): void {
   try {
     execWithNetworkRetry(
       ['api', endpoint, '--input', tempFile],
-      DEFAULT_API_TIMEOUT,
+      PATCH_API_TIMEOUT,
       'ghApiPatch'
     );
   } finally {
