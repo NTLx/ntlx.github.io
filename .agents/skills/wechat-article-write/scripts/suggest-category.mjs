@@ -72,7 +72,7 @@ function extractTags(fm) {
 
 function cleanAnalysisText(text) {
   return text
-    .replace(/^## 原文参考[\s\S]*$/m, " ")
+    .replace(/^## 参考资料[\s\S]*$/m, " ")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`[^`]*`/g, " ")
     .replace(/<!--[\s\S]*?-->/g, " ")

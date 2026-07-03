@@ -32,7 +32,7 @@ const VALID_BODY = `
 
 *你怎么看这个问题?*
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -164,7 +164,7 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
 
 *你怎么看这个问题?*
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -197,8 +197,8 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
     const dir = join(TMP_ROOT, slug);
     let draft = readFileSync(join(dir, "draft.md"), "utf8");
     draft = draft.replace(
-      "## 原文参考",
-      "## 延伸阅读\n\n- [《你不是把任务交给 AI，你是在重新分配控制权》](https://ntlx.github.io/articles/claude-loops-control-rights)\n\n## 原文参考"
+      "## 参考资料",
+      "## 延伸阅读\n\n- [《你不是把任务交给 AI，你是在重新分配控制权》](https://ntlx.github.io/articles/claude-loops-control-rights)\n\n## 参考资料"
     );
     writeFileSync(join(dir, "draft.md"), draft);
     writeBlogMemory(slug, [{

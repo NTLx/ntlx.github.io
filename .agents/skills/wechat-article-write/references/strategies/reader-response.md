@@ -42,7 +42,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
    - **⚠️ 结构与图片预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节），再根据内容判断至少 3 个最值得视觉化的位置。每个插图位置明确：(a) 它解释的核心信息，(b) 放在正文的哪个论证节点附近，(c) 视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题、正文段落和 SLOT_IMG 占位符描述中
    - 资料内容：`posts/{date-slug}/materials.md`
    - 数据点列表（从材料中提取，≥ 5 个）
-   - 必须包含文末互动 + 原文参考区块
+   - 必须包含文末互动 + 参考资料区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
    - 必须吸收 Step 1.5 的 `blog-memory.md`：正文自然联动 1-2 篇旧文，文末 `## 延伸阅读` 放 2-4 篇站内旧文；如确实不适合联动，运行 Step 2 时使用 `--allow-no-related` 并交代理由
@@ -106,7 +106,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 *{文末互动问题}*
 
-## 原文参考
+## 参考资料
 
 - [{来源标题}](https://example.com/source)
 ```
@@ -130,7 +130,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
-脚本校验：frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 原文参考`。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
+脚本校验：frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 参考资料`。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
 ## Step 3: 文本后处理
 行为: full
@@ -138,7 +138,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 1. **⚠️ 强制执行 — 禁止跳过**：通过 **Skill 工具调用 renwei-writing** 处理 `posts/{date-slug}/draft.md` 正文（两层：先按操作规则做减法打磨，再跑事后检查清单逐条扫 AI 痕迹）。这是消除 AI 写作痕迹的唯一防线，不得以任何理由（"质量已足够""时间不够""内容无需调整"）跳过。未调用 renwei-writing = 违反硬规则
 2. 通过 **Skill 工具调用 baoyu-format-markdown** 格式化 `posts/{date-slug}/draft.md`
 
-处理范围为正文内容（frontmatter 之后，原文参考之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，renwei-writing 和格式化都不会修改它们。
+处理范围为正文内容（frontmatter 之后，参考资料之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，renwei-writing 和格式化都不会修改它们。
 
 后处理目标不是"润色得更正式"，而是保住作者存在感的同时去掉 AI 痕迹：只做减法，毛边先假设是手迹而非瑕疵；改完跑事后检查清单（破折号、排比三连、意义拔高、宣传腔、万能展望结尾等）逐条验收。不要把第一人称观察和读后感式判断磨平。
 
@@ -146,13 +146,13 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG_00 信息图和至少 3 张文内插图占位符存在、原文参考存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
+脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG_00 信息图和至少 3 张文内插图占位符存在、参考资料存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
 若材料丰富度超出单篇承载能力，参考 `references/pipeline-overview.md` 的多文章拆分说明。
 
 ## 特殊约束
 - 必须采用读后感式原创表达，禁止写成翻译和摘要
-- 必须包含文末互动问题和原文参考区块
-- 原文参考区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨自动展开成标题 + 纯文本 URL
+- 必须包含文末互动问题和参考资料区块
+- 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨自动展开成标题 + 纯文本 URL
 - frontmatter summary 必须是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail
 - sourceUrl 必须使用固定规则 `https://ntlx.github.io/articles/{blogSlug}`

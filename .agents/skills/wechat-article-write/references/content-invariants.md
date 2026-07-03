@@ -49,10 +49,10 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
   - 正文自然提及 1-2 篇旧文，用旧判断承接当前论证；
   - 文末 `## 延伸阅读` 放 2-4 篇站内旧文。
 - draft 中所有正文链接使用 inline Markdown 形式：`[文本](URL)`。
-- `## 原文参考` 中的标准引用写法也使用 inline Markdown 列表：`- [标题](URL)`。
+- `## 参考资料` 中的标准引用写法也使用 inline Markdown 列表：`- [标题](URL)`。
 - 禁止 reference-style 链接定义：`[id]: https://example.com`。
 - 博客轨保留 Markdown 链接。
-- 微信轨由 Step 5 自动转换为纯文本 URL；其中 `## 原文参考` 会进一步展开成“标题一行 + URL 一行”，`article-wechat.html` 不得含普通 `<a href>`。
+- 微信轨由 Step 5 自动转换为纯文本 URL；其中 `## 参考资料` 会进一步展开成“标题一行 + URL 一行”，`article-wechat.html` 不得含普通 `<a href>`。
 - 图片 Markdown 和 `SLOT_IMG` 占位符不是正文链接，不参与纯文本链接转换。
 
 ## 质量门控

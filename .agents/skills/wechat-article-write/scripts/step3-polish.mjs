@@ -8,7 +8,7 @@
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
  *   - SLOT_IMG_00 信息图和至少 3 张文内插图占位符未丢失
- *   - 原文参考 区块未丢失（若原文存在）
+ *   - 参考资料 区块未丢失（若原文存在）
  *
  * 字数控制由 ljg-writes 技能自律负责，本脚本仅记录字数不设门控。
  *
@@ -101,18 +101,18 @@ if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
 // 5. Interaction preserved unless Step 2 explicitly allowed skipping it
-const bodyBeforeRefs = body.split(/^## 原文参考/m)[0];
+const bodyBeforeRefs = body.split(/^## 参考资料/m)[0];
 const interactionTail = bodyBeforeRefs.slice(-1200);
 const hasInteractionQuestion = /[？?]/.test(interactionTail);
 if (!allowNoInteraction && !hasInteractionQuestion) {
   fail(2, "缺少文末互动问题（polish 可能删除；正文末尾附近需含至少一个中/英文问号；如确无互动，使用 Step 2 的 --allow-no-interaction 跳过）");
 }
 
-// 6. 原文参考 preserved unless Step 2 explicitly allowed skipping it
+// 6. 参考资料 preserved unless Step 2 explicitly allowed skipping it
 //    Keep humanizerSkip as a backward-compatible exemption for older tutorial states.
 const referencesRequired = !allowNoReferences && !humanizerSkip;
-if (referencesRequired && !/^## 原文参考/m.test(body)) {
-  fail(2, "缺少 ## 原文参考 区块（polish 可能删除）");
+if (referencesRequired && !/^## 参考资料/m.test(body)) {
+  fail(2, "缺少 ## 参考资料 区块（polish 可能删除）");
 }
 
 markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined });

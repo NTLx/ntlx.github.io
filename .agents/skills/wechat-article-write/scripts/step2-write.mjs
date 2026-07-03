@@ -9,8 +9,8 @@
  *   - SLOT_IMG_00 信息图存在，且 SLOT_IMG_01+ 文内插图至少 3 张
  *   - 文末互动存在
  *   - 正文无 H1
- *   - ## 原文参考 区块（默认必须，--allow-no-references 可跳过）
- *   - 原文参考区内容验证（至少含 URL 或引用来源）
+ *   - ## 参考资料 区块（默认必须，--allow-no-references 可跳过）
+ *   - 参考资料区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
  *
  * 字数控制由 ljg-writes 技能自律负责（1000-1500 字），本脚本仅记录字数不设门控。
@@ -18,7 +18,7 @@
  * 用法:
  *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--no-humanizer]
  *
- * 退出码: 0 通过；2 frontmatter 缺失；4 互动/原文参考缺失
+ * 退出码: 0 通过；2 frontmatter 缺失；4 互动/参考资料缺失
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -124,7 +124,7 @@ if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
 //   - 不接受纯文本问句
 // 新规则：正文末尾 1200 字符内出现至少一个中/英文问号即算有互动。
 // 仍保留 --allow-no-interaction 作为彻底跳过校验的逃生口（教程策略等场景）。
-const bodyBeforeRefs = body.split(/^## 原文参考/m)[0];
+const bodyBeforeRefs = body.split(/^## 参考资料/m)[0];
 const interactionTail = bodyBeforeRefs.slice(-1200);
 const hasInteractionQuestion = /[？?]/.test(interactionTail);
 if (!hasInteractionQuestion) {
@@ -136,20 +136,20 @@ if (!hasInteractionQuestion) {
 }
 
 // 5. References check (mandatory for all articles)
-const hasRefSection = /^## 原文参考/m.test(body);
+const hasRefSection = /^## 参考资料/m.test(body);
 if (!hasRefSection && !allowNoReferences) {
-  fail(4, "缺少 ## 原文参考 区块（如无需参考文献，使用 --allow-no-references 跳过此检查）");
+  fail(4, "缺少 ## 参考资料 区块（如无需参考文献，使用 --allow-no-references 跳过此检查）");
 }
 
 // 5a. Validate reference section has actual content
 if (hasRefSection) {
-  const refSectionMatch = body.match(/^## 原文参考\s*\n([\s\S]*?)(?=\n## |\n*$)/);
+  const refSectionMatch = body.match(/^## 参考资料\s*\n([\s\S]*?)(?=\n## |\n*$)/);
   if (refSectionMatch) {
     const refContent = refSectionMatch[1];
     const hasUrl = /https?:\/\//.test(refContent);
     const hasBlockquoteSource = /^>\s+\S/m.test(refContent);
     if (!hasUrl && !hasBlockquoteSource) {
-      process.stderr.write("step2: WARNING ## 原文参考 区块存在但未检测到实际引用内容（URL 或引用来源）\n");
+      process.stderr.write("step2: WARNING ## 参考资料 区块存在但未检测到实际引用内容（URL 或引用来源）\n");
     }
   }
 }
