@@ -24,6 +24,7 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 - 读取 `draft.md` 和 `image-plan.json`。
 - SLOT 00 输出紧凑模板引用 prompt，包含 `Template source`，不展开完整模板。
 - 文内图 prompt 必须包含附近正文上下文、中文可见文字规则、构图和色彩规则。
+- 文内图 prompt 默认附带“文章插图而非工程图纸”的硬约束：禁止日期、版本号、图号、revision、标题栏、尺寸线、刻度、坐标标记、工程边框等图纸元数据。
 - 缺少被引用的 `baoyu-infographic` 模板文件时直接失败（layout/style 不在白名单）。
 
 ## image-plan.json
@@ -41,6 +42,27 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 - `direction`：覆盖默认风格家族，如 `tech`、`journal`。
 - `infographic.layout` / `infographic.style`：仅在需要覆盖默认信息图模板时使用，值必须取自 baoyu-infographic 的 layouts / styles 命名（见 `references/image-template-catalog.md`）。
 - `illustrations[]`：按 slot 覆盖文内图 type/style/description。
+
+约束补充：
+
+- 默认把 `SLOT_IMG_01+` 视为“文章解释图”，不是 CAD 图、蓝图页、规范书附图。
+- `blueprint` / `technical-schematic` 一类技术制图感风格，只有用户**明确要求**“技术制图感”时才允许显式写入 `direction` 或 `illustrations[].style`。
+- 即便显式使用技术制图感，仍默认禁止日期、版本号、图号、revision、标题栏、尺寸线、刻度、工程边框；除非用户明确要求这些元素本身就是要表达的内容。
+
+## 文内图语义分流
+
+Agent 在审核 prompt 前，先判断这张图是在解释什么：
+
+| 语义类型 | 默认风格方向 | 说明 |
+|---|---|---|
+| 文章解释图 | `editorial` / `journal` / `minimal` / `notion` | 观点对比、职责迁移、组织关系、判断框架、责任边界、概念解释 |
+| 工程对象图 | 可在显式要求下用 `blueprint` | 系统架构、模块边界、数据流、执行路径、API 边界、kernel pipeline |
+
+经验规则：
+
+- 只要图的主语是“人、团队、组织、职责、判断、证据、风险、完成条件”，默认按文章解释图处理。
+- 只有当图的主语是“系统、模块、组件、接口、管线、调用路径、内核流程”时，才考虑技术制图感。
+- 如果你脑中已经出现“日期、图号、版本号、标题栏”这些元素，说明你把文章插图错当成图纸了，应立即改 prompt。
 
 允许值和映射以 `references/image-template-map.json` 为准；schema 见 `references/image-plan.schema.json`。
 

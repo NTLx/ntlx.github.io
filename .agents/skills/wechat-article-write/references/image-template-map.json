@@ -48,7 +48,7 @@
   ],
   "style_families": {
     "journal": { "infoStyle": "craft-handmade", "illStyle": "warm" },
-    "tech": { "infoStyle": "craft-handmade", "illStyle": "blueprint" },
+    "tech": { "infoStyle": "craft-handmade", "illStyle": "editorial" },
     "editorial": { "infoStyle": "craft-handmade", "illStyle": "editorial" },
     "bold": { "infoStyle": "craft-handmade", "illStyle": "notion" },
     "minimal": { "infoStyle": "craft-handmade", "illStyle": "minimal" },

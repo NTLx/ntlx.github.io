@@ -373,6 +373,17 @@ const commonChineseRule = `## Chinese Text Rule
 
 Visible text should use Chinese labels and Chinese short phrases by default. Keep model names, product names, API/code identifiers, English abbreviations, and quoted source terminology in the original language only when translation would be inaccurate. Do not use English merely for visual style.`;
 
+const articleIllustrationGuardrails = `## Article Illustration Guardrails
+
+This image is an article illustration, not a CAD sheet, not a blueprint title page, and not an engineering drawing board.
+
+- Do NOT render any date, version number, revision number, figure number, title block, or metadata box
+- Do NOT render rulers, dimension lines, coordinate ticks, crop marks, corner targets, or engineering border frames
+- Do NOT invent fake labels that look like document control fields
+- Use publication infographic language by default, even for technical topics
+- Keep only the labels needed to explain the article's nearby argument
+`;
+
 const outputs = [];
 if (writePrompt(resolve(promptsDir, `00-cover-${coverSlug}.md`), coverPrompt)) outputs.push(`00-cover-${coverSlug}.md`);
 if (writePrompt(resolve(promptsDir, "00-infographic-core-summary.md"), infographicPrompt)) outputs.push("00-infographic-core-summary.md");
@@ -412,6 +423,8 @@ ${defaultComposition}
 ${textRequirements}
 
 ${commonChineseRule}
+
+${articleIllustrationGuardrails}
 
 ${colorRules}
 
