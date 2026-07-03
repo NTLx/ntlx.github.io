@@ -42,7 +42,7 @@ function isStandaloneListLink(linkNode, parent, ancestors) {
 }
 
 function isReferenceHeading(node) {
-  return node?.type === "heading" && toPlainText(node.children) === "原文参考";
+  return node?.type === "heading" && toPlainText(node.children) === "参考资料";
 }
 
 function isReferenceOnlyLinkListItem(node) {
@@ -110,7 +110,7 @@ function transformChildren(node, ancestors = [], context = { inReferenceSection:
 
 function normalizeReferenceSectionSpacing(markdown) {
   return String(markdown).replace(
-    /(## 原文参考\s*\n\n)([\s\S]*?)(?=\n## |\n# |$)/g,
+    /(## 参考资料\s*\n\n)([\s\S]*?)(?=\n## |\n# |$)/g,
     (_full, heading, sectionBody) => {
       const lines = sectionBody
         .split("\n")

@@ -29,7 +29,7 @@ describe("wechat-link-normalizer", () => {
 
   test("reference list links become title line plus plain URL line without bullet in wechat output", () => {
     const input = [
-      "## 原文参考",
+      "## 参考资料",
       "",
       "- [OpenAI 发布会直播](https://example.com/source)",
       "",

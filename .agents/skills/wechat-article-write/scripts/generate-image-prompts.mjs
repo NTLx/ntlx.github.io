@@ -52,7 +52,7 @@ function skillDir(name) {
 
 function compactText(text, max = 900) {
   const cleaned = text
-    .replace(/^## 原文参考[\s\S]*$/m, " ")
+    .replace(/^## 参考资料[\s\S]*$/m, " ")
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]*)`/g, "$1")
     .replace(/<!--[\s\S]*?-->/g, " ")
@@ -68,7 +68,7 @@ function compactText(text, max = 900) {
 function extractLabels(body, fm) {
   const headings = (body.match(/^##\s+(.+)$/gm) ?? [])
     .map((h) => h.replace(/^##\s+/, "").trim())
-    .filter((h) => h !== "原文参考");
+    .filter((h) => h !== "参考资料");
   const summaryParts = String(fm.summary ?? "")
     .split(/[，。；：、,.!?！？;:]/)
     .map((s) => s.trim())

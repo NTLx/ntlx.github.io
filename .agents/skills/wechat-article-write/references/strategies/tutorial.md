@@ -39,7 +39,7 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
       --no-humanizer --allow-no-references --allow-no-interaction --allow-no-related
     ```
     - `--no-humanizer`：跳过 renwei-writing 相关检查（教程不需要去 AI 痕迹），并在状态文件中写入 `humanizer: skip` 标记
-    - `--allow-no-references`：教程不要求"原文参考"区块
+    - `--allow-no-references`：教程不要求"参考资料"区块
     - `--allow-no-interaction`：教程不要求文末互动问题
     - `--allow-no-related`：教程优先清晰度，允许不做站内旧文联动
 
@@ -75,5 +75,5 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 - blogSlug 仅用于管线内部标识（文件名前缀、图片命名），不与博客 URL 绑定
 - frontmatter 必须包含 `targetPath` 字段，指定文章在 `src/content/docs/` 下的实际路径（不含 `.md` 扩展名）
 - 不需要文末互动问题（教程不是读后感）
-- 不需要原文参考区块
+- 不需要参考资料区块
 - 不需要 renwei-writing 处理（保留技术文档风格）

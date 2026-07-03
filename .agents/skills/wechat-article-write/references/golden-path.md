@@ -68,7 +68,7 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 - [《旧文标题》](https://ntlx.github.io/articles/old-post)
 
-## 原文参考
+## 参考资料
 
 - [OpenAI 发布会直播](https://example.com/source)
 ```

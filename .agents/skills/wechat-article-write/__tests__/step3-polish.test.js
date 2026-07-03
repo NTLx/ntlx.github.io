@@ -32,7 +32,7 @@ const BODY = `
 
 *你怎么看这个问题?*
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -57,7 +57,7 @@ const BODY_WITH_PLAIN_QUESTION = `
 
 你怎么看这个问题？
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source

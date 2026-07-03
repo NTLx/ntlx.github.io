@@ -95,7 +95,7 @@ describe("step4-images body illustration policy", () => {
 
 最后用流程图收束。
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -126,7 +126,7 @@ describe("step4-images body illustration policy", () => {
 
 一些正文内容。
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -160,7 +160,7 @@ describe("step4-images body illustration policy", () => {
 
 <!-- SLOT_IMG_03_DECISION_FLOW -->
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -194,7 +194,7 @@ describe("step4-images body illustration policy", () => {
 <!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
 <!-- SLOT_IMG_03_DECISION_FLOW -->
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
@@ -226,7 +226,7 @@ describe("step4-images body illustration policy", () => {
 <!-- SLOT_IMG_02_STAKEHOLDER_MAP -->
 <!-- SLOT_IMG_03_DECISION_FLOW -->
 
-## 原文参考
+## 参考资料
 
 > 来源
 > https://example.com/source
