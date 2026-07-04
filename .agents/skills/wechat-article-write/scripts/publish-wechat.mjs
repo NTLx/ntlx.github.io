@@ -4,14 +4,15 @@
  *
  * 行为:
  *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl / summary
- *   2. 探活 sourceUrl（仅在 --no-skip-deploy-check 时）
+ *   2. 探活带 WeChat UTM 的原文链接（仅在 --no-skip-deploy-check 时）
  *   3. 调用 wechat-api.ts 通过微信官方 API 发布草稿
  *   4. 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时）
  *   5. 成功后 markWechatDone
  *
  * 说明:
- *   sourceUrl 是博客文章公网地址；本脚本只转发给 baoyu-post-to-wechat 的
- *   原生 --source-url 支持。该地址由固定规则 https://ntlx.github.io/articles/{blogSlug}
+ *   sourceUrl 是博客文章公网地址。微信“阅读原文”实际传递时会统一追加
+ *   wechat UTM 归因参数，再转发给 baoyu-post-to-wechat 的原生 --source-url
+ *   支持。该地址由固定规则 https://ntlx.github.io/articles/{blogSlug}
  *   拼接得到，可以在 GitHub Pages 完成公网探活前先传入。
  *
  * 用法:
@@ -59,8 +60,8 @@ function printHelp() {
   --type <news|newspic>       文章类型（默认 news）
   --author <name>             作者名（默认来自 config）
   --post-dir <path>           posts/ 下的目录路径（替代 date-slug）
-  --skip-deploy-check         跳过 sourceUrl 探活（默认开启）
-  --no-skip-deploy-check      强制探活 sourceUrl（HTTP 200 校验）
+  --skip-deploy-check         跳过微信原文链接探活（默认开启）
+  --no-skip-deploy-check      强制探活微信原文链接（HTTP 200 校验）
   --dry-run                   只输出将要执行的操作，不实际执行
   --help                      显示此帮助信息
 
@@ -73,6 +74,21 @@ function printHelp() {
 function readFm(file, key) {
   const r = spawnSync("bun", ["run", resolve(SCRIPT_DIR, "set-frontmatter.mjs"), file, "get", key], { encoding: "utf8" });
   return (r.stdout ?? "").trim();
+}
+
+function buildWechatSourceUrl(sourceUrl) {
+  let url;
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    process.stderr.write(`publish-wechat: frontmatter.sourceUrl 不合法: ${sourceUrl}\n`);
+    process.exit(2);
+  }
+
+  url.searchParams.set("utm_source", "wechat");
+  url.searchParams.set("utm_medium", "social");
+  url.searchParams.set("utm_campaign", "article_push");
+  return url.toString();
 }
 
 function ensureDepsInstalled(scriptsDir) {
@@ -147,9 +163,11 @@ if (!digest) {
   process.exit(2);
 }
 
+const wechatSourceUrl = buildWechatSourceUrl(sourceUrl);
+
 if (!opts.skipDeployCheck) {
-  process.stdout.write(`probing sourceUrl: ${sourceUrl}\n`);
-  const probe = spawnSync("curl", ["-fsSLI", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "15", sourceUrl], { encoding: "utf8" });
+  process.stdout.write(`probing sourceUrl: ${wechatSourceUrl}\n`);
+  const probe = spawnSync("curl", ["-fsSLI", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "15", wechatSourceUrl], { encoding: "utf8" });
   if (probe.status !== 0 || (probe.stdout ?? "").trim() !== "200") {
     process.stderr.write(`publish-wechat: sourceUrl 未就绪 (HTTP ${(probe.stdout ?? "").trim() || "?"})；等待 GitHub Pages 部署完成后重试\n`);
     process.exit(3);
@@ -167,7 +185,7 @@ const args = [
   htmlPath,
   "--title", title,
   "--summary", digest,
-  "--source-url", sourceUrl,
+  "--source-url", wechatSourceUrl,
   "--author", opts.author,
   "--cover", cover,
   "--type", opts.type,
@@ -188,5 +206,5 @@ if (result.status !== 0) {
   process.exit(4);
 }
 
-markWechatDone(opts.slug, { sourceUrl });
-process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl }) + "\n");
+markWechatDone(opts.slug, { sourceUrl, wechatSourceUrl });
+process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, wechatSourceUrl }) + "\n");

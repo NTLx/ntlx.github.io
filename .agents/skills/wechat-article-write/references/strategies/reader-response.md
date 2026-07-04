@@ -52,7 +52,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
 3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
 4. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
-5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的唯一来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空或替换为原始素材链接
+5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的 canonical 来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空、手写 UTM 或替换为原始素材链接；Step 6.2 会在传给微信前统一追加 WeChat UTM
 6. **视觉规划**：写完 draft.md 后，选择文章的内容类型，产出 `posts/{date-slug}/image-plan.json`。读取 `references/image-template-catalog.md` 的"文章类型 → 模板配置"章节选择最匹配的 article_type。脚本会根据 article_type 自动解析风格家族、信息图模板、插图风格和封面参数。
 
    **image-plan.json 格式**（极简）：

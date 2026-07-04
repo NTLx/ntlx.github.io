@@ -19,6 +19,15 @@
 - **同步内容集合**（新增/重命名 `src/content/docs/` 文件后）：`npx astro sync`
 - **清缓存重试**：`rm -rf .astro/ && npm run build`
 
+## Python / uv 环境
+
+- 本仓库已有 `pyproject.toml` + `uv.lock`，Python 工具依赖必须跟随仓库，由 `uv` 管理。
+- 运行任何需要仓库 Python 依赖的脚本时，必须从仓库根目录使用 `uv run python ...`，不要直接用系统 `python` / `python3` 判断依赖是否缺失。
+- 首次使用或环境缺失时运行 `uv sync --locked`；需要新增 Python 依赖时用 `uv add --dev <package>` 或项目约定的 dependency group，并提交 `pyproject.toml` 与 `uv.lock`。
+- 不得为了解决依赖缺失而执行 `pip install --user ...`、修改全局 Python、或依赖当前机器的系统 site-packages；这会让其他 agent / CI 无法复现。
+- 例：运行外部但需要仓库依赖的校验脚本时，也应使用 `uv run python /abs/path/to/script.py ...`。
+- 已知限制：`skill-creator/scripts/quick_validate.py` 的 schema 只允许 `name` / `description` / `license` / `allowed-tools` / `metadata`，不认识本仓库自建技能必须保留的 `version` / `author` frontmatter；即使用 `uv run` 也会因此失败。这是第三方校验器与本仓库约定不适配，不需要额外修复；不得为了通过该校验删除 `version` / `author`。
+
 ## 目录结构
 
 - `src/content/docs/`：所有页面（Markdown / MDX），目录大致对应侧边栏分类
