@@ -19,7 +19,8 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - 正文禁止 H1；Starlight 自动将 title 渲染为 H1。
 - `summary` 不是内容简介，不以“本文介绍了”开头；它是微信 digest 唯一来源。
 - `blogSlug` 必须符合 `^[a-z][a-z0-9-]*[a-z0-9]$`。
-- `sourceUrl` 是微信“原文链接”的唯一来源，不能为空。
+- `sourceUrl` 是微信“原文链接”的 canonical 来源，不能为空；不要在 frontmatter 中手写 UTM。
+- Step 6.2 发布微信时会基于 `sourceUrl` 生成带 `utm_source=wechat&utm_medium=social&utm_campaign=article_push` 的 `wechatSourceUrl`，实际传给微信“阅读原文”。
 - 默认文章的 `sourceUrl` 必须是 `https://ntlx.github.io/articles/{blogSlug}`。
 - 教程/已有文档适配可写入 `targetPath: path/under/src-content-docs`，此时 `sourceUrl` 指向该文档真实公网 URL，不要求匹配 `articles/{blogSlug}`；`blogSlug` 仍必须是 ASCII kebab-case，用于本地管线标识和图片命名。
 

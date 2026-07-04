@@ -37,7 +37,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 
 - `date-slug`：`posts/` 下本地目录名，可含中文，形如 `YYYY-MM-DD-标题片段`。
 - `blog-slug`：博客 URL 段，必须是纯 ASCII kebab-case。
-- `sourceUrl`：默认 `https://ntlx.github.io/articles/{blogSlug}`；`tutorial` 可指向已有博文实际 URL。
+- `sourceUrl`：canonical 博客公网 URL，默认 `https://ntlx.github.io/articles/{blogSlug}`；`tutorial` 可指向已有博文实际 URL。不要在 frontmatter 手写 UTM；Step 6.2 会为微信“阅读原文”生成带 WeChat UTM 的 `wechatSourceUrl`。
 
 ## 多文章拆分
 

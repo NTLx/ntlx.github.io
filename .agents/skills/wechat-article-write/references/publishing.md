@@ -19,7 +19,7 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 - `article-wechat.html` 生成前会将非图片 Markdown 链接转换为纯文本 URL。
 - `## 参考资料` 中的 `- [标题](URL)` 在微信轨会展开成“标题一行 + 纯文本 URL 一行”，博客轨仍保留标准 Markdown 列表链接。
 - HTML 转换后会移除普通 `<a href>`，防止微信公众号正文出现不可控外链。
-- `sourceUrl` 仍由 Step 6.2 写入微信"阅读原文"，与正文里的引用链接是两回事。
+- `sourceUrl` 仍由 Step 6.2 写入微信"阅读原文"，与正文里的引用链接是两回事。写入微信前会基于 canonical `sourceUrl` 生成 `wechatSourceUrl`，统一追加 `utm_source=wechat&utm_medium=social&utm_campaign=article_push`。
 
 辅助参数：
 
@@ -47,7 +47,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 - `article-wechat.html` 存在；
 - frontmatter `title`、`summary`、`sourceUrl` 存在。
 
-`publish-wechat.mjs` 会把 `sourceUrl` 转发给 `baoyu-post-to-wechat --source-url`；底层技能原生负责写入微信草稿的“阅读原文”链接。
+`publish-wechat.mjs` 会从 canonical `sourceUrl` 生成带 UTM 的 `wechatSourceUrl`，再转发给 `baoyu-post-to-wechat --source-url`；底层技能原生负责写入微信草稿的“阅读原文”链接。
 
 ## 编排器
 

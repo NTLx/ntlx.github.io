@@ -22,7 +22,7 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
    - `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 在 frontmatter 之后、正文第一个段落之前
    - 文内 `SLOT_IMG_01+` 不少于 3 张，不含封面和 SLOT 00 信息图；根据教程内容放在最需要视觉解释的位置，可位于关键步骤后、概念解释后、流程小结前或章节标题后，但不要为凑数机械塞图
    - 每个占位符描述词必须反映附近正文核心内容，禁止泛化词（如 `chart`、`diagram`、`illustration`）。step2/3/4 会校验数量、格式和图片文件对应关系
-4. 确定 sourceUrl：指向已有博文的公网地址（如 `https://ntlx.github.io/ai-tools/claude-code-config/`）
+4. 确定 sourceUrl：指向已有博文的 canonical 公网地址（如 `https://ntlx.github.io/ai-tools/claude-code-config/`），不要手写 UTM；Step 6.2 会为微信“阅读原文”统一追加 WeChat UTM
 5. 生成金句式 summary（≤120 字）
 6. 运行 `suggest-category.mjs` 获取分类
 7. 手动设置 blogSlug 和 sourceUrl（不遵循 `articles/{blogSlug}` 规则——sourceUrl 直接指向博文实际地址）
@@ -71,7 +71,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
    该脚本会检测状态文件中的 `humanizer: skip` 标记，跳过 humanizer 专项检查但执行基础门控（frontmatter/SLOT_IMG/无 H1）。
 
 ## 特殊约束
-- sourceUrl 不遵循 `articles/{blogSlug}` 模式，直接使用博文实际 URL
+- sourceUrl 不遵循 `articles/{blogSlug}` 模式，直接使用博文实际 canonical URL；微信发布时由 Step 6.2 生成带 UTM 的 `wechatSourceUrl`
 - blogSlug 仅用于管线内部标识（文件名前缀、图片命名），不与博客 URL 绑定
 - frontmatter 必须包含 `targetPath` 字段，指定文章在 `src/content/docs/` 下的实际路径（不含 `.md` 扩展名）
 - 不需要文末互动问题（教程不是读后感）
