@@ -20,7 +20,7 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, relative } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markBlogDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
@@ -47,6 +47,11 @@ function captureStdout(cmd, args) {
   const r = spawnSync(cmd, args, { encoding: "utf8" });
   if (r.status !== 0) return null;
   return r.stdout.trim();
+}
+
+function statusOf(cmd, args, opts = {}) {
+  const r = spawnSync(cmd, args, { stdio: "ignore", ...opts });
+  return r.status ?? 1;
 }
 
 function parseArgs(argv) {
@@ -155,6 +160,23 @@ function assertMainBranchIfNeeded(opts) {
   }
 }
 
+function assertTargetNotIgnored(targetPath) {
+  const root = repoRoot();
+  const relPath = relative(root, targetPath);
+  const tracked = statusOf("git", ["ls-files", "--error-unmatch", relPath], { cwd: root }) === 0;
+  if (tracked) return relPath;
+
+  const ignored = statusOf("git", ["check-ignore", "-q", relPath], { cwd: root }) === 0;
+  if (ignored) {
+    process.stderr.write(
+      `publish-blog: ${relPath} 被 .gitignore 忽略，拒绝绕过 ignore 规则提交。\n` +
+      "publish-blog: 请先修正仓库 ignore 规则或以正常方式让该路径可被 git add 追踪。\n"
+    );
+    process.exit(4);
+  }
+  return relPath;
+}
+
 const opts = parseArgs(process.argv.slice(2));
 // --post-dir 可替代位置参数 date-slug：提取 posts/ 前缀后的最后路径段
 if (!opts.slug && opts.postDir) {
@@ -251,9 +273,8 @@ let pushError = null;
 
 if (!opts.noPush) {
   // Step 5: git add + commit（失败 => exit 4，因为 commit 失败说明本地仓库异常，必须中止）
-  // src/content/docs can be matched by broad ignore rules like "docs/".
-  // The target path is script-owned output, so force-add only this article.
-  run("git", ["add", "--force", targetPath], { cwd: repoRoot() });
+  const gitTargetPath = assertTargetNotIgnored(targetPath);
+  run("git", ["add", gitTargetPath], { cwd: repoRoot() });
   const tmpl = opts.commitTemplate ?? `post: ${fm.title} (${slug})`;
   run("git", ["commit", "-m", tmpl], { cwd: repoRoot() });
 
