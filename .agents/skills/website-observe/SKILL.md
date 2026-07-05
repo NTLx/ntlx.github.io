@@ -1,7 +1,7 @@
 ---
 name: website-observe
-description: Use when generating, refreshing, or automating a Markdown observation report for a website, including traffic, audience, referrals, search visibility, backlinks, RSS/follower signals, GitHub repository attention, GA4/GSC/GitHub API data, project-root or home-directory .env configuration loading, Google Cloud project and service account setup for GA4/GSC access, public web mentions, tracking gaps, report language selection, or cron-friendly incremental updates from an existing report.
-version: 0.5.0
+description: Use when generating, refreshing, or automating a rich Markdown observation report for a website, including traffic, audience, referrals, landing pages, engagement, events, search visibility, backlinks, RSS/follower signals, GitHub repository attention, GA4 metadata/compatibility checks, GSC, gh/GitHub API traffic, project-root or home-directory .env configuration loading, Google Cloud project and service account setup for GA4/GSC access, public web mentions, tracking gaps, report language selection, or cron-friendly incremental updates from an existing report.
+version: 0.6.0
 author: NTLx
 license: MIT
 ---
@@ -20,6 +20,7 @@ Create or update a Markdown observation report for any website. Separate first-p
 | Report path | `<git-root>/website-observe.md` | Use `git rev-parse --show-toplevel`; if not in git, use current directory. |
 | Historical report | Existing report path, if present | Also accept any user-specified old report(s). |
 | Observation window | Last 28 days plus latest available snapshots | Respect user-specified windows first. |
+| Observation depth | `standard` | `quick` for minimal public checks, `standard` for rich GA4/GSC/GitHub, `deep` for BigQuery, historical archives, or expensive public research. |
 | Report language | Chinese (`zh-CN`) | Explicit user choice wins; otherwise preserve an existing report's language; otherwise write Chinese. |
 
 Never require credentials to produce a report. Missing private data becomes a documented blind spot, not a blocker.
@@ -51,8 +52,10 @@ Read these files before collecting or writing:
 3. Collect available observation data.
    - Before checking private credentials, load configuration from `<git-root>/.env`; if absent, load `$HOME/.env`; if both are absent, record the missing `.env` file with `[Env]`.
    - Use first-party sources first: GA4, Search Console, BigQuery export, hosting logs, or known analytics exports.
+   - For GA4, run metadata discovery before expanded queries, then collect acquisition, landing pages, referrers, content, engagement, events, audience, device, time, and conversion/key-event views when compatible.
    - For Google Cloud APIs, prefer in-memory service account credentials from `GCP_SA_CREDENTIALS`; do not create JSON key files from environment values.
    - Use platform sources next: GitHub repository stats/traffic, package registries, social/profile links, feed services.
+   - For GitHub, prefer `GH_TOKEN`/`GITHUB_TOKEN` when present; otherwise use authenticated `gh api` directly when `gh auth status` succeeds. Never print tokens, and avoid extracting them from `gh`.
    - Use public search for backlinks, mentions, citations, copied URLs, and community discussion.
    - Treat public search as incomplete evidence, not traffic truth.
 
@@ -60,6 +63,7 @@ Read these files before collecting or writing:
    - Attach one of these labels to every claim: `[GA4]`, `[GSC]`, `[GitHub]`, `[Search]`, `[Site]`, `[Env]`, `[Prior]`, `[User]`, `[Inference]`.
    - Keep raw numbers tied to their collection time and date range.
    - Only compare periods when their definitions match.
+   - Separate website traffic, search visibility, repository attention, and public mentions; never merge them into one traffic number.
 
 5. Update the report idempotently.
    - If the report is missing, create it from the template in `references/report-contract.md`.
@@ -73,6 +77,7 @@ Read these files before collecting or writing:
    - Missing credentials and blind spots are explicit.
    - The report path and observation timestamp are visible near the top.
    - The report language is visible in metadata.
+   - Each major observation lens in the report contract is either populated or has a specific gap explaining why it could not be populated.
    - Cron reruns would update the same file without duplicating sections.
 
 ## Cron Prompt Shape
@@ -90,9 +95,12 @@ credentials during the cron run; record unavailable sources and continue.
 - Do not call search results "traffic"; they are citation or discovery signals.
 - Do not treat GitHub repository traffic as website page traffic.
 - Do not report RSS subscribers as precise counts unless a feed service or server log provides counts.
+- Do not use English report headings when the resolved report language is Chinese.
 - Do not translate evidence labels, URLs, metric names, API field names, or original page titles unless the user explicitly asks.
 - Do not print `.env` contents or include `.env` values in reports.
 - Do not print tokens, service account JSON, or access tokens in the report.
 - Do not write `GCP_SA_CREDENTIALS` to disk or convert it into a temporary `GOOGLE_APPLICATION_CREDENTIALS` file.
 - Do not grant broad Google Cloud project roles such as Owner or Editor just to read GA4 or Search Console data.
 - Do not claim a trend from different windows, such as 28-day GA4 data compared with 14-day GitHub traffic.
+- Do not stop at repository metadata when authenticated `gh api` can read GitHub traffic.
+- Do not query every GA4 dimension blindly; use metadata, compatibility checks, and purpose-built report groups to avoid invalid combinations and noisy reports.
