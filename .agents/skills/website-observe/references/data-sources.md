@@ -31,7 +31,7 @@ Check environment and local tooling without exposing secrets:
 |---|---|
 | GA4 | `GA4_PROPERTY_ID`, `GCP_SA_CREDENTIALS`, existing `GOOGLE_APPLICATION_CREDENTIALS`, Google ADC |
 | Search Console | `GSC_SITE_URL`, `GCP_SA_CREDENTIALS`, existing Google ADC with Search Console read access |
-| GitHub | `GH_TOKEN`, `GITHUB_TOKEN`, `gh auth status`, user-provided repository URL |
+| GitHub | `GH_TOKEN`, `GITHUB_TOKEN`, authenticated `gh auth status`, user-provided repository URL |
 | BigQuery | `GCP_PROJECT_ID`, dataset name, `GCP_SA_CREDENTIALS`, existing Google ADC |
 
 Never echo token values or service account JSON. If a command fails with auth or permission errors, summarize the missing permission.
@@ -66,6 +66,18 @@ if creds_json:
 
 When a Google client supports explicit credentials, pass `credentials=credentials` instead of relying on ambient file discovery.
 
+## Observation Depth
+
+Use the requested depth, or infer the smallest depth that answers the user:
+
+| Depth | Use When | Data To Collect |
+|---|---|---|
+| `quick` | Credentials are missing, the user wants a fast smoke test, or a cron run must be cheap. | Site fetches, credential status, GA4 aggregate if available, GSC availability, GitHub metadata, top public mentions. |
+| `standard` | Default for human-readable reports. | Full public site discovery, GA4 baseline and expanded report groups, GSC query/page coverage, GitHub metadata and traffic, public mentions, explicit gaps. |
+| `deep` | User asks for maximum detail, diagnosis, historical trends, or custom behavior analysis. | GA4 metadata inventory, compatibility checks, realtime, pivot/cohort/funnel where useful, BigQuery event paths when configured, GitHub statistics/workflow runs, richer backlink research, archived rolling-window comparisons. |
+
+Do not treat `deep` as "query every possible field." Choose dimensions that answer the report questions and record unused high-value dimensions as future opportunities.
+
 ## Public Site Discovery
 
 Collect these first for any website:
@@ -81,21 +93,40 @@ For static sites, absence of server logs is expected. Do not infer exact visitor
 
 ## GA4 Reports
 
-Use GA4 Data API when `GA4_PROPERTY_ID` and credentials are available. Prefer checking metadata compatibility before unusual dimension/metric combinations.
+Use GA4 Data API when `GA4_PROPERTY_ID` and credentials are available.
 
-Minimum useful reports:
+Before expanded reporting:
 
-| Report | Dimensions | Metrics |
-|---|---|---|
-| `daily_traffic` | `date` | `activeUsers`, `sessions`, `screenPageViews`, `engagedSessions` |
-| `top_pages` | `pagePath`, `pageTitle` | `screenPageViews`, `activeUsers`, `averageEngagementTime` |
-| `landing_pages` | `landingPagePlusQueryString` | `sessions`, `engagedSessions`, `engagementRate` |
-| `sources` | `sessionSource`, `sessionMedium`, `sessionDefaultChannelGroup` | `sessions`, `activeUsers` |
-| `referrers` | `pageReferrer` | `sessions`, `activeUsers` |
-| `geo_device` | `country`, `deviceCategory`, `browser` | `activeUsers`, `sessions` |
-| `events` | `eventName`, `pagePath` | `eventCount`, `activeUsers` |
+1. Run metadata discovery for `properties/<property-id>/metadata`.
+2. Record dimension count, metric count, and custom dimensions/metrics without printing property secrets.
+3. Check whether high-value fields exist, especially `dateHour`, `landingPagePlusQueryString`, `sessionSourceMedium`, `firstUserSourceMedium`, `pageReferrer`, `linkUrl`, `outbound`, `engagementRate`, `bounceRate`, `screenPageViewsPerSession`, `keyEvents`, and custom definitions.
+4. Use compatibility checks or small test queries for unusual combinations before running large reports.
+5. Use pagination for high-cardinality reports and record `rowCount` when available.
 
-Useful event names to look for: `scroll`, `click`, `outbound_click`, `rss_click`, `blog_search`, `copy_code`, `copy_link`, `file_download`, `internal_article_click`.
+Standard GA4 report groups:
+
+| Report | Dimensions | Metrics | Answers |
+|---|---|---|---|
+| `traffic_trend` | `date`; add `dateHour` in deep mode | `activeUsers`, `totalUsers`, `newUsers`, `sessions`, `screenPageViews`, `engagedSessions`, `engagementRate`, `bounceRate`, `userEngagementDuration` | Is traffic rising, falling, or concentrated in spikes? |
+| `acquisition_channels` | `sessionDefaultChannelGroup`, `sessionSourceMedium`; add campaign dimensions when available | `sessions`, `activeUsers`, `newUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | Which channels bring visits and engaged visits? |
+| `user_acquisition` | `firstUserDefaultChannelGroup`, `firstUserSourceMedium` | `newUsers`, `activeUsers`, `engagedSessions` | Where do first-time users come from? |
+| `landing_pages` | `landingPagePlusQueryString`; optionally pair with `sessionSourceMedium` | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `bounceRate`, `keyEvents` | Which entry pages attract and retain visitors? |
+| `content_pages` | `pagePath`, `pageTitle`; add content group or article taxonomy when configured | `screenPageViews`, `activeUsers`, `userEngagementDuration`, `screenPageViewsPerSession`, `eventCount`, `keyEvents` | What content receives attention and sustained reading? |
+| `referrers` | `pageReferrer`; optionally pair with `pagePath` | `sessions`, `activeUsers`, `engagedSessions` | Which external pages actually send users? |
+| `events_by_page` | `eventName`, `pagePath` | `eventCount`, `activeUsers`, `keyEvents` | Which user actions happen on which pages? |
+| `outbound_links` | `eventName`, `linkUrl`, `outbound`, `pagePath` | `eventCount`, `activeUsers` | Which external links or CTA clicks work? |
+| `audience_geo` | `country`, `region`, `city`, `language` | `activeUsers`, `sessions`, `engagedSessions` | Where are users located and which regions engage? |
+| `audience_tech` | `deviceCategory`, `browser`, `operatingSystem` | `activeUsers`, `sessions`, `engagementRate`, `screenPageViews` | Which devices and browsers need design attention? |
+| `realtime_snapshot` | Compatible realtime dimensions such as country, device, source, page | Realtime active-user metrics | What is happening right now? Use as a snapshot, not a trend. |
+
+Deep-mode GA4 options:
+
+- Run pivot reports when a matrix view matters, such as channel by landing page or device by content category.
+- Run cohort or retention reports when the site has repeat users and enough volume.
+- Run funnel reports only for defined paths such as landing page -> article read -> outbound click -> subscribe.
+- Query GA4 BigQuery export for event-level paths, scroll depth, code-copy journeys, and session reconstruction when `GCP_PROJECT_ID` and dataset access are configured.
+
+Useful event names to look for: `scroll`, `click`, `outbound_click`, `rss_click`, `blog_search`, `copy_code`, `copy_link`, `file_download`, `internal_article_click`, `share_click`, `theme_toggle`, `feedback_submit`, and any custom key events exposed by metadata.
 
 ## Search Console
 
@@ -106,15 +137,25 @@ Use Search Console when the site property is verified and readable. Collect:
 | `queries` | `query` | `clicks`, `impressions`, `ctr`, `position` |
 | `pages` | `page` | `clicks`, `impressions`, `ctr`, `position` |
 | `query_page` | `query`, `page` | `clicks`, `impressions`, `ctr`, `position` |
+| `date_trend` | `date` | `clicks`, `impressions`, `ctr`, `position` |
 | `country_device` | `country`, `device` | `clicks`, `impressions`, `ctr`, `position` |
+| `search_appearance` | `searchAppearance` | `clicks`, `impressions`, `ctr`, `position` |
 
-Look for high-impression low-CTR queries, pages with search visibility but low visits, and pages with clicks but weak engagement.
+Look for high-impression low-CTR queries, pages with search visibility but low GA4 visits, pages with clicks but weak engagement, country/device mismatches, and pages that need indexing or title/description work.
 
 ## GitHub Signals
 
-Use GitHub only when the site is connected to a repository or the user supplies one. For GitHub Pages, repository data is attention toward the project, not website traffic.
+Use GitHub only when the site is connected to a repository or the user supplies one. For GitHub Pages, repository data is attention toward the project, not website page traffic.
 
-Useful calls through `gh api` or REST:
+Authentication order:
+
+1. Use `GH_TOKEN` or `GITHUB_TOKEN` when present.
+2. If token env vars are absent, run `gh auth status`. When authenticated, use `gh api` directly.
+3. If both are unavailable, collect public repository metadata through unauthenticated REST and record traffic/statistics as unavailable.
+
+Never print `gh auth token` output. Prefer `gh api` over manually extracting a token.
+
+Standard GitHub calls:
 
 ```bash
 gh api repos/<owner>/<repo>
@@ -122,10 +163,29 @@ gh api repos/<owner>/<repo>/traffic/views
 gh api repos/<owner>/<repo>/traffic/clones
 gh api repos/<owner>/<repo>/traffic/popular/referrers
 gh api repos/<owner>/<repo>/traffic/popular/paths
-gh api repos/<owner>/<repo>/stargazers -H "Accept: application/vnd.github.star+json"
+gh api repos/<owner>/<repo>/stargazers -H "Accept: application/vnd.github.star+json" --paginate
 ```
 
-GitHub repository traffic is a short rolling window. If unavailable or forbidden, record that the token lacks required repository traffic access.
+Extended GitHub calls:
+
+```bash
+gh api repos/<owner>/<repo>/stats/commit_activity
+gh api repos/<owner>/<repo>/stats/code_frequency
+gh api repos/<owner>/<repo>/stats/participation
+gh api repos/<owner>/<repo>/stats/contributors
+gh api repos/<owner>/<repo>/actions/runs --paginate
+gh api repos/<owner>/<repo>/deployments --paginate
+gh api repos/<owner>/<repo>/issues --paginate -f state=all
+```
+
+Useful repository fields: `stargazers_count`, `forks_count`, `subscribers_count`, `watchers_count`, `open_issues_count`, `network_count`, `pushed_at`, `default_branch`, `visibility`, and latest release or deployment status when present.
+
+Important GitHub caveats:
+
+- GitHub traffic endpoints expose a short rolling window, typically 14 days. Archive the values in each report or a user-approved history file if trends matter.
+- Repository statistics endpoints can return `202 Accepted` while GitHub computes cached statistics. Retry later and record the incomplete status instead of treating it as zero.
+- `watchers_count` in repository metadata is not the same as true subscribers in modern GitHub semantics. Prefer `subscribers_count` when discussing watchers/subscribers.
+- Treat clones, repo views, issues, stars, forks, and workflow runs as repository attention or maintenance signals, not website traffic.
 
 ## Public Mention Search
 
@@ -142,6 +202,19 @@ site:x.com "<site-origin>"
 ```
 
 For important articles, search exact titles and distinctive slugs. Keep only meaningful mentions with surrounding context. Filter out mirror spam, SEO directories, scraper copies, and the site itself.
+
+## Official API References
+
+- GA4 Data API schema: <https://developers.google.com/analytics/devguides/reporting/data/v1/api-schema>
+- GA4 Data API basic reporting: <https://developers.google.com/analytics/devguides/reporting/data/v1/basics>
+- GA4 Data API REST methods: <https://developers.google.com/analytics/devguides/reporting/data/v1/rest>
+- GA4 Data API advanced use cases: <https://developers.google.com/analytics/devguides/reporting/data/v1/advanced>
+- Search Console Search Analytics: <https://developers.google.com/webmaster-tools/v1/searchanalytics/query>
+- GitHub repository traffic API: <https://docs.github.com/en/rest/metrics/traffic>
+- GitHub repository statistics API: <https://docs.github.com/en/rest/metrics/statistics>
+- GitHub stargazers API: <https://docs.github.com/en/rest/activity/starring>
+- GitHub Actions workflow runs API: <https://docs.github.com/en/rest/actions/workflow-runs>
+- GitHub CLI `gh api`: <https://cli.github.com/manual/gh_api>
 
 ## Tracking Gap Checklist
 
