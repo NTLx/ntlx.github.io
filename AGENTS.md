@@ -77,6 +77,7 @@
 | --- | --- |
 | **URL 稳定性** | 不重命名、不移动 `articles/` 下已有文章。已有 60+ 篇文章 URL（如 `ntlx.github.io/articles/<slug>/`）已被外部引用，移动 = 全网 404 |
 | **正文禁止 H1** | Starlight 自动把 frontmatter `title` 渲染为 `<h1>`。正文不得以 `# ` 开头，否则页面双标题 |
+| **文章实质修改必填 `updated`** | 实质修改已发布文章（增删段落、改结论、补数据/截图、重写段落）时，必须在 frontmatter 加 `updated: YYYY-MM-DD`（ISO 日期，如 `updated: 2026-07-05`）。该字段是 RSS `atom:updated`、文章页 BlogPosting JSON-LD `dateModified`、Starlight "最后更新"显示的唯一信号源；缺省时三者一律回退到 `date`，内容新鲜度信号失效。纯排版 / typo / 链接修正可不加。新建文章不填（`date` 即发布日）。Agent 代为修改已发布文章时，若用户未明确指定 `updated` 日期，用当天日期 |
 | **文件名 kebab-case** | `articles/` 下文件名必须为小写 ASCII kebab-case；`AI-Foo.md` 与 `ai-foo.md` 视为同名冲突；标题字段可任意语言 |
 | **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
 | **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |

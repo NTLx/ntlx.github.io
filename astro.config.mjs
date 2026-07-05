@@ -78,6 +78,10 @@ export default defineConfig({
 			customCss: ['./src/styles/fonts.css'],
 			// 显示最后更新时间
 			lastUpdated: true,
+			// 覆盖 Head 组件：按页注入 og:image（文章取正文首图）+ BlogPosting JSON-LD
+			components: {
+				Head: './src/components/Head.astro',
+			},
 			sidebar: [
 				{
 					label: '开始',
