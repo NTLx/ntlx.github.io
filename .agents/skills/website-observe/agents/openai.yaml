@@ -1,0 +1,4 @@
+interface:
+  display_name: "Website Observe"
+  short_description: "Observe and update website reports"
+  default_prompt: "Use $website-observe to generate or update a Chinese Markdown observation report for this website."
