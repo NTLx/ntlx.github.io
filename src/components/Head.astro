@@ -1,0 +1,80 @@
+---
+// 覆盖 Starlight 默认 Head 组件，在保留全部默认 head 标签的基础上：
+// 1. 按页注入 og:image（文章取正文首图 CDN URL，缺图/非文章页回退站点默认 og-image.png）
+// 2. 为文章页注入 BlogPosting JSON-LD 结构化数据
+// 文档：https://starlight.astro.build/guides/overriding-components/
+const { head, entry } = Astro.locals.starlightRoute;
+
+const site = Astro.site ?? new URL('https://ntlx.github.io/');
+const defaultOgImage = new URL('/og-image.png', site).toString();
+
+let ogImage = defaultOgImage;
+let isArticle = false;
+
+if (entry && entry.id.startsWith('articles/')) {
+	isArticle = true;
+	const body = entry.body ?? '';
+	// 提取正文第一张 Markdown 图片：![alt](url) 或 ![alt](url "title")
+	const m = body.match(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);
+	if (m) {
+		const src = m[1];
+		ogImage = src.startsWith('http') ? src : new URL(src, site).toString();
+	}
+}
+
+// 过滤掉全局 head 里注入的 og:image，避免出现两个 og:image meta（爬虫取值不一致）
+const filteredHead = head.filter(
+	(h) => !(h.tag === 'meta' && h.attrs && h.attrs.property === 'og:image')
+);
+
+// 文章页构造 BlogPosting 结构化数据
+let jsonLd = null;
+if (isArticle && entry.data) {
+	const d = entry.data;
+	const url = new URL(`/${entry.id}/`, site).toString();
+	const datePublished = d.date ? new Date(d.date).toISOString() : undefined;
+	const dateModifiedRaw = d.updated ?? d.date;
+	const dateModified = dateModifiedRaw ? new Date(dateModifiedRaw).toISOString() : undefined;
+	jsonLd = {
+		'@context': 'https://schema.org',
+		'@type': 'BlogPosting',
+		headline: d.title,
+		description: d.description,
+		image: [ogImage],
+		...(datePublished ? { datePublished } : {}),
+		...(dateModified ? { dateModified } : {}),
+		author: {
+			'@type': 'Person',
+			name: 'NTLx',
+			url: site.toString(),
+		},
+		publisher: {
+			'@type': 'Organization',
+			name: "NTLx's Blog",
+			logo: {
+				'@type': 'ImageObject',
+				url: new URL('/favicon.svg', site).toString(),
+			},
+		},
+		mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+		url,
+	};
+}
+---
+
+{
+	/* 渲染 Starlight 默认 head（已剔除全局 og:image） */
+	filteredHead.map(({ tag: Tag, attrs, content }) => (
+		<Tag {...attrs} set:html={content} />
+	))
+}
+
+{/* 按页 og:image，覆盖默认值 */}
+<meta property="og:image" content={ogImage} />
+
+{/* 文章页 BlogPosting 结构化数据 */}
+{
+	jsonLd && (
+		<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+	)
+}
