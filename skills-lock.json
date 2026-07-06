@@ -127,6 +127,12 @@
       "skillPath": "SKILL.md",
       "computedHash": "7bd195e3bcdcc24f078dfd4e3b3e37e8ac321c36f410a41241fc4175eab1825a"
     },
+    "last30days": {
+      "source": "mvanhorn/last30days-skill",
+      "sourceType": "github",
+      "skillPath": "skills/last30days/SKILL.md",
+      "computedHash": "150016b0ff300743d33ea6761d762b1c3ee1e96a07a0274baf29b827823240dd"
+    },
     "ljg-book": {
       "source": "lijigang/ljg-skills",
       "ref": "md",

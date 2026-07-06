@@ -12,8 +12,10 @@ applies_when: 用户要求汇总 AI 资讯、行业动态、新闻简报
 行为: full
 
 - 联网搜索当日/当周 AI 行业热点
+- 对简报主线或 3-5 个核心热点调用 `last30days`，补充近 30 天社区讨论、真实用户反馈和争议信号；不要为每条边角资讯逐条跑，避免资料噪声和运行时间失控
 - 抓取相关文章和新闻
 - 写入 `posts/{date-slug}/materials.md`，必须包含 `## 背景调研` 章节
+- 若使用 `last30days`，在 `materials.md` 增加 `## last30days 近期讨论` 小节，记录调研主题、时间窗口、覆盖来源、关键发现、社区原话、分歧/争议、可用于正文的判断、原始结果文件和参考 URL
 - 每条资讯标注来源 URL
 
 **脚本验证**：
@@ -35,6 +37,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
 - 不需要深度分析和个人判断，重在信息密度和覆盖面
+- 若材料包含 `## last30days 近期讨论`，只把它用作"社区反应 / 争议信号 / 用户真实反馈"补充，不把简报写成 `last30days` 报告
 - 读取 `posts/{date-slug}/blog-memory.md`，在文末 `## 延伸阅读` 放 2-4 篇站内旧文；如无合适旧文，运行 Step 2 时使用 `--allow-no-related`
 - `SLOT_IMG_00` 信息图必须放在正文开头，作为当日/当周要点总览
 - 文内 `SLOT_IMG_01+` 不少于 3 张，不含封面和 SLOT 00 信息图；按资讯之间的共同趋势、关键对比、时间线、公司/模型关系或影响路径放置，不按章节打卡
@@ -65,6 +68,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 特殊约束
 - 每条资讯标注来源 URL
+- 使用 `last30days` 时，"信息来源汇总"必须包含其 raw file 或关键来源 URL，保证正文判断可追溯
 - 文末不需要互动问题，替换为"信息来源汇总"
 - summary 侧重"今日要点速览"
 - frontmatter summary 仍然是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail
