@@ -176,11 +176,14 @@ describe("wechat-article-write documentation consistency", () => {
     expect(readerResponse).toContain("understanding-brief.md");
     expect(readerResponse).toContain("ljg-qa");
     expect(readerResponse).toContain("ljg-think");
+    expect(readerResponse).toContain("ljg-constraint");
     expect(readerResponse).toContain("写作契约");
     expect(understanding).toContain("强制调用");
     expect(understanding).toContain("ljg-qa");
     expect(understanding).toContain("ljg-think");
+    expect(understanding).toContain("ljg-constraint");
     expect(understanding).toContain("条件强制");
+    expect(understanding).toContain("约束与解空间");
     expect(understanding).toContain("写作契约");
   });
 
@@ -188,6 +191,7 @@ describe("wechat-article-write documentation consistency", () => {
     const manifest = read("references/dependency-manifest.md");
 
     expect(manifest).toContain(".agents/skills/<skill>");
+    expect(manifest).toContain("ljg-constraint");
     expect(manifest).toContain("baoyu-format-markdown");
     expect(manifest).toContain("不要硬编码");
     expect(manifest).toContain("~/.claude/skills");

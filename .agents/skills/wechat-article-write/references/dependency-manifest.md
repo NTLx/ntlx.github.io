@@ -18,6 +18,7 @@
 | ljg-think | 内容理解技能 | reader-response Step 1.8 强制下钻中心论点 |
 | ljg-read | 内容理解技能 | Step 1.8 条件处理长文、英文、复杂文本 |
 | ljg-rank | 内容理解技能 | Step 1.8 条件处理领域、趋势、产业、工具链分析 |
+| ljg-constraint | 内容理解技能 | Step 1.8 条件处理行业、角色、产品行为、方案争论和约束错配 |
 | ljg-plain | 内容理解技能 | Step 1.8 条件处理技术或术语密集材料 |
 | ljg-learn | 内容理解技能 | Step 1.8 条件解剖核心概念 |
 | ljg-paper | 内容理解技能 | Step 1.8 条件处理论文、arXiv、研究 PDF |

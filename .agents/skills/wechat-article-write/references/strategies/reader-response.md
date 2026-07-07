@@ -57,6 +57,7 @@ posts/{date-slug}/understanding-brief.md
 
 - 主材料是长文、英文或复杂文本：调用 `ljg-read`。
 - 文章是领域、趋势、产业或工具链分析：调用 `ljg-rank`。
+- 文章解释行业、角色、产品行为，或材料里有方案争论、约束错配、旧解释被当硬事实：调用 `ljg-constraint`。
 - 技术或术语密度高：调用 `ljg-plain`。
 - 有 1-2 个必须解释的核心概念：调用 `ljg-learn`。
 - 输入是论文、arXiv 或研究 PDF：调用 `ljg-paper`；讲论文脉络时调用 `ljg-paper-river`。

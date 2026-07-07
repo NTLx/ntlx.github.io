@@ -65,7 +65,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 posts/{date-slug}/understanding-brief.md
 ```
 
-具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-paper-river`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
+具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-constraint`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-paper-river`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
 
 `understanding-brief.md` 不是素材堆放区，而是 Step 2 的写作契约。它必须把材料压成核心问题链、中心论点、判断边界、可视觉化节点和站内旧文联动建议。Step 2 调用 `ljg-writes` 时必须读取它。
 
