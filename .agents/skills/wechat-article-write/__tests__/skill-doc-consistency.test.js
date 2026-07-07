@@ -163,6 +163,27 @@ describe("wechat-article-write documentation consistency", () => {
     expect(readerResponse).toContain("references/pipeline-overview.md");
   });
 
+  test("reader-response documents the mandatory understanding enhancement stage", () => {
+    const skill = read("SKILL.md");
+    const overview = read("references/pipeline-overview.md");
+    const readerResponse = read("references/strategies/reader-response.md");
+    const understanding = read("references/material-understanding.md");
+
+    expect(skill).toContain("references/material-understanding.md");
+    expect(overview).toContain("Step 1.8");
+    expect(overview).toContain("understanding-brief.md");
+    expect(readerResponse).toContain("Step 1.8");
+    expect(readerResponse).toContain("understanding-brief.md");
+    expect(readerResponse).toContain("ljg-qa");
+    expect(readerResponse).toContain("ljg-think");
+    expect(readerResponse).toContain("写作契约");
+    expect(understanding).toContain("强制调用");
+    expect(understanding).toContain("ljg-qa");
+    expect(understanding).toContain("ljg-think");
+    expect(understanding).toContain("条件强制");
+    expect(understanding).toContain("写作契约");
+  });
+
   test("dependency docs resolve third-party skills from project skill directory first", () => {
     const manifest = read("references/dependency-manifest.md");
 

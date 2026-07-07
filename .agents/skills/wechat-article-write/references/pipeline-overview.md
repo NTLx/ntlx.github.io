@@ -7,6 +7,7 @@
 | 0 | 文章类型判定 | Agent | 选择 `references/strategies/` 下的策略 |
 | 1 | 资料收集 | Agent + 门控 | 写 `materials.md`，运行 `step1-collect.mjs` |
 | 1.5 | 站内记忆检索 | 脚本 | 读取 `materials.md` 和已发布博客，生成 `blog-memory.md/json` |
+| 1.8 | 理解增强 | Agent | 读取 `materials.md` / `blog-memory.md`，调用 ljg 系列技能，生成 `understanding-brief.md` |
 | 2 | 文章创作 | Agent + 门控 | 写 `draft.md` / `image-plan.json`，运行 `step2-write.mjs` |
 | 3 | 文本后处理 | Agent + 门控 | 调用 humanizer / formatter，运行 `step3-polish.mjs` |
 | 4 | 图片生成 | Agent + 门控 | 生成 prompt、串行生图，运行 `step4-images.mjs` |
@@ -56,6 +57,18 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 
 脚本扫描 `src/content/docs/articles/*.md`，忽略 `.backup-*` 文件，基于 `materials.md` 生成当前文章可联动的旧文候选。Step 2 写作时必须读取 `blog-memory.md`，正文自然联动 1-2 篇旧文，文末放 2-4 篇站内延伸阅读；如果候选不适合当前文章，运行 Step 2 时使用 `--allow-no-related` 并在最终说明中交代理由。
 
+## Step 1.8 理解增强
+
+`reader-response` 策略必须在 Step 2 前生成：
+
+```text
+posts/{date-slug}/understanding-brief.md
+```
+
+具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-paper-river`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
+
+`understanding-brief.md` 不是素材堆放区，而是 Step 2 的写作契约。它必须把材料压成核心问题链、中心论点、判断边界、可视觉化节点和站内旧文联动建议。Step 2 调用 `ljg-writes` 时必须读取它。
+
 ## Step 0 策略选择
 
 | 场景 | 策略 |
@@ -80,7 +93,7 @@ Step 1 后判断材料是否超出单篇 ljg-writes 文章承载：
 - 每个主题都值得独立展开；
 - 拆分后每篇文章能独立成立。
 
-若需要拆分，先向用户提出每篇主题、覆盖材料和建议发布顺序；用户确认后为每篇单独创建 `posts/{date-slug}/` 并从 Step 2 开始独立走完整管线。
+若需要拆分，先向用户提出每篇主题、覆盖材料和建议发布顺序；用户确认后为每篇单独创建 `posts/{date-slug}/` 并从 Step 1.8 开始独立走完整管线。
 
 ## 断点续跑
 

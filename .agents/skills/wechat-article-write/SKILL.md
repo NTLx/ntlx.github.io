@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.31.0"
+version: "1.32.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -19,6 +19,7 @@ description: >
 |---|---|
 | 完整写作/续跑 | `references/pipeline-overview.md` |
 | Steps 1-3 策略选择 | `references/strategies/{reader-response,tutorial,news-digest}.md` |
+| 材料理解增强 | `references/material-understanding.md` |
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
 | 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
@@ -36,6 +37,7 @@ description: >
 | sourceUrl | Step 2 预写 canonical 博客公网 URL；Step 6.2 传给微信“阅读原文”前统一追加 `utm_source=wechat&utm_medium=social&utm_campaign=article_push` |
 | summary | frontmatter `summary` 是微信 digest 唯一来源，必须是 ≤120 字金句式摘要 |
 | 站内记忆 | Step 1 后运行 `select-related-articles.mjs` 生成 `blog-memory.md/json`；Step 2 必须读取并自然联动相关旧文，或用 `--allow-no-related` 显式跳过 |
+| 理解增强 | `reader-response` 在 Step 2 前必须生成 `understanding-brief.md`，并把其中的写作契约喂给 `ljg-writes` |
 | last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
 | 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，且会把参考资料列表展开为“标题 + 纯文本 URL”，`article-wechat.html` 不得含普通 `<a href>` |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
@@ -52,7 +54,7 @@ description: >
 ## 标准流程
 
 1. Step 0：选择策略文件；不确定时向用户确认。
-2. Step 1-3：按策略完成资料、写作、后处理，并运行对应门控脚本。
+2. Step 1-3：按策略完成资料、理解增强、写作、后处理，并运行对应门控脚本。
 3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 唯一首选、baoyu fallback 逐张串行生图，再运行 `step4-images.mjs`。
 4. Step 5：运行 `step5-build.mjs` 构建博客/微信双轨产物。
 5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
