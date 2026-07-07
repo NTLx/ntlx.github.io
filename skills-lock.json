@@ -147,6 +147,13 @@
       "skillPath": "skills/ljg-card/SKILL.md",
       "computedHash": "8a090f7624639787104f6f3071a5c1f778f32535a2537f36b9f76b6c13d090a9"
     },
+    "ljg-constraint": {
+      "source": "lijigang/ljg-skills",
+      "ref": "md",
+      "sourceType": "github",
+      "skillPath": "skills/ljg-constraint/SKILL.md",
+      "computedHash": "fef653d5872cf646992c679867b358d38c72c2dbb54b76fc1a1a1aaca6a14dd9"
+    },
     "ljg-invest": {
       "source": "lijigang/ljg-skills",
       "ref": "md",
