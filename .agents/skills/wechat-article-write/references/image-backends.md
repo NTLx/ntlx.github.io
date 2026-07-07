@@ -2,12 +2,14 @@
 
 本管线的封面、信息图、文内插图默认走 Codex CLI：通过 `baoyu-image-gen --provider codex-cli` 间接调用本机 `codex exec` 和 Codex 内置 image generation。这样任何 AI Agent 只要能执行 shell 命令，并且机器上已有 `codex login`，都能使用同一条文生图路径。
 
-Codex CLI 失败后才走 baoyu fallback。fallback provider 来自 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `preferred_image_backend`，通常是 `openai` / `dashscope` / `google` 等 API 后端。不要修改第三方 `baoyu-image-gen` 源码；它已经提供 `codex-cli` provider、输出路径、PNG 校验、错误分类和重试。
+Codex CLI 可用时，它是唯一首选文生图后端。不得因为当前 Agent 自带 image generation 工具就改走该工具，也不得因为 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 配了其他 provider 就跳过 `--provider codex-cli`。
+
+Codex CLI 失败后才走 baoyu fallback。preferred_image_backend 只定义 Codex CLI 明确失败后的 baoyu fallback，通常是 `openai` / `dashscope` / `google` 等 API 后端。不要修改第三方 `baoyu-image-gen` 源码；它已经提供 `codex-cli` provider、输出路径、PNG 校验、错误分类和重试。
 
 ## 后端顺序
 
-1. **默认后端**：`baoyu-image-gen --provider codex-cli`
-2. **fallback 后端**：`baoyu-image-gen --provider <preferred_image_backend>`
+1. **唯一首选后端**：`baoyu-image-gen --provider codex-cli`
+2. **失败后 fallback 后端**：`baoyu-image-gen --provider <preferred_image_backend>`
 3. **验证门控**：无论哪个后端成功，最后都必须运行 `step4-images.mjs`
 
 Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_API_KEY`。如果 fallback 设为 OpenAI API，才需要 `.baoyu-skills/.env` 中的 `OPENAI_API_KEY`，默认模型可继续是 `gpt-image-2`。
@@ -20,7 +22,7 @@ Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_AP
 - **不要**把“长时间没有新输出”当成失败信号。`codex exec`/`image_gen` 可能静默运行较久；只要进程仍在，就继续等待，不要因为沉默而提前切 fallback。
 - fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
 - 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
-- 不并行调用 Codex CLI；它会启动完整 `codex exec`，并发只会增加锁、限额和上下文风险。
+- 所有图片必须逐张串行完成：禁止并发启动多个 `baoyu-image-gen` / `codex exec`。这不是性能优化空间；并发会增加锁、限额和上下文风险。
 - 若 Codex CLI 返回 `lock_busy` 并指向 `/home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock`，先确认没有仍在运行的 `codex exec` / `baoyu-image-gen` 进程，再删除这个 stale lock 后按串行方式重试。
 
 ## 审核失败处理

@@ -5,7 +5,7 @@
 | 依赖 | 路径 | 用途 |
 |---|---|---|
 | Codex CLI | `codex` on `PATH` | Step 4 默认文生图后端（通过 `baoyu-image-gen --provider codex-cli` 调用） |
-| baoyu-image-gen 配置 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Step 4 baoyu fallback provider |
+| baoyu-image-gen 配置 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Step 4 baoyu fallback provider；不改变 Codex CLI 可用时的唯一首选规则 |
 | baoyu-markdown-to-html 配置 | `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | Step 5 微信 HTML 主题 |
 | baoyu-post-to-wechat 配置 | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | Step 6 微信作者/发布方式 |
 | 密钥 | `.baoyu-skills/.env` | 微信 API、GitHub 图床、baoyu fallback 图像后端 |
@@ -19,7 +19,7 @@
 | baoyu-format-markdown | 格式技能 | Step 3 Markdown 格式化 |
 | baoyu-cover-image | 图片技能 | 封面 prompt 模板 |
 | baoyu-article-illustrator | 图片技能 | 文内插图 prompt 模板 |
-| baoyu-image-gen | 图片技能 | 实际文生图执行；默认走 `codex-cli`，失败后走 baoyu fallback |
+| baoyu-image-gen | 图片技能 | 实际文生图执行；Codex CLI 可用时必须先走 `codex-cli`，失败后才走 baoyu fallback |
 | baoyu-infographic | 图片技能 | SLOT 00 信息图 prompt 的 layout/style 模板来源 |
 | github-image-hosting | 发布技能 | Step 5 CDN 上传 |
 | baoyu-markdown-to-html | 发布技能 | Step 5 微信 HTML |
@@ -57,7 +57,7 @@ codex --version
 codex login status
 ```
 
-`check-deps.mjs --stage images` 找不到 `codex` 时只给 warning，不阻断。此时 Step 4 的 Codex CLI 默认路径会失败，应直接使用 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback。
+`check-deps.mjs --stage images` 找不到 `codex` 时只给 warning，不阻断。此时 Step 4 的 Codex CLI 默认路径会失败，应直接使用 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback。若 `codex` 可用且已登录，`preferred_image_backend` 只是失败路径配置，不得作为首选后端。
 
 Codex CLI 路径使用 Codex / ChatGPT 登录态，不使用 `OPENAI_API_KEY`。如果 fallback provider 是 OpenAI API，默认模型可继续使用 `gpt-image-2`。
 

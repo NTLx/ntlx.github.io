@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.30.0"
+version: "1.31.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -41,7 +41,8 @@ description: >
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |
-| 图片后端 | Step 4 默认通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI 生图；单张图超时建议设为 30 分钟；只有返回明确失败信号才算失败，Codex 明确失败后才回退到项目配置的 baoyu provider |
+| 图片后端 | Step 4 必须先通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI；Codex CLI 可用时是唯一首选，不能被原生 `imagegen` / `image_gen` 工具或 `preferred_image_backend` 绕过；只有 Codex CLI 明确失败后才回退到项目配置的 baoyu provider |
+| 图片串行 | Step 4 生图必须由主会话逐张串行执行；禁止 batch、`Promise.all`、`xargs -P`、后台任务 `&`、多 subagent 分派或任何并发启动多个 `baoyu-image-gen` / `codex exec` 的方式 |
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；禁止 `batch.json` |
 | 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `craft-handmade` 默认风格；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
@@ -52,7 +53,7 @@ description: >
 
 1. Step 0：选择策略文件；不确定时向用户确认。
 2. Step 1-3：按策略完成资料、写作、后处理，并运行对应门控脚本。
-3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 优先、baoyu fallback 串行生图，再运行 `step4-images.mjs`。
+3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 唯一首选、baoyu fallback 逐张串行生图，再运行 `step4-images.mjs`。
 4. Step 5：运行 `step5-build.mjs` 构建博客/微信双轨产物。
 5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
 
@@ -78,6 +79,6 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 ## 快速失败规则
 
 - 依赖缺失先跑 `check-deps.mjs`，不要静默降级。
-- Codex CLI 生图默认按长超时处理（建议每张图 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`）；只有返回明确失败信号才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
+- Codex CLI 生图默认按长超时处理（建议每张图 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`）；Codex CLI 可用时不得切到其他文生图后端；只有返回明确失败信号才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
 - 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
 - 任何会改变发布内容的修复，都必须重新运行对应 step 门控。
