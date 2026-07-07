@@ -68,10 +68,10 @@ Agent 在审核 prompt 前，先判断这张图是在解释什么：
 
 ## 生图执行
 
-1. 默认先通过 `baoyu-image-gen --provider codex-cli` 调用本机 `codex` CLI 生图；这是通用 Agent 路径，不依赖当前运行时是否有原生 imagegen 工具。
-2. 从 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 读取 `preferred_image_backend` 作为 baoyu fallback provider。该值应保持为 `openai` / `dashscope` / `google` 等非 `codex-cli` 后端。
+1. Codex CLI 可用时，它是唯一首选文生图后端：必须先通过 `baoyu-image-gen --provider codex-cli` 调用本机 `codex` CLI 生图。即便当前运行时有原生 `imagegen` / `image_gen` 工具，也不得绕过 Codex CLI。
+2. 从 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 读取 `preferred_image_backend` 作为 baoyu fallback provider。该值应保持为 `openai` / `dashscope` / `google` 等非 `codex-cli` 后端；不能因为 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 配了 `preferred_image_backend` 就跳过 Codex CLI。
 3. 加载 `.baoyu-skills/.env`，供 baoyu fallback provider 和后续发布步骤使用。Codex CLI 路径使用 `codex login` 的账号态，不读取 `OPENAI_API_KEY`。
-4. 主会话 Bash 逐张串行运行 `baoyu-image-gen`，不要并行，不使用 subagent。每张图先跑 Codex CLI；Codex CLI 失败后，对同一输出文件再用 fallback provider 生成一次。
+4. 主会话 Bash 逐张串行运行 `baoyu-image-gen`，不要并行，不使用 subagent 生图。每张图先跑 Codex CLI；Codex CLI 失败后，对同一输出文件再用 fallback provider 生成一次。
 5. fallback 仍失败则标记并继续；不要在同一张图上无限重试。内容审核失败时先改 prompt，再重新进入 Codex CLI → fallback 流程。
 
 命令形态：
@@ -99,7 +99,7 @@ bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
   --ar 16:9
 ```
 
-本管线禁止 batch 模式：不要创建 `batch.json`，不要调用 `--batchfile`，不要设置 `jobs`。Step 4 必须由主 Agent 在同一会话里逐张串行生图，并显式传 `--image` 到目标文件。若 `step4-images.mjs` 发现 post 根目录或 `imgs/` 下存在 `batch.json`，会直接失败。
+本管线禁止 batch 模式和任何并发生图形态：不要创建 `batch.json`，不要调用 `--batchfile`，不要设置 `jobs`，禁止 `Promise.all`，禁止 `xargs -P`，禁止后台任务 `&`，不得把多张图片分派给多个 subagent。Step 4 必须由主 Agent 在同一会话里逐张串行生图，并显式传 `--image` 到目标文件。若 `step4-images.mjs` 发现 post 根目录或 `imgs/` 下存在 `batch.json`，会直接失败。
 
 最终验证：
 

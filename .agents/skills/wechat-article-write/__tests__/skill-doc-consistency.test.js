@@ -72,8 +72,14 @@ describe("wechat-article-write documentation consistency", () => {
 
     expect(policy).toContain("--provider codex-cli");
     expect(policy).toContain("preferred_image_backend");
+    expect(policy).toContain("Codex CLI 可用时，它是唯一首选文生图后端");
+    expect(policy).toContain("不能因为 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 配了 `preferred_image_backend` 就跳过 Codex CLI");
+    expect(policy).toContain("即便当前运行时有原生 `imagegen` / `image_gen` 工具，也不得绕过 Codex CLI");
     expect(backends).toContain("codex-cli");
     expect(backends).toContain("baoyu fallback");
+    expect(backends).toContain("Codex CLI 可用时，它是唯一首选文生图后端");
+    expect(backends).toContain("preferred_image_backend 只定义 Codex CLI 明确失败后的 baoyu fallback");
+    expect(backends).toContain("不得因为当前 Agent 自带 image generation 工具就改走该工具");
     expect(backends).not.toContain("固定使用 OpenAI");
     expect(backends).not.toContain("不要把 Google");
   });
@@ -85,8 +91,15 @@ describe("wechat-article-write documentation consistency", () => {
 
     expect(policy).toContain("batch.json");
     expect(policy).toContain("禁止 batch 模式");
+    expect(policy).toContain("禁止 `Promise.all`");
+    expect(policy).toContain("禁止 `xargs -P`");
+    expect(policy).toContain("禁止后台任务 `&`");
+    expect(policy).toContain("不得把多张图片分派给多个 subagent");
     expect(policy).toContain("craft-handmade");
     expect(policy).not.toContain("若手工使用 `--batchfile`");
+    expect(backends).toContain("必须逐张串行完成");
+    expect(backends).toContain("禁止并发启动多个 `baoyu-image-gen` / `codex exec`");
+    expect(backends).toContain("不是性能优化空间");
     expect(backends).toContain("codex-exec.lock");
     expect(troubleshooting).toContain("lock_busy");
     expect(troubleshooting).toContain("prompt/image basename mismatch");

@@ -98,7 +98,7 @@ export function getPostToWechatConfig() {
   };
 }
 
-/** Step 4: baoyu-cover-image 配置 */
+/** Step 4: baoyu-cover-image 模板配置；preferredBackend 仅用于 Codex CLI 失败后的 fallback */
 export function getCoverImageConfig() {
   const c = loadAll().coverImage;
   return {
@@ -109,7 +109,7 @@ export function getCoverImageConfig() {
   };
 }
 
-/** Step 4: baoyu-image-gen（图片后端选择）配置 */
+/** Step 4: baoyu-image-gen fallback 配置；Codex CLI 仍是可用时的唯一首选 */
 export function getImagineConfig() {
   const c = loadAll().imagine;
   return {
@@ -118,7 +118,7 @@ export function getImagineConfig() {
   };
 }
 
-/** Step 4: baoyu-article-illustrator 配置 */
+/** Step 4: baoyu-article-illustrator 模板配置；preferredBackend 仅用于 Codex CLI 失败后的 fallback */
 export function getArticleIllustratorConfig() {
   const c = loadAll().illustrator;
   return {
