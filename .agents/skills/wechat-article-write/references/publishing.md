@@ -12,12 +12,13 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 - 上传图片到 GitHub 图床，生成 CDN URL。
 - 生成博客轨 `article.md`。
 - 生成微信轨 `article-wechat.html`，并注入图片质量提示 banner。
+- 微信轨必须保留正文中的 H2，包括正文第一个 H2；转换器调用需要显式保留正文 heading。
 
 链接处理：
 
 - `article.md` 保留 draft 中的 Markdown 链接，用于博客点击。
 - `article-wechat.html` 生成前会将非图片 Markdown 链接转换为纯文本 URL。
-- `## 参考资料` 中的 `- [标题](URL)` 在微信轨会展开成“标题一行 + 纯文本 URL 一行”，博客轨仍保留标准 Markdown 列表链接。
+- `## 参考资料` 中的 `- [标题](URL)` 在微信轨会保留无序列表形态，每项展开成“标题一行 + 纯文本 URL 一行”；博客轨仍保留标准 Markdown 列表链接。
 - HTML 转换后会移除普通 `<a href>`，防止微信公众号正文出现不可控外链。
 - `sourceUrl` 仍由 Step 6.2 写入微信"阅读原文"，与正文里的引用链接是两回事。写入微信前会基于 canonical `sourceUrl` 生成 `wechatSourceUrl`，统一追加 `utm_source=wechat&utm_medium=social&utm_campaign=article_push`。
 

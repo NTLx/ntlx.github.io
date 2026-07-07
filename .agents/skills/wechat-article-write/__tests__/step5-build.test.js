@@ -178,4 +178,28 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(JSON.parse(readFileSync(join(dir, "image-map.json"), "utf8")).files["01-detail.png"]).toContain("https://");
     expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
   });
+
+  test("--reuse-image-map preserves the first body H2 in WeChat HTML", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-preserve-first-h2";
+    const dir = writePost(fx.postsRoot, slug, {
+      imageMap: validImageMap(),
+      body: `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 第一个二级标题
+
+这里是第一节正文。
+
+<!-- SLOT_IMG_01_DETAIL -->
+`,
+    });
+
+    const r = runStep5(slug, fx.postsRoot, ["--reuse-image-map"]);
+    expect(r.status).toBe(0);
+
+    const html = readFileSync(join(dir, "article-wechat.html"), "utf8");
+    expect(html).toContain(">第一个二级标题</h2>");
+  });
 });

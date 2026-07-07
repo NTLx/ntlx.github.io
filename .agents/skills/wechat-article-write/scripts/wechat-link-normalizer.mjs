@@ -54,10 +54,6 @@ function isReferenceOnlyLinkListItem(node) {
   return significant.length === 1 && significant[0]?.type === "link";
 }
 
-function paragraphNode(value) {
-  return { type: "paragraph", children: [textNode(value)] };
-}
-
 function replacementForLink(linkNode, parent, ancestors) {
   const label = toPlainText(linkNode.children) || linkNode.url;
   const url = linkNode.url;
@@ -72,15 +68,37 @@ function replacementForLink(linkNode, parent, ancestors) {
   return [textNode(`${label}（链接：${url}）`)];
 }
 
+function referenceListItem(label, url) {
+  return {
+    type: "listItem",
+    spread: false,
+    checked: null,
+    children: [{
+      type: "paragraph",
+      children: [
+        textNode(label),
+        { type: "break" },
+        textNode(url),
+      ],
+    }],
+  };
+}
+
 function expandReferenceList(node) {
-  const out = [];
+  const children = [];
   for (const item of node.children ?? []) {
     if (!isReferenceOnlyLinkListItem(item)) return null;
     const linkNode = item.children[0].children.find((child) => child.type === "link");
     const label = toPlainText(linkNode.children) || linkNode.url;
-    out.push(paragraphNode(label), paragraphNode(linkNode.url));
+    children.push(referenceListItem(label, linkNode.url));
   }
-  return out;
+  return [{
+    type: "list",
+    ordered: false,
+    start: null,
+    spread: false,
+    children,
+  }];
 }
 
 function transformChildren(node, ancestors = [], context = { inReferenceSection: false }) {

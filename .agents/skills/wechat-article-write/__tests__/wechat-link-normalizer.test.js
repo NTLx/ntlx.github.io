@@ -27,7 +27,7 @@ describe("wechat-link-normalizer", () => {
     expect(output).not.toContain("[《旧文》]");
   });
 
-  test("reference list links become title line plus plain URL line without bullet in wechat output", () => {
+  test("reference list links stay as list items with title plus plain URL in wechat output", () => {
     const input = [
       "## 参考资料",
       "",
@@ -35,8 +35,8 @@ describe("wechat-link-normalizer", () => {
       "",
     ].join("\n");
     const output = normalizeLinksForWechat(input);
-    expect(output).toContain("OpenAI 发布会直播\nhttps://example.com/source");
-    expect(output).not.toContain("- OpenAI 发布会直播");
+    expect(output).toContain("- OpenAI 发布会直播");
+    expect(output).toContain("https://example.com/source");
     expect(output).not.toContain("[OpenAI 发布会直播]");
   });
 
