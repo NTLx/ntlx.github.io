@@ -39,18 +39,48 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 
 写作前必须读取 `posts/{date-slug}/blog-memory.md`。正文自然联动 1-2 篇旧文；文末 `## 延伸阅读` 放 2-4 篇站内旧文。旧文链接在 draft 中使用 Markdown inline link，Step 5 会为博客和微信生成不同链接形态。
 
+## Step 1.8: 理解增强
+行为: full
+
+按 `references/material-understanding.md` 执行，生成：
+
+```text
+posts/{date-slug}/understanding-brief.md
+```
+
+强制调用：
+
+- `ljg-qa`：抽出核心问题链，包含结论、形式化关系、论证步和边界。
+- `ljg-think`：对中心论点纵向下钻，产出文章真正要打的一句话。
+
+条件强制调用：
+
+- 主材料是长文、英文或复杂文本：调用 `ljg-read`。
+- 文章是领域、趋势、产业或工具链分析：调用 `ljg-rank`。
+- 技术或术语密度高：调用 `ljg-plain`。
+- 有 1-2 个必须解释的核心概念：调用 `ljg-learn`。
+- 输入是论文、arXiv 或研究 PDF：调用 `ljg-paper`；讲论文脉络时调用 `ljg-paper-river`。
+- 输入是书或书摘：调用 `ljg-book`。
+- 观点争议大或需要压力测试：调用 `ljg-roundtable`。
+- 项目、公司或商业模式分析：调用 `ljg-invest`。
+- 文章围绕英文词或命名：调用 `ljg-word`。
+
+`understanding-brief.md` 必须包含 `## 写作契约`，写清这篇文章只打一件什么事、必须回答的问题、必须承认的边界、要自然织入的背景资料、可联动旧文和可视觉化节点。Step 2 调用 `ljg-writes` 时，写作契约优先级高于一般材料摘要。
+
 ## Step 2: 文章创作
 行为: full
 
 1. 通过 **Skill 工具调用 ljg-writes**，传入：
    - **⚠️ 结构与图片预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节），再根据内容判断至少 3 个最值得视觉化的位置。每个插图位置明确：(a) 它解释的核心信息，(b) 放在正文的哪个论证节点附近，(c) 视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题、正文段落和 SLOT_IMG 占位符描述中
    - 资料内容：`posts/{date-slug}/materials.md`
+   - 理解增强：`posts/{date-slug}/understanding-brief.md`，尤其是 `## 写作契约`
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 参考资料区块
    - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
    - 若材料包含 `## last30days 近期讨论`，必须把其中的真实社区反馈、分歧和争议转化为正文论据或判断边界；不要照搬 `last30days` 的标题、footer、邀请语或报告模板
    - 必须吸收 Step 1.5 的 `blog-memory.md`：正文自然联动 1-2 篇旧文，文末 `## 延伸阅读` 放 2-4 篇站内旧文；如确实不适合联动，运行 Step 2 时使用 `--allow-no-related` 并交代理由
+   - 必须服从 Step 1.8 的 `understanding-brief.md`：围绕写作契约展开，不把 `ljg-qa` / `ljg-think` / 条件技能输出原样堆进正文
    - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01+ 文内插图总数必须不少于 3 张**（不含封面图和 SLOT 00 头部信息图），但不要求每个 `## ` 章节都有图。Agent 应根据正文内容把占位符放在最需要视觉解释的位置，可以在 H2 标题后、关键段落后或小结前，关键是靠近其解释的概念/数据/关系。step2/3/4 会校验文内插图总数，step4-images.mjs 会校验占位符与图片文件一一对应。**占位符描述必须是附近正文核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 附近上下文构建图片 prompt
    - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
@@ -157,6 +187,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 特殊约束
 - 必须采用读后感式原创表达，禁止写成翻译和摘要
+- 必须执行 Step 1.8 理解增强并读取 `understanding-brief.md`
 - 必须包含文末互动问题和参考资料区块
 - 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨自动展开成标题 + 纯文本 URL
 - frontmatter summary 必须是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail

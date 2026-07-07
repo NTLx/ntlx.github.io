@@ -14,6 +14,18 @@
 
 | 技能 | 类型 | 用途 |
 |---|---|---|
+| ljg-qa | 内容理解技能 | reader-response Step 1.8 强制抽取核心问题链 |
+| ljg-think | 内容理解技能 | reader-response Step 1.8 强制下钻中心论点 |
+| ljg-read | 内容理解技能 | Step 1.8 条件处理长文、英文、复杂文本 |
+| ljg-rank | 内容理解技能 | Step 1.8 条件处理领域、趋势、产业、工具链分析 |
+| ljg-plain | 内容理解技能 | Step 1.8 条件处理技术或术语密集材料 |
+| ljg-learn | 内容理解技能 | Step 1.8 条件解剖核心概念 |
+| ljg-paper | 内容理解技能 | Step 1.8 条件处理论文、arXiv、研究 PDF |
+| ljg-paper-river | 内容理解技能 | Step 1.8 条件处理论文脉络和问题演化史 |
+| ljg-book | 内容理解技能 | Step 1.8 条件处理书或书摘 |
+| ljg-roundtable | 内容理解技能 | Step 1.8 条件压力测试争议观点 |
+| ljg-invest | 内容理解技能 | Step 1.8 条件处理项目、公司、商业模式分析 |
+| ljg-word | 内容理解技能 | Step 1.8 条件处理英文词或命名文章 |
 | ljg-writes | 内容技能 | Step 2 写作 |
 | renwei-writing | 内容技能 | Step 3 去 AI 味，tutorial 可跳过 |
 | baoyu-format-markdown | 格式技能 | Step 3 Markdown 格式化 |
