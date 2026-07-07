@@ -293,6 +293,7 @@ const htmlResult = spawnSync("bun", [
   "--theme", theme,
   "--color", color,
   "--title", title,
+  "--keep-title",
 ], { stdio: "inherit", encoding: "utf8", cwd: repoRoot() });
 
 // Cleanup temp file

@@ -190,6 +190,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 - 必须采用读后感式原创表达，禁止写成翻译和摘要
 - 必须执行 Step 1.8 理解增强并读取 `understanding-brief.md`
 - 必须包含文末互动问题和参考资料区块
-- 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨自动展开成标题 + 纯文本 URL
+- 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨保留无序列表形态并展开为标题 + 纯文本 URL
 - frontmatter summary 必须是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail
 - sourceUrl 必须使用固定规则 `https://ntlx.github.io/articles/{blogSlug}`

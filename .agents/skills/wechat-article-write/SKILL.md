@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.33.0"
+version: "1.34.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -33,13 +33,14 @@ description: >
 | 领域 | 不变量 |
 |---|---|
 | 双轨分离 | 博客轨消费 `article.md` + CDN URL；微信轨消费 `article-wechat.html` + 本地图片 |
+| 正文标题 | 正文禁止 H1；博客轨和微信轨都必须保留正文 H2，Step 5 不得把正文第一个 H2 当作 title 删除 |
 | 状态续跑 | 任一步失败先读 `scripts/state.mjs next <date-slug>`，不要从头重做 |
 | sourceUrl | Step 2 预写 canonical 博客公网 URL；Step 6.2 传给微信“阅读原文”前统一追加 `utm_source=wechat&utm_medium=social&utm_campaign=article_push` |
 | summary | frontmatter `summary` 是微信 digest 唯一来源，必须是 ≤120 字金句式摘要 |
 | 站内记忆 | Step 1 后运行 `select-related-articles.mjs` 生成 `blog-memory.md/json`；Step 2 必须读取并自然联动相关旧文，或用 `--allow-no-related` 显式跳过 |
 | 理解增强 | `reader-response` 在 Step 2 前必须生成 `understanding-brief.md`，并把其中的写作契约喂给 `ljg-writes` |
 | last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
-| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，且会把参考资料列表展开为“标题 + 纯文本 URL”，`article-wechat.html` 不得含普通 `<a href>` |
+| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，并保留参考资料无序列表形态（每项为“标题 + 纯文本 URL”），`article-wechat.html` 不得含普通 `<a href>` |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |

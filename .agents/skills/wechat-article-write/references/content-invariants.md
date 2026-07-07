@@ -17,6 +17,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 约束：
 
 - 正文禁止 H1；Starlight 自动将 title 渲染为 H1。
+- 博客轨和微信轨都必须保留正文 H2，尤其不能在 Step 5 HTML 转换时把正文第一个 H2 当作 title 删除。
 - `summary` 不是内容简介，不以“本文介绍了”开头；它是微信 digest 唯一来源。
 - `blogSlug` 必须符合 `^[a-z][a-z0-9-]*[a-z0-9]$`。
 - `sourceUrl` 是微信“原文链接”的 canonical 来源，不能为空；不要在 frontmatter 中手写 UTM。
@@ -53,7 +54,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - `## 参考资料` 中的标准引用写法也使用 inline Markdown 列表：`- [标题](URL)`。
 - 禁止 reference-style 链接定义：`[id]: https://example.com`。
 - 博客轨保留 Markdown 链接。
-- 微信轨由 Step 5 自动转换为纯文本 URL；其中 `## 参考资料` 会进一步展开成“标题一行 + URL 一行”，`article-wechat.html` 不得含普通 `<a href>`。
+- 微信轨由 Step 5 自动转换为纯文本 URL；其中 `## 参考资料` 会保持无序列表形态，每项展开成“标题一行 + URL 一行”，`article-wechat.html` 不得含普通 `<a href>`。
 - 图片 Markdown 和 `SLOT_IMG` 占位符不是正文链接，不参与纯文本链接转换。
 
 ## 质量门控
