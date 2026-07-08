@@ -63,6 +63,7 @@ let _cache = null;
 function loadAll() {
   if (_cache) return _cache;
   _cache = {
+    wechatArticleWrite: parseExtend(resolve(repoRoot(), ".agents/skills/wechat-article-write/EXTEND.md")),
     markdownToHtml: parseExtend(resolve(BAOYU_ROOT, "baoyu-markdown-to-html/EXTEND.md")),
     postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
     coverImage:     parseExtend(resolve(BAOYU_ROOT, "baoyu-cover-image/EXTEND.md")),
@@ -128,9 +129,22 @@ export function getArticleIllustratorConfig() {
   };
 }
 
+/** Skill-level runtime preferences owned by wechat-article-write itself */
+export function getWechatArticleWriteConfig() {
+  const c = loadAll().wechatArticleWrite;
+  return {
+    quickMode: c.quick_mode ?? true,
+    publishMethod: c.default_publish_method ?? "api",
+    wechatLayoutDefaultTheme: c.wechat_layout_default_theme ?? "zen-whitespace",
+    wechatLayoutSecondaryTheme: c.wechat_layout_secondary_theme ?? "moyu-green",
+    wechatLayoutGeneratePreview: c.wechat_layout_generate_preview ?? true,
+  };
+}
+
 // 运行配置汇总（一次性获取所有需要的内容，方便一次性解构）
 export function getAllConfig() {
   return {
+    wechatArticleWrite: getWechatArticleWriteConfig(),
     markdownToHtml: getMarkdownToHtmlConfig(),
     postToWechat:   getPostToWechatConfig(),
     coverImage:     getCoverImageConfig(),
