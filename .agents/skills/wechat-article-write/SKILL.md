@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.34.0"
+version: "1.35.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -23,6 +23,7 @@ description: >
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
 | 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
+| 微信排版（gzh-design） | `references/wechat-gzh-layout.md` |
 | 构建、博客发布、微信草稿 | `references/publishing.md` |
 | 依赖、环境 | `references/dependency-manifest.md` |
 | 排错 | `references/troubleshooting.md` |
@@ -41,6 +42,7 @@ description: >
 | 理解增强 | `reader-response` 在 Step 2 前必须生成 `understanding-brief.md`，并把其中的写作契约喂给 `ljg-writes` |
 | last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
 | 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，并保留参考资料无序列表形态（每项为“标题 + 纯文本 URL”），`article-wechat.html` 不得含普通 `<a href>` |
+| 微信排版中间产物 | Step 5 先生成 `article-wechat-source.md`，再由 Agent 调用 `gzh-design` 产出 `article-wechat.html`，最后用 `gzh-design` 自带校验脚本 finalize |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |
@@ -49,7 +51,7 @@ description: >
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；禁止 `batch.json` |
 | 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `craft-handmade` 默认风格；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
-| 样式 | Step 5 默认不传 `--theme` / `--color`；让脚本读取项目级主题配置 |
+| 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/wechat-gzh-layout.md` |
 | 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |
 
 ## 标准流程
@@ -57,7 +59,7 @@ description: >
 1. Step 0：选择策略文件；不确定时向用户确认。
 2. Step 1-3：按策略完成资料、理解增强、写作、后处理，并运行对应门控脚本。
 3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 唯一首选、baoyu fallback 逐张串行生图，再运行 `step4-images.mjs`。
-4. Step 5：运行 `step5-build.mjs` 构建博客/微信双轨产物。
+4. Step 5：先运行 `step5-build.mjs` 生成 `article.md` + `article-wechat-source.md`，再调用 `gzh-design` 产出 `article-wechat.html`，最后重新运行 `step5-build.mjs --finalize-only` 完成校验和落状态。
 5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
 
 完整说明见 `references/pipeline-overview.md`。
@@ -74,6 +76,8 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --auto
@@ -82,6 +86,7 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 ## 快速失败规则
 
 - 依赖缺失先跑 `check-deps.mjs`，不要静默降级。
+- 微信排版默认是 Agent 自动，不是裸脚本自动；Step 5 预处理后若缺少 `article-wechat.html`，必须调用 `gzh-design`，不能跳过到 Step 6。
 - Codex CLI 生图默认按长超时处理（建议每张图 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`）；Codex CLI 可用时不得切到其他文生图后端；只有返回明确失败信号才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
 - 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
 - 任何会改变发布内容的修复，都必须重新运行对应 step 门控。

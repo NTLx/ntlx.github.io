@@ -128,5 +128,25 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs 2026-06-16-example-article --dry-run
-bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs 2026-06-16-example-article --auto
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs 2026-06-16-example-article --prepare-only
+```
+
+此时会得到：
+
+- `posts/2026-06-16-example-article/article.md`
+- `posts/2026-06-16-example-article/article-wechat-source.md`
+
+然后由 Agent 调用 `gzh-design`：
+
+- 读取 `article-wechat-source.md`
+- 默认优先 `留白禅意风`
+- 若更偏清单 / 工具 / 轻量方法论，可改用 `摸鱼绿`
+- 生成 `posts/2026-06-16-example-article/article-wechat.html`
+
+排版完成后 finalize：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs 2026-06-16-example-article --finalize-only
+bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs 2026-06-16-example-article
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs 2026-06-16-example-article
 ```
