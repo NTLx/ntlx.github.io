@@ -37,12 +37,21 @@ describe("check-deps", () => {
     expect(payload.warnings.join("\n")).toContain("baoyu-image-gen fallback");
   });
 
+  test("passes build dependency preflight when gzh-design is installed", () => {
+    const r = run("build");
+    expect(r.status).toBe(0);
+    const payload = JSON.parse(r.stdout);
+    expect(payload.ok).toBe(true);
+    expect(payload.stage).toBe("build");
+  });
+
   test("passes publish dependency preflight without source-url patch checks", () => {
     const r = run("publish");
     expect(r.status).toBe(0);
     const payload = JSON.parse(r.stdout);
     expect(payload.ok).toBe(true);
     expect(payload.stage).toBe("publish");
+    expect(payload.errors.join("\n")).not.toContain("baoyu-markdown-to-html");
     expect(payload.errors.join("\n")).not.toContain("source-url patch");
     expect(payload.warnings.join("\n")).not.toContain("source-url patch");
   });

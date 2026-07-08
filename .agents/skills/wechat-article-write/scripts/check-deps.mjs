@@ -21,7 +21,7 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const validStages = new Set(["all", "images", "publish"]);
+const validStages = new Set(["all", "images", "build", "publish"]);
 if (!validStages.has(stage)) {
   process.stderr.write(`check-deps: unknown --stage "${stage}"\n`);
   printHelp();
@@ -32,7 +32,7 @@ function printHelp() {
   process.stdout.write(`check-deps.mjs — wechat-article-write dependency preflight
 
 Usage:
-  bun run check-deps.mjs [--stage all|images|publish] [--json]
+  bun run check-deps.mjs [--stage all|images|build|publish] [--json]
 `);
 }
 
@@ -68,11 +68,28 @@ function commandExists(command) {
   return !r.error && r.status === 0;
 }
 
-function checkProjectConfig() {
+function checkSharedProjectEnv() {
   requirePath(".baoyu-skills/.env", "project env");
+}
+
+function checkImageConfig() {
   for (const rel of [
     ".baoyu-skills/baoyu-image-gen/EXTEND.md",
-    ".baoyu-skills/baoyu-markdown-to-html/EXTEND.md",
+  ]) {
+    requirePath(rel, "project EXTEND.md");
+  }
+}
+
+function checkBuildConfig() {
+  for (const rel of [
+    ".baoyu-skills/baoyu-image-gen/EXTEND.md",
+  ]) {
+    requirePath(rel, "project EXTEND.md");
+  }
+}
+
+function checkPublishConfig() {
+  for (const rel of [
     ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md",
   ]) {
     requirePath(rel, "project EXTEND.md");
@@ -93,14 +110,32 @@ function checkImageTemplates() {
   requirePath(".agents/skills/wechat-article-write/references/image-plan.schema.json", "image-plan schema");
 }
 
-function checkPublishDeps() {
-  checkSkillDirs(["github-image-hosting", "baoyu-markdown-to-html", "baoyu-post-to-wechat"]);
+function checkBuildDeps() {
+  checkSkillDirs(["github-image-hosting", "gzh-design"]);
+  requirePath(".agents/skills/gzh-design/scripts/validate_gzh_html.py", "gzh validator");
+  requirePath(".agents/skills/gzh-design/scripts/wrap_preview.py", "gzh preview wrapper");
 }
 
-checkProjectConfig();
+function checkPublishDeps() {
+  checkSkillDirs(["baoyu-post-to-wechat"]);
+}
 
-if (stage === "all" || stage === "images") checkImageTemplates();
-if (stage === "all" || stage === "publish") checkPublishDeps();
+checkSharedProjectEnv();
+
+if (stage === "all" || stage === "images") {
+  checkImageConfig();
+  checkImageTemplates();
+}
+
+if (stage === "all" || stage === "build") {
+  checkBuildConfig();
+  checkBuildDeps();
+}
+
+if (stage === "all" || stage === "publish") {
+  checkPublishConfig();
+  checkPublishDeps();
+}
 
 const result = { ok: errors.length === 0, stage, errors, warnings };
 if (json) {

@@ -28,11 +28,7 @@ function makeFixture() {
 
 function seedPublishDeps(repoRoot) {
   for (const rel of [
-    ".baoyu-skills/baoyu-image-gen",
-    ".baoyu-skills/baoyu-markdown-to-html",
     ".baoyu-skills/baoyu-post-to-wechat",
-    ".agents/skills/github-image-hosting",
-    ".agents/skills/baoyu-markdown-to-html",
     ".agents/skills/baoyu-post-to-wechat",
   ]) {
     mkdirSync(join(repoRoot, rel), { recursive: true });
@@ -40,11 +36,7 @@ function seedPublishDeps(repoRoot) {
 
   writeFileSync(join(repoRoot, ".baoyu-skills/.env"), "DUMMY=1\n");
   for (const rel of [
-    ".baoyu-skills/baoyu-image-gen/EXTEND.md",
-    ".baoyu-skills/baoyu-markdown-to-html/EXTEND.md",
     ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md",
-    ".agents/skills/github-image-hosting/SKILL.md",
-    ".agents/skills/baoyu-markdown-to-html/SKILL.md",
     ".agents/skills/baoyu-post-to-wechat/SKILL.md",
   ]) {
     writeFileSync(join(repoRoot, rel), "---\nname: fake\n---\n");
