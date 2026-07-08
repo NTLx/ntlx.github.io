@@ -11,7 +11,7 @@
 | 2 | 文章创作 | Agent + 门控 | 写 `draft.md` / `image-plan.json`，运行 `step2-write.mjs` |
 | 3 | 文本后处理 | Agent + 门控 | 调用 humanizer / formatter，运行 `step3-polish.mjs` |
 | 4 | 图片生成 | Agent + 门控 | 生成 prompt、串行生图，运行 `step4-images.mjs` |
-| 5 | 产物构建 | 脚本 | 上传 CDN、生成 `article.md` 和 `article-wechat.html` |
+| 5 | 产物构建 | 脚本 + Agent | 脚本生成 `article.md` + `article-wechat-source.md`，Agent 调用 `gzh-design` 生成 `article-wechat.html`，脚本 finalize |
 | 6 | 双轨发布 | 脚本 | 博客先发，微信草稿后发 |
 
 ## Step 1 last30days 近期讨论
@@ -84,6 +84,13 @@ posts/{date-slug}/understanding-brief.md
 - `date-slug`：`posts/` 下本地目录名，可含中文，形如 `YYYY-MM-DD-标题片段`。
 - `blog-slug`：博客 URL 段，必须是纯 ASCII kebab-case。
 - `sourceUrl`：canonical 博客公网 URL，默认 `https://ntlx.github.io/articles/{blogSlug}`；`tutorial` 可指向已有博文实际 URL。不要在 frontmatter 手写 UTM；Step 6.2 会为微信“阅读原文”生成带 WeChat UTM 的 `wechatSourceUrl`。
+
+## Step 5 自动化语义
+
+- **脚本自动**：`step5-build.mjs` 的预处理与 finalize、`publish-blog.mjs`、`publish-wechat.mjs`
+- **Agent 自动**：包含 `gzh-design` 排版在内的完整微信链路
+
+本仓库默认追求的是 **Agent 自动**。因此 `pipeline.mjs --auto` 遇到 Step 5 时，如果只完成了预处理，会继续提示 Agent 调用 `gzh-design`，而不是假装脚本已经能独立完成微信排版。
 
 ## 多文章拆分
 

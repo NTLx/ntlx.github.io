@@ -6,7 +6,7 @@
 
 ### quick_mode
 
-是否尽量跳过可选确认。Step 1-4 仍由 Agent 完成智能判断；Step 5/6 需要通过 `pipeline.mjs --auto` 执行确定性自动化。
+是否尽量跳过可选确认。Step 1-4 仍由 Agent 完成智能判断；Step 5 的微信排版阶段允许 Agent 自动继续推进，除非用户主动介入。
 
 ```yaml
 quick_mode: true
@@ -26,6 +26,36 @@ default_publish_method: api
 - `api`：通过微信公众号 API 发布（推荐，更快）
 - `browser`：通过浏览器自动化发布（需要 Chrome 登录）
 
+### wechat_layout_default_theme
+
+`gzh-design` 默认优先尝试的公众号主题。它是 Agent 的偏好信号，不是硬编码锁定；若文章明显更适合其他内置主题，允许 Agent 自主调整。
+
+```yaml
+wechat_layout_default_theme: zen-whitespace
+```
+
+**推荐值**：`zen-whitespace` — 对应 `留白禅意风`。
+
+### wechat_layout_secondary_theme
+
+当文章更偏工具清单、方法拆解、轻量实用分享时，Agent 应优先考虑的备选主题。
+
+```yaml
+wechat_layout_secondary_theme: moyu-green
+```
+
+**推荐值**：`moyu-green` — 对应 `摸鱼绿`。
+
+### wechat_layout_generate_preview
+
+Step 5 finalize 后是否自动生成 `_预览.html`，方便本地浏览器一键复制到公众号编辑器。
+
+```yaml
+wechat_layout_generate_preview: true
+```
+
+**推荐值**：`true`。
+
 ## 依赖技能配置
 
 本技能依赖项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env`。完整依赖清单见 `references/dependency-manifest.md`；本文件只保留运行时偏好。
@@ -35,8 +65,8 @@ default_publish_method: api
 | baoyu-cover-image | `.baoyu-skills/baoyu-cover-image/EXTEND.md` | `quick_mode: true` |
 | baoyu-article-illustrator | `.baoyu-skills/baoyu-article-illustrator/EXTEND.md` | `quick_mode: true` |
 | baoyu-image-gen | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `preferred_image_backend`（Codex CLI 失败后的 baoyu fallback） |
-| baoyu-markdown-to-html | `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | `default_theme`, `default_color` |
 | baoyu-post-to-wechat | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | `default_author`, `default_publish_method` |
+| gzh-design | 第三方技能目录 | 无项目级配置；只调用、不修改 |
 
 ## 环境变量
 

@@ -60,10 +60,13 @@ describe("wechat-article-write documentation consistency", () => {
 
     expect(extend).not.toContain("~/.baoyu-skills");
     expect(extend).toContain(".baoyu-skills/.env");
+    expect(extend).toContain("wechat_layout_default_theme");
+    expect(extend).toContain("zen-whitespace");
     expect(manifest).toContain(".baoyu-skills/.env");
     expect(manifest).toContain("gpt-image-2");
     expect(manifest).toContain("文生图模板");
     expect(manifest).toContain("renwei-writing");
+    expect(manifest).toContain("gzh-design");
   });
 
   test("image backend docs prefer Codex CLI and keep baoyu fallback explicit", () => {
@@ -216,5 +219,13 @@ describe("wechat-article-write documentation consistency", () => {
       const text = read(rel);
       expect(text).not.toMatch(/source-url patch|原文链接补丁/i);
     }
+  });
+
+  test("skill docs route agents through the gzh-design WeChat layout reference", () => {
+    const skill = read("SKILL.md");
+    const publishing = read("references/publishing.md");
+
+    expect(skill).toContain("references/wechat-gzh-layout.md");
+    expect(publishing).toContain("article-wechat-source.md");
   });
 });

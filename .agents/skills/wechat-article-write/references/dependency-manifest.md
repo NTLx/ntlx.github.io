@@ -6,7 +6,7 @@
 |---|---|---|
 | Codex CLI | `codex` on `PATH` | Step 4 默认文生图后端（通过 `baoyu-image-gen --provider codex-cli` 调用） |
 | baoyu-image-gen 配置 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Step 4 baoyu fallback provider；不改变 Codex CLI 可用时的唯一首选规则 |
-| baoyu-markdown-to-html 配置 | `.baoyu-skills/baoyu-markdown-to-html/EXTEND.md` | Step 5 微信 HTML 主题 |
+| wechat-article-write 配置 | `.agents/skills/wechat-article-write/EXTEND.md` | Step 5 微信排版偏好（默认主题、备选主题、预览开关） |
 | baoyu-post-to-wechat 配置 | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | Step 6 微信作者/发布方式 |
 | 密钥 | `.baoyu-skills/.env` | 微信 API、GitHub 图床、baoyu fallback 图像后端 |
 
@@ -35,7 +35,7 @@
 | baoyu-image-gen | 图片技能 | 实际文生图执行；Codex CLI 可用时必须先走 `codex-cli`，失败后才走 baoyu fallback |
 | baoyu-infographic | 图片技能 | SLOT 00 信息图 prompt 的 layout/style 模板来源 |
 | github-image-hosting | 发布技能 | Step 5 CDN 上传 |
-| baoyu-markdown-to-html | 发布技能 | Step 5 微信 HTML |
+| gzh-design | 发布技能 | Step 5 微信 HTML 排版 + validator + 预览包装 |
 | baoyu-post-to-wechat | 发布技能 | Step 6 微信草稿 |
 
 ## 技能路径解析
@@ -92,5 +92,10 @@ GOOGLE_API_KEY=...       # fallback provider=google 时需要
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
+bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage build
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage publish
 ```
+
+- `images`：只检查图片模板和图片技能
+- `build`：检查 Step 5 需要的 `github-image-hosting`、`gzh-design`、validator / preview wrapper
+- `publish`：只检查微信发布依赖，不再要求 `baoyu-markdown-to-html`
