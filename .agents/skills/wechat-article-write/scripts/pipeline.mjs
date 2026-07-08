@@ -20,6 +20,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
@@ -43,6 +44,14 @@ function getNextStep(slug) {
   return (r.stdout ?? "").trim();
 }
 
+function getStep5Paths(slug) {
+  const postDir = resolve(repoRoot, "posts", slug);
+  return {
+    wechatSource: resolve(postDir, "article-wechat-source.md"),
+    wechatHtml: resolve(postDir, "article-wechat.html"),
+  };
+}
+
 function printNext(slug) {
   const step = getNextStep(slug);
   if (step === "done") {
@@ -52,7 +61,13 @@ function printNext(slug) {
     if (["1", "2", "3", "4"].includes(step)) {
       printAgentGuide(step, slug);
     } else if (step === "5") {
-      process.stdout.write(`  运行: bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs ${slug} --auto\n`);
+      const paths = getStep5Paths(slug);
+      if (existsSync(paths.wechatSource) && !existsSync(paths.wechatHtml)) {
+        process.stdout.write(`  Step 5 已完成预处理；请由 Agent 调用 gzh-design 基于 posts/${slug}/article-wechat-source.md 生成 article-wechat.html\n`);
+        process.stdout.write(`  生成后运行: bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs ${slug} --finalize-only\n`);
+      } else {
+        process.stdout.write(`  运行: bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs ${slug} --auto\n`);
+      }
     } else if (step === "6") {
       const pub = getPublishState(slug);
       process.stdout.write(`  博客发布: ${pub.blog}; 微信发布: ${pub.wechat}\n`);
@@ -117,6 +132,14 @@ if (["1", "2", "3", "4"].includes(step)) {
 if (step === "5") {
   run([resolve(scriptsDir, "step5-build.mjs"), slug], "Step 5: 产物构建");
   step = getNextStep(slug);
+  if (step === "5") {
+    const paths = getStep5Paths(slug);
+    if (existsSync(paths.wechatSource) && !existsSync(paths.wechatHtml)) {
+      process.stdout.write("\nStep 5 已完成预处理；请由 Agent 调用 gzh-design 生成 article-wechat.html，再继续 finalize。\n");
+      printNext(slug);
+      process.exit(0);
+    }
+  }
 }
 
 // Step 6: 双轨发布（仅 --auto，检查子状态避免重复执行）
