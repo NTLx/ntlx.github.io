@@ -22,7 +22,7 @@
  *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepFailed, markWechatDone } from "./state-lib.mjs";
@@ -150,6 +150,40 @@ if (!existsSync(articlePath)) { process.stderr.write(`publish-wechat: ${articleP
 if (!existsSync(htmlPath))    { process.stderr.write(`publish-wechat: ${htmlPath} 缺失（先跑 Step 5 产物构建）\n`); process.exit(2); }
 const cover = existsSync(coverPng) ? coverPng : (existsSync(coverJpg) ? coverJpg : null);
 if (!cover) { process.stderr.write("publish-wechat: cover.png/cover.jpg 都不存在\n"); process.exit(2); }
+
+// --- HTML integrity pre-check ---
+// Catches corrupted HTML attributes (e.g. curly quotes in src="..." breaking image upload).
+// See: https://github.com/NTLx/ntlx.github.io/issues/xxx (curly-quote incident 2026-07-08)
+{
+  const html = readFileSync(htmlPath, "utf-8");
+  // 1. Curly/smart quotes inside HTML tags destroy attribute parsing.
+  //    wechat-api.ts regex only matches ASCII " or ' in src attributes.
+  const tagRe = /<[^>]*>/g;
+  let m;
+  while ((m = tagRe.exec(html)) !== null) {
+    if (m[0].includes("“") || m[0].includes("”") || m[0].includes("‘") || m[0].includes("’")) {
+      process.stderr.write(`publish-wechat: HTML 属性中含 Unicode 花弯引号（U+201C/201D 等），会导致 img src 无法被 wechat-api.ts 匹配，图片全部上传失败。\n`);
+      process.stderr.write(`  位置: ${m[0].slice(0, 80)}…\n`);
+      process.stderr.write(`  修复: 只替换 HTML 标签属性内的引号为 ASCII 双引号 "，不要全局替换。\n`);
+      process.stderr.write(`  原因: 之前可能运行了 fix_quotes() 等脚本，把 src="..." 的 ASCII 引号也替换成了花弯引号。\n`);
+      markStepFailed(opts.slug, 6.2, "HTML attributes contain curly quotes — image upload will fail");
+      process.exit(5);
+    }
+  }
+  // 2. Verify all <img> tags have parseable ASCII src attributes.
+  const imgRe = /<img[^>]*\ssrc=["']([^"']+)["']/gi;
+  const imgs = [...html.matchAll(imgRe)];
+  const allImgs = [...html.matchAll(/<img[^>]*>/gi)];
+  if (allImgs.length > 0 && imgs.length === 0) {
+    process.stderr.write(`publish-wechat: 发现 ${allImgs.length} 个 <img> 标签但无有效的 ASCII src 属性，图片上传将全部失败。\n`);
+    process.stderr.write(`  首个 img 标签: ${allImgs[0][0].slice(0, 100)}\n`);
+    markStepFailed(opts.slug, 6.2, "img tags have no parseable ASCII src attributes");
+    process.exit(5);
+  }
+  if (imgs.length > 0) {
+    process.stdout.write(`publish-wechat: HTML integrity OK (${imgs.length} image(s) with valid src)\n`);
+  }
+}
 
 const title = readFm(articlePath, "title");
 const sourceUrl = readFm(articlePath, "sourceUrl");
