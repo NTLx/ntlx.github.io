@@ -179,10 +179,10 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
   });
 
-  test("--reuse-image-map preserves the first body H2 in WeChat HTML", () => {
+  test("--reuse-image-map prepares article.md and article-wechat-source.md without finalizing step 5", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
-    const slug = "2026-05-18-preserve-first-h2";
+    const slug = "2026-05-18-prepare-only";
     const dir = writePost(fx.postsRoot, slug, {
       imageMap: validImageMap(),
       body: `
@@ -199,7 +199,18 @@ describe("step5-build dry-run and image-map reuse", () => {
     const r = runStep5(slug, fx.postsRoot, ["--reuse-image-map"]);
     expect(r.status).toBe(0);
 
-    const html = readFileSync(join(dir, "article-wechat.html"), "utf8");
-    expect(html).toContain(">第一个二级标题</h2>");
+    const out = JSON.parse(r.stdout.trim().split("\n").at(-1));
+    expect(out.phase).toBe("prepared");
+    expect(out.needs_agent_layout).toBe(true);
+    expect(out.wechat_source).toBe("article-wechat-source.md");
+
+    expect(existsSync(join(dir, "article.md"))).toBe(true);
+    expect(existsSync(join(dir, "article-wechat-source.md"))).toBe(true);
+    expect(existsSync(join(dir, "article-wechat.html"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+
+    const source = readFileSync(join(dir, "article-wechat-source.md"), "utf8");
+    expect(source).toContain("## 第一个二级标题");
+    expect(source).toContain("![](imgs/00-infographic-core-summary.png)");
   });
 });

@@ -1,66 +1,45 @@
 #!/usr/bin/env bun
 /**
- * Step 5: 产物构建（CDN 上传 + 占位符替换 + HTML 转换）
+ * Step 5: 产物构建（CDN 上传 + 占位符替换 + WeChat 源 Markdown 准备）
  *
  * 1. 上传 imgs/* 到 GitHub 图床 → image-map.json
  * 2. 占位符替换为 CDN URL → article.md
- * 3. 占位符替换为本地路径（内存中） → baoyu-markdown-to-html → article-wechat.html
- * 4. 验证
+ * 3. 占位符替换为本地路径（内存中） → article-wechat-source.md
+ * 4. 等待 Agent 调用 gzh-design 生成 article-wechat.html
  *
  * 用法:
  *   bun run step5-build.mjs <date-slug> [--dry-run] [--reuse-image-map]
- *   bun run step5-build.mjs <date-slug> --theme T --color C --allow-style-override
  *
- * 退出码: 0 成功；2 输入缺失；3 上传失败；4 HTML 转换失败
+ * 退出码: 0 成功；2 输入缺失；3 上传失败；4 构建失败
  */
 
-import { existsSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markStepDone, markStepFailed } from "./state-lib.mjs";
+import { markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
-import { getMarkdownToHtmlConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
-import { normalizeLinksForWechat, stripWechatAnchors } from "./wechat-link-normalizer.mjs";
-
-const cfg = getMarkdownToHtmlConfig();
+import { buildWechatSourceMarkdown, validateBlogArtifact } from "./step5-lib.mjs";
 const args = process.argv.slice(2);
-let slug = null, theme = cfg.theme, color = cfg.color, dryRun = false, reuseImageMap = false, allowStyleOverride = false;
-let themeOverridden = false, colorOverridden = false;
+let slug = null, dryRun = false, reuseImageMap = false;
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--theme" && args[i + 1]) { theme = args[++i]; themeOverridden = true; }
-  else if (args[i] === "--color" && args[i + 1]) { color = args[++i]; colorOverridden = true; }
-  else if (args[i] === "--dry-run") { dryRun = true; }
+  if (args[i] === "--dry-run") { dryRun = true; }
   else if (args[i] === "--reuse-image-map") { reuseImageMap = true; }
-  else if (args[i] === "--allow-style-override") { allowStyleOverride = true; }
   else if (args[i].startsWith("--")) {
     process.stderr.write(`step5: unknown flag ${args[i]}\n`);
     process.exit(1);
   }
   else if (!slug) slug = args[i];
 }
-if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--theme T --color C --allow-style-override] [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
-
-const styleOverrideDiffers =
-  (themeOverridden && theme !== cfg.theme) ||
-  (colorOverridden && color !== cfg.color);
-if (styleOverrideDiffers && !allowStyleOverride) {
-  process.stderr.write(
-    `step5: FAIL - refusing to override project WeChat HTML style config without --allow-style-override\n` +
-    `  project config (.baoyu-skills/baoyu-markdown-to-html/EXTEND.md): theme=${cfg.theme}, color=${cfg.color}\n` +
-    `  requested: theme=${theme}, color=${color}\n` +
-    `  Default pipeline runs must use project config. Add --allow-style-override only when the user explicitly asked for a different WeChat theme/color.\n`
-  );
-  process.exit(1);
-}
+if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
 
 const base = resolve(postsRoot(), slug);
 const draftPath = resolve(base, "draft.md");
 const imgsDir = resolve(base, "imgs");
 const mapPath = resolve(base, "image-map.json");
 const articlePath = resolve(base, "article.md");
-const wechatHtmlPath = resolve(base, "article-wechat.html");
+const wechatSourcePath = resolve(base, "article-wechat-source.md");
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 
@@ -184,19 +163,15 @@ let imageMap = reuseImageMap ? loadImageMap() : buildSyntheticMap(imgs, namePref
 const coverage = validateImageMapCoverage(draft, imgs, imageMap);
 
 if (dryRun) {
-  const htmlSkillDir = findScriptDir("baoyu-markdown-to-html");
-  if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
-  const htmlScript = resolve(htmlSkillDir, "scripts/main.ts");
-  if (!existsSync(htmlScript)) fail(2, `HTML script not found: ${htmlScript}`);
   process.stdout.write(JSON.stringify({
     slug,
     step: 5,
     dry_run: true,
+    phase: "prepare",
     reuse_image_map: reuseImageMap,
     image_count: imgs.length,
     name_prefix: namePrefix,
-    theme,
-    color,
+    needs_agent_layout: true,
     ...coverage,
   }) + "\n");
   process.exit(0);
@@ -241,8 +216,7 @@ if (applyResult.status !== 0) fail(4, "apply-image-map failed");
 
 if (!existsSync(articlePath)) fail(4, "article.md not created");
 
-// 3. Generate article-wechat.html from draft.md（本地路径版）
-//    Read draft.md, replace SLOT_IMG with local imgs/ paths, feed to markdown-to-html
+// 3. Generate article-wechat-source.md from draft.md（本地路径版）
 
 // Defensive: cover normalization — if cover.png is actually JPEG, rename it
 if (existsSync(coverPng)) {
@@ -253,131 +227,26 @@ if (existsSync(coverPng)) {
   }
 }
 
-const htmlSkillDir = findScriptDir("baoyu-markdown-to-html");
-if (!htmlSkillDir) fail(2, "baoyu-markdown-to-html skill not found");
-
-const htmlScript = resolve(htmlSkillDir, "scripts/main.ts");
-if (!existsSync(htmlScript)) fail(2, `HTML script not found: ${htmlScript}`);
-
-// Auto-install dependencies if node_modules is missing
-const htmlScriptsDir = resolve(htmlSkillDir, "scripts");
-const htmlPkgJson = resolve(htmlScriptsDir, "package.json");
-const htmlNodeModules = resolve(htmlScriptsDir, "node_modules");
-if (existsSync(htmlPkgJson) && !existsSync(htmlNodeModules)) {
-  process.stdout.write("step5: installing baoyu-markdown-to-html dependencies...\n");
-  const installResult = spawnSync("bun", ["install"], { cwd: htmlScriptsDir, stdio: "inherit" });
-  if (installResult.status !== 0) fail(4, "dependency installation failed");
-  process.stdout.write("step5: dependencies installed\n");
-}
-
-// Build a local-paths version of draft.md in memory
-// Replace <!-- SLOT_IMG_NN --> with ![](imgs/NN-xxx.ext)
-const tempLocalMd = resolve(base, "_temp_local.md");
-let localMd = draft;
-
-localMd = replaceSlotPlaceholders(localMd, (match, _slot, _desc) => {
-  const file = resolveSlotImageFile(match, imgs);
-  if (!file) return match;
-  return `![](imgs/${file})`;
-});
-
-localMd = normalizeLinksForWechat(localMd);
-
-writeFileSync(tempLocalMd, localMd);
-
-// Convert to HTML
-const title = draft.match(/^title:\s*(.+)$/m)?.[1] ?? "";
-const htmlResult = spawnSync("bun", [
-  "run", htmlScript,
-  tempLocalMd,
-  "--theme", theme,
-  "--color", color,
-  "--title", title,
-  "--keep-title",
-], { stdio: "inherit", encoding: "utf8", cwd: repoRoot() });
-
-// Cleanup temp file
-try { unlinkSync(tempLocalMd); } catch {}
-
-if (htmlResult.status !== 0) fail(4, "HTML conversion failed");
-
-// baoyu-markdown-to-html outputs {input}.html
-const tempLocalHtml = resolve(base, "_temp_local.html");
-if (existsSync(tempLocalHtml)) {
-  renameSync(tempLocalHtml, wechatHtmlPath);
-} else if (!existsSync(wechatHtmlPath)) {
-  fail(4, "HTML output not found");
-}
-
-// Post-process: remove font-family declarations (WeChat WebView doesn't load custom fonts)
-if (existsSync(wechatHtmlPath)) {
-  let html = readFileSync(wechatHtmlPath, "utf8");
-  html = html.replace(/font-family:\s*((?:&quot;|")[^;,]+?(?:&quot;|")(?:\s*,\s*(?:&quot;|")[^;,]+?(?:&quot;|"))*)/g, (_m, quoted) => {
-    return `font-family: ${quoted.replace(/&quot;/g, "'").replace(/"/g, "'")}`;
-  });
-  html = html.replace(/font-family:\s*[^;]+;/g, "");
-  html = html.replace(/style="\s*"/g, "");
-  html = html.replace(/;\s*;(?!\s*important)/g, ";");
-  html = html.replace(/; {2,}/g, "; ");
-  html = html.replace(/style=" /g, "style=\"");
-  // Normalize img tags: ensure `src` is never the first attribute after `<img`.
-  // baoyu-post-to-wechat's imgRegex uses `\ssrc` which requires whitespace before `src`.
-  // When `<img src="...">` (src is the first attribute), the greedy `[^>]*` in the regex
-  // can consume the space between `<img` and `src`, causing `\s` to fail to match.
-  // Injecting `data-img` before `src` guarantees whitespace exists before `src`.
-  html = html.replace(/<img(\s)src=/gi, '<img data-img src=');
-
-  // Inject WeChat image-quality banner at top of article content
-  const WECHAT_BANNER_HTML =
-    '<section style="margin: 0 0 1.5em 0; padding: 12px 16px; background: #f8f8f8; ' +
-    'border-left: 3px solid #ccc; border-radius: 4px; font-size: 14px; ' +
-    'line-height: 1.6; color: #888; text-align: center;">' +
-    '在微信公众号上发布的图片可能会被压缩且有水印，点击底部<strong style="color: #576b95;">「阅读原文」</strong>可查看高清大图' +
-    '</section>';
-  html = html.replace(
-    /(<div\s+id="output"\s*>)/,
-    `$1\n${WECHAT_BANNER_HTML}`
-  );
-
-  html = stripWechatAnchors(html);
-
-  writeFileSync(wechatHtmlPath, html);
-}
-
-// WeChat HTML preflight validation
-if (existsSync(wechatHtmlPath)) {
-  const wechatHtml = readFileSync(wechatHtmlPath, "utf8");
-
-  // No SLOT_IMG residuals
-  if (SLOT_RESIDUAL_RE.test(wechatHtml)) {
-    fail(4, "article-wechat.html still has SLOT_IMG_ placeholders");
-  }
-
-  if (/<a\b[^>]*\bhref\s*=/i.test(wechatHtml)) {
-    fail(4, "article-wechat.html contains clickable HTML links; WeChat正文链接必须是纯文本 URL");
-  }
-
-  // No empty img src
-  if (/<img[^>]+src\s*=\s*["']["'][^>]*>/i.test(wechatHtml)) {
-    fail(4, "article-wechat.html has empty img src");
-  }
-
-  // No markdown residuals — strip <code> blocks first, then check for ![...] or ]( patterns
-  const stripped = wechatHtml.replace(/<code[\s\S]*?<\/code>/gi, "");
-  if (/!\[[^\]]*\]\(/.test(stripped)) {
-    fail(4, "article-wechat.html has markdown residuals (unconverted image link)");
-  }
-}
+writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 
 // 4. Validation
-if (!existsSync(wechatHtmlPath) || readFileSync(wechatHtmlPath, "utf8").length === 0) fail(4, "article-wechat.html empty");
-if (!readFileSync(wechatHtmlPath, "utf8").includes("style=")) {
-  process.stderr.write("step5: WARNING article-wechat.html missing inline CSS\n");
+const articleContent = readFileSync(articlePath, "utf8");
+try {
+  validateBlogArtifact(articleContent);
+} catch (err) {
+  fail(4, err.message);
 }
 
-const articleContent = readFileSync(articlePath, "utf8");
-if (SLOT_RESIDUAL_RE.test(articleContent)) fail(4, "article.md still has SLOT_IMG_ placeholders");
-if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) fail(4, "article.md still has local imgs/ paths");
+if (!existsSync(wechatSourcePath) || readFileSync(wechatSourcePath, "utf8").length === 0) {
+  fail(4, "article-wechat-source.md empty");
+}
 
-markStepDone(slug, 5, { article_md: "article.md", article_wechat_html: "article-wechat.html", theme, color, reuse_image_map: reuseImageMap });
-process.stdout.write(JSON.stringify({ slug, step: 5, theme, color, reuse_image_map: reuseImageMap }) + "\n");
+process.stdout.write(JSON.stringify({
+  slug,
+  step: 5,
+  phase: "prepared",
+  article_md: "article.md",
+  wechat_source: "article-wechat-source.md",
+  reuse_image_map: reuseImageMap,
+  needs_agent_layout: true,
+}) + "\n");
