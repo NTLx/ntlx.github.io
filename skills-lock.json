@@ -121,6 +121,12 @@
       "skillPath": "skills/gpt-image-2/SKILL.md",
       "computedHash": "ed104c6ec2b34ffcf1ac4005c3fb5466624eccc0cb60bc88170046aa36d2e4b1"
     },
+    "gzh-design": {
+      "source": "isjiamu/gzh-design-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "44f2886aa9fe7e6314038ad6246aa585a5961d373fe400eef56036dfe283f056"
+    },
     "humanizer-zh": {
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
