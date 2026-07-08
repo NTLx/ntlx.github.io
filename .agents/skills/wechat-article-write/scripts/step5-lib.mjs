@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { repoRoot } from "./path-resolver.mjs";
 import { normalizeLinksForWechat } from "./wechat-link-normalizer.mjs";
 import { SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
 
@@ -20,4 +24,31 @@ export function validateBlogArtifact(articleContent) {
   if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) {
     throw new Error("article.md still has local imgs/ paths");
   }
+}
+
+export function finalizeStep5Artifacts({ slug, wechatHtmlPath, generatePreview, markDone }) {
+  if (!existsSync(wechatHtmlPath)) {
+    throw new Error("article-wechat.html missing; cannot finalize Step 5");
+  }
+
+  const skillRoot = resolve(repoRoot(), ".agents/skills/gzh-design");
+  const validateScript = resolve(skillRoot, "scripts/validate_gzh_html.py");
+  const previewScript = resolve(skillRoot, "scripts/wrap_preview.py");
+
+  const validate = spawnSync("python3", [validateScript, wechatHtmlPath], { stdio: "inherit", encoding: "utf8" });
+  if (validate.status !== 0) {
+    throw new Error(`gzh validator failed (exit ${validate.status})`);
+  }
+
+  let previewPath = null;
+  if (generatePreview) {
+    const preview = spawnSync("python3", [previewScript, wechatHtmlPath], { stdio: "inherit", encoding: "utf8" });
+    if (preview.status !== 0) {
+      throw new Error(`gzh preview wrapper failed (exit ${preview.status})`);
+    }
+    previewPath = wechatHtmlPath.replace(/\.html$/u, "_预览.html");
+  }
+
+  markDone();
+  return previewPath;
 }

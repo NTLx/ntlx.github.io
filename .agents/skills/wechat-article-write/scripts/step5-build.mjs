@@ -16,23 +16,31 @@
 import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markStepFailed } from "./state-lib.mjs";
+import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { getWechatArticleWriteConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
-import { SLOT_EXTRACT_RE, SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
-import { buildWechatSourceMarkdown, validateBlogArtifact } from "./step5-lib.mjs";
+import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
+import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 const args = process.argv.slice(2);
-let slug = null, dryRun = false, reuseImageMap = false;
+const wechatCfg = getWechatArticleWriteConfig();
+let slug = null, dryRun = false, reuseImageMap = false, prepareOnly = false, finalizeOnly = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--dry-run") { dryRun = true; }
   else if (args[i] === "--reuse-image-map") { reuseImageMap = true; }
+  else if (args[i] === "--prepare-only") { prepareOnly = true; }
+  else if (args[i] === "--finalize-only") { finalizeOnly = true; }
   else if (args[i].startsWith("--")) {
     process.stderr.write(`step5: unknown flag ${args[i]}\n`);
     process.exit(1);
   }
   else if (!slug) slug = args[i];
 }
-if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--dry-run] [--reuse-image-map]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step5-build.mjs <date-slug> [--dry-run] [--reuse-image-map] [--prepare-only] [--finalize-only]\n"); process.exit(1); }
+if (prepareOnly && finalizeOnly) {
+  process.stderr.write("step5: --prepare-only and --finalize-only are mutually exclusive\n");
+  process.exit(1);
+}
 
 const base = resolve(postsRoot(), slug);
 const draftPath = resolve(base, "draft.md");
@@ -40,6 +48,7 @@ const imgsDir = resolve(base, "imgs");
 const mapPath = resolve(base, "image-map.json");
 const articlePath = resolve(base, "article.md");
 const wechatSourcePath = resolve(base, "article-wechat-source.md");
+const wechatHtmlPath = resolve(base, "article-wechat.html");
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 
@@ -210,43 +219,89 @@ if (!reuseImageMap) {
 }
 
 // 2. Placeholder → CDN URL → article.md
-const applyScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/apply-image-map.mjs");
-const applyResult = spawnSync("bun", ["run", applyScript, slug], { stdio: "inherit", encoding: "utf8" });
-if (applyResult.status !== 0) fail(4, "apply-image-map failed");
+if (!finalizeOnly) {
+  const applyScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/apply-image-map.mjs");
+  const applyResult = spawnSync("bun", ["run", applyScript, slug], { stdio: "inherit", encoding: "utf8" });
+  if (applyResult.status !== 0) fail(4, "apply-image-map failed");
 
-if (!existsSync(articlePath)) fail(4, "article.md not created");
+  if (!existsSync(articlePath)) fail(4, "article.md not created");
 
-// 3. Generate article-wechat-source.md from draft.md（本地路径版）
+  // 3. Generate article-wechat-source.md from draft.md（本地路径版）
 
-// Defensive: cover normalization — if cover.png is actually JPEG, rename it
-if (existsSync(coverPng)) {
-  const fileType = spawnSync("file", ["-b", "--mime-type", coverPng], { encoding: "utf8" });
-  if (fileType.stdout?.trim()?.startsWith("image/jpeg")) {
-    renameSync(coverPng, coverJpg);
-    process.stderr.write("step5: renamed cover.png → cover.jpg (was actually JPEG)\n");
+  // Defensive: cover normalization — if cover.png is actually JPEG, rename it
+  if (existsSync(coverPng)) {
+    const fileType = spawnSync("file", ["-b", "--mime-type", coverPng], { encoding: "utf8" });
+    if (fileType.stdout?.trim()?.startsWith("image/jpeg")) {
+      renameSync(coverPng, coverJpg);
+      process.stderr.write("step5: renamed cover.png → cover.jpg (was actually JPEG)\n");
+    }
+  }
+
+  writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
+
+  // 4. Validation
+  const articleContent = readFileSync(articlePath, "utf8");
+  try {
+    validateBlogArtifact(articleContent);
+  } catch (err) {
+    fail(4, err.message);
+  }
+
+  if (!existsSync(wechatSourcePath) || readFileSync(wechatSourcePath, "utf8").length === 0) {
+    fail(4, "article-wechat-source.md empty");
+  }
+
+  if (prepareOnly) {
+    process.stdout.write(JSON.stringify({
+      slug,
+      step: 5,
+      phase: "prepared",
+      article_md: "article.md",
+      wechat_source: "article-wechat-source.md",
+      reuse_image_map: reuseImageMap,
+      needs_agent_layout: true,
+    }) + "\n");
+    process.exit(0);
   }
 }
 
-writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
-
-// 4. Validation
-const articleContent = readFileSync(articlePath, "utf8");
-try {
-  validateBlogArtifact(articleContent);
-} catch (err) {
-  fail(4, err.message);
+if (!existsSync(wechatHtmlPath)) {
+  process.stdout.write(JSON.stringify({
+    slug,
+    step: 5,
+    phase: "prepared",
+    article_md: "article.md",
+    wechat_source: "article-wechat-source.md",
+    reuse_image_map: reuseImageMap,
+    needs_agent_layout: true,
+  }) + "\n");
+  process.exit(0);
 }
 
-if (!existsSync(wechatSourcePath) || readFileSync(wechatSourcePath, "utf8").length === 0) {
-  fail(4, "article-wechat-source.md empty");
+let previewPath = null;
+try {
+  previewPath = finalizeStep5Artifacts({
+    slug,
+    wechatHtmlPath,
+    generatePreview: wechatCfg.wechatLayoutGeneratePreview,
+    markDone: () => markStepDone(slug, 5, {
+      article_md: "article.md",
+      article_wechat_source_md: "article-wechat-source.md",
+      article_wechat_html: "article-wechat.html",
+      reuse_image_map: reuseImageMap,
+    }),
+  });
+} catch (err) {
+  fail(4, err.message);
 }
 
 process.stdout.write(JSON.stringify({
   slug,
   step: 5,
-  phase: "prepared",
+  phase: "completed",
   article_md: "article.md",
   wechat_source: "article-wechat-source.md",
+  article_wechat_html: "article-wechat.html",
+  preview: previewPath ? previewPath.split("/").at(-1) : null,
   reuse_image_map: reuseImageMap,
-  needs_agent_layout: true,
 }) + "\n");

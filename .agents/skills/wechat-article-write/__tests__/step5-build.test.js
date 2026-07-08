@@ -213,4 +213,30 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(source).toContain("## 第一个二级标题");
     expect(source).toContain("![](imgs/00-infographic-core-summary.png)");
   });
+
+  test("finalizes step 5 when valid gzh-design HTML already exists", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-finalize-gzh";
+    const dir = writePost(fx.postsRoot, slug, { imageMap: validImageMap() });
+
+    writeFileSync(join(dir, "article-wechat.html"), [
+      '<section style="margin:0 auto;max-width:720px;">',
+      '  <p style="margin:0;line-height:1.8;color:#222;">',
+      '    <span leaf="">测试正文</span>',
+      "  </p>",
+      "</section>",
+      "",
+    ].join("\n"));
+
+    const r = runStep5(slug, fx.postsRoot, ["--reuse-image-map"]);
+    expect(r.status).toBe(0);
+
+    const out = JSON.parse(r.stdout.trim().split("\n").at(-1));
+    expect(out.phase).toBe("completed");
+
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    expect(state.last_complete_step).toBe(5);
+    expect(existsSync(join(dir, "article-wechat_预览.html"))).toBe(true);
+  });
 });
