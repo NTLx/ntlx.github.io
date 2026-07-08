@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.35.0"
+version: "1.36.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -90,3 +90,4 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - Codex CLI 生图默认按长超时处理（建议每张图 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`）；Codex CLI 可用时不得切到其他文生图后端；只有返回明确失败信号才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
 - 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
 - 任何会改变发布内容的修复，都必须重新运行对应 step 门控。
+- **禁止全局替换 HTML 文件中的引号**。`article-wechat.html` 中 HTML 属性必须使用 ASCII 双引号 `"`（U+0022）；正文文本可用中文弯引号 `""`（U+201C/U+201D）。如果 `validate_gzh_html.py` 报正文半角引号 WARNING，只改 `<span leaf="">` 内部的文本，不动标签属性。全局 `fix_quotes()` 会把 `src="..."` 的 ASCII 引号替换成花弯引号，导致 `wechat-api.ts` 的 regex 匹配不到 `<img>` 标签，图片全部上传失败、样式丢失。`publish-wechat.mjs` 已加 HTML 属性引号预检，遇到花弯引号会直接 exit 5 阻断发布。
