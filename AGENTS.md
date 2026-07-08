@@ -46,6 +46,9 @@
 - 项目级技能在 `.agents/skills/`，每个技能一个目录，含 `SKILL.md`（执行入口）、`scripts/`（可执行脚本）、`references/`（参考文档）
 - 调用方式两种：**Skill 工具调用型**（读 `SKILL.md` 走工作流）/ **脚本执行型**（`bun run <skill>/scripts/...`）
 - 用 `npx skills` 管理版本，锁文件 `skills-lock.json`
+- 若第三方技能需要随仓库一起分发（例如 `gzh-design`），统一以 **git subtree** 方式 vendoring 到 `.agents/skills/<skill>/`；不要把上游 clone 的内层 `.git/` 当作嵌套仓库直接提交，也不要提交 gitlink。后续同步上游时使用：
+  `git subtree pull --prefix=.agents/skills/<skill> <upstream-url> <branch> --squash`
+- `.claude/skills/<skill>` 若存在，应是指向 `.agents/skills/<skill>` 的本地 symlink，不再单独 clone 第二份技能代码
 - 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
 
 ## 管线概览（wechat-article-write）
@@ -84,6 +87,7 @@
 | **Shell 安全引用** | 所有 shell 脚本中涉及用户提供的路径必须使用引号包裹（`"$var"`），防止路径含空格或特殊字符时命令注入或路径断裂 |
 | **严格遵守 `.gitignore`** | 任何被 `.gitignore` 或其他 git ignore 规则排除的文件/目录，默认都视为**不应提交**。Agent 不得使用 `git add -f`、修改 ignore 规则、或其他绕过方式把这些内容提交进 git，除非用户明确要求这样做 |
 | **第三方技能禁止擅自修改** | `.agents/skills/` 下由 `npx skills` 管理的第三方技能（`baoyu-*`、`ljg-*` 等），Agent 不得擅自修改其源码（SKILL.md、scripts、references）。必须征得用户明确同意才能修改。`npx skills` 更新版本不受此限制。自建技能（frontmatter 含 `author: NTLx`，如 `wechat-article-write`、`github-image-hosting`）不受此限制 |
+| **仓库内置第三方技能用 subtree 管理** | 若要把第三方技能随仓库一起提交，必须 vendoring 到 `.agents/skills/<skill>/` 并使用 `git subtree add/pull --prefix=.agents/skills/<skill> <upstream-url> <branch> --squash` 管理。禁止直接提交带内层 `.git/` 的 clone，禁止把它作为 gitlink/嵌套仓库提交，否则 clone 本仓库时拿不到完整技能内容 |
 | **自建技能改动必须升版本** | 每次修改自建技能（`author: NTLx`）的任何文件（SKILL.md、scripts、references、策略文件）后，必须在同一批改动中递增该技能 SKILL.md frontmatter 的 `version` 字段。行为变更（增删步骤、替换调用技能、修改门控逻辑）升 minor；纯文档/注释修正升 patch。不升版本 = 改动不完整 |
 
 ## 部署
