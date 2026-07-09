@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.36.0"
+version: "1.37.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -52,6 +52,7 @@ description: >
 | 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `craft-handmade` 默认风格；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
 | 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/wechat-gzh-layout.md` |
+| 作者签名 | 调用 `gzh-design` 时，签名区 `{{作者名}}` 固定写 `NTLx`，`{{简介}}` 固定写 `热衷于分享 AI 观察与干货`；不要留占位符，不要让 Agent 自行猜测 |
 | 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |
 
 ## 标准流程
