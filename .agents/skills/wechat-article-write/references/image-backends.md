@@ -16,10 +16,11 @@ Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_AP
 
 ## 调用原则
 
+- **”Switch model” 提示不是错误**：`baoyu-image-gen --provider codex-cli` 运行时几乎总会打印 `Switch model: --model <id> | EXTEND.md default_model.codex-cli | env CODEX-CLI_IMAGE_MODEL`。这是 `main.ts` 检测到 EXTEND.md 中没有 `codex-cli` 条目时输出的**信息提示**，不是失败信号。codex-cli provider 内部 `getDefaultModel()` 返回 `”codex-image-gen”`，不依赖外部模型配置。只要命令退出码为 0 且输出文件存在，图片就是成功的。**不要**因为看到这条提示就认为 Codex CLI 失败并提前切 fallback。
 - Codex CLI 单张图超时要设得长一些，建议显式导出 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`（30 分钟）后再跑 Step 4。
 - 每张图片先用 `--provider codex-cli`，明确传 `--image` 到目标文件。
-- 只有 Codex CLI 返回**明确失败信号**时，才调用 baoyu fallback。明确失败信号包括：命令非零退出、输出中出现明确 error/fail/rejected 结果、登录态失效、内容审核拒绝、或进程确定结束但没有产出 PNG。
-- **不要**把“长时间没有新输出”当成失败信号。`codex exec`/`image_gen` 可能静默运行较久；只要进程仍在，就继续等待，不要因为沉默而提前切 fallback。
+- 只有 Codex CLI 返回**明确失败信号**时，才调用 baoyu fallback。明确失败信号包括：命令非零退出**且**输出文件不存在、输出中出现明确 error/fail/rejected 结果、登录态失效、内容审核拒绝、或进程确定结束但没有产出 PNG。注意：仅打印 “Switch model” 提示但退出码为 0 且文件存在，不算失败。
+- **不要**把”长时间没有新输出”当成失败信号。`codex exec`/`image_gen` 可能静默运行较久；只要进程仍在，就继续等待，不要因为沉默而提前切 fallback。
 - fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
 - 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
 - 所有图片必须逐张串行完成：禁止并发启动多个 `baoyu-image-gen` / `codex exec`。这不是性能优化空间；并发会增加锁、限额和上下文风险。
