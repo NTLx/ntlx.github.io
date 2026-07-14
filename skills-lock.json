@@ -5,7 +5,7 @@
       "source": "KKKKhazix/khazix-skills",
       "sourceType": "github",
       "skillPath": "aihot/SKILL.md",
-      "computedHash": "4bed39cabf0ff002db8afcf878dd9fd6e826cfd977802b0ff4150ab4ab6f03f1"
+      "computedHash": "01c9f4f97138e749aa0645cdcbb536852808847395de34d373582b489b136d03"
     },
     "baoyu-article-illustrator": {
       "source": "JimLiu/baoyu-skills",
@@ -43,23 +43,11 @@
       "skillPath": "skills/baoyu-format-markdown/SKILL.md",
       "computedHash": "48ebaa7378f4c38f56d05d9b32038476ecc74732c4110160e13840c405cc7082"
     },
-    "baoyu-image-cards": {
-      "source": "JimLiu/baoyu-skills",
-      "sourceType": "github",
-      "skillPath": "skills/baoyu-image-cards/SKILL.md",
-      "computedHash": "0a88e94444049988c4d7a3db20f33a53bae5052e7e6e1f4798b720f755ecc65c"
-    },
     "baoyu-image-gen": {
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-image-gen/SKILL.md",
       "computedHash": "388a4e2ae4e1953476dcbda56f446a9f6896fd4423cad2f9ba66ad9c06cbc044"
-    },
-    "baoyu-imagine": {
-      "source": "JimLiu/baoyu-skills",
-      "sourceType": "github",
-      "skillPath": "skills/baoyu-imagine/SKILL.md",
-      "computedHash": "a881e0afae45302268a5170b6761db626851506d9b64c8907cc3dd7b196253cb"
     },
     "baoyu-infographic": {
       "source": "JimLiu/baoyu-skills",
@@ -83,7 +71,7 @@
       "source": "JimLiu/baoyu-skills",
       "sourceType": "github",
       "skillPath": "skills/baoyu-post-to-x/SKILL.md",
-      "computedHash": "8fe0330301160cd446b27800570c952dffdaddf00e0a9e2df3945d077c1069b7"
+      "computedHash": "9502c5351e2cfd2aee6be9cac64fab07fd5e5df04b770c28c6397376622ed988"
     },
     "baoyu-slide-deck": {
       "source": "JimLiu/baoyu-skills",
@@ -131,27 +119,27 @@
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "7bd195e3bcdcc24f078dfd4e3b3e37e8ac321c36f410a41241fc4175eab1825a"
+      "computedHash": "559f73948d6b9d67d67d463b53b692207931cc074039058ac0a5fcdbb3f513ee"
     },
     "last30days": {
       "source": "mvanhorn/last30days-skill",
       "sourceType": "github",
       "skillPath": "skills/last30days/SKILL.md",
-      "computedHash": "150016b0ff300743d33ea6761d762b1c3ee1e96a07a0274baf29b827823240dd"
+      "computedHash": "346d7ee7855a985581f56278578b6a4e329904e62d53073008ef1e845bfa869b"
     },
     "ljg-book": {
       "source": "lijigang/ljg-skills",
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-book/SKILL.md",
-      "computedHash": "88cefacbf1ed613cdd72e270c4da9c2939193e88e0c94f857e06320cd93a5c5d"
+      "computedHash": "75a0632591869634570102cd7e1e96b91a3fc3d536723a5397a01d22d095c3cd"
     },
     "ljg-card": {
       "source": "lijigang/ljg-skills",
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-card/SKILL.md",
-      "computedHash": "8a090f7624639787104f6f3071a5c1f778f32535a2537f36b9f76b6c13d090a9"
+      "computedHash": "24e74248217291ab456a4784bbdb9989841d5543b0aab1eae3e3a6673e369fd3"
     },
     "ljg-constraint": {
       "source": "lijigang/ljg-skills",
@@ -179,21 +167,7 @@
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-paper/SKILL.md",
-      "computedHash": "1a54a87790bb38c3e8099edd2dbf22365b9b55bc0c49dc8e2333f66e3a34c7a9"
-    },
-    "ljg-paper-flow": {
-      "source": "lijigang/ljg-skills",
-      "ref": "md",
-      "sourceType": "github",
-      "skillPath": "skills/ljg-paper-flow/SKILL.md",
-      "computedHash": "660ded8bbc23d5cb9818e17b8bbf5d65d6b5dc0450b27c21c0c923e0b8a18ac1"
-    },
-    "ljg-paper-river": {
-      "source": "lijigang/ljg-skills",
-      "ref": "md",
-      "sourceType": "github",
-      "skillPath": "skills/ljg-paper-river/SKILL.md",
-      "computedHash": "0b77d3c27af9da4549a00dd52b458acbaa06364bd284e5f7c9c8a55da8e3c174"
+      "computedHash": "405202ed17dabab2d261840dd66c12919e5b63363a0209b99ea1e3d257920694"
     },
     "ljg-plain": {
       "source": "lijigang/ljg-skills",
@@ -207,7 +181,7 @@
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-present/SKILL.md",
-      "computedHash": "922cb68b1eb629c079a219cd0cf0fbde497b07fdb56eb5869a70c5c2d273af53"
+      "computedHash": "df104fb92779e1a8f2c38b445337dc042d84ad1b81f125971dca63b22dc2f88a"
     },
     "ljg-qa": {
       "source": "lijigang/ljg-skills",
@@ -244,13 +218,6 @@
       "skillPath": "skills/ljg-roundtable/SKILL.md",
       "computedHash": "30947caa8c8c7572860f76451311241c31c51c35b8c0e1603c1e79938fbb201a"
     },
-    "ljg-skill-map": {
-      "source": "lijigang/ljg-skills",
-      "ref": "md",
-      "sourceType": "github",
-      "skillPath": "skills/ljg-skill-map/SKILL.md",
-      "computedHash": "be5a67b254f058cd360303ca4c0e5545db49e0d84fff918672ae742348553c31"
-    },
     "ljg-think": {
       "source": "lijigang/ljg-skills",
       "ref": "md",
@@ -258,26 +225,12 @@
       "skillPath": "skills/ljg-think/SKILL.md",
       "computedHash": "b968f206221f5482481247a05177d598693f6c06135edbe10f677359d4aa4bb8"
     },
-    "ljg-travel": {
-      "source": "lijigang/ljg-skills",
-      "ref": "md",
-      "sourceType": "github",
-      "skillPath": "skills/ljg-travel/SKILL.md",
-      "computedHash": "0da71addcb92dd07ff5e5c2ffc640950d6f89bd2f3170b9377fe1c3d79d5e293"
-    },
     "ljg-word": {
       "source": "lijigang/ljg-skills",
       "ref": "md",
       "sourceType": "github",
       "skillPath": "skills/ljg-word/SKILL.md",
       "computedHash": "5d3b32d195a5bd78ddce47e58fdb1b762863bc899142927992e90b84076d45db"
-    },
-    "ljg-word-flow": {
-      "source": "lijigang/ljg-skills",
-      "ref": "md",
-      "sourceType": "github",
-      "skillPath": "skills/ljg-word-flow/SKILL.md",
-      "computedHash": "45760a303a2bc7e995b306c2efd56d0bf79da70d7a4e56b0ef0e739e46db6b3a"
     },
     "ljg-writes": {
       "source": "lijigang/ljg-skills",
@@ -290,7 +243,7 @@
       "source": "orange2ai/renwei-writing",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "eb917c23854d42785b1921448d6dbe1e07e1d08fb45a4fdcaa56d3a9ccf04d37"
+      "computedHash": "d8fe33911b5dbac3c880c92de97e6d2fc7eda669b100b0c53233907fbecf6553"
     }
   }
 }
