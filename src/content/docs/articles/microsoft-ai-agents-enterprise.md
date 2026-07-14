@@ -42,7 +42,7 @@ Marco 把脚手架分成五层。从底往上：
 
 **上下文层**——让 Agent 拿到正确的信息。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-14-microsoft-ai-agents-enterprise-img-02-five_layer_harness_architecture.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-14-microsoft-ai-agents-enterprise-img-02-five_layer_harness_architecture-2.png)
 
 前两层是基础设施，大多数团队已经会搭。第三层是运维标准，迟早要补。真正拉开差距的是上面两层。
 
