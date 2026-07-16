@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.37.1"
+version: "1.38.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -43,6 +43,7 @@ description: >
 | last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
 | 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，并保留参考资料无序列表形态（每项为“标题 + 纯文本 URL”），`article-wechat.html` 不得含普通 `<a href>` |
 | 微信排版中间产物 | Step 5 先生成 `article-wechat-source.md`，再由 Agent 调用 `gzh-design` 产出 `article-wechat.html`，最后用 `gzh-design` 自带校验脚本 finalize |
+| 禁止 per-post 渲染脚本 | 不得在 `posts/<date-slug>/` 下创建任何用于生成 `article-wechat.html` 的自研脚本（如 `render-wechat.mjs`、临时 `.py`/`.sh`）。微信 HTML 只能由 `gzh-design` 技能按主题组件库装配产出。发现别的 post 下有此类脚本时，不得复制或改写它当作当前文章的排版产物——那是上一篇文章的本地脏产物，会带来硬编码金句漏改、模板复制链等故障；正确做法是重新调用 `gzh-design` |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |
