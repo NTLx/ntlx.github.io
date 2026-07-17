@@ -59,11 +59,9 @@ function replacementForLink(linkNode, parent, ancestors) {
   const url = linkNode.url;
   if (label === url) return [textNode(url)];
   if (isStandaloneListLink(linkNode, parent, ancestors)) {
-    return [
-      textNode(label),
-      { type: "break" },
-      textNode(url),
-    ];
+    // Keep as-is: downstream HTML generators (gzh-design) handle link rendering
+    // and bottom-citation conversion for external URLs.
+    return null;
   }
   return [textNode(`${label}（链接：${url}）`)];
 }
@@ -109,18 +107,16 @@ function transformChildren(node, ancestors = [], context = { inReferenceSection:
       context.inReferenceSection = isReferenceHeading(child);
     }
     if (context.inReferenceSection && child.type === "list") {
-      const expanded = expandReferenceList(child);
-      if (expanded) {
-        node.children.splice(i, 1, ...expanded);
-        i += expanded.length - 1;
-        continue;
-      }
+      // Reference section links are now handled by the generic link
+      // replacement logic above (standalone list links → preserved as-is).
     }
     if (child.type === "link") {
       const replacement = replacementForLink(child, node, ancestors);
-      node.children.splice(i, 1, ...replacement);
-      i += replacement.length - 1;
-      continue;
+      if (replacement !== null) {
+        node.children.splice(i, 1, ...replacement);
+        i += replacement.length - 1;
+        continue;
+      }
     }
     transformChildren(child, [...ancestors, node], context);
   }
