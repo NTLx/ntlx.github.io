@@ -12,6 +12,8 @@ category: security
 
 给你看一张图。
 
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-16-ai-memory-exfiltration-claude/screenshot-coffee-exfiltration-1.png)
+
 对话里，用户只是问了一句——附近有什么好的咖啡馆推荐？Claude 很自然地回答了。推荐了几家店，提了豆子产地，说了营业时间。一切看起来都很正常。
 
 但就在 Claude 打字的过程中，攻击者的服务器日志上已经出现了三行记录：

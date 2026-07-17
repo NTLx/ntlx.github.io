@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.38.0"
+version: "1.39.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
