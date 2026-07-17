@@ -54,7 +54,7 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - `## 参考资料` 中的标准引用写法也使用 inline Markdown 列表：`- [标题](URL)`。
 - 禁止 reference-style 链接定义：`[id]: https://example.com`。
 - 博客轨保留 Markdown 链接。
-- 微信轨由 Step 5 自动转换为纯文本 URL；其中 `## 参考资料` 会保持无序列表形态，每项展开成“标题一行 + URL 一行”，`article-wechat.html` 不得含普通 `<a href>`。
+- 微信轨由 Step 5 `wechat-link-normalizer.mjs` 自动转换为纯文本：正文行内链接变为”文本（链接：URL）”，`## 参考资料` 和 `## 延伸阅读` 中的独立列表链接展开为”标题 + 换行 + URL”。转换后的 `article-wechat-source.md` 不得含 Markdown 链接语法 `[text](url)`。调用 `gzh-design` 时须显式告知：参考资料和延伸阅读区域必须渲染为纯文本标题 + 纯文本 URL，禁止 `<a href>`。`article-wechat.html` 不得含普通 `<a href>`；Step 5 finalize 阶段会执行 `stripWechatAnchors` 防护剥离残留锚点。
 - 图片 Markdown 和 `SLOT_IMG` 占位符不是正文链接，不参与纯文本链接转换。
 
 ## 质量门控
