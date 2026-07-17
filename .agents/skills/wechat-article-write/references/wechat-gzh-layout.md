@@ -41,6 +41,36 @@ posts/<date-slug>/article-wechat-source.md
   
   调用 gzh-design 时，明确告知 Agent 将签名区的 `{{作者名}}` 替换为 `NTLx`、`{{简介}}` 替换为上述简介。不要用占位符，也不要让 Agent 自行猜测作者信息。
 
+4b. **参考资料与延伸阅读 HTML 输出规范**：
+
+   `article-wechat-source.md` 中的 `## 参考资料` 和 `## 延伸阅读` 区域已经过 `wechat-link-normalizer.mjs` 处理——Markdown 链接 `[标题](URL)` 被展开为"标题 + 纯文本 URL"格式。调用 `gzh-design` 时，须确保这两个区域的 HTML 输出遵守以下规则：
+
+   - **禁止** `<a href>` 标签。微信公众号不支持可点击超链接，`<a href>` 会导致 URL 信息丢失。
+   - 每条参考/延伸阅读项渲染为两个 `<p>` 元素：标题行 + URL 行。
+   - URL 必须是读者可见的纯文本，不能隐藏在属性中。
+
+   **正确的 HTML 结构示例**：
+
+   ```html
+   <section style="padding: 14px 0;border-bottom: 1px solid #E8E8E8;">
+     <p style="font-size: 13px;color: #2B2B2B;margin: 0 0 4px;line-height: 1.7;font-weight: 500;">
+       <span leaf="">The Memory Heist — Ayush Paul</span>
+     </p>
+     <p style="font-size: 12px;color: #A3A3A3;margin: 0;line-height: 1.5;word-break: break-all;">
+       <span leaf="">https://www.ayush.digital/blog/the-memory-heist</span>
+     </p>
+   </section>
+   ```
+
+   **错误示例**（会导致微信读者看不到链接）：
+
+   ```html
+   <!-- 禁止：URL 隐藏在 href 属性中 -->
+   <p><a href="https://example.com">标题</a></p>
+   ```
+
+   如果 `gzh-design` 排版后发现参考资料区域仍有 `<a href>`，说明 `article-wechat-source.md` 的链接规范化失败，应回到 Step 5 预处理阶段排查 `wechat-link-normalizer.mjs`。
+
 5. 保存产物：
 
 ```text

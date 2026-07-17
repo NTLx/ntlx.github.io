@@ -26,6 +26,53 @@
 | `_预览.html` 缺失 | 检查 `gzh-design/scripts/wrap_preview.py` 是否存在，或确认 `wechat_layout_generate_preview` 是否被关闭 |
 | CWD 错误 | 回项目根目录 `/home/lx/ntlx.github.io` 后重跑 |
 
+## Step 6.2 publish-wechat 退出码速查
+
+| 退出码 | 含义 | 修复方法 |
+|---|---|---|
+| 2 | 前置条件缺失（article.md / article-wechat.html / cover / frontmatter 字段缺失） | 按错误提示补全文件或字段，重跑 `publish-wechat.mjs` |
+| 3 | sourceUrl 探活失败（仅 `--no-skip-deploy-check` 时触发） | 等待 GitHub Pages 部署完成后重试；默认 `--skip-deploy-check` 不会触发此码 |
+| 4 | 发布脚本（wechat-api.ts）失败或依赖检查失败 | 查看 wechat-api 输出；若依赖缺失先跑 `check-deps.mjs --stage publish` |
+| 5 | HTML 属性含 Unicode 花弯引号（U+201C/U+201D），或 img src 不可解析 | 见下方"花弯引号修复"流程 |
+
+### 花弯引号修复（exit 5）
+
+**症状**：`publish-wechat.mjs` 报 `HTML 属性中含 Unicode 花弯引号` 并 exit 5。
+
+**根因**：编辑 `article-wechat.html` 时引入了 Unicode 花弯引号 `""`（U+201C/U+201D）到 HTML 属性中，导致 `wechat-api.ts` 的 regex 无法匹配 `<img src="...">` 标签，图片全部上传失败。
+
+**修复方法**（只替换 HTML 标签属性内的引号，不动正文文本）：
+
+```python
+python3 -c "
+import re
+fp = 'posts/<date-slug>/article-wechat.html'
+html = open(fp).read()
+def fix(m):
+    return m.group(0).replace('“','\"').replace('”','\"').replace('‘',\"'\").replace('’',\"'\")
+html = re.sub(r'<[^>]+>', fix, html)
+open(fp, 'w').write(html)
+"
+```
+
+**禁止**：全局替换整个 HTML 文件中的引号。正文 `<span leaf="">` 内的中文弯引号 `""` 是正确的中文排版标点，不要动。
+
+### 修复后重发布标准路径
+
+当 `article-wechat.html` 需要修复（无论是花弯引号、`<a href>` 残留还是 validator 错误）时：
+
+1. 修复 `article-wechat.html` 中的问题
+2. 重新运行 finalize 校验：
+   ```bash
+   bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
+   ```
+3. finalize 通过后，重新发布：
+   ```bash
+   bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
+   ```
+
+不要跳过 `--finalize-only` 直接发布——它会运行 `validate_gzh_html.py` 和 `stripWechatAnchors` 防护确认修复有效。
+
 ## 依赖检查
 
 ```bash

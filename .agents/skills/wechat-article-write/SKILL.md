@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.39.0"
+version: "1.40.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -41,7 +41,7 @@ description: >
 | 站内记忆 | Step 1 后运行 `select-related-articles.mjs` 生成 `blog-memory.md/json`；Step 2 必须读取并自然联动相关旧文，或用 `--allow-no-related` 显式跳过 |
 | 理解增强 | `reader-response` 在 Step 2 前必须生成 `understanding-brief.md`，并把其中的写作契约喂给 `ljg-writes` |
 | last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
-| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 将非图片链接转换为纯文本 URL，并保留参考资料无序列表形态（每项为“标题 + 纯文本 URL”），`article-wechat.html` 不得含普通 `<a href>` |
+| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 由 `wechat-link-normalizer.mjs` 将所有非图片链接转换为纯文本（正文行内链接→”文本（链接：URL）”，参考资料/延伸阅读独立列表链接→”标题 + 换行 + URL”），`article-wechat-source.md` 不得含 Markdown 链接语法；`article-wechat.html` 不得含普通 `<a href>`；finalize 阶段额外执行 `stripWechatAnchors` 防护 |
 | 微信排版中间产物 | Step 5 先生成 `article-wechat-source.md`，再由 Agent 调用 `gzh-design` 产出 `article-wechat.html`，最后用 `gzh-design` 自带校验脚本 finalize |
 | 禁止 per-post 渲染脚本 | 不得在 `posts/<date-slug>/` 下创建任何用于生成 `article-wechat.html` 的自研脚本（如 `render-wechat.mjs`、临时 `.py`/`.sh`）。微信 HTML 只能由 `gzh-design` 技能按主题组件库装配产出。发现别的 post 下有此类脚本时，不得复制或改写它当作当前文章的排版产物——那是上一篇文章的本地脏产物，会带来硬编码金句漏改、模板复制链等故障；正确做法是重新调用 `gzh-design` |
 | renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
@@ -61,7 +61,7 @@ description: >
 1. Step 0：选择策略文件；不确定时向用户确认。
 2. Step 1-3：按策略完成资料、理解增强、写作、后处理，并运行对应门控脚本。
 3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 唯一首选、baoyu fallback 逐张串行生图，再运行 `step4-images.mjs`。
-4. Step 5：先运行 `step5-build.mjs` 生成 `article.md` + `article-wechat-source.md`，再调用 `gzh-design` 产出 `article-wechat.html`，最后重新运行 `step5-build.mjs --finalize-only` 完成校验和落状态。
+4. Step 5：先运行 `step5-build.mjs` 生成 `article.md` + `article-wechat-source.md`（参考资料和延伸阅读中的 Markdown 链接会被 `wechat-link-normalizer.mjs` 展开为"标题 + 纯文本 URL"），再调用 `gzh-design` 产出 `article-wechat.html`（须确保参考资料/延伸阅读区域不含 `<a href>`），最后重新运行 `step5-build.mjs --finalize-only` 完成校验和落状态。finalize 阶段会额外执行 `stripWechatAnchors` 防护，剥离残留 `<a href>` 标签。
 5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
 
 完整说明见 `references/pipeline-overview.md`。
@@ -93,3 +93,4 @@ bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --a
 - 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
 - 任何会改变发布内容的修复，都必须重新运行对应 step 门控。
 - **禁止全局替换 HTML 文件中的引号**。`article-wechat.html` 中 HTML 属性必须使用 ASCII 双引号 `"`（U+0022）；正文文本可用中文弯引号 `""`（U+201C/U+201D）。如果 `validate_gzh_html.py` 报正文半角引号 WARNING，只改 `<span leaf="">` 内部的文本，不动标签属性。全局 `fix_quotes()` 会把 `src="..."` 的 ASCII 引号替换成花弯引号，导致 `wechat-api.ts` 的 regex 匹配不到 `<img>` 标签，图片全部上传失败、样式丢失。`publish-wechat.mjs` 已加 HTML 属性引号预检，遇到花弯引号会直接 exit 5 阻断发布。
+- 修复 `article-wechat.html` 后必须重跑 `step5-build.mjs --finalize-only` 再重发 `publish-wechat.mjs`；不能跳过 finalize 直接发布。`publish-wechat.mjs` 退出码含义见 `references/troubleshooting.md` 的"Step 6.2 publish-wechat 退出码速查"。
