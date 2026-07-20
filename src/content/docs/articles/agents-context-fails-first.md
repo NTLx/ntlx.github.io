@@ -10,7 +10,7 @@ category: ai-agents
 
 ## 别再怪模型了——agent 崩之前，是 context 先崩的
 
-Elvis Saravia 在 X 上扔了一句 “Agents Do Not Fail Alone ”，然后挂了篇 arXiv 论文。Elvis 是 DAIR.AI 的人，写过被三百多万人用过的 Prompt Engineering Guide，他 bookmark 的东西通常值得点开。这篇论文标题是《AI Agents Do Not Fail Alone: The Context Fails First》，作者 Fouad Bousetouane，芝加哥大学教 Generative AI 的，也是 ProofAgent 的创始人。
+Elvis Saravia 在 X 上扔了一句 “Agents Do Not Fail Alone”，然后挂了篇 arXiv 论文。Elvis 是 DAIR.AI 的人，写过被三百多万人用过的 Prompt Engineering Guide，他 bookmark 的东西通常值得点开。这篇论文标题是《AI Agents Do Not Fail Alone: The Context Fails First》，作者 Fouad Bousetouane，芝加哥大学教 Generative AI 的，也是 ProofAgent 的创始人。
 
 论点一句话能说完：agent 出错，别先骂模型，也别先重写 prompt。先看看它崩之前，脑子里被塞了什么。
 
