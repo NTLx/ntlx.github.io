@@ -96,6 +96,45 @@
 - 自定义域名走 `public/CNAME`
 - 手动触发：在 Actions 页面运行 "Deploy to GitHub Pages" 工作流
 
+### GitHub Pages 部署故障排查
+
+推 `main` 后 Actions 失败，先定位是**构建失败**还是**部署失败**，再决定改不改代码。关键判据：看失败 step 落在 Build job 还是 Deploy job；Build job 全绿、Deploy job 红灯 = 部署侧故障，代码侧通常无需改动。
+
+**两种部署侧故障面（构建已成功为前提）：**
+
+| 故障面 | 症状 | 根因 | 应对 |
+|---|---|---|---|
+| Deploy 卡 queued | run 长期 `queued`/`in_progress`，Build ✓ Deploy ✗ 无明确报错，最终超时 | GitHub Pages 部署队列拥塞 | 查 githubstatus.com，等 Pages 恢复；必要时 workflow 加 `timeout-minutes` + 重试 |
+| Deploy 503 | `0_Deploy.txt` 含 `##[error]HttpError: No server is currently available... (status: 503)` | GitHub Pages / Actions API 间歇性 503 | 直接触发 rerun；即使 Actions 仍 `partial_outage`，单次 rerun 也可能抢到槽位跑通 |
+
+**排查路径：**
+
+1. 先查 <https://www.githubstatus.com>：看 `Actions` / `API Requests` / `Pages` 三组件状态。任一非 `operational` → 平台侧故障，等恢复或 rerun，不要改代码。
+2. 拉失败日志（`gh run view --log-failed` 在 API 503 期间会反复报 503，绕过用 curl + REST API）：
+   ```bash
+   TOKEN=$(gh auth token)
+   curl -s -L -H "Authorization: token $TOKEN" \
+     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>/logs" -o /tmp/run-logs.zip
+   cd /tmp && unzip -o -q run-logs.zip -d run-logs
+   grep -n '##\[error\]' run-logs/0_Deploy.txt        # 部署侧错误
+   grep -n '##\[error\]' run-logs/1_Build.txt         # 构建侧错误（空 = 构建无 error）
+   ```
+3. 触发 rerun（不依赖 gh CLI）：
+   ```bash
+   curl -s -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github+json" \
+     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>/rerun"
+   # HTTP 201 = 已触发；随后轮询 run 状态
+   curl -s -H "Authorization: token $TOKEN" \
+     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>" \
+     | uv run python -c "import sys,json;d=json.load(sys.stdin);print(d.get('status'),d.get('conclusion'))"
+   ```
+
+**决策原则：**
+
+- 构建失败 → 查代码（Markdown / frontmatter / MDX 语法 / 文件名大小写冲突），修复后 push 新 commit
+- 部署失败 + githubstatus.com 报故障 → 等 5–10min 或直接 rerun，**不要**改代码
+- 部署失败 + githubstatus.com 全绿 → 可能是 workflow 配置或权限问题，查 `.github/workflows/deploy.yml` 的 `permissions`（需 `pages: write` + `id-token: write`）、`configure-pages` / `deploy-pages` action 版本
+
 ## 内容分发质量守则
 
 为防止自动流水线在复杂操作中级联故障，agent 在执行任何多步内容构建或发布任务时，必须严格遵守以下工程铁律：
