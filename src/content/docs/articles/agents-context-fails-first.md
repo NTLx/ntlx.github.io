@@ -3,6 +3,7 @@ $schema: starlight
 title: Agent 崩了，先别骂模型——先量量它脑子里被塞了什么
 description: 这篇论文证明 context 质量能独立预测 agent 行为，但最值钱的读数是反常那格：把 context 加到最安全，agent 反而更没用；最省 token 的 context 最危险。
 date: 2026-07-19
+updated: 2026-07-20
 category: ai-agents
 ---
 
