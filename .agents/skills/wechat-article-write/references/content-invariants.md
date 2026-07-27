@@ -38,6 +38,15 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 <!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->
 ```
 
+## 正文 MDX 安全（博客轨构建）
+
+博客轨 `article.md` 由 Starlight 当作 MDX 编译，比 CommonMark 严格：正文里一个裸 `<` 或 `>` 会被当作 JSX/标签起点，导致 `astro build` 失败。publish-blog 会在 push 前本地构建并以 exit 3 中止（旧站不受影响，但这次发布作废，重试还得加 `--overwrite`）。
+
+- 正文禁止裸 `<` / `>`。常见雷区是不等式与区间：`p<0.05`、`<100`、`a>b`。
+- 替代写法（按可读性任选）：全角 `＜` `＞`（中文排版本就自然，如 `p＜0.05`）；或改写成文字（"未达到 5% 显著性"）。
+- 代码块 / 行内代码内的 `<` `>` 不受影响，无需改。
+- 在**写作时**就遵守，别等构建报错再修——构建报错时 publish-blog 已写 src 但未 push，平白多一轮。
+
 ## 文本后处理
 
 - `reader-response` / `news-digest` 默认必须调用 `renwei-writing`。

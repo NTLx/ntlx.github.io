@@ -5,7 +5,7 @@
       "source": "KKKKhazix/khazix-skills",
       "sourceType": "github",
       "skillPath": "aihot/SKILL.md",
-      "computedHash": "2f5d2edaec3633b2c8b93e435388198b7d961160e23073678b93e5d64b234ce7"
+      "computedHash": "03692667f6961bd2173534ac5ddb3e4e5be7cc1b5c8e10d963633122e89dc3b7"
     },
     "baoyu-article-illustrator": {
       "source": "JimLiu/baoyu-skills",
@@ -102,12 +102,6 @@
       "sourceType": "github",
       "skillPath": "skills/beautiful-article/SKILL.md",
       "computedHash": "fe10753d840d0db3a35ede9673f104e2934ea9b0c926a095a64d17acf82dc481"
-    },
-    "gpt-image-2": {
-      "source": "ConardLi/garden-skills",
-      "sourceType": "github",
-      "skillPath": "skills/gpt-image-2/SKILL.md",
-      "computedHash": "ed104c6ec2b34ffcf1ac4005c3fb5466624eccc0cb60bc88170046aa36d2e4b1"
     },
     "gzh-design": {
       "source": "isjiamu/gzh-design-skill",

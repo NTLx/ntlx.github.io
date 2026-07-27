@@ -13,6 +13,16 @@
 | SLOT 00 信息图 | `baoyu-infographic/references/{layouts,styles}/*.md` | 直接拼装 layout + style 两份模板到 prompt，本技能不调用其完整出图工作流 |
 | SLOT 01+ 文内图 | `baoyu-article-illustrator` | 根据占位符附近正文构建 prompt |
 
+## 源文没有可复用的静态图（交互式图表：Quarto / Plotly / Observable / 数据面板）
+
+很多数据博文（尤其 Quarto 渲染的）正文**没有任何 `<img>`**——所有 Figure 都是 JS 动态图（Plotly 等），curl / 抓取拿不到静态图，Jina / Reader 也只能拿到脚本壳。这时"复用原文图片"要换思路：
+
+1. **找真图，不找图标签**：交互组件往往从一个数据 base 拉样本图。读页面里那个组件的 JS / 内联 config（如 `data-config` 里的 `base`、`models`、`animals` 字段，或同目录 `*.js`），拼出样本图 URL 模板。实例：`{base}/{model_slug}/{animal}-{vehicle}__s{sample}.png`，配一个 `scores.json` 存每张图的裁判分。直接 curl 下载代表性样本作为复用图——它们是实验的"呈堂证供"，比任何重画都忠实。
+2. **图表"结论"无法静态复用 → 用信息图按原文数值重画**：Plotly 的排名 / 回归图下载不了，但结论数字在正文 / `scores.json` 里。把这些数字原样喂给 SLOT 00 信息图（或专门文内图）重画，**严禁编造数值**；重画完肉眼逐个核对数字与源一致（信息图模型极易把 `1008` 写成 `108` 之类，必须查）。
+3. **复用样本仍走命名契约**：下载的真图落到 `imgs/NN-<desc>.png` 时，文件名必须与 `generate-image-prompts` 为该 SLOT 生成的 prompt basename 字符级一致（下划线），否则 step4 报 basename mismatch。该 SLOT 跳过生图，直接落地复用文件。
+
+判断顺序：先 `grep '<img'` 看有没有静态图；没有就去看交互组件的数据端点；再没有，才全走生成。
+
 ## Prompt 生成
 
 ```bash

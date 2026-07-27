@@ -87,7 +87,15 @@ export function normalizeLinksForWechat(markdown) {
   const tree = processor.parse(markdown);
   transformChildren(tree, []);
   return normalizeReferenceSectionSpacing(
-    String(processor.stringify(tree)).replace(/\b(https?)\\:\/\//g, "$1://"),
+    String(processor.stringify(tree))
+      .replace(/\b(https?)\\:\/\//g, "$1://")
+      // remark-stringify escapes URL-legal punctuation (\_ \. etc.) so the *markdown*
+      // stays valid; but wechat-source URLs are VISIBLE plain text that the gzh-design /
+      // agent step copies verbatim into HTML <span leaf> nodes, where a stray backslash
+      // renders literally (www\.xxx, \_extras). The blog track is untouched (it keeps
+      // [label](url)), and no markdown *parser* consumes wechat-source in this pipeline,
+      // so stripping these escapes is safe and removes the footgun.
+      .replace(/\\([*_{}\[\]()#+\-.!~:\/?@&=;$,%])/g, "$1"),
   );
 }
 
