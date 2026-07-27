@@ -83,6 +83,16 @@ posts/<date-slug>/article-wechat.html
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
+## 格式步（baoyu-format-markdown）的边界
+
+Step 3 调 `baoyu-format-markdown` 时，只做**结构化最小格式化**（标题 / 段落空行、列表语法规范），**不要给正文加 inline 加粗**。原因：① 微信端的关键词强调由 Step 5 的 `gzh-design` 统一做（每段 1–3 个下划线标记），现在加粗 = 与主题强调叠加、双重强调；② 对 `留白禅意风` 这类克制主题，满篇加粗直接破坏留白气质。另该 format 脚本有已知副作用（改列表标记、转义下划线），所以越少让它动越好——能不动就不动是合格结果。
+
+## 封面与参考区的固定约定
+
+- **封面 `cover.png` 只作微信缩略图，不进正文**：正文首图用 SLOT 00 信息图。`article-wechat.html` 里不要嵌 cover，否则首屏重复一张图。
+- **参考资料 / 延伸阅读 用"纯文本两行块"**：源文件里这两块已是 `标题 + 换行 + URL`（无 Markdown 链接）。排版时每条渲染成"标题 `<p>` + URL `<p>`"，URL 必须是肉眼可见的纯文本，**严禁 `<a href>`**（微信不支持可点超链接，href 会让 URL 丢失）。`gzh-design` 装配时，把 `（链接：URL）` 这类行内纯文本也原样当文本抄进 `<span leaf>`，**不要再包成锚点**。
+- **从 wechat-source 抄文本进 HTML 时，URL 原样照抄、不要二次转义**：历史上 `wechat-link-normalizer` 会把 URL 里的 `.` / `_` 转义成 `\.` / `\_`（为保持 markdown 合法），但 HTML 里没有反斜杠转义，照抄就会显示一个多余的反斜杠（`www\.xxx`、`\_extras`）。该转义已修复；若仍看到，按"只改 `<span leaf>` 内文本"的原则去掉反斜杠，**绝不**对整篇做引号 / 转义全局替换（那会把 HTML 属性的 ASCII 引号也毁掉，导致 wechat-api 的 `<img>` 正则失配、图片全上传失败）。
+
 ## 判定标准
 
 - 以 `.agents/skills/gzh-design/scripts/validate_gzh_html.py` 的退出码为准
