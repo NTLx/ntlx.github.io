@@ -136,7 +136,7 @@ SLOT 00 是文章开头的全文速读版，不是文内局部插图。目标读
 
 ## 信息图风格
 
-SLOT 00 是文章开头的核心信息图，默认使用 baoyu-infographic 的 `craft-handmade` 风格和低密度 summary 布局。`direction: tech` 可以影响文内插图风格，但不改变头部信息图的默认 `craft-handmade` 风格。只有用户明确要求另一种信息图风格时，才在 `image-plan.json` 里写 `infographic.style` 覆盖。
+SLOT 00 是文章开头的核心信息图，默认使用 baoyu-infographic 的 `claymation` 风格和低密度 summary 布局。`direction: tech` 可以影响文内插图风格，但不改变头部信息图的默认 `claymation` 风格。只有用户明确要求另一种信息图风格时，才在 `image-plan.json` 里写 `infographic.style` 覆盖。
 
 ## 命名断裂修复（不重生图）
 

@@ -53,7 +53,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
    ```json
    {"article_type": "news-digest"}
    ```
-   脚本自动解析：bento-grid 信息图 + craft-handmade 风格 + retro 插图。
+   脚本自动解析：bento-grid 信息图 + claymation 风格 + retro 插图。
 
 ## Step 3: 文本后处理
 行为: full

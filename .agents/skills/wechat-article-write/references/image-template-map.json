@@ -47,13 +47,13 @@
     "ui-wireframe"
   ],
   "style_families": {
-    "journal": { "infoStyle": "craft-handmade", "illStyle": "warm" },
-    "tech": { "infoStyle": "craft-handmade", "illStyle": "editorial" },
-    "editorial": { "infoStyle": "craft-handmade", "illStyle": "editorial" },
-    "bold": { "infoStyle": "craft-handmade", "illStyle": "notion" },
-    "minimal": { "infoStyle": "craft-handmade", "illStyle": "minimal" },
-    "retro": { "infoStyle": "craft-handmade", "illStyle": "retro" },
-    "elegant": { "infoStyle": "craft-handmade", "illStyle": "elegant" }
+    "journal": { "infoStyle": "claymation", "illStyle": "warm" },
+    "tech": { "infoStyle": "claymation", "illStyle": "editorial" },
+    "editorial": { "infoStyle": "claymation", "illStyle": "editorial" },
+    "bold": { "infoStyle": "claymation", "illStyle": "notion" },
+    "minimal": { "infoStyle": "claymation", "illStyle": "minimal" },
+    "retro": { "infoStyle": "claymation", "illStyle": "retro" },
+    "elegant": { "infoStyle": "claymation", "illStyle": "elegant" }
   },
   "article_type_defaults": {
     "deep-analysis": {

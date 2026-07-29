@@ -98,7 +98,7 @@ describe("wechat-article-write documentation consistency", () => {
     expect(policy).toContain("禁止 `xargs -P`");
     expect(policy).toContain("禁止后台任务 `&`");
     expect(policy).toContain("不得把多张图片分派给多个 subagent");
-    expect(policy).toContain("craft-handmade");
+    expect(policy).toContain("claymation");
     expect(policy).not.toContain("若手工使用 `--batchfile`");
     expect(backends).toContain("必须逐张串行完成");
     expect(backends).toContain("禁止并发启动多个 `baoyu-image-gen` / `codex exec`");
@@ -117,13 +117,13 @@ describe("wechat-article-write documentation consistency", () => {
     expect(newsDigest).toContain("--allow-no-interaction");
   });
 
-  test("image template catalog documents craft-handmade as the default infographic style", () => {
+  test("image template catalog documents claymation as the default infographic style", () => {
     const catalog = read("references/image-template-catalog.md");
 
-    expect(catalog).toContain("SLOT 00 信息图默认 style 为 `craft-handmade`");
+    expect(catalog).toContain("SLOT 00 信息图默认 style 为 `claymation`");
     expect(catalog).toContain("direction 只影响文内插图 style");
     expect(catalog).not.toContain("默认组合来自 `article_type_defaults.infoLayout` × `style_families.{family}.infoStyle`");
-    expect(catalog).not.toMatch(/style:\s*(?:morandi-journal|technical-schematic|ikea-manual|retro-pop-grid|bold-graphic|aged-academia)/);
+    expect(catalog).not.toMatch(/style:\s*(?:craft-handmade|morandi-journal|technical-schematic|ikea-manual|retro-pop-grid|bold-graphic|aged-academia)/);
   });
 
   test("image docs define SLOT 00 as a whole-article compression asset", () => {

@@ -136,7 +136,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(r.stderr).toContain('unknown article_type "technical-deepdive"');
   });
 
-  test("keeps head infographic style craft-handmade even for tech direction", () => {
+  test("keeps head infographic style claymation even for tech direction", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-tech-infographic-style";
@@ -147,7 +147,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(r.status).toBe(0);
 
     const prompt = readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8");
-    expect(prompt).toContain("style=craft-handmade");
+    expect(prompt).toContain("style=claymation");
     expect(prompt).not.toContain("style=technical-schematic");
   });
 });
