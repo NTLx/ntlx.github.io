@@ -36,6 +36,8 @@
 - `src/content.config.ts`：内容集合 schema（含 `date` / `updated` / `category` / `tags`）
 - `src/components/`：自定义 Astro 组件
 - `posts/YYYY-MM-DD-slug/`：管线中间产物，最终产物落到 `src/content/docs/articles/`
+- `youtube-transcript/`：YouTube 视频转录素材本地存放目录（已 gitignore，不提交）
+- `material/`：各类素材文件本地存放目录（已 gitignore，不提交）
 - `.agents/skills/`：项目级技能源
 - `.baoyu-skills/<skill>/EXTEND.md`：技能偏好配置；密钥单独放项目级 `.baoyu-skills/.env`
 - `.github/workflows/deploy.yml`：推 `main` → 自动构建并部署到 GitHub Pages
