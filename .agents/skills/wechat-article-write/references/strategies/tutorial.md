@@ -32,7 +32,7 @@ applies_when: 用户已有完成的博文或文档内容，要求转为微信公
     ```json
     {"article_type": "tutorial"}
     ```
-    脚本自动解析：linear-progression 信息图 + craft-handmade 风格 + minimal 插图 + vivid 封面。如需覆盖文内插图风格家族，加 `"direction": "tech"` 等（见 `references/image-template-catalog.md` 风格家族表）。
+    脚本自动解析：linear-progression 信息图 + claymation 风格 + minimal 插图 + vivid 封面。如需覆盖文内插图风格家族，加 `"direction": "tech"` 等（见 `references/image-template-catalog.md` 风格家族表）。
 11. 运行 step2-write.mjs 进行基础门控验证：
     ```bash
     bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \

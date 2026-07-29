@@ -231,7 +231,7 @@ function resolveConfigDefaults(imagePlan) {
 
   return {
     cover: { ...td.cover },
-    infographic: { layout: td.infoLayout, style: "craft-handmade", aspect: "16:9" },
+    infographic: { layout: td.infoLayout, style: "claymation", aspect: "16:9" },
     illustrationStyle: family.illStyle,
   };
 }
@@ -354,7 +354,7 @@ Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photoreali
 
 const infographicConfig = useOldInfo ? imagePlan.infographic : defaults.infographic;
 const infoLayout = infographicConfig.layout ?? "bento-grid";
-const infoStyle = infographicConfig.style ?? "craft-handmade";
+const infoStyle = infographicConfig.style ?? "claymation";
 const infoAspect = infographicConfig.aspect ?? "16:9";
 
 const infographicPrompt = buildCompactInfographicPrompt({
