@@ -3,6 +3,7 @@ $schema: starlight
 title: 企业 AI 最大的幻觉，是以为买到了 API 密钥就拥有了竞争壁垒
 description: 读 Palantir 官方博客《AI Sovereignty is Your Alpha》：在缺乏 AI 主权的架构下，企业每一次调用闭源 API，都是在用自己的业务 Know-how 为模型厂商免费做微调，把真正的 Alpha 拱手让人。
 date: 2026-07-30
+updated: 2026-07-30
 category: ai-industry
 ---
 
