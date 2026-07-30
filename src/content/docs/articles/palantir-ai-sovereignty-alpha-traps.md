@@ -3,11 +3,10 @@ $schema: starlight
 title: 企业 AI 最大的幻觉，是以为买到了 API 密钥就拥有了竞争壁垒
 description: 读 Palantir 官方博客《AI Sovereignty is Your Alpha》：在缺乏 AI 主权的架构下，企业每一次调用闭源 API，都是在用自己的业务 Know-how 为模型厂商免费做微调，把真正的 Alpha 拱手让人。
 date: 2026-07-30
-updated: 2026-07-30
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-30-palantir-ai-sovereignty-alpha-traps-img-00-infographic-core-summary-1.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-30-palantir-ai-sovereignty-alpha-traps-img-00-infographic-core-summary.png)
 
 在企业级 AI 普及的浪潮中，绝大多数 CTO 和法务团队都沉浸在一套标准的避险叙事里：“我们采购的是企业版 API，签署了数据保护协议（DPA），厂商承诺了零数据留存（ZDR），所以我们的商业机密绝对安全。”
 
@@ -24,7 +23,7 @@ Palantir 明确指出：企业在 AI 时代真正的超额收益与核心竞争�
 - 经过上千次工程迭代写出的 Prompt Harness、Agent 工作流与系统指令；
 - 针对边缘误报所建立的过滤规则、决策树与专业 Know-how。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-30-palantir-ai-sovereignty-alpha-traps-img-01-palantir_ai_sovereignty_cover-1.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-30-palantir-ai-sovereignty-alpha-traps-img-01-palantir_ai_sovereignty_cover.png)
 
 当企业将这些包含独特业务逻辑的 Prompt 和上下文输入给第三方托管模型提供商（Hosted Model Providers）时，危险就发生了。即使模型厂商声称“不会直接使用你的数据训练基础模型”，他们依然会通过分析元数据、Prompt 触发的安全分类器日志、以及系统交互模式，来改进自己的安全分类器、模型 Harness 和周边辅助工具。
 
