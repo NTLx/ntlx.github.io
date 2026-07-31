@@ -1,18 +1,18 @@
 ---
 $schema: starlight
-title: 零额外成本把钉钉办公能力接入 ChatGPT：普通人也能学会的私人 AI 工作台搭建教程
+title: 零额外成本把钉钉办公能力接入 ChatGPT：谁都能学会的私人 AI 工作台搭建教程
 description: 不写一行代码，无需 API Key 或自建服务器，零额外成本把钉钉日历、待办、文档等办公能力接入 ChatGPT，打造专属私人 AI 办公助手。
 date: 2026-07-31
 category: ai-agents
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-00-infographic-core-summary-2.png)
 
 > **版本提示**：本文更新于 2026 年 7 月。ChatGPT 的开发者模式、插件与应用界面仍在持续调整，不同账号、订阅套餐与工作区看到的菜单名称可能略有区别。实际操作请以自己的 ChatGPT 界面为准。
 
 如果你每天在 ChatGPT 里问答，又在钉钉里查日程、补待办、看文档、批审批，你一定产生过这种想法：“如果能直接在 ChatGPT 里一句话帮我把钉钉里的事情处理好，该多省心？”
 
-传统的做法往往需要写代码、搞云服务器部署、甚至自己去接入复杂的开发者 API，这让大多数非技术背景的普通办公族望而却步。
+传统的做法往往需要写代码、搞云服务器部署、甚至自己去接入复杂的开发者 API，这让大多数非技术背景的办公族望而却步。
 
 但随着 MCP（Model Context Protocol，模型上下文协议）的普及，现在的接入难度已经降到了“复制粘贴一句话”的级别。
 
@@ -32,7 +32,7 @@ category: ai-agents
 * **MCP（模型上下文协议）** 就像一条“智能数据管道”，负责把 ChatGPT 的指令安全传递给钉钉；
 * **钉钉** 则是你的底层办公执行库，提供日历、待办、文档、审批、AI 表格、邮件等具体数据与能力。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-01-overall-architecture.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-01-overall-architecture-2.png)
 
 交互逻辑非常清晰：
 
@@ -52,7 +52,7 @@ ChatGPT 通过 MCP 调用钉钉对应工具
 
 ## 二、为什么要以 ChatGPT 作为 AI 办公工作台？
 
-普通大模型虽然聪明，但如果没有连接外部工具，它其实是个“信息孤岛”。它不知道：
+基础大模型虽然聪明，但如果没有连接外部工具，它其实是个“信息孤岛”。它不知道：
 * 你今天下午 3 点有没有重要会议；
 * 哪些项目待办即将到期；
 * 哪份会议纪要里写了你的行动项；
@@ -73,7 +73,7 @@ MCP（Model Context Protocol）由 Anthropic 发起、现已成为行业标准�
 
 ## 三、方案最大优势：真正意义上的“零额外成本”
 
-对于普通用户来说，这套方案最诱人的一点就是**几乎没有任何新增花销**：
+对于所有使用者来说，这套方案最诱人的一点就是**几乎没有任何新增花销**：
 
 ### 1. 钉钉免费提供官方托管 MCP
 钉钉在 AI 能力中心直接为用户托管好了 MCP 服务。你不需要自己买服务器去部署代码，只需登录后直接复制一条托管好的 URL 链接即可。
@@ -97,7 +97,7 @@ OpenAI API 调用费：0 元
 
 看似深奥的 MCP 配置，实际操作只有 5 个简单步骤，5 分钟即可搞定：
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-02-overall-configuration-flow.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-02-overall-configuration-flow-2.png)
 
 ```text
 登录钉钉 AI 能力中心
@@ -120,11 +120,11 @@ OpenAI API 调用费：0 元
 1. 打开浏览器访问[钉钉 AI 能力中心](https://mcp.dingtalk.com/)。
 2. 使用你的手机钉钉扫码或账号登录。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-03-login-page.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-03-login-page-2.jpg)
 
 3. 登录成功后，若你的账号加入了多个企业或组织，请在右上角或弹窗中**正确选择你想要接入的组织**。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-04-select-organization.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-04-select-organization-2.jpg)
 
 > **注意**：ChatGPT 后续能够查询和操作的数据，完全取决于你这里选中的组织以及你在该组织中的权限。
 
@@ -134,17 +134,17 @@ OpenAI API 调用费：0 元
 
 1. 进入钉钉 MCP 广场，你可以看到官方提供的多种能力模块（日历、待办、文档、通讯录、AI 表格、OA 审批等）。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-05-mcp-store-home.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-05-mcp-store-home-2.jpg)
 
 2. 初次配置时，建议先选择最常用且安全的三个：**钉钉日历**、**钉钉待办**、**钉钉文档**。
 3. 点击进入“钉钉-日历”详情页，在配置区域找到 **Streamable HTTP URL**。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-06-mcp-detail-page.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-06-mcp-detail-page-2.jpg)
 
 4. 一键点击复制该 URL 链接。格式通常形如：
    `https://mcp-gw.dingtalk.com/mserver/xxxxxxxx?key=xxxxxxxx`
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-07-copy-url.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-07-copy-url-2.jpg)
 
 > **安全提示**：URL 中的 `?key=xxxxxxxx` 是你的个人身份访问凭据！请妥善保管，**切勿将完整 URL 发送给其他人、截图公开发布或提交到 GitHub 等公共平台**。
 
@@ -154,11 +154,11 @@ OpenAI API 调用费：0 元
 
 1. 打开 ChatGPT 网页版，点击左下角头像进入 **Settings（设置）**。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-08-chatgpt-settings.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-08-chatgpt-settings-2.jpg)
 
 2. 找到 **Security & Login**（或 **Apps / Advanced**）面板，开启 **Developer Mode（开发者模式）** 开关。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-09-developer-mode-toggle.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-09-developer-mode-toggle-2.jpg)
 
 *注：如果是企业版（Business/Enterprise）或团队工作区，可能需要管理员先在工作区后台开启开发者权限。*
 
@@ -168,18 +168,18 @@ OpenAI API 调用费：0 元
 
 1. 在 ChatGPT 设置或应用管理界面中，找到 **Plugins / Apps**，点击 **添加自定义 MCP** 或 **创建应用**。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-10-chatgpt-plugin-management.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-10-chatgpt-plugin-management-2.jpg)
 
 2. 填写 MCP 基本信息：
    * **名称**：推荐清晰具体的命名（如 `钉钉-日历`、`钉钉-待办`、`钉钉-文档`），不要统一填“钉钉”，方便 AI 准确识别；
    * **描述**：简要说明用途，例如“查询和管理我的钉钉日程安排”；
    * **URL**：粘贴刚才从钉钉复制的 Streamable HTTP URL。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-11-custom-mcp-configuration.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-11-custom-mcp-configuration-2.jpg)
 
 3. 点击保存后，ChatGPT 会自动连接服务器并扫描出可用的工具列表（如“查询日程”、“创建日程”等）。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-12-chatgpt-scanned-mcp-tools.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-12-chatgpt-scanned-mcp-tools-2.jpg)
 
 ---
 
@@ -192,9 +192,9 @@ OpenAI API 调用费：0 元
 1. 点击左上角 **New Chat（新建会话）**。
 2. 在输入框工具菜单（或输入 `@`）中，勾选刚刚添加的钉钉 MCP 插件。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-13-tool-menu-in-new-chat.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-13-tool-menu-in-new-chat-2.jpg)
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-14-select-dingtalk-mcp.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-chatgpt-dingtalk-mcp-img-14-select-dingtalk-mcp-2.jpg)
 
 3. 发送第一条测试指令：
    > “请使用‘钉钉-日历’查询我今天的全部日程安排，按时间顺序整理列出。”
