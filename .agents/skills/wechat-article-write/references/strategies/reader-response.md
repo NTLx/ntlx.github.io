@@ -77,7 +77,7 @@ posts/{date-slug}/understanding-brief.md
    - 理解增强：`posts/{date-slug}/understanding-brief.md`，尤其是 `## 写作契约`
    - 数据点列表（从材料中提取，≥ 5 个）
    - 必须包含文末互动 + 参考资料区块
-   - 必须采用读后感式原创表达：写出"我为什么觉得这篇材料重要/可疑/反直觉/值得延展"，显式加入自己的判断、连接和疑问；禁止写成单纯翻译、摘要或搬运
+   - 必须落实 `references/originality-policy.md` 的增量契约与形式变体契约：写作契约列出的增量承诺逐条落地正文，保住第一人称判断、疑问和读后感式表达
    - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
    - 若材料包含 `## last30days 近期讨论`，必须把其中的真实社区反馈、分歧和争议转化为正文论据或判断边界；不要照搬 `last30days` 的标题、footer、邀请语或报告模板
    - 必须吸收 Step 1.5 的 `blog-memory.md`：正文自然联动 1-2 篇旧文，文末 `## 延伸阅读` 放 2-4 篇站内旧文；如确实不适合联动，运行 Step 2 时使用 `--allow-no-related` 并交代理由
@@ -187,7 +187,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 若材料丰富度超出单篇承载能力，参考 `references/pipeline-overview.md` 的多文章拆分说明。
 
 ## 特殊约束
-- 必须采用读后感式原创表达，禁止写成翻译和摘要
+- 必须落实 `references/originality-policy.md` 的增量与形式变体契约
 - 必须执行 Step 1.8 理解增强并读取 `understanding-brief.md`
 - 必须包含文末互动问题和参考资料区块
 - 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨保留无序列表形态并展开为标题 + 纯文本 URL

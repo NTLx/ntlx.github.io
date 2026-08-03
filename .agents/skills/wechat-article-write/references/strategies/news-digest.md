@@ -36,7 +36,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 行为: full
 
 - 通过 Skill 工具调用 ljg-writes，但指定"简报模式"：每条资讯 100-200 字概要
-- 不需要深度分析和个人判断，重在信息密度和覆盖面
+- 每条概要必须附一行作者判断（为何重要/影响谁/与既有判断的连接），文末要有综合判断段；增量契约见 `references/originality-policy.md`
 - 若材料包含 `## last30days 近期讨论`，只把它用作"社区反应 / 争议信号 / 用户真实反馈"补充，不把简报写成 `last30days` 报告
 - 读取 `posts/{date-slug}/blog-memory.md`，在文末 `## 延伸阅读` 放 2-4 篇站内旧文；如无合适旧文，运行 Step 2 时使用 `--allow-no-related`
 - `SLOT_IMG_00` 信息图必须放在正文开头，作为当日/当周要点总览

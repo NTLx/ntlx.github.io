@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.42.0"
+version: "1.43.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -21,6 +21,7 @@ description: >
 | Steps 1-3 策略选择 | `references/strategies/{reader-response,tutorial,news-digest}.md` |
 | 材料理解增强 | `references/material-understanding.md` |
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
+| 原创度增量 / 形式变体 / 节奏感知 | `references/originality-policy.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
 | 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
 | 微信排版（gzh-design） | `references/wechat-gzh-layout.md` |
@@ -54,6 +55,7 @@ description: >
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
 | 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/wechat-gzh-layout.md` |
 | 作者签名 | 调用 `gzh-design` 时，签名区 `{{作者名}}` 固定写 `NTLx`，`{{简介}}` 固定写 `热衷于分享 AI 观察与干货`；不要留占位符，不要让 Agent 自行猜测 |
+| 原创度政策 | 写作契约列 ≥3 条增量（第一人称经验/独立判断/跨来源连接/预测行动）并逐条落地 draft；标题×开头×章节数组合不得与最近 2 篇相同；Step 0 一句话报告近 7 天篇数与分类分布 |
 | 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |
 
 ## 标准流程
