@@ -18,7 +18,7 @@
 很多数据博文（尤其 Quarto 渲染的）正文**没有任何 `<img>`**——所有 Figure 都是 JS 动态图（Plotly 等），curl / 抓取拿不到静态图，Jina / Reader 也只能拿到脚本壳。这时"复用原文图片"要换思路：
 
 1. **找真图，不找图标签**：交互组件往往从一个数据 base 拉样本图。读页面里那个组件的 JS / 内联 config（如 `data-config` 里的 `base`、`models`、`animals` 字段，或同目录 `*.js`），拼出样本图 URL 模板。实例：`{base}/{model_slug}/{animal}-{vehicle}__s{sample}.png`，配一个 `scores.json` 存每张图的裁判分。直接 curl 下载代表性样本作为复用图——它们是实验的"呈堂证供"，比任何重画都忠实。
-2. **图表"结论"无法静态复用 → 用信息图按原文数值重画**：Plotly 的排名 / 回归图下载不了，但结论数字在正文 / `scores.json` 里。把这些数字原样喂给 SLOT 00 信息图（或专门文内图）重画，**严禁编造数值**；重画完肉眼逐个核对数字与源一致（信息图模型极易把 `1008` 写成 `108` 之类，必须查）。
+2. **图表"结论"无法静态复用 → 用信息图按原文数值重画**：Plotly 的排名 / 回归图下载不了，但结论数字在正文 / `scores.json` 里。把这些数字原样喂给 SLOT 00 信息图（或专门文内图）重画，**严禁编造数值**；重画完逐个核对数字与源一致（逐字核对见"图片查字门控"）。
 3. **复用样本仍走命名契约**：下载的真图落到 `imgs/NN-<desc>.png` 时，文件名必须与 `generate-image-prompts` 为该 SLOT 生成的 prompt basename 字符级一致（下划线），否则 step4 报 basename mismatch。该 SLOT 跳过生图，直接落地复用文件。
 
 判断顺序：先 `grep '<img'` 看有没有静态图；没有就去看交互组件的数据端点；再没有，才全走生成。
@@ -116,6 +116,10 @@ bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
+
+## 图片查字门控
+
+生图完成后、运行 `step4-images.mjs` 前，Agent 必须逐张多模态读图，对图中可见文字（中文、数字、版本号）逐字核对。错字/漏字/乱码进入修复环：改 prompt 重生，或把信息降级到图注、改无文字构图。只有无可见文字或可见文字全部正确才算核对通过；这是 Step 4 的完成判据，防的是平台"AIGC 图片存在明显不合理"判定。复用自源文的真图不在核对范围。
 
 ## 生图命名契约（防断裂）
 

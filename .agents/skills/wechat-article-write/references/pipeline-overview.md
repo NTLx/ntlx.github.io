@@ -71,6 +71,8 @@ posts/{date-slug}/understanding-brief.md
 
 ## Step 0 策略选择
 
+选策略前按 `references/originality-policy.md` 做节奏软感知：一句话报告近 7 天篇数与分类分布，频率过高或同分类连排时提出间隔/换体裁建议。
+
 | 场景 | 策略 |
 |---|---|
 | 用户给 URL/材料，要求读后感、深度分析、观点文 | `reader-response` |
