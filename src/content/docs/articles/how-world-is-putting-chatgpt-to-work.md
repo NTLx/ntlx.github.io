@@ -6,7 +6,7 @@ date: 2026-08-08
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-00-infographic-core-summary-2.png)
 
 过去两年，关于“AI 能否真正提升生产力”的讨论层出不穷。许多企业管理层在白板上规划着复杂的大模型路线图，采购部门也在为数据合规和 Enterprise 租户许可反复拉锯。然而，真实的生产力变革究竟是以怎样的节奏在现实世界中发生的？
 
@@ -29,7 +29,7 @@ category: ai-industry
 
 这种“个体自发代劳”直接绕过了繁琐的企业审批，在微观层面重塑了实际的交付节点。我们在前文[《当岗位边界变成虚线：OpenAI 这篇报告在量什么？》](https://ntlx.github.io/articles/ai-task-crossover-work-frontier)中曾探讨过岗位技能交叉对组织的冲击，而这次 Signals 数据的发布则进一步证实：当工具门槛降为零，个体的履约意愿会瞬间穿透所有体制性的阻力。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-01-global_adoption_rank_gains.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-01-global_adoption_rank_gains-2.png)
 
 ## 采纳鸿沟收拢：南半球正用 AI 实现“跨越式平权”
 
@@ -43,7 +43,7 @@ category: ai-industry
 
 AI 没有拉大不同地理区域之间的基础设施差距，反而成为一种“平民化杠杆”，让后发地区的个体在跨国竞争和本地商业中获得了全新的交付能力。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-02-multimedia_share_world_map.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-02-multimedia_share_world_map-2.png)
 
 ## 多媒体占比破 10%：交互界面从“文本框”演变为“视觉画布”
 
@@ -57,7 +57,7 @@ AI 没有拉大不同地理区域之间的基础设施差距，反而成为一�
 
 正如我们在[《零额外成本把钉钉办公能力接入 ChatGPT》](https://ntlx.github.io/articles/chatgpt-dingtalk-mcp)中所展示的实操范例，当视觉与多模态能力与工作流协议结合，AI 就不再只是文字编辑器，而是具备全感官响应的实时协作者。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-03-demographic_age_35plus_growth.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-08-how-world-is-putting-chatgpt-to-work-img-03-demographic_age_35plus_growth-2.png)
 
 ## 35+ 群体激增 10%：AI 破圈进入全年龄段基础设施阶段
 
