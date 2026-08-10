@@ -6,7 +6,7 @@ date: 2026-08-10
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-00-infographic-core-summary-5.png)
 
 在 AI 爆发的这两年里，如果你跟硅谷或者国内的创业创始人聊聊招聘，几乎所有人都在抱怨同一件事：**“我们收到了海量简历，但根本找不到能用的人。”**
 
@@ -18,7 +18,7 @@ category: ai-industry
 
 在访谈中，Adam 提出了一套振聋发聩的观点：传统招聘依赖的“海量筛选漏斗”，本质上是一个**“毁灭之漏”（Funnel of Doom）**。它不仅招不到市场前 1% 的顶尖人才，还会把公司拖入平庸的泥潭。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-01-funnel_vs_pillar_comparison.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-01-funnel_vs_pillar_comparison-5.png)
 
 ## 为什么说传统的招聘漏斗是“毁灭之漏”？
 
@@ -32,13 +32,13 @@ category: ai-industry
 
 正如我们在分析 [《AI 时代的创业：当"能做"不再是门槛，判断力成了唯一稀缺资源》](https://ntlx.github.io/articles/ai-era-judgment-scarcity) 时所指出的：在工具门槛骤降的时代，极少数具备顶级判断力与硬核工程能力的人才，其生产力杠杆是普通人的数十倍乃至上百倍。拿筛选工场水手的漏斗去招能开航母的舰长，注定是一场灾难。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-02-talent_density_formula.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-02-talent_density_formula-5.png)
 
 ## 人才密度的公式：Effort 是唯一免费的非对称优势
 
 很多人以为，像 Cursor、OpenAI 这样的人才密度是靠天价 Package 砸出来的。但 Adam Ward 给出了一个简单却深刻的人才密度公式：
 
-$$ Talent\ Density = Consistency \times Rigor \times Effort $$
+$$ 人才密度 = 一致性（Consistency） \times 严谨度（Rigor） \times 诚意投入（Effort） $$
 
 - **Consistency（一致性）**：团队在长时间内维持统一高标准的能力；
 - **Rigor（严谨度）**：评估与面试流程的客观性与标准硬度；
@@ -50,7 +50,7 @@ Adam 总结道：“**Caring is free（关心与付出是免费的），但它�
 
 在 Cursor，创始人与核心工程师会花几周甚至几个月时间去跟踪一位全球顶级的工程师，研究他发表过的开源项目、代码 Commit 甚至是技术博客。当创始人直接发出一封针对他项目细节深入探讨的私信时，这种诚意带来的转化率，是任何 Recruiter 群发 1000 封垃圾邮件都无法比拟的。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-03-executive_search_steps.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-03-executive_search_steps-5.png)
 
 ## 告别漏斗：将每一个岗位当作“高管猎头”来死磕
 
@@ -64,7 +64,7 @@ Adam 总结道：“**Caring is free（关心与付出是免费的），但它�
 
 此外，Adam 极力推荐在面试中引入真实的 **Work Samples（工作样例评估）**。与其考几道脑筋急转弯或 LeetCode 算法题，不如直接给候选人一段真实业务中抽象出来的硬核代码片段或架构难题，观察他如何在真实环境中思考与动手。实践证明，Work Sample 是预测入职后实际绩效置信度最高的手段。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-04-forward_deployed_engineer_loop.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-10-cursor-adam-ward-talent-density-playbook-img-04-forward_deployed_engineer_loop-5.png)
 
 ## FDE 崛起：极小团队如何撑起 3 亿美金 ARR？
 
