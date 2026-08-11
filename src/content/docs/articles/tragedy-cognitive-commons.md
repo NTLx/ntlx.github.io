@@ -1,9 +1,11 @@
 ---
-$schema: starlight
 title: AI 降本增效的终局，是切断下一个专家的脐带
-description: 当全行业都在理智地用 AI 替代 Junior、卸载“认知挣扎”时，表面提速的背后正引发严重的“认知公地悲剧”。专长的再生机制正在断裂，而失去了“内化精通”的把关者，终将被表面流畅的 AI 隐蔽漏洞所反噬。
 date: 2026-08-11
+summary: 当全行业都在理智地用 AI 替代 Junior、卸载“认知挣扎”时，表面提速的背后正引发严重的“认知公地悲剧”。专长的再生机制正在断裂，而失去了“内化精通”的把关者，终将被表面流畅的 AI 隐蔽漏洞所反噬。
 category: ai-industry
+blogSlug: tragedy-cognitive-commons
+coverImage: cover.png
+sourceUrl: https://ntlx.github.io/articles/tragedy-cognitive-commons
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-00-infographic-core-summary.png)
