@@ -8,7 +8,7 @@ coverImage: cover.png
 sourceUrl: https://ntlx.github.io/articles/tragedy-cognitive-commons
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-00-infographic-core-summary-7.png)
 
 前段时间，我和几位软件团队负责人聊起当前的招聘状况。几乎所有人都在表达类似的逻辑：“现在有了各种 AI Coding 工具，一个 Senior 配合 AI 效率顶过去三个，我们为什么还要花高薪去招什么都不懂的 Junior（初级程序员）？”在企业财务账本上，这个决定无比理智——不仅省去了薪酬成本，还免去了几年的培训周期以及员工学会后跳槽的风险。
 
@@ -18,7 +18,7 @@ sourceUrl: https://ntlx.github.io/articles/tragedy-cognitive-commons
 
 ## 那些被 AI “优化掉”的 Junior，其实是行业的种子
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-01-causal_chain_paper_fig1.jpg)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-01-causal_chain_paper_fig1-10.jpg)
 
 在人力资本理论中，一个行业的“专长”（Expertise）往往被当成单个人的私有财产，或者是单家企业的核心资产。但 Lovett 的论文指出，**深层领域专长本质上是一种“公共池塘资源”（Common-Pool Resource）**。
 
@@ -37,7 +37,7 @@ sourceUrl: https://ntlx.github.io/articles/tragedy-cognitive-commons
 
 ## 校验脐带：为什么“只会提词”的人做不好把关人
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-02-validation_tether_model.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-02-validation_tether_model-6.png)
 
 许多人可能会反驳：“现在已经是人机协同时代了，未来的核心能力是‘分布式精通’（Distributed Mastery）——即会提词、会编排 AI、会整合成果就行，为什么非要执念于旧时代的‘内化精通’（Internalized Mastery）？”
 
@@ -60,7 +60,7 @@ sourceUrl: https://ntlx.github.io/articles/tragedy-cognitive-commons
 
 ## 潜伏的危局与五大受损维度：从软件到医疗
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-03-occupational_vulnerability_matrix.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-11-tragedy-cognitive-commons-img-03-occupational_vulnerability_matrix-2.png)
 
 这种“认知公地悲剧”最可怕的地方在于它的**潜伏性（Latent Failure）**。
 
