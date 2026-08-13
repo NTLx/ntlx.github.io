@@ -1,6 +1,6 @@
 ---
 name: wechat-article-write
-version: "1.43.0"
+version: "1.44.0"
 author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
@@ -51,7 +51,7 @@ description: >
 | 图片后端 | Step 4 必须先通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI；Codex CLI 可用时是唯一首选，不能被原生 `imagegen` / `image_gen` 工具或 `preferred_image_backend` 绕过；只有 Codex CLI 明确失败后才回退到项目配置的 baoyu provider |
 | 图片串行 | Step 4 生图必须由主会话逐张串行执行；禁止 batch、`Promise.all`、`xargs -P`、后台任务 `&`、多 subagent 分派或任何并发启动多个 `baoyu-image-gen` / `codex exec` 的方式 |
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；禁止 `batch.json` |
-| 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `claymation` 默认风格；封面和文内图继续走 baoyu 模板 |
+| 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `claymation` 默认风格，头部信息图固定阳光明亮鲜艳高饱和度与高可读性配色；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
 | 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/wechat-gzh-layout.md` |
 | 作者签名 | 调用 `gzh-design` 时，签名区 `{{作者名}}` 固定写 `NTLx`，`{{简介}}` 固定写 `热衷于分享 AI 观察与干货`；不要留占位符，不要让 Agent 自行猜测 |

@@ -142,6 +142,8 @@ SLOT 00 是文章开头的全文速读版，不是文内局部插图。目标读
 
 SLOT 00 是文章开头的核心信息图，默认使用 baoyu-infographic 的 `claymation` 风格和低密度 summary 布局。`direction: tech` 可以影响文内插图风格，但不改变头部信息图的默认 `claymation` 风格。只有用户明确要求另一种信息图风格时，才在 `image-plan.json` 里写 `infographic.style` 覆盖。
 
+头部信息图（SLOT 00）的色彩与视觉风格统一限定为：**阳光、明亮、鲜艳、高饱和度，且背景与主体内容具备极高对比度和清晰可读性**（Scene/background: bright, sunny, clean neutral canvas; Color/Atmosphere: sunny, bright, vibrant, high saturation, clear distinction between background and content for maximum readability）。`generate-image-prompts.mjs` 必须固定注入此色彩及高可读性约束。
+
 ## 命名断裂修复（不重生图）
 
 若 step4 报 `Missing images for slots` 且 imgs/ 下存在非 `NN-` 前缀的随机名图，说明生图产物命名断裂。**不要重新生图**，按多模态识别 → 归位的流程修复：
