@@ -6,7 +6,7 @@ date: 2026-08-20
 category: ai-industry
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-00-infographic-core-summary-1.png)
 
 在 2026 年的今天，如果你还在药企的汇报会议上展示“让大模型写一段营销文案”或“让对话框回答一个百科问题”，台下的业务负责人和 CIO 们大概率只会报以礼貌的沉默。
 
@@ -14,7 +14,7 @@ category: ai-industry
 
 > **医药行业的 AI 已经彻底告别了“有没有模型、能不能做 Demo”的狂热期，全面杀入“能否进入真实业务流程、生产系统和决策链，并且做到可信、合规、可衡量”的企业工程化阶段。**
 
-医药健康是一个天然被“强监管、高复杂度、高数据敏感度和零容忍错误成本”严格框定的行业。当消费级 AI 还在追求生成速度和创意想象时，企业级医药 AI 正在经历一场由表及里的结构性重塑。本文基于全天 15 场主题演讲与 2 场高强度圆桌讨论，全景复盘医药健康 AI 在 2026 年的真实技术底色、工程瓶颈与落地方法论。
+医药健康是一个天然被“强监管、高复杂度、高数据敏感度和零容忍错误成本”严格框定的行业。当消费级 AI 还在追求生成速度和创意想象时，企业级医药 AI 正在经历一场由表及里的结构性重塑。本文基于现场 15 场主题演讲与 2 场高强度圆桌讨论，全景复盘医药健康 AI 在 2026 年的真实技术底色、工程瓶颈与落地方法论。（*注：由于上午赶往会场时遭遇早高峰严重堵车，遗憾错过了开场第一位嘉宾泰格医药单彬关于《AI时代CRO的战略选择与落地探索》的主题分享，因此本文从第二位演讲嘉宾复宏汉霖张玥的分享开始梳理，特此向读者说明。*）
 
 ## 一、底层认知重构：全行业达成的七大核心共识
 
@@ -36,7 +36,7 @@ category: ai-industry
 
 ### 1. 临床研究数据与 AI：把算法装进合规质量体系
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-01-clinical_regulatory_compliance.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-01-clinical_regulatory_compliance-1.png)
 
 上海复宏汉霖全球产品开发部数据科学中心负责人**张玥**的分享，给全场敲响了一记合规警钟：**临床 AI 不是在原有质量体系外开辟特区，而是必须把 AI 纳入计算机化系统验证（CSV）的严密监管之中。**
 
@@ -46,7 +46,7 @@ category: ai-industry
 
 ### 2. 智算与混合架构：AI 成本模型的范式位移
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-02-alicloud_ai_pharma_paradigm.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-02-alicloud_ai_pharma_paradigm-1.png)
 
 阿里云高级解决方案架构师**孙梦莎**从算力与产业链视角指出：随着企业 AI 从“人工偶尔对话”转向“7×24 小时自主运行的 Agent 集群”，**Token 消耗正在从员工的使用量激增为机器的工作量**，企业的 IT 成本模型正经历根本性位移。
 
@@ -54,7 +54,7 @@ category: ai-industry
 
 ### 3. 森松 MVP 模式：AI 必须进入物理生产现场
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-03-morimatsu_mvp_smart_factory.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-03-morimatsu_mvp_smart_factory-1.png)
 
 上海森松数智化创新事业部副总经理**黄胜**带来了一个极具冲击力的工业制造视角：**AI 如果只停留在电脑屏幕里，很容易沦为 IT 部门的自娱自乐；它必须扎进物理车间、装备与工艺现场。**
 
@@ -62,7 +62,7 @@ category: ai-industry
 
 ### 4. 科学智能体前沿：多模态与科学工具链编排
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-05-google_cloud_lifesciences_agents.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-05-google_cloud_lifesciences_agents-1.png)
 
 Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 的前沿技术架构：**Multimodal + Multi-Agent + Scientific Tools**。
 
@@ -74,7 +74,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 1. 供应链 AI 重塑：用业务结果衡量真实 ROI
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-04-supply_chain_ai_restructuring.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-04-supply_chain_ai_restructuring-1.png)
 
 江苏省医药信息部总经理**彭俊**分享了一组极具说服力的实践数据：通过将规则自动化与业务 Agent 深度结合，在多平台订单智能聚合、商品编码自动清洗、复杂合同审核等场景下，改造后直接释放了约 17 人的繁重工作量，整体供应链流转效率提升近 50%。
 
@@ -82,7 +82,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 2. 经营决策跃迁：从菜单系统到 Skill 化决策引擎
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-06-starplex_decision_intelligence.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-06-starplex_decision_intelligence-1.png)
 
 未名企鹅解决方案专家 **Viola Xu** 深入剖析了药企经营侧的数据痛点。传统药企的流向数据、终端动销、医生画像与学术活动数据往往割裂在不同孤岛。
 
@@ -90,7 +90,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 3. 人福医药采购 Agent：首创 30 天 Outcome 业务回溯
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-08-renfu_pharma_purchase_agent.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-08-renfu_pharma_purchase_agent-1.png)
 
 人福医药信息总监**张宇**分享了全天最具方法论价值的实战案例之一——**生产级采购智能体**。
 
@@ -100,7 +100,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 4. 非结构化文档解析：大模型进生产前的“隐形地基”
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-10-intsig_document_data_trust.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-10-intsig_document_data_trust-1.png)
 
 合合信息智能解决方案事业部负责人**邓亚光**指出了许多药企在落地 AI 时的隐秘痛点：**很多时候不是大模型不够聪明，而是模型根本读不懂药企那些复杂的原始资料。**
 
@@ -112,7 +112,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 1. 马应龙的“入山问樵”：AI 推广本身就是一款产品
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-07-mayinglong_traditional_ai_adoption.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-07-mayinglong_traditional_ai_adoption-1.png)
 
 马应龙药业信息中心副总经理**曹颖**用生动的“入山问樵”比喻药企的 AI 探索：**智能体的需求必须来自一线岗位的真实痛点，绝不能靠 IT 部门闭门造车。**
 
@@ -120,7 +120,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 2. 直观复星的双轨治理：人人用 AI，事事可信赖
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-09-intuitive_fosun_ai_governance.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-09-intuitive_fosun_ai_governance-1.png)
 
 直观复星 IT 总监**王海**分享了医疗器械与高端制造企业的克制与坚守。面对 AI 浪潮，直观复星推行“双轨并行”：在通用办公与生产力工具上提倡“AI First / 人人用 AI”；但在涉及经营问数、临床分析和合规审批的核心链条上，坚持“事事可信赖”与严格的人工复核。
 
@@ -128,7 +128,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 3. 南京医药：数字化转型的 80% 在于组织与执行
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-11-nanjing_pharma_digital_transformation.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-11-nanjing_pharma_digital_transformation-1.png)
 
 南京医药数字创新中心总监**张显灿**从集团数字化顶层设计的高度指出：**AI 不会凭空抹平企业原有的数字化欠账，反而会像放大镜一样，将历史上遗留的数据孤岛、流程割裂与人才匮乏暴露无遗。**
 
@@ -136,7 +136,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 4. 海岸药业的工厂渐进路：传感器 + 专业模型 + 知识库
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-12-coast_pharma_factory_ai.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-12-coast_pharma_factory_ai-1.png)
 
 江苏海岸药业信息部负责人**常伟**展示了制药工厂极其务实的渐进三步走：**“融入日常 → 融入流程 → 融入业务”**。
 
@@ -144,7 +144,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 5. 复星医药“AI for Lean”：千万不要用数字化去复制浪费
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-13-fosun_pharma_ai_for_lean.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-13-fosun_pharma_ai_for_lean-1.png)
 
 复星医药精益运营部联席总经理**金勇**提出了全天最具穿透力的管理哲学：**AI 与数字化绝不能替代精益改善；如果一个流程本身充斥着冗余与浪费，给它套上 AI 只不过是在“高效率地制造浪费”。**
 
@@ -152,7 +152,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 6. 扬子江药业：业务运营智能体中台与知识工程
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-14-yangtzi_pharma_agent_hub.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-14-yangtzi_pharma_agent_hub-1.png)
 
 扬子江药业 CIO **侯钧**系统阐述了制药航母级企业的平台化蓝图。扬子江的发展路径代表了大型药企的主流方向：告别烟囱式的单点应用开发，全力建设统一的**业务运营智能体中台**。
 
@@ -160,7 +160,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 7. 海陵药业的敏捷突围：单点打透，以点带面
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-15-hailiang_pharma_agile_ai.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-15-hailiang_pharma_agile_ai-1.png)
 
 海陵药业信息部负责人**华旭**分享了中型药企的高效突围路径：不搞大而全的庞大蓝图，而是采取“敏捷迭代、单点突破、一个模型先干好一件事”的战术。从业务意愿最强、见效最快的痛点部门切入，用扎实的数据证明价值，再顺势向全公司推广。
 
@@ -170,7 +170,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 圆桌一：技术突破与伦理监管如何平衡？
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-16-roundtable_ethics_governance.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-16-roundtable_ethics_governance-1.png)
 
 在华旭、常伟、李蕾（天士力）、周鹏程（紫龙药业）的深度对谈中，全场达成了一个决定性的治理共识：**企业对待 AI，不是去限制其底层技术能力，而是必须根据业务风险等级，严格限制其“行动自主权”。**
 
@@ -187,7 +187,7 @@ Google Cloud 生命科学首席架构师 **Edward Li** 展现了生命科学 AI 
 
 ### 圆桌二：集采与医保控费下，如何寻找第二增长曲线？
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-17-roundtable_growth_patient_value.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-20-mdt-2026-pharma-ai-summit-img-17-roundtable_growth_patient_value-1.png)
 
 面对集采常态化带来的价格与利润挤压，药企不得不将目光投向院外市场、DTP 药房、处方外流、慢病管理与患者全生命周期服务。
 
