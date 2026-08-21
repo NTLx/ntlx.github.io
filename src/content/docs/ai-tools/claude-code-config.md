@@ -2,11 +2,12 @@
 $schema: starlight
 title: Claude Code 自定义配置
 description: Claude Code 环境变量、配置文件和插件的详细配置指南
+updated: 2026-08-21
 ---
 
 安装 Claude Code 后，如果需要使用自定义 API 端点（如公司内部部署或第三方代理），可以通过环境变量和配置文件进行配置。
 
-![Claude Code 配置全览](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-05-27-claude-code-config-guide-img-00-infographic-core-summary.png)
+![Claude Code 配置全览](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/blog/claude-code-config-head-v2.png)
 
 :::tip[快速安装]
 如需安装 Claude Code，请参阅 [AI Coding CLI 工具一键安装](/ai-tools/install-cli-tools)。
