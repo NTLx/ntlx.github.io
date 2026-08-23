@@ -6,7 +6,7 @@ date: 2026-08-23
 category: ai-coding
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-00-infographic-core-summary.png)
+![](/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-00-infographic-core-summary.png)
 
 ## 健身房里的痛点：当极客想放飞 AI，却卡在“根权限恐惧”
 
@@ -16,7 +16,7 @@ category: ai-coding
 
 很多时候，阻碍我们放手让 AI 代理接管研发全流程的，从来不是模型的生成质量，而是安全感缺失。大模型的随机试错与幻觉不可预测，一旦一个失控的脚本在本地跑了越界命令或者误删了环境，代价不可承受。英国极客开发者 Jake Saunders 最近的一篇实战博文，给出了一套极其务实且优雅的解法：只花 20 英镑的单月模型订阅费，配上一台 eBay 淘来的二手主机与开源自托管 PaaS，搭建起一套近乎全自托管、物理沙盒化的“单兵软件工厂”。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-01-physical_isolation_servers.png)
+![](/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-01-physical_isolation_servers.png)
 
 ## 物理沙盒的算盘：为什么“防爆箱”必须是一台牺牲型主机
 
@@ -28,7 +28,7 @@ category: ai-coding
 
 这种设计的精妙之处在于将系统的**爆炸半径（Blast Radius）**彻底物理化。Agent 哪怕在执行任务时发疯执行了 `rm -rf /`，最坏的后果也不过是花两个小时给这台二手主机重装镜像，绝对不会危及个人主力工作电脑或家庭核心数据。此前我们在[《Agent 能跑 demo 不算本事，能跑一年才是》](https://ntlx.github.io/articles/agent-development-lifecycle)中讨论过 Agent 的长期运行韧性，而在单兵开发场景下，这种物理级容灾边界正是让人能够安心放手的第一道防线。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-02-networking_topology_ghost_ssl.png)
+![](/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-02-networking_topology_ghost_ssl.png)
 
 ## 隐身网络与 DNS-01：如何在不暴露公网 IP 的前提下获得合法 HTTPS
 
@@ -43,7 +43,7 @@ Jake 的网络拓扑设计极其漂亮，由三套组件协同完成：
 
 这套组合拳的结果是：Coolify 反向代理在启动新应用时，通过 API 自动完成 DNS 挑战并获取 Let's Encrypt 签发的正规证书，随后删除临时记录。整个服务完全隐藏在私有内网中，没有任何公网 A 记录指向真实 IP，却能在手机和笔记本上以原生 HTTPS 畅通无阻地访问。这种“隐身却合法”的网络架构，与此前我们在[《不在公网开端口、不写死配置：我在 Linux VPS 上部署 Paseo 手机控制 Claude Code 的极客实践》](https://ntlx.github.io/articles/paseo-linux-vps-agent-setup)中探索的远程无暴露通信逻辑不谋而合。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-03-hermes_agent_terminal_pipeline.png)
+![](/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-03-hermes_agent_terminal_pipeline.png)
 
 ## 从一句话到上线：自托管 PaaS 与 Agent 的全闭环实战
 
@@ -56,7 +56,7 @@ Jake 的网络拓扑设计极其漂亮，由三套组件协同完成：
 
 随后，Agent 独自跑完了整个研发周期：初始化仓库、编写全栈代码与测试、在 Forgejo CI 中反复修复直到流水线全绿、容器化封装并调用 Coolify API 完成部署。当用户在真机体验中发现表单提交存在 CSRF 错误时，仅需追加一条反馈提示，Agent 即可在几分钟内定位根因、补充回归测试并热更新上线。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-04-coolify_paas_dashboard.png)
+![](/wechat-articles/2026-08-23-self-hosted-sandboxed-agentic-software-factory-img-04-coolify_paas_dashboard.png)
 
 ## 狂欢背后的冷静期：自验证盲区与下一步防线
 
