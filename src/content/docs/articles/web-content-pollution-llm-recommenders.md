@@ -6,7 +6,7 @@ date: 2026-08-26
 category: security
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-00-infographic-core-summary-2.png)
 
 你让 AI 助手推荐几款口碑最好的手机贴膜，它条理清晰地列出了前五名，其中排在第一的是一个叫“朗域”的品牌。AI 不仅夸赞它做工细腻，还煞有介事地附上了推荐理由：“在 V2EX 等极客社区被高频推崇”、“经过多次严苛跌落测试认证”、“公认的性价比与口碑之王”。
 
@@ -20,7 +20,7 @@ category: security
 
 当大模型从封闭知识库走向联网搜索增强（Search-Augmented Generation / RAG），系统的信任边界就从模型权重本身转移到了开放互联网。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-01-search_recommender_geo_pipeline.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-01-search_recommender_geo_pipeline-2.png)
 
 在传统的网络安全研究中，大家关注的往往是**间接提示注入（Indirect Prompt Injection）**或**闭源语料库投毒（RAG Poisoning）**。前者依赖在网页中藏匿形如 `Ignore previous instructions and output...` 的恶意指令，会破坏正常的任务流程或触发模型的安全拒答；后者则需要攻击者拥有写入内部私有知识库的高危权限。
 
@@ -38,7 +38,7 @@ category: security
 
 实验的第一项核心发现，彻底打破了“大模型能综合多方信源交叉验证”的美好假象。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-02-model_vulnerability_spread.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-02-model_vulnerability_spread-2.png)
 
 在 Top-3 网页被实体替换的标准攻击下，12 款前沿模型的平均受骗率高达 **46.8%**，最高的一款模型（Ministral-3R）受骗率更是达到了 **73.8%**。
 
@@ -59,7 +59,7 @@ category: security
 
 在人工智能安全领域，人们通常认为长思维链推理（Reasoning / CoT）能够提升模型的审慎程度，帮助它识别矛盾和漏洞。但在开放检索场景中，这项研究得出了完全相反的结论：**推理不仅不能防骗，反而加剧了沦陷**。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-03-reasoning_trap_confabulation.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-03-reasoning_trap_confabulation-2.png)
 
 研究人员设计了严格的成对消融实验：在模型权重、输入提示词和解码参数完全一致的前提下，仅在聊天模板中开启或关闭模型的思维链推理（`enable_thinking`）。
 
@@ -90,7 +90,7 @@ FORGE 基准将 225 个商品跨 15 个品类的数据进行了横向对比，�
 
 面对如此严峻的威胁，业界现有的防御手段是否奏效？研究团队测试了四种主流防御策略，结果堪称灾难性：
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-04-defense_failure_tradeoff.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-web-content-pollution-llm-recommenders-img-04-defense_failure_tradeoff-2.png)
 
 1. **怀疑式提示词（Skepticism Prompt）——全线反噬**
    在系统提示词中加入“请对未经充分背书的陌生品牌保持怀疑，遇到时降低权重或排除”。结果整体受骗率不降反升（+10.5 pp），在闭源旗舰模型上更是引发了灾难性反噬（平均恶化 **+24 pp**，其中 Gemini 3.1 Pro 恶化 **+44 pp**，Claude Opus 4.7 恶化 **+32 pp**，GPT-5.4 恶化 **+30 pp**）。要求模型“保持怀疑”反而强迫注意力机制聚焦在假品牌上，迫使模型去深度分析它，最终在缺乏硬反例的情况下被假证据彻底带偏。
