@@ -6,7 +6,7 @@ date: 2026-08-26
 category: ai-models
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-00-infographic-core-summary-6.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-00-infographic-core-summary-8.png)
 
 把大模型接入生产系统的工程师，大概都经历过类似的纠结：打开各大排行榜，看着眼花缭乱的跑分，再对比各家云厂商按每百万 Token 标出的价格表，试图算出一套性价比最高的技术方案。
 
@@ -24,7 +24,7 @@ OpenRouter 官方近期发布了一篇深度选型指南《How to Choose the Bes
 - 长文档分析和日志总结受上下文窗口和输入 Token 单价支配；
 - 代码辅助开发则高度依赖推理深度与工具调用（Tool-call）的稳定性。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-01-model_selection_workflow_framework-4.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-01-model_selection_workflow_framework-6.png)
 
 即使把范围收窄到看似单一的“编程”场景，笼统的评价依然会失效。OpenRouter 统计了真实流量中的 29 类任务标签，仅编程就被细分为代码生成、复杂调试、代码审查与安全、前端 UI、代码库扫描、SQL 与数据库、DevOps 配置等 9 个子类别。而在这些细分项中，领先的模型各不相同：有的模型在通用代码实现中占优，另一个模型则在安全审计与 PR 审查中领跑。
 
@@ -40,7 +40,7 @@ $$\text{单任务完成成本} = ((\text{输入 Token} \times \text{输入单价
 
 这个公式里最关键的乘数，是“期望尝试次数”（即失败重试率）。一个标价低廉的模型，如果因为格式错误、逻辑幻觉而需要重试三次，或者最终不得不回退到高阶模型进行修复，那么它在单位任务上的实际开销和延迟惩罚就会成倍飙升。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-02-price_reversal_breakeven_curve-4.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-02-price_reversal_breakeven_curve-5.png)
 
 这种现象在推理模型（Reasoning Models）普及后变得尤为剧烈。加州大学伯克利分校与斯坦福大学团队在 2026 年发表的研究论文《The Price Reversal Phenomenon: When Cheaper Reasoning Models Cost More》（arXiv:2603.23971）中系统证实了这一点：
 - 在 8 个主流推理模型的对比实验中，**高达 32% 的模型对比出现了“价格反转”**，即标称 Token 单价更低的模型，最终跑完任务的总推理账单反而更高；
@@ -61,7 +61,7 @@ $$\text{单任务完成成本} = ((\text{输入 Token} \times \text{输入单价
 
 OpenRouter 提出的解法是将整个选型流水线直接接入开发环境。通过其官方托管的 MCP Server（Model Context Protocol），在 Claude Code、Cursor、Codex CLI 等现代编辑器中直接调取实时运行数据。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-03-in_editor_mcp_session_query-4.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-26-choose-best-ai-model-in-editor-img-03-in_editor_mcp_session_query-5.png)
 
 这一闭环在编辑器内的执行路径非常清晰：
 1. **任务边界定义**：明确业务的刚性约束（如 Schema 容错率、输入输出比例、延迟上限）；
