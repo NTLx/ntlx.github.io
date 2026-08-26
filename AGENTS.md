@@ -152,6 +152,40 @@
 
 4. **发布输入源校验**：Step 6.1（博客）输入必须是 `article.md`（CDN URL 版）；Step 6.2（微信）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
+5. **覆盖发布清理备份**：使用 `publish-blog.mjs --overwrite` 会产生 `.backup-*.md` 临时备份文件，发布完成后应及时清理，防止 Astro Starlight 将备份文件识别为重复页面。
+
+## 学术论文素材与原图提取指南
+
+在处理学术论文（arXiv、ACL、IEEE、USENIX 等）素材并需要**复用原文图表**时，必须确保图表排版与文字的绝对准确：
+
+### 1. arXiv HTML/SVG 避坑陷阱
+
+- **严禁直接提取 standalone `<svg>` 渲染**：arXiv HTML 采用 LaTeXML 生成，其内嵌 SVG 深度依赖外层父级容器的 CSS 类（如 `.ltx_picture`、`.ltx_text`、`.ltx_foreignobject_container`）、特定的矩阵坐标变换（`matrix(1 0 0 -1 ...)`）和全局 Web 字体。
+- **后果**：直接抽取 `<svg>` 标签用无头浏览器（Chrome Headless）独立截图渲染，会导致**文字坐标倒置、图例/文字严重挤压重叠、标签被边缘截断、公式乱码**。
+
+### 2. 标准原图提取方案（矢量 PDF 高清裁切）
+
+当需要复用论文原图时，一律采用**官方矢量 PDF + PyMuPDF 视口高清裁切**方案：
+
+1. **下载官方 PDF**：拉取 `https://arxiv.org/pdf/<arxiv-id>` 到本地临时路径；
+2. **PyMuPDF 300 DPI 矢量渲染**：使用 `uv run --with pymupdf python` 运行提取脚本，按页面与精确 bounding box 提取：
+   ```python
+   import pymupdf
+
+   doc = pymupdf.open('paper.pdf')
+   page = doc[page_num - 1]
+   # 缩放至 300 DPI（300 / 72.0）
+   mat = pymupdf.Matrix(300 / 72.0, 300 / 72.0)
+   # 预留 5~10pt 呼吸留白，避免坐标轴标签（如纵轴 %）触壁
+   clip = pymupdf.Rect(x0, y0, x1, y1)
+   pix = page.get_pixmap(matrix=mat, clip=clip)
+   pix.save(out_path)
+   ```
+3. **多图裁切边界确定法**：先用 `page.get_text('blocks')` 打印目标图表及周边图注的精确坐标块，再微调 `y0` 与 `x0`，彻底排除上方/下方的正文段落和表格边缘；
+4. **终态视觉验证（VDE）**：生成/提取每一张原图后，**必须**使用 `view_file` 逐张检查：
+   - 确认图表内所有文字、图例、数据点、坐标轴标记（特别是纵轴顶部的单位/括号）完整无遮挡；
+   - 确认图注（Caption）未被上下段落文字污染。
+
 ## 联网工具选择指南
 
 Agent 在需要联网时，根据场景自主选择最合适的工具，无需强制走统一入口。
