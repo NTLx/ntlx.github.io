@@ -12,7 +12,7 @@ category: ai-industry
 
 这和“愿不愿意试用一个聊天机器人”不是一回事。前者意味着 AI 要接触企业知识、业务系统和权限，还要在结果不对时留下证据、接受追问，并有人承担最后的责任。
 
-图：全文信息图｜把我今天听到的“上下文 → 执行 → 责任 → 生产化”压缩成一张图。
+说明：今天有些演讲因为录音设备问题，没有取得完整的内容转录。为避免断章取义，文中不体现这部分内容，只记录我能够确认的分享和现场观察。
 
 ## 一、今天我记下的第一个变化：AI 开始被要求“上班”
 
@@ -30,23 +30,23 @@ category: ai-industry
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-01-customer_context_salesforce.png)
 
-图：02｜阿里云 × Salesforce 的客户互动路径。它提醒我，企业 AI 的上下文不只是一批文档，还包括客户、关系、权限和业务动作。
+图：阿里云 × Salesforce 的客户互动路径。它提醒我，企业 AI 的上下文不只是一批文档，还包括客户、关系、权限和业务动作。
 
 LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、多语言、术语、隐私、审计和人工纠正，都是企业文档的一部分。对药企来说，一份文件不是把句子翻译通顺就结束了，格式和版本也可能关系到它能不能进入后续流程。
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-02-document_engineering_lingomaster.png)
 
-图：07｜LingoMaster 企业级 AI 文档翻译。企业知识并不等于纯文本，能不能保住结构、术语和审计信息，直接影响 AI 输出能否被使用。
+图：LingoMaster 企业级 AI 文档翻译。企业知识并不等于纯文本，能不能保住结构、术语和审计信息，直接影响 AI 输出能否被使用。
 
 以岭药业讲“本体驱动企业智能引擎”，合合信息讲“文档筑基，数据可信”。这两场放在一起看，刚好补上了上下文的两个面：本体解决“企业里的对象和关系是什么”，可信文档与数据解决“我凭什么相信这条信息”。
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-03-enterprise_ontology_semantic_layer.png)
 
-图：09｜以岭药业本体驱动企业智能引擎。
+图：以岭药业本体驱动企业智能引擎。
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-04-credible_documents_rules_models.png)
 
-图：12｜合合信息文档与可信数据基础。
+图：合合信息文档与可信数据基础。
 
 所以我现在更愿意把企业上下文写成一条链：**对象与关系、内容与证据、规则与条件、流程与接口**。RAG 解决的是“把可能相关的内容找出来”；企业智能还要继续回答“它和谁有什么关系”“在什么条件下成立”“下一步能不能做”。
 
@@ -58,7 +58,7 @@ LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、�
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-05-crm_system_of_action.png)
 
-图：10｜纷享销客“从记录系统到智能伙伴”。
+图：纷享销客“从记录系统到智能伙伴”。
 
 但“智能伙伴”不是换一个更有拟人感的名字就成立了。它至少要完成几步：理解目标，取得相关上下文，检查权限，调用工具，生成或执行动作，回写结果，遇到例外时把问题交给合适的人。
 
@@ -66,7 +66,7 @@ LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、�
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-06-agent_cluster_legacy_systems.png)
 
-图：14｜实在智能医药全链 Agent 集群。
+图：实在智能医药全链 Agent 集群。
 
 我会特别警惕一种表面上的繁荣：企业拥有越来越多 Agent，但没有统一身份、权限、日志、评估和回滚机制。Agent 数量增加，不等于执行能力增加；如果每个 Agent 都有一套没人维护的提示词和知识库，它们最后可能只是新的“数字烟囱”。
 
@@ -74,7 +74,7 @@ LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、�
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-07-supply_chain_measurable_outcomes.png)
 
-图：17｜江苏省医药有限公司供应链效能提升。
+图：江苏省医药有限公司供应链效能提升。
 
 所以，Agent 的成熟度不应先用数量衡量，而应看三件事：它能不能进入真实流程，动作有没有权限和边界，结果能不能回到业务系统里被复盘。
 
@@ -86,11 +86,11 @@ LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、�
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-11-registration_evidence_review.png)
 
-图：01｜复宏汉霖“AI 赋能药品注册申报全链条”。
+图：复宏汉霖“AI 赋能药品注册申报全链条”。
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-08-gxp_human_review_loop.png)
 
-图：13｜凯莱英临床（凯诺）临床和质量 AI 应用。
+图：凯莱英临床（凯诺）临床和质量 AI 应用。
 
 我把这个结构压缩成一条证据链：**输出 → 主张 → 证据 → 来源 → 版本与时间 → 责任人**。它不要求 AI 永远不犯错，但要求系统能够发现错误、限制错误、解释错误，并在必要时把决定升级给人。
 
@@ -100,13 +100,13 @@ LingoMaster 的信息图则把“文档”本身拆开了：结构、版式、�
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-09-lighthouse_digital_foundation.png)
 
-图：04｜云南白药从传统药企到“灯塔工厂”的数字化转型。
+图：云南白药从传统药企到“灯塔工厂”的数字化转型。
 
 江苏正大清江制药的分享把这件事说得更直接：数字化不是 IT 部门的独角戏，业务必须参与流程和规则的定义。
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-27-cmis-2026-pharma-ai-production-img-10-business_owner_digitalization.png)
 
-图：11｜江苏正大清江制药“以数为基，智赋药企高质量发展”。
+图：江苏正大清江制药“以数为基，智赋药企高质量发展”。
 
 我越来越相信，医药企业的 AI 护城河不是“生成能力”，而是**可信执行能力**。模型可以更换，工具也会更新，但一套能被业务、质量和监管共同检查的责任结构，才会沉淀下来。
 
