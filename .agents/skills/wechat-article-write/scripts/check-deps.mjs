@@ -70,14 +70,14 @@ function commandExists(command) {
 }
 
 function checkSharedProjectEnv() {
-  requirePath(".baoyu-skills/.env", "project env");
+  warnPath(".baoyu-skills/.env", "project env (发布凭据，CI/新 clone 可缺失)");
 }
 
 function checkImageConfig() {
   for (const rel of [
     ".baoyu-skills/baoyu-image-gen/EXTEND.md",
   ]) {
-    requirePath(rel, "project EXTEND.md");
+    warnPath(rel, "project EXTEND.md");
   }
 }
 
@@ -85,7 +85,7 @@ function checkBuildConfig() {
   for (const rel of [
     ".baoyu-skills/baoyu-image-gen/EXTEND.md",
   ]) {
-    requirePath(rel, "project EXTEND.md");
+    warnPath(rel, "project EXTEND.md");
   }
 }
 
@@ -93,7 +93,7 @@ function checkPublishConfig() {
   for (const rel of [
     ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md",
   ]) {
-    requirePath(rel, "project EXTEND.md");
+    warnPath(rel, "project EXTEND.md");
   }
 }
 
