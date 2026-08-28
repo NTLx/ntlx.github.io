@@ -4,12 +4,12 @@
 
 | Step | 动作 | 执行者 | 说明 |
 |---|---|---|---|
-| 0 | 文章类型判定 | Agent | 选择 `references/strategies/` 下的策略 |
+| 0 | 文章类型判定 | Agent | 选择 `references/` 下的策略 |
 | 1 | 资料收集 | Agent + 门控 | 写 `materials.md`，运行 `step1-collect.mjs` |
 | 1.5 | 站内记忆检索 | 脚本 | 读取 `materials.md` 和已发布博客，生成 `blog-memory.md/json` |
 | 1.8 | 理解增强 | Agent | 读取 `materials.md` / `blog-memory.md`，调用 ljg 系列技能，生成 `understanding-brief.md` |
 | 2 | 文章创作 | Agent + 门控 | 写 `draft.md` / `image-plan.json`，运行 `step2-write.mjs` |
-| 3 | 文本后处理 | Agent + 门控 | 调用 humanizer / formatter，运行 `step3-polish.mjs` |
+| 3 | 文本后处理 | Agent + 门控 | 按初稿来源路由（手稿→renwei-writing；AI 初稿→format 确定性脚本 lint + 按需 humanizer-zh），运行 `step3-polish.mjs` |
 | 4 | 图片生成 | Agent + 门控 | 生成 prompt、串行生图，运行 `step4-images.mjs` |
 | 5 | 产物构建 | 脚本 + Agent | 脚本生成 `article.md` + `article-wechat-source.md`，Agent 调用 `gzh-design` 生成 `article-wechat.html`，脚本 finalize |
 | 6 | 双轨发布 | 脚本 | 博客先发，微信草稿后发 |
@@ -65,9 +65,9 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 posts/{date-slug}/understanding-brief.md
 ```
 
-具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-constraint`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-paper-river`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
+具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-constraint`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
 
-`understanding-brief.md` 不是素材堆放区，而是 Step 2 的写作契约。它必须把材料压成核心问题链、中心论点、判断边界、可视觉化节点和站内旧文联动建议。Step 2 调用 `ljg-writes` 时必须读取它。
+`understanding-brief.md` 不是素材堆放区，而是 Step 2 的写作契约。它必须把材料压成核心问题链、中心论点、判断边界、可视觉化节点和站内旧文联动建议。`reader-response` 的 Step 2 调用 `ljg-writes` 产出正文候选时，必须读取它。
 
 ## Step 0 策略选择
 
@@ -94,9 +94,9 @@ posts/{date-slug}/understanding-brief.md
 
 本仓库默认追求的是 **Agent 自动**。因此 `pipeline.mjs --auto` 遇到 Step 5 时，如果只完成了预处理，会继续提示 Agent 调用 `gzh-design`，而不是假装脚本已经能独立完成微信排版。
 
-## 多文章拆分
+## 多文章拆分（reader-response）
 
-Step 1 后判断材料是否超出单篇 ljg-writes 文章承载：
+Step 1 后判断材料是否超出单篇 ljg-writes 文章承载（仅 `reader-response` 适用；`news-digest` 按简报自身结构组织）：
 
 - 包含 3 个以上相互独立且各有深度的主题；
 - 每个主题都值得独立展开；

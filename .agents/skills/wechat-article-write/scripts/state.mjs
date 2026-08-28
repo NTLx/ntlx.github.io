@@ -21,10 +21,11 @@ import {
   initState, loadState,
   markStepDone, markStepFailed,
   markBlogDone, markWechatDone, markWechatFailed,
-  nextStep, getPublishState
+  nextStep, getPublishState, setStrategy
 } from "./state-lib.mjs";
+import { isKnownStrategy, nextStageFromStep, stageReadRef } from "./workflow.mjs";
 
-const KNOWN_COMMANDS = new Set(["init", "get", "next", "done", "fail", "blog", "wechat", "dump"]);
+const KNOWN_COMMANDS = new Set(["init", "get", "next", "done", "fail", "blog", "wechat", "dump", "stage", "strategy"]);
 
 function fail(msg) { process.stderr.write(`state.mjs: ${msg}\n`); process.exit(1); }
 
@@ -73,6 +74,9 @@ function printUsage() {
   blog  <date-slug> <done|blocked|get>  博客发布子状态
   wechat <date-slug> <done|failed|get> [error]  微信发布子状态
   dump  <date-slug>                     输出完整 state JSON
+  stage <date-slug> next                输出下一个命名阶段（prepare/research/draft/…；未选策略→unknown）
+  strategy <date-slug> set <name>       设置当前文章的写作策略（reader-response|tutorial|news-digest）
+  strategy <date-slug> get              查看当前策略
 
 示例:
   state.mjs init  2026-05-23-my-article
@@ -139,6 +143,42 @@ switch (cmd) {
     else fail(`wechat subcommand: done|failed|get, got "${sub}"\n  用法: state.mjs wechat <date-slug> <done|failed|get> [error]`);
     break;
   }
+  case "stage": {
+    const sub = rest[0];
+    if (sub === "next") {
+      const s = loadState(slug);
+      const last = s?.last_complete_step ?? 0;
+      const pub = s?.publish ?? { blog: "pending", wechat: "pending" };
+      const strategy = s?.strategy;
+      if (!isKnownStrategy(strategy)) {
+        process.stdout.write("unknown\n");
+        process.stdout.write(`WARN: 状态未记录写作策略（strategy）。命名阶段无法推导。\n`);
+        process.stdout.write(`  旧状态（数字 Step）仍然有效；如需命名阶段，请先设置: state.mjs strategy set ${slug} <reader-response|tutorial|news-digest>\n`);
+        break;
+      }
+      const next = nextStageFromStep(strategy, last, pub);
+      process.stdout.write(next + "\n");
+      process.stdout.write(`Read: ${stageReadRef(strategy, next)}\n`);
+    } else fail(`stage subcommand: next, got "${sub}"\n  用法: state.mjs stage <date-slug> next`);
+    break;
+  }
+  case "strategy": {
+    const sub = rest[0];
+    if (sub === "set") {
+      const name = rest[1];
+      if (!isKnownStrategy(name)) {
+        fail(`无效策略: ${name ?? "(missing)"}。可选: reader-response, tutorial, news-digest`);
+      }
+      setStrategy(slug, name);
+      process.stdout.write(`ok: strategy=${name}\n`);
+    } else if (sub === "get") {
+      const s = loadState(slug);
+      process.stdout.write(`${s?.strategy ?? "unset"}\n`);
+    } else {
+      fail(`strategy subcommand: set|get, got "${sub}"\n  用法: state.mjs strategy <date-slug> <set <name>|get>`);
+    }
+    break;
+  }
   case "dump": {
     const s = loadState(slug);
     if (!s) fail(`no state for "${slug}"`);
@@ -146,5 +186,5 @@ switch (cmd) {
     break;
   }
   default:
-    fail(`unknown command "${cmd}". Known: init, get, next, done, fail, blog, wechat, dump`);
+    fail(`unknown command "${cmd}". Known: init, get, next, done, fail, blog, wechat, dump, stage, strategy`);
 }

@@ -150,4 +150,28 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(prompt).toContain("style=claymation");
     expect(prompt).not.toContain("style=technical-schematic");
   });
+
+  // §3.5 pinned compatibility: generate-image-prompts 把 baoyu-infographic
+  // 的内部目录（references/layouts、references/styles）当模板源。
+  // 升级 baoyu-* 前先跑本测试：任一 layout/style 消失或结构损坏都会亮红。
+  test("infographic compatibility: every referenced layout/style exists in baoyu-infographic", () => {
+    const mapPath = resolve(REPO_ROOT, ".agents/skills/wechat-article-write/references/image-template-map.json");
+    const templateMap = JSON.parse(readFileSync(mapPath, "utf8"));
+
+    const layoutsDir = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/layouts");
+    const stylesDir = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/styles");
+
+    for (const layout of templateMap.infographic_layouts) {
+      const p = resolve(layoutsDir, `${layout}.md`);
+      expect(existsSync(p), `layout ${layout}.md missing in baoyu-infographic`).toBe(true);
+      const content = readFileSync(p, "utf8").trim();
+      expect(content.length, `layout ${layout}.md is empty`).toBeGreaterThan(0);
+    }
+    for (const style of templateMap.infographic_styles) {
+      const p = resolve(stylesDir, `${style}.md`);
+      expect(existsSync(p), `style ${style}.md missing in baoyu-infographic`).toBe(true);
+      const content = readFileSync(p, "utf8").trim();
+      expect(content.length, `style ${style}.md is empty`).toBeGreaterThan(0);
+    }
+  });
 });

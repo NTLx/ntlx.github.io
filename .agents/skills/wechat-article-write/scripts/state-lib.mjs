@@ -66,12 +66,13 @@ export function saveState(slug, state) {
   writeFileSync(p, JSON.stringify(state, null, 2) + "\n");
 }
 
-/** 初始化状态（如果不存在） */
-export function initState(slug) {
+/** 初始化状态（如果不存在）；可按需携带初始 strategy（Step 0 选定） */
+export function initState(slug, strategy) {
   const existing = loadState(slug);
   if (existing) {
     // v1→v2 迁移: 补 publish 字段
     if (!existing.publish) existing.publish = { ...DEFAULT_PUBLISH };
+    if (strategy && !existing.strategy) existing.strategy = strategy;
     return existing;
   }
   const state = {
@@ -81,8 +82,17 @@ export function initState(slug) {
     publish: { ...DEFAULT_PUBLISH },
     failed_step: null,
   };
+  if (strategy) state.strategy = strategy;
   saveState(slug, state);
   return state;
+}
+
+/** 显式设置当前文章的写作策略（Step 0）。返回 false 表示策略名不合法。 */
+export function setStrategy(slug, name) {
+  const state = initState(slug);
+  state.strategy = name;
+  saveState(slug, state);
+  return true;
 }
 
 /** 标记某一步完成（Step 1-5 使用；Step 6 建议用 markBlogDone/markWechatDone） */

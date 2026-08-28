@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { repoRoot } from "./path-resolver.mjs";
+import { requiredSkillsForStage } from "./workflow.mjs";
 
 const args = process.argv.slice(2);
 const json = args.includes("--json");
@@ -21,7 +22,7 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const validStages = new Set(["all", "images", "build", "publish"]);
+const validStages = new Set(["all", "architecture", "research", "writing", "images", "build", "publish"]);
 if (!validStages.has(stage)) {
   process.stderr.write(`check-deps: unknown --stage "${stage}"\n`);
   printHelp();
@@ -32,7 +33,7 @@ function printHelp() {
   process.stdout.write(`check-deps.mjs — wechat-article-write dependency preflight
 
 Usage:
-  bun run check-deps.mjs [--stage all|images|build|publish] [--json]
+  bun run check-deps.mjs [--stage all|architecture|research|writing|images|build|publish] [--json]
 `);
 }
 
@@ -120,7 +121,47 @@ function checkPublishDeps() {
   checkSkillDirs(["baoyu-post-to-wechat"]);
 }
 
+// --stage architecture：委托 validate-architecture.mjs（纯静态架构契约校验）
+function checkArchitecture() {
+  const r = spawnSync(process.execPath, [resolve(import.meta.dir, "validate-architecture.mjs"), "--json"], {
+    encoding: "utf8"
+  });
+  try {
+    const result = JSON.parse(r.stdout ?? "{}");
+    for (const e of result.errors ?? []) errors.push(e);
+    for (const w of result.warnings ?? []) warnings.push(w);
+  } catch {
+    errors.push("validate-architecture.mjs 无法执行或输出非法 JSON");
+  }
+}
+
+// --stage research：所有策略在 research 阶段 required 技能的并集（workflow.mjs schema 来源）。
+// news-digest 需要 aihot / reader-response 需要 ljg-qa+ljg-think；可选理解器不作为缺失阻断。
+function checkResearchDeps() {
+  checkSkillDirs(requiredSkillsForStage("research"));
+}
+
+// --stage writing：写作链路核心技能（draft + refine 的所有策略 required 并集）。
+function checkWritingDeps() {
+  checkSkillDirs([
+    ...requiredSkillsForStage("draft"),
+    ...requiredSkillsForStage("refine"),
+  ]);
+}
+
 checkSharedProjectEnv();
+
+if (stage === "all" || stage === "architecture") {
+  checkArchitecture();
+}
+
+if (stage === "all" || stage === "research") {
+  checkResearchDeps();
+}
+
+if (stage === "all" || stage === "writing") {
+  checkWritingDeps();
+}
 
 if (stage === "all" || stage === "images") {
   checkImageConfig();

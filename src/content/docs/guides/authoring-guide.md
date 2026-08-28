@@ -19,10 +19,10 @@ sidebar:
    - 使用渐进式信息披露，避免一次性抛出过多信息
 
 2. **跨平台兼容性**：
-   - 技术教程必须同时提供 Linux/macOS/Windows 三个平台的命令示例
+   - 当所述软件/能力实际支持多个主流平台，且平台差异会影响用户执行时，提供对应命令
+   - **不要为不支持的平台编造等价方案**；若某命令是 Unix-only（如 tmux、proxychains），明确说明该边界即可，不强制提供 Windows 替代
    - Windows 命令使用 PowerShell，并添加容错参数（如 `-ErrorAction SilentlyContinue`）
-   - 为不同 Shell（Bash/Zsh/Fish）提供对应的配置方法
-   - 对于 Unix-only 工具（如 tmux、proxychains），提供 WSL 安装指南作为 Windows 替代方案
+   - 为不同 Shell（Bash/Zsh/Fish）提供对应的配置方法（若适用）
 
 3. **Starlight Asides 组件使用**：
    - `:::tip` - 用于提供额外的上下文或解释设计理念
@@ -67,9 +67,8 @@ sidebar:
 ## 开发服务器使用
 
 - 使用 `npm run dev` 启动开发服务器（运行在 http://localhost:4321）
-- 可以使用 `run_in_background: true` 参数在后台运行
-- 使用可用的联网工具预览修改效果，而非直接访问文件系统
-- 大型文件（如 `privoxy.md`）可能超出 token 限制，使用 `limit` 参数分块读取
+- 修改后使用可用的联网工具预览效果，而非直接访问文件系统
+- 大型文件（如 `privoxy.md`）可能超出 token 限制，使用分块读取方式阅读
 
 ## Git 提交规范
 

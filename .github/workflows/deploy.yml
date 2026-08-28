@@ -37,15 +37,28 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: ${{ env.BUILD_PATH }}/package-lock.json
-          
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v6
-        
+
       - name: Install dependencies
         run: npm ci
         working-directory: ${{ env.BUILD_PATH }}
-        
+
+      - name: Run agent harness tests
+        run: npm run test:agent
+        working-directory: ${{ env.BUILD_PATH }}
+
+      - name: Run agent architecture check
+        run: npm run check:agent
+        working-directory: ${{ env.BUILD_PATH }}
+
       - name: Build with Astro
         run: |
           npm run build \

@@ -10,6 +10,7 @@ applies_when: 用户提供了一篇或多篇原始材料（URL/文件），要�
 行为: full
 
 - 检测输入类型（URL / 文件路径 / 粘贴文本）
+- **输入是 YouTube URL 时**：优先用 `baoyu-youtube-transcript` 获取字幕/转录文本，再结合其封面做来源识别；不要直接走通用网页抓取。转录结果是材料的一部分，仍按本节规则写背景调研
 - URL 内容获取和联网搜索由 Agent 自行选择合适的工具完成
 - 无论输入是否已含原文，都必须额外联网查询背景资料，并在 `materials.md` 中写入 `## 背景调研` 章节：
   - 相关人物、组织或公司的背景
@@ -60,7 +61,7 @@ posts/{date-slug}/understanding-brief.md
 - 文章解释行业、角色、产品行为，或材料里有方案争论、约束错配、旧解释被当硬事实：调用 `ljg-constraint`。
 - 技术或术语密度高：调用 `ljg-plain`。
 - 有 1-2 个必须解释的核心概念：调用 `ljg-learn`。
-- 输入是论文、arXiv 或研究 PDF：调用 `ljg-paper`；讲论文脉络时调用 `ljg-paper-river`。
+- 输入是论文、arXiv 或研究 PDF：调用 `ljg-paper`；讲论文脉络 / 问题演化史时组合 `ljg-rank` 综合新旧解法的问题演化位移。
 - 输入是书或书摘：调用 `ljg-book`。
 - 观点争议大或需要压力测试：调用 `ljg-roundtable`。
 - 项目、公司或商业模式分析：调用 `ljg-invest`。
@@ -71,8 +72,10 @@ posts/{date-slug}/understanding-brief.md
 ## Step 2: 文章创作
 行为: full
 
-1. 通过 **Skill 工具调用 ljg-writes**，传入：
+1. **正文候选（思想与文风内核）**：通过 **Skill 工具调用 ljg-writes**，传入资料内容、理解增强和写作契约，让它产出**正文候选内容**（章节思想、论证主线、关键句子、作者口吻）。
+   - ljg-writes 只负责“正文思想与文风内核”，**不承担仓库文件协议**。它原生输出可能带 H1、写 Denote `.org` 到 `~/Documents/notes/`、不产出 frontmatter/SLOT——这些差异由主 Agent 在本步的仓库适配中吸收，不要把 ljg-writes 当作能直接产出 `draft.md` 的写手。
    - **⚠️ 结构与图片预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节），再根据内容判断至少 3 个最值得视觉化的位置。每个插图位置明确：(a) 它解释的核心信息，(b) 放在正文的哪个论证节点附近，(c) 视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题、正文段落和 SLOT_IMG 占位符描述中
+2. **仓库适配**：把 ljg-writes 的正文候选改写成符合本节 `draft.md` 模板的仓库产物：
    - 资料内容：`posts/{date-slug}/materials.md`
    - 理解增强：`posts/{date-slug}/understanding-brief.md`，尤其是 `## 写作契约`
    - 数据点列表（从材料中提取，≥ 5 个）
@@ -85,11 +88,11 @@ posts/{date-slug}/understanding-brief.md
    - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01+ 文内插图总数必须不少于 3 张**（不含封面图和 SLOT 00 头部信息图），但不要求每个 `## ` 章节都有图。Agent 应根据正文内容把占位符放在最需要视觉解释的位置，可以在 H2 标题后、关键段落后或小结前，关键是靠近其解释的概念/数据/关系。step2/3/4 会校验文内插图总数，step4-images.mjs 会校验占位符与图片文件一一对应。**占位符描述必须是附近正文核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 附近上下文构建图片 prompt
    - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
    - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
-2. 保存 ljg-writes 输出为 `posts/{date-slug}/draft.md`
-3. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
-4. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
-5. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的 canonical 来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空、手写 UTM 或替换为原始素材链接；Step 6.2 会在传给微信前统一追加 WeChat UTM
-6. **视觉规划**：写完 draft.md 后，选择文章的内容类型，产出 `posts/{date-slug}/image-plan.json`。读取 `references/image-template-catalog.md` 的"文章类型 → 模板配置"章节选择最匹配的 article_type。脚本会根据 article_type 自动解析风格家族、信息图模板、插图风格和封面参数。
+3. 保存为 `posts/{date-slug}/draft.md`
+4. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
+5. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
+6. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的 canonical 来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空、手写 UTM 或替换为原始素材链接；Step 6.2 会在传给微信前统一追加 WeChat UTM
+7. **视觉规划**：写完 draft.md 后，选择文章的内容类型，产出 `posts/{date-slug}/image-plan.json`。读取 `references/image-template-catalog.md` 的"文章类型 → 模板配置"章节选择最匹配的 article_type。脚本会根据 article_type 自动解析风格家族、信息图模板、插图风格和封面参数。
 
    **image-plan.json 格式**（极简）：
    ```json
@@ -171,12 +174,18 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ## Step 3: 文本后处理
 行为: full
 
-1. **⚠️ 强制执行 — 禁止跳过**：通过 **Skill 工具调用 renwei-writing** 处理 `posts/{date-slug}/draft.md` 正文（两层：先按操作规则做减法打磨，再跑事后检查清单逐条扫 AI 痕迹）。这是消除 AI 写作痕迹的唯一防线，不得以任何理由（"质量已足够""时间不够""内容无需调整"）跳过。未调用 renwei-writing = 违反硬规则
-2. 通过 **Skill 工具调用 baoyu-format-markdown** 格式化 `posts/{date-slug}/draft.md`
+**按初稿来源路由**（`source_provenance`）：
 
-处理范围为正文内容（frontmatter 之后，参考资料之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，renwei-writing 和格式化都不会修改它们。
+- **material 是人类手稿**（用户拿来自己写的文字，希望少动、保手迹）：通过 **Skill 工具调用 renwei-writing** 做减法打磨，只检查它改过的句子，不要把作者的毛边磨掉。
+- **material 是 agent 初稿**（默认场景）：**不默认调用 renwei-writing**。先跑确定性 style lint（`baoyu-format-markdown` 的 `scripts/main.ts`，只做 CJK 间距/emphasis/标点校正，不重写句子）：
+  ```bash
+  bun run .agents/skills/baoyu-format-markdown/scripts/main.ts posts/<date-slug>/draft.md --no-quotes
+  ```
+  再检查是否有明显 AI 写作模式（宣传腔、三段式排比、万能展望结尾、破折号堆叠、过度连接词等）；只对**命中的片段**用 `humanizer-zh` 定点修复，不做全文重写。不要先调用 renwei-writing 再调用 formatter 整段重写。
 
-后处理目标不是"润色得更正式"，而是保住作者存在感的同时去掉 AI 痕迹：只做减法，毛边先假设是手迹而非瑕疵；改完跑事后检查清单（破折号、排比三连、意义拔高、宣传腔、万能展望结尾等）逐条验收。不要把第一人称观察和读后感式判断磨平。
+处理范围为正文内容（frontmatter 之后，参考资料之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，post 处理不会修改它们。
+
+后处理目标不是"润色得更正式"，而是保住作者存在感的同时去掉 AI 痕迹：只做减法，毛边先假设是手迹而非瑕疵。不要把第一人称观察和读后感式判断磨平。
 
 **脚本验证**：
 ```bash

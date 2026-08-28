@@ -22,6 +22,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { nextStageFromStep, stageReadRef } from "./workflow.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const scriptsDir = resolve(import.meta.dirname);
@@ -52,12 +53,42 @@ function getStep5Paths(slug) {
   };
 }
 
+function getStateData(slug) {
+  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
+    encoding: "utf8", cwd: repoRoot
+  });
+  try {
+    return JSON.parse(r.stdout ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function getNextStage(slug) {
+  const s = getStateData(slug);
+  const strategy = s.strategy;
+  const last = s.last_complete_step ?? 0;
+  const pub = s.publish ?? { blog: "pending", wechat: "pending" };
+  if (!strategy) {
+    return { stage: "unknown", strategy: null, ref: null };
+  }
+  const stage = nextStageFromStep(strategy, last, pub);
+  return { stage, strategy, ref: stageReadRef(strategy, stage) };
+}
+
 function printNext(slug) {
   const step = getNextStep(slug);
   if (step === "done") {
     process.stdout.write("\n流水线全部完成。\n");
   } else {
-    process.stdout.write(`\n下一步: Step ${step}\n`);
+    const { stage, ref } = getNextStage(slug);
+    if (stage === "unknown") {
+      process.stdout.write(`\n下一步: Step ${step}（阶段: unknown，未记录写作策略）\n`);
+      process.stdout.write(`  提示: 运行 "bun run .agents/skills/wechat-article-write/scripts/state.mjs strategy set ${slug} <reader-response|tutorial|news-digest>" 后，名称阶段可正常推导\n`);
+    } else {
+      process.stdout.write(`\n下一步: Step ${step}（阶段: ${stage}）\n`);
+      if (ref) process.stdout.write(`  读取: ${ref}\n`);
+    }
     if (["1", "2", "3", "4"].includes(step)) {
       printAgentGuide(step, slug);
     } else if (step === "5") {
@@ -79,8 +110,8 @@ function printNext(slug) {
 function printAgentGuide(step, slug) {
   const guides = {
     "1": `  Agent: 使用可用的联网工具收集原文和背景资料（materials.md 必须含 ## 背景调研 + 来源 URL）→ 写入 posts/${slug}/materials.md\n  然后运行: bun run step1-collect.mjs ${slug}`,
-    "2": `  Agent: 调用 ljg-writes 写作 + suggest-category.mjs 分类\n  保存为 posts/${slug}/draft.md 后运行: bun run step2-write.mjs ${slug}`,
-    "3": `  Agent: 调用 renwei-writing + baoyu-format-markdown 处理 draft.md\n  完成后运行: bun run step3-polish.mjs ${slug}`,
+    "2": `  Agent: 按策略研读 references/strategy-*.md 的 Step 2 写作合同（reader-response 用 ljg-writes 产正文候选；news-digest 不用 ljg-writes），保存 draft.md + image-plan.json\n  然后运行: bun run step2-write.mjs ${slug}`,
+    "3": `  Agent: 按 references/strategy-*.md 的 Step 3 按初稿来源做后处理（手稿→renwei-writing；AI 初稿→format lint + 按需 humanizer-zh）\n  完成后运行: bun run step3-polish.mjs ${slug}`,
     "4": `  Agent: 运行 generate-image-prompts.mjs 生成 baoyu-infographic 信息图 prompt（layout + style）+ baoyu 封面/文内插图 prompt\n  生成 cover.png + imgs/*.png 后运行: bun run step4-images.mjs ${slug}`,
   };
   process.stdout.write(guides[step] ?? "");

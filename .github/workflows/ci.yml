@@ -1,0 +1,45 @@
+name: CI — PR verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# PR 验证只读检查，不部署、不给 Pages write 权限。
+# 部署 gate 仍是 deploy.yml（push main → Pages）。
+permissions:
+  contents: read
+
+concurrency:
+  group: "ci-${{ github.event.pull_request.number || 'dispatch' }}"
+  cancel-in-progress: true
+
+env:
+  BUILD_PATH: "."
+
+jobs:
+  verify:
+    name: Verify (tests + architecture + build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ${{ env.BUILD_PATH }}/package-lock.json
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ env.BUILD_PATH }}
+
+      - name: Run verification chain (agent tests + architecture check + Astro build)
+        run: npm run verify
+        working-directory: ${{ env.BUILD_PATH }}
