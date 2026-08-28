@@ -43,6 +43,10 @@ let REPO_NAME = 'Pic';
 let REPO_BRANCH = 'master';
 let DEFAULT_FOLDER = 'blog';
 
+// 是否通过 env 或 CLI 显式配置了图床仓库。
+// 未配置时应该 fail 而不是静默向默认仓库写图（通用 skill 不应默认写作者私人 repo）。
+let CONFIGURED = false;
+
 const ENV_FILE_NAME = '.github-image-hosting.env';
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -124,6 +128,7 @@ function applyEnvConfig(): void {
   // Apply user config first, then project config overrides it
   for (const [envKey, globalVar] of KEYS) {
     if (userConfig[envKey] || projectConfig[envKey]) {
+      CONFIGURED = true;
       const value = projectConfig[envKey] || userConfig[envKey];
       switch (globalVar) {
         case 'REPO_OWNER':    REPO_OWNER    = value; break;
@@ -145,6 +150,24 @@ function parseRepoSpec(spec: string, options: UploadOptions): void {
   REPO_NAME = m[2];
   if (m[3]) REPO_BRANCH = m[3];
   if (m[4]) options.folder = m[4];
+  CONFIGURED = true; // CLI 显式指定目标仓库即视为已配置
+}
+
+/**
+ * 避免“未配置时静默上传到默认仓库”（默认值是通用 fallback，不是本项目约定）。
+ * 只有项目/用户 env 或 CLI --repo 提供了仓库时才能写图；否则阻断并给明确指引。
+ */
+function assertRepoConfigured(): void {
+  if (!CONFIGURED) {
+    console.error(
+      '[upload] FAIL: 未配置图片托管仓库。' +
+      '请在本仓库根目录创建 `.github-image-hosting.env`（推荐，会随仓库提交）或 `~/.github-image-hosting.env`，' +
+      '写入 GITHUB_IMAGE_REPO_OWNER / GITHUB_IMAGE_REPO_NAME / GITHUB_IMAGE_REPO_BRANCH / GITHUB_IMAGE_DEFAULT_FOLDER，' +
+      '或通过 `--repo owner/name@branch:folder` 显式指定。' +
+      '不要依赖脚本内置默认仓库静默上传。'
+    );
+    process.exit(1);
+  }
 }
 
 function parseArgs(): UploadOptions {
@@ -452,6 +475,7 @@ async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; m
 // Main
 applyEnvConfig(); // Load env config before parsing CLI args (CLI args override env)
 const options = parseArgs();
+assertRepoConfigured(); // 无 env/无 --repo 时阻断，避免静默上传到默认仓库
 
 if (!options.imagePath) {
   console.error('Usage: bun upload.ts <image-path-or-dir> [--name <name>|--name-prefix <prefix>] [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>]');

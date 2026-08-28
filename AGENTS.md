@@ -1,23 +1,26 @@
 # AGENTS.md
 
-此文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的共享入口约定。详细规范分散在以下权威文件，本文件仅做入口聚合：
+本文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的**共享入口（地图 + 宪法）**。详细规范按领域分散在以下权威文件，本文件只做导航；**一条规则只在一个地方定义，其余文件只引用不复述**。
 
-- 微信 + 博客双轨发布管线 → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
-- 技术博文编写规范 → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
+- **内容 / 发布规则**（frontmatter、URL 稳定性、Starlight、跨平台示例）→ [`src/content/AGENTS.md`](src/content/AGENTS.md)
+- **技术博文编写规范** → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
+- **Agent Skills 治理**（自建/第三方/生命周期/版本）→ [`.agents/AGENTS.md`](.agents/AGENTS.md)
+- **微信 + 博客双轨发布管线** → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
 - 行为准则 → [`CLAUDE.md`](CLAUDE.md)（与用户级 `~/CLAUDE.md` 合并生效）
 
-## 项目定位
+## Repository Purpose
 
 基于 [Astro Starlight](https://starlight.astro.build/) 构建的个人知识库 + 博客，托管在 GitHub Pages。除知识库类技术文档（操作系统、HPC、网络工具、DevOps 等）外，还集成微信公众号 + 博客双轨发布管线，目录 `src/content/docs/articles/` 即博客文章。
 
-## 开发命令
+## Setup / Build / Test
 
-- **安装依赖**：`npm install`（Node.js 22+）
+- **安装依赖**：`npm install`（Node.js 22+）；agent 测试/校验需要 `bun`（见 [`.agents/AGENTS.md`](.agents/AGENTS.md)）
 - **启动开发服务器**：`npm run dev`（运行在 <http://localhost:4321>）
 - **构建生产版本**：`npm run build`（输出到 `dist/`）
 - **预览生产构建**：`npm run preview`
 - **同步内容集合**（新增/重命名 `src/content/docs/` 文件后）：`npx astro sync`
 - **清缓存重试**：`rm -rf .astro/ && npm run build`
+- **Agent harness 验证**：`npm run test:agent`（bun 单测）+ `npm run check:agent`（架构校验）+ `npm run verify`（三者串联）
 
 ## Python / uv 环境
 
@@ -25,117 +28,36 @@
 - 运行任何需要仓库 Python 依赖的脚本时，必须从仓库根目录使用 `uv run python ...`，不要直接用系统 `python` / `python3` 判断依赖是否缺失。
 - 首次使用或环境缺失时运行 `uv sync --locked`；需要新增 Python 依赖时用 `uv add --dev <package>` 或项目约定的 dependency group，并提交 `pyproject.toml` 与 `uv.lock`。
 - 不得为了解决依赖缺失而执行 `pip install --user ...`、修改全局 Python、或依赖当前机器的系统 site-packages；这会让其他 agent / CI 无法复现。
-- 例：运行外部但需要仓库依赖的校验脚本时，也应使用 `uv run python /abs/path/to/script.py ...`。
-- 已知限制：`skill-creator/scripts/quick_validate.py` 的 schema 只允许 `name` / `description` / `license` / `allowed-tools` / `metadata`，不认识本仓库自建技能必须保留的 `version` / `author` frontmatter；即使用 `uv run` 也会因此失败。这是第三方校验器与本仓库约定不适配，不需要额外修复；不得为了通过该校验删除 `version` / `author`。
 
-## 目录结构
+## Repository Map
 
 - `src/content/docs/`：所有页面（Markdown / MDX），目录大致对应侧边栏分类
-- `src/content/docs/articles/`：博客文章；6 个分类索引页（`ai-coding/ai-agents/ai-industry/ai-models/security/engineering`.mdx）基于 frontmatter `category` **动态生成**，新增文章只需写对 `category`
+- `src/content/docs/articles/`：博客文章；6 个分类索引页基于 frontmatter `category` **动态生成**（见 [`src/content/AGENTS.md`](src/content/AGENTS.md)）
 - `src/content/docs/guides/`：知识库类编写规范文档（含 [`authoring-guide.md`](src/content/docs/guides/authoring-guide.md)）
 - `src/content.config.ts`：内容集合 schema（含 `date` / `updated` / `category` / `tags`）
 - `src/components/`：自定义 Astro 组件
-- `posts/YYYY-MM-DD-slug/`：管线中间产物，最终产物落到 `src/content/docs/articles/`
-- `youtube-transcript/`：YouTube 视频转录素材本地存放目录（已 gitignore，不提交）
-- `material/`：各类素材文件本地存放目录（已 gitignore，不提交）
-- `.agents/skills/`：项目级技能源
-- `.baoyu-skills/<skill>/EXTEND.md`：技能偏好配置；密钥单独放项目级 `.baoyu-skills/.env`
+- `posts/YYYY-MM-DD-slug/`：管线中间产物（governance 见 wechat-article-write）；最终产物落到 `src/content/docs/articles/`
+- `youtube-transcript/` / `material/`：素材本地存放目录（已 gitignore，不提交）
+- `.agents/skills/`：项目级技能源（治理见 [`.agents/AGENTS.md`](.agents/AGENTS.md)）
+- `.baoyu-skills/<skill>/EXTEND.md`：第三方技能偏好配置；密钥单独放项目级 `.baoyu-skills/.env`
 - `.github/workflows/deploy.yml`：推 `main` → 自动构建并部署到 GitHub Pages
 - `public/`：静态资源（`favicon.ico` / `CNAME`）
 
-## Skill 系统入口
+## Agent Routing
 
-- 项目级技能在 `.agents/skills/`，每个技能一个目录，含 `SKILL.md`（执行入口）、`scripts/`（可执行脚本）、`references/`（参考文档）
-- 调用方式两种：**Skill 工具调用型**（读 `SKILL.md` 走工作流）/ **脚本执行型**（`bun run <skill>/scripts/...`）
-- 用 `npx skills` 管理版本，锁文件 `skills-lock.json`
-- 若第三方技能需要随仓库一起分发（例如 `gzh-design`），统一以 **git subtree** 方式 vendoring 到 `.agents/skills/<skill>/`；不要把上游 clone 的内层 `.git/` 当作嵌套仓库直接提交，也不要提交 gitlink。后续同步上游时使用：
-  `git subtree pull --prefix=.agents/skills/<skill> <upstream-url> <branch> --squash`
-- `.claude/skills/<skill>` 若存在，应是指向 `.agents/skills/<skill>` 的本地 symlink，不再单独 clone 第二份技能代码
-- 可通过 `<skill>/EXTEND.md` 调整运行时行为（`quick_mode`、`preferred_image_backend` 等），各技能 `SKILL.md` 内列出可配置项
+- **写作 / 公众号 / 博客双轨** → `.agents/skills/wechat-article-write/SKILL.md`（策略：`references/strategy-{reader-response,tutorial,news-digest}.md`）
+- **内容 docs 编写 / 修改** → `src/content/AGENTS.md`
+- **Skills 开发 / 治理** → `.agents/AGENTS.md`
+- **图片 / 发布 / 其他专用技能** → `.agents/skills/<skill>/SKILL.md`
 
-## 管线概览（wechat-article-write）
-
-6 步流水线（Step 1–6）见 [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)，本文件只记关键约束：
-
-- **发布顺序**：博客先发（Step 6.1）→ 微信草稿（Step 6.2）。sourceUrl 预先填入，不等 Pages 部署即发布
-- **微信原文链接**：Step 6.2 继续使用博客 URL（`https://ntlx.github.io/articles/<blog-slug>`）作为微信公众号"阅读原文"链接；底层写入能力由 `baoyu-post-to-wechat` 原生支持，`wechat-article-write` 只转发 `sourceUrl`
-- **状态管理**：每个 Step 脚本完成后写 `last_complete_step`。`state.mjs next` 返回下一个待执行步骤，支持断点续跑。Step 6 博客/微信子状态独立管理：`state.mjs blog <slug> get` / `state.mjs wechat <slug> get` 查询
-- **blog-slug ≠ date-slug**：date-slug 是 `posts/` 下本地目录名（可含中文）；blog-slug 是 `articles/` 下 URL 文件名（必须纯 ASCII kebab-case）
-- **双轨分离**：博客轨消费 `article.md`（Markdown + CDN URL）；微信轨消费 `article-wechat.html`（本地路径版 HTML），wechat-api.ts 直接读本地文件上传。两轨零共享中间产物
-- 所有校验逻辑已封装在 step 脚本内，agent 只调用脚本、解读退出码
-
-## 管线脚本架构
-
-脚本分为三层：门控脚本（step1-4）、构建脚本（step5-6）、共享库。
-
-| 层 | 脚本 | 说明 |
-|---|---|---|
-| 门控 | `step1-collect` ~ `step4-images` | Agent 完成智能判断后运行，脚本做校验 + 状态写入 |
-| 构建 | `step5-build` / `publish-blog` / `publish-wechat` | 确定性自动化，无需 agent 干预 |
-| 共享 | `validation-lib` / `frontmatter-lib` / `state-lib` / `path-resolver` / `config-lib` | 被多个脚本 import，消除重复实现 |
-
-共享库中 `frontmatter-lib.mjs` 提供 `parseFrontmatter` / `readFmValue` / `extractBody`，替代此前 4 个脚本各自内联的 frontmatter 解析。`validation-lib.mjs` 提供 `VALID_CATEGORIES` / `ASCII_SLUG_RE` / `countWords`，统一分类白名单、slug 规则和字数统计。
-
-## 硬规则
+## Global Safety & Change Rules
 
 | 规则 | 详情 |
 | --- | --- |
-| **URL 稳定性** | 不重命名、不移动 `articles/` 下已有文章。已有 60+ 篇文章 URL（如 `ntlx.github.io/articles/<slug>/`）已被外部引用，移动 = 全网 404 |
-| **正文禁止 H1** | Starlight 自动把 frontmatter `title` 渲染为 `<h1>`。正文不得以 `# ` 开头，否则页面双标题 |
-| **文章实质修改必填 `updated`** | 实质修改已发布文章（增删段落、改结论、补数据/截图、重写段落）时，必须在 frontmatter 加 `updated: YYYY-MM-DD`（ISO 日期，如 `updated: 2026-07-05`）。该字段是 RSS `atom:updated`、文章页 BlogPosting JSON-LD `dateModified`、Starlight "最后更新"显示的唯一信号源；缺省时三者一律回退到 `date`，内容新鲜度信号失效。纯排版 / typo / 链接修正可不加。新建文章不填（`date` 即发布日）。Agent 代为修改已发布文章时，若用户未明确指定 `updated` 日期，用当天日期 |
-| **文件名 kebab-case** | `articles/` 下文件名必须为小写 ASCII kebab-case；`AI-Foo.md` 与 `ai-foo.md` 视为同名冲突；标题字段可任意语言 |
-| **MDX JSX 中文引号** | `<LinkCard title="…"`" …" />` 含中文引号 / `<` / `>` 等会触发 MDX 解析错误，改用模板字符串 `title={`…`}` |
-| **Sidebar autogenerate v0.39+** | `autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性 |
 | **Shell 安全引用** | 所有 shell 脚本中涉及用户提供的路径必须使用引号包裹（`"$var"`），防止路径含空格或特殊字符时命令注入或路径断裂 |
-| **严格遵守 `.gitignore`** | 任何被 `.gitignore` 或其他 git ignore 规则排除的文件/目录，默认都视为**不应提交**。Agent 不得使用 `git add -f`、修改 ignore 规则、或其他绕过方式把这些内容提交进 git，除非用户明确要求这样做 |
-| **第三方技能禁止擅自修改** | `.agents/skills/` 下由 `npx skills` 管理的第三方技能（`baoyu-*`、`ljg-*` 等），Agent 不得擅自修改其源码（SKILL.md、scripts、references）。必须征得用户明确同意才能修改。`npx skills` 更新版本不受此限制。自建技能（frontmatter 含 `author: NTLx`，如 `wechat-article-write`、`github-image-hosting`）不受此限制 |
-| **仓库内置第三方技能用 subtree 管理** | 若要把第三方技能随仓库一起提交，必须 vendoring 到 `.agents/skills/<skill>/` 并使用 `git subtree add/pull --prefix=.agents/skills/<skill> <upstream-url> <branch> --squash` 管理。禁止直接提交带内层 `.git/` 的 clone，禁止把它作为 gitlink/嵌套仓库提交，否则 clone 本仓库时拿不到完整技能内容 |
-| **自建技能改动必须升版本** | 每次修改自建技能（`author: NTLx`）的任何文件（SKILL.md、scripts、references、策略文件）后，必须在同一批改动中递增该技能 SKILL.md frontmatter 的 `version` 字段。行为变更（增删步骤、替换调用技能、修改门控逻辑）升 minor；纯文档/注释修正升 patch。不升版本 = 改动不完整 |
-
-## 部署
-
-- 推 `main` → GitHub Actions 自动构建 + 上传 GitHub Pages → 部署到 <https://ntlx.github.io/>
-- 自定义域名走 `public/CNAME`
-- 手动触发：在 Actions 页面运行 "Deploy to GitHub Pages" 工作流
-
-### GitHub Pages 部署故障排查
-
-推 `main` 后 Actions 失败，先定位是**构建失败**还是**部署失败**，再决定改不改代码。关键判据：看失败 step 落在 Build job 还是 Deploy job；Build job 全绿、Deploy job 红灯 = 部署侧故障，代码侧通常无需改动。
-
-**两种部署侧故障面（构建已成功为前提）：**
-
-| 故障面 | 症状 | 根因 | 应对 |
-|---|---|---|---|
-| Deploy 卡 queued | run 长期 `queued`/`in_progress`，Build ✓ Deploy ✗ 无明确报错，最终超时 | GitHub Pages 部署队列拥塞 | 查 githubstatus.com，等 Pages 恢复；必要时 workflow 加 `timeout-minutes` + 重试 |
-| Deploy 503 | `0_Deploy.txt` 含 `##[error]HttpError: No server is currently available... (status: 503)` | GitHub Pages / Actions API 间歇性 503 | 直接触发 rerun；即使 Actions 仍 `partial_outage`，单次 rerun 也可能抢到槽位跑通 |
-
-**排查路径：**
-
-1. 先查 <https://www.githubstatus.com>：看 `Actions` / `API Requests` / `Pages` 三组件状态。任一非 `operational` → 平台侧故障，等恢复或 rerun，不要改代码。
-2. 拉失败日志（`gh run view --log-failed` 在 API 503 期间会反复报 503，绕过用 curl + REST API）：
-   ```bash
-   TOKEN=$(gh auth token)
-   curl -s -L -H "Authorization: token $TOKEN" \
-     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>/logs" -o /tmp/run-logs.zip
-   cd /tmp && unzip -o -q run-logs.zip -d run-logs
-   grep -n '##\[error\]' run-logs/0_Deploy.txt        # 部署侧错误
-   grep -n '##\[error\]' run-logs/1_Build.txt         # 构建侧错误（空 = 构建无 error）
-   ```
-3. 触发 rerun（不依赖 gh CLI）：
-   ```bash
-   curl -s -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github+json" \
-     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>/rerun"
-   # HTTP 201 = 已触发；随后轮询 run 状态
-   curl -s -H "Authorization: token $TOKEN" \
-     "https://api.github.com/repos/NTLx/ntlx.github.io/actions/runs/<RUN_ID>" \
-     | uv run python -c "import sys,json;d=json.load(sys.stdin);print(d.get('status'),d.get('conclusion'))"
-   ```
-
-**决策原则：**
-
-- 构建失败 → 查代码（Markdown / frontmatter / MDX 语法 / 文件名大小写冲突），修复后 push 新 commit
-- 部署失败 + githubstatus.com 报故障 → 等 5–10min 或直接 rerun，**不要**改代码
-- 部署失败 + githubstatus.com 全绿 → 可能是 workflow 配置或权限问题，查 `.github/workflows/deploy.yml` 的 `permissions`（需 `pages: write` + `id-token: write`）、`configure-pages` / `deploy-pages` action 版本
+| **严格遵守 `.gitignore`** | 任何被 `.gitignore` 或其他 git ignore 规则排除的文件/目录，默认都视为**不应提交**。Agent 不得使用 `git add -f`、修改 ignore 规则或其他绕过方式提交，除非用户明确要求 |
+| **第三方技能禁止擅自修改** | 见 [`.agents/AGENTS.md`](.agents/AGENTS.md)（managed / vendored 不得私改；custom 遵循 metadata 版本规范） |
+| **内容 / URL 稳定性** | 见 [`src/content/AGENTS.md`](src/content/AGENTS.md)（不重命名 `articles/`、正文禁 H1、文件名 kebab-case） |
 
 ## 内容分发质量守则
 
@@ -146,100 +68,66 @@
 2. **防呆检查与验证驱动执行（VDE）**：向外部生产环境（公众号 / GitHub）提交数据前必须做终态验证：
    - 检查最终 Markdown / HTML 格式（异常空行、未解析占位符）
    - 检查所有引用图片的本地路径真实存在
-   - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作（各 step 脚本内嵌阶段化校验）
+   - 严禁"写完代码 → 立刻执行发布"的开环盲盒操作
 
 3. **路径绝对化**：跨脚本 / 跨目录工具链统一用绝对路径，**严禁**基于直觉猜测 CWD 行为；批量处理工具运行前先验证目录层级。
 
-4. **发布输入源校验**：Step 6.1（博客）输入必须是 `article.md`（CDN URL 版）；Step 6.2（微信）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
+4. **发布输入源校验**：博客轨（Step 6.1）输入必须是 `article.md`（CDN URL 版）；微信轨（Step 6.2）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
-5. **覆盖发布清理备份**：使用 `publish-blog.mjs --overwrite` 会产生 `.backup-*.md` 临时备份文件，发布完成后应及时清理，防止 Astro Starlight 将备份文件识别为重复页面。
+5. **覆盖发布备份位置**：`publish-blog.mjs --overwrite` 的备份自动落在 `posts/.backups/`（gitignore 的管线区），不在 `src/content/docs/` 内，不会生成 Starlight 重复页面。如需清理，`ls posts/.backups/` 后手动删除即可。
+
+## 部署
+
+- 推 `main` → GitHub Actions 自动构建 + 部署到 <https://ntlx.github.io/>；自定义域名走 `public/CNAME`
+- 手动触发：Actions 页面运行 "Deploy to GitHub Pages" 工作流
+- **部署性故障 vs 构建性故障判定**：看失败 step 落在 Build job 还是 Deploy job；Build ✓ + Deploy ✗ = 平台侧故障
+  - **两张部署侧故障面**：(a) Deploy 卡 queued 超时 = Pages 部署队列拥塞，查 [githubstatus.com](https://www.githubstatus.com) 恢复后重试；(b) Deploy 503（`HttpError: No server...`）= Actions API 间歇性 503，直接 rerun
+  - **排查**：`gh run view --log-failed` 在 503 期间反复报错，绕过用 `curl -H "Authorization: token $(gh auth token)" .../actions/runs/<RUN_ID>/logs` 拉日志 zip 后 grep `##[error]`
+  - **决策**：构建失败 → 查代码修复 push 新 commit；部署失败 + 平台故障 → 等 5–10min 或 rerun，不改代码；部署失败 + 平台全绿 → 查 workflow `permissions`（需 `pages: write` + `id-token: write`）与 configure/deploy-pages action 版本
 
 ## 学术论文素材与原图提取指南
 
 在处理学术论文（arXiv、ACL、IEEE、USENIX 等）素材并需要**复用原文图表**时，必须确保图表排版与文字的绝对准确：
 
-### 1. arXiv HTML/SVG 避坑陷阱
+**arXiv HTML/SVG 避坑**：严禁直接提取 standalone `<svg>` 渲染——LaTeXML 生成的 SVG 深度依赖外层父级容器 CSS 类、矩阵坐标变换和全局 Web 字体，独立截图会文字倒置、图例挤压。
 
-- **严禁直接提取 standalone `<svg>` 渲染**：arXiv HTML 采用 LaTeXML 生成，其内嵌 SVG 深度依赖外层父级容器的 CSS 类（如 `.ltx_picture`、`.ltx_text`、`.ltx_foreignobject_container`）、特定的矩阵坐标变换（`matrix(1 0 0 -1 ...)`）和全局 Web 字体。
-- **后果**：直接抽取 `<svg>` 标签用无头浏览器（Chrome Headless）独立截图渲染，会导致**文字坐标倒置、图例/文字严重挤压重叠、标签被边缘截断、公式乱码**。
+**标准方案（矢量 PDF 高清裁切）**：
+1. 拉取官方 PDF（`https://arxiv.org/pdf/<arxiv-id>`）到本地；
+2. 用 PyMuPDF 300 DPI 视口裁切：`uv run --with pymupdf python`，`pymupdf.Matrix(300/72, 300/72)` + `clip` 预留 5-10pt 呼吸留白；
+3. 多图边界用 `page.get_text('blocks')` 打印目标图表及周边图注坐标，微调 `y0`/`x0` 排除上下段落；
+4. **终态视觉验证（VDE）**：每张提取后逐张检查文字/图例/坐标轴标记完整、图注无段落污染。
 
-### 2. 标准原图提取方案（矢量 PDF 高清裁切）
+## 联网工具选择与内容获取
 
-当需要复用论文原图时，一律采用**官方矢量 PDF + PyMuPDF 视口高清裁切**方案：
+### 工具选择
 
-1. **下载官方 PDF**：拉取 `https://arxiv.org/pdf/<arxiv-id>` 到本地临时路径；
-2. **PyMuPDF 300 DPI 矢量渲染**：使用 `uv run --with pymupdf python` 运行提取脚本，按页面与精确 bounding box 提取：
-   ```python
-   import pymupdf
+| 场景 | 首选 | 限制 |
+|---|---|---|
+| 搜索发现 | Tavily Search / Anysearch | 每次最多 10 条 |
+| URL 已知，提取正文 | Jina Reader 或 Tavily Extract | Jina 20 RPM |
+| 语义搜索（找同类页面/人物公司） | Exa Web Search | 免费额度有限 |
+| 原始 HTML / meta 检查 | curl | 不处理 JS 渲染 |
 
-   doc = pymupdf.open('paper.pdf')
-   page = doc[page_num - 1]
-   # 缩放至 300 DPI（300 / 72.0）
-   mat = pymupdf.Matrix(300 / 72.0, 300 / 72.0)
-   # 预留 5~10pt 呼吸留白，避免坐标轴标签（如纵轴 %）触壁
-   clip = pymupdf.Rect(x0, y0, x1, y1)
-   pix = page.get_pixmap(matrix=mat, clip=clip)
-   pix.save(out_path)
-   ```
-3. **多图裁切边界确定法**：先用 `page.get_text('blocks')` 打印目标图表及周边图注的精确坐标块，再微调 `y0` 与 `x0`，彻底排除上方/下方的正文段落和表格边缘；
-4. **终态视觉验证（VDE）**：生成/提取每一张原图后，**必须**使用 `view_file` 逐张检查：
-   - 确认图表内所有文字、图例、数据点、坐标轴标记（特别是纵轴顶部的单位/括号）完整无遮挡；
-   - 确认图注（Caption）未被上下段落文字污染。
+- **配额降级**：Tavily 返回 HTTP `432`（套餐额度耗尽）→ 改用 Anysearch / Exa / WebSearch 组合，不重复重试 Tavily
+- **Jina 用法**：`curl https://r.jina.ai/https://example.com/article`；不保留 URL 前缀；文章类页面适用，数据面板/商品页不适用；微信公众号文章有 CAPTCHA 概率，批量抓取不推荐
+- 需求发现 → 搜索；URL 已知 → 提取正文；验证信息 → 访问一手来源，不依赖二手报道
 
-## 联网工具选择指南
+### 付费墙 / 登录墙降级链
 
-Agent 在需要联网时，根据场景自主选择最合适的工具，无需强制走统一入口。
+单一来源被墙 ≠ 内容不可获取，按序尝试：
+1. archive.ph / archive.org 存档
+2. 多源二手报道（Exa / Anysearch / Tavily 按文章标题或核心论点搜转载/引用/讨论）
+3. 社交媒体讨论（Bluesky / Reddit / HN 常含关键引用和摘要）
+4. Google Cache
 
-### 工具对比
+404 Media 付费文成功案例：archive.ph + TechCrunch/Bloomberg Law/Simon Willison 等 8+ 二手来源交叉验证还原全文。
 
-| 工具 | 适用场景 | 限制 |
-|------|---------|------|
-| **Tavily Search** | 搜索摘要、发现信息来源；支持按时间/域名过滤，返回结构化结果 | 每次最多 10 条 |
-| **Tavily Extract** | URL 已知，需要提取页面正文内容（Markdown 格式）；支持批量多 URL | 基础/高级两档深度 |
-| **Exa Web Search** | 语义搜索，适合找"与 X 类似的页面"、人物/公司等精准语义查询 | 免费额度有限 |
-| **WebFetch** | URL 已知，拉取原始内容供 Agent 直接分析 | 动态渲染页面可能拿不到完整内容 |
-| **curl** | URL 已知，需要原始 HTML（检查 meta 标签、JSON-LD、HTTP headers 等） | 不处理 JS 渲染；反爬站点可能返回 403 |
-| **Jina Reader** | URL 已知，转为干净 Markdown（详见下方） | 20 RPM；非文章结构页面可能提取错误 |
+## Verification
 
-### 配额与降级
+每次改动后按仓库惯例运行对应验证：
 
-搜索发现优先使用当前运行时可用的 `anysearch`。若 Tavily 返回 HTTP `432 This request exceeds your plan's set usage limit`，说明套餐额度耗尽；不要继续重试 Tavily，改用 `anysearch`、Exa Web Search 或当前环境可用的 WebSearch / WebFetch 组合完成调研。
-
-### Jina Reader 使用经验
-
-Jina 是第三方网页转 Markdown 服务，调用方式：
-
+```bash
+npm run test:agent   # wechat-article-write bun 单测（含 golden behavior 契约）
+npm run check:agent  # validate-architecture.mjs 架构静态校验
+npm run build        # Astro 生产构建
 ```
-curl https://r.jina.ai/https://example.com/article
-```
-
-- URL 不保留原网址的 `http://` / `https://` 前缀
-- 返回干净 Markdown，大幅节省 token
-- **限制**：20 RPM（每分钟 20 次请求）
-- **适用场景**：文章、博客、文档、PDF 等以正文为核心的页面
-- **不适用场景**：数据面板、商品页、图片墙等非文章结构页面（可能提取到错误区块）
-- **微信反爬**：微信公众号文章（`mp.weixin.qq.com`）通过 Jina 可以获取到内容，但有概率触发 CAPTCHA 验证，批量抓取时不推荐
-- **组合使用**：可与 Tavily Search 搭配——Tavily 发现 URL → Jina 提取正文，效果优于单独使用 Tavily Extract
-
-### 选择策略
-
-1. **需要搜索发现** → Tavily Search 或 Exa（按语义/精确需求选择）
-2. **URL 已知，提取正文** → Jina（文章类）或 Tavily Extract（通用）；需要原始 HTML 时用 curl
-3. **验证信息** → 搜索发现来源后，直接访问一手来源读取原文，不依赖二手报道
-
-### 付费墙与内容获取策略
-
-当目标网页被付费墙或登录墙阻挡时，**不要放弃**，按以下降级链尝试获取内容：
-
-1. **archive.ph / archive.org**：在搜索引擎中搜 `archive.ph <URL>` 或 `web.archive.org <URL>`，这两个服务经常存档了付费文章的完整内容。archive.ph 成功率尤其高
-2. **多源二手报道**：用 Exa / Anysearch / Tavily 搜索文章标题或核心论点，找到转载、引用或讨论该文章的二手来源（博客、播客、论坛帖、社交媒体）。多个二手来源交叉验证可还原完整内容
-3. **社交媒体讨论**：Bluesky、Reddit、Hacker News 上的讨论帖常包含文章关键引用和摘要
-4. **Google Cache**：`cache:<URL>` 有时能拿到完整页面
-
-**核心原则**：单一来源被墙 ≠ 内容不可获取。将"信息考古"视为标准流程而非例外——通过 archive + 二手报道 + 社交讨论拼出完整拼图，往往比直接阅读原文还能获得更丰富的背景信息。
-
-实战案例：404 Media 付费文章通过 archive.ph 存档 + TechCrunch/Bloomberg Law/Simon Willison 博客等 8+ 二手来源交叉验证，成功还原完整内容并获取额外背景资料。
-
-## 技术博文编写规范
-
-迁移至 [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)（联网工具、跨平台命令、Asides、代码块、Git 提交等）。

@@ -1,9 +1,10 @@
 ---
 name: website-observe
 description: Use when generating, refreshing, or automating a rich Markdown observation report for a website, including traffic, audience, referrals, landing pages, engagement, events, search visibility, backlinks, RSS/follower signals, GitHub repository attention, GA4 metadata/compatibility checks, GSC, gh/GitHub API traffic, project-root or home-directory .env configuration loading, Google Cloud project and service account setup for GA4/GSC access, public web mentions, tracking gaps, report language selection, or cron-friendly incremental updates from an existing report.
-version: 0.6.0
-author: NTLx
 license: MIT
+metadata:
+  author: NTLx
+  version: "0.7.0"
 ---
 
 # Website Observe

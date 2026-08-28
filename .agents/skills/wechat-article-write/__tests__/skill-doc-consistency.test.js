@@ -40,9 +40,9 @@ describe("wechat-article-write documentation consistency", () => {
 
   test("strategy files do not reintroduce the old one-image-per-H2 rule", () => {
     for (const rel of [
-      "references/strategies/reader-response.md",
-      "references/strategies/tutorial.md",
-      "references/strategies/news-digest.md",
+      "references/strategy-reader-response.md",
+      "references/strategy-tutorial.md",
+      "references/strategy-news-digest.md",
     ]) {
       const text = read(rel);
       expect(text).not.toMatch(/每个\s*`?##\s*`?\s*章节必须有一个\s*SLOT_IMG|每个.*章节必须.*SLOT_IMG/);
@@ -69,17 +69,18 @@ describe("wechat-article-write documentation consistency", () => {
     expect(manifest).toContain("gzh-design");
   });
 
-  test("image backend docs prefer Codex CLI and keep baoyu fallback explicit", () => {
+  test("image-policy defers backend policy to image-backends owner instead of duplicating it", () => {
     const policy = read("references/image-policy.md");
     const backends = read("references/image-backends.md");
 
+    // policy 只保留执行细节，后端顺序/失败判定引用唯一 owner
+    expect(policy).toContain("references/image-backends.md");
+    expect(policy).toContain("（唯一 owner）");
     expect(policy).toContain("--provider codex-cli");
     expect(policy).toContain("preferred_image_backend");
-    expect(policy).toContain("Codex CLI 可用时，它是唯一首选文生图后端");
-    expect(policy).toContain("不能因为 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 配了 `preferred_image_backend` 就跳过 Codex CLI");
-    expect(policy).toContain("即便当前运行时有原生 `imagegen` / `image_gen` 工具，也不得绕过 Codex CLI");
-    expect(backends).toContain("codex-cli");
-    expect(backends).toContain("baoyu fallback");
+    // policy 不再全文重复后端策略硬规则
+    expect(policy).not.toContain("Codex CLI 可用时，它是唯一首选文生图后端");
+    // backends 仍是后端策略真身
     expect(backends).toContain("Codex CLI 可用时，它是唯一首选文生图后端");
     expect(backends).toContain("preferred_image_backend 只定义 Codex CLI 明确失败后的 baoyu fallback");
     expect(backends).toContain("不得因为当前 Agent 自带 image generation 工具就改走该工具");
@@ -110,8 +111,8 @@ describe("wechat-article-write documentation consistency", () => {
   });
 
   test("strategies that skip interaction pass the explicit Step 2 flag", () => {
-    const tutorial = read("references/strategies/tutorial.md");
-    const newsDigest = read("references/strategies/news-digest.md");
+    const tutorial = read("references/strategy-tutorial.md");
+    const newsDigest = read("references/strategy-news-digest.md");
 
     expect(tutorial).toContain("--allow-no-interaction");
     expect(newsDigest).toContain("--allow-no-interaction");
@@ -158,7 +159,7 @@ describe("wechat-article-write documentation consistency", () => {
 
   test("resume and split docs point to current behavior and references", () => {
     const publishBlog = read("scripts/publish-blog.mjs");
-    const readerResponse = read("references/strategies/reader-response.md");
+    const readerResponse = read("references/strategy-reader-response.md");
 
     expect(publishBlog).not.toContain("依赖 sourceUrl HTTP 200，未执行");
     expect(publishBlog).toContain("默认可跳过 sourceUrl 探活");
@@ -169,7 +170,7 @@ describe("wechat-article-write documentation consistency", () => {
   test("reader-response documents the mandatory understanding enhancement stage", () => {
     const skill = read("SKILL.md");
     const overview = read("references/pipeline-overview.md");
-    const readerResponse = read("references/strategies/reader-response.md");
+    const readerResponse = read("references/strategy-reader-response.md");
     const understanding = read("references/material-understanding.md");
 
     expect(skill).toContain("references/material-understanding.md");
@@ -201,12 +202,12 @@ describe("wechat-article-write documentation consistency", () => {
   });
 
   test("project agent docs explain Tavily quota fallback", () => {
-    const agents = readRepo("AGENTS.md");
+    const agents = readRepo("AGENTS.md").toLowerCase();
 
     expect(agents).toContain("anysearch");
     expect(agents).toContain("432");
-    expect(agents).toContain("Tavily");
-    expect(agents).toContain("Exa");
+    expect(agents).toContain("tavily");
+    expect(agents).toContain("exa");
   });
 
   test("docs do not require source-url patch checks owned by baoyu-post-to-wechat", () => {
@@ -225,7 +226,38 @@ describe("wechat-article-write documentation consistency", () => {
     const skill = read("SKILL.md");
     const publishing = read("references/publishing.md");
 
-    expect(skill).toContain("references/wechat-gzh-layout.md");
+    expect(skill).toContain("references/adapter-gzh-design.md");
     expect(publishing).toContain("article-wechat-source.md");
+  });
+
+  // Golden behavior G4: news-digest 不调用 ljg-writes；aihot 承担候选发现
+  test("news-digest strategy forbids ljg-writes and uses aihot for discovery", () => {
+    const nd = read("references/strategy-news-digest.md");
+
+    expect(nd).toContain("禁止调用 `ljg-writes`");
+    expect(nd).toContain("aihot");
+    expect(nd).toContain("候选发现");
+    expect(nd).toContain("核验事实");
+    // last30days 只做社区讨论/反馈，不承担候选发现
+    expect(nd).not.toMatch(/last30days[\s\S]{0,60}候选发现/);
+  });
+
+  // Golden behavior G6: agent 初稿不强制 renwei-writing；lint 先行，humanizer 仅按需定点修复
+  test("reader-response routes Step 3 by source provenance and lints before humanizing", () => {
+    const rr = read("references/strategy-reader-response.md");
+    const skill = read("SKILL.md");
+
+    expect(rr).toContain("source_provenance");
+    expect(rr).toContain("material 是人类手稿");
+    expect(rr).toContain("material 是 agent 初稿");
+    expect(rr).toContain("不默认调用 renwei-writing");
+    expect(rr).toContain("确定性 style lint");
+    expect(rr).toContain("只对**命中的片段**");
+    expect(rr).toContain("humanizer-zh");
+    // 不再要求“必须调用 renwei-writing”的强制文案
+    expect(rr).not.toContain("不得以任何理由");
+    expect(rr).not.toContain("未调用 renwei-writing = 违反硬规则");
+    // SKILL.md 硬规则表同步了来源路由
+    expect(skill).toContain("后处理路由");
   });
 });

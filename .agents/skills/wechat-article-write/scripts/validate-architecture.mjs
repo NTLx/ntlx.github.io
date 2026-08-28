@@ -1,0 +1,361 @@
+#!/usr/bin/env bun
+/**
+ * validate-architecture.mjs — wechat-article-write 架构静态校验
+ *
+ * 校验本技能及其依赖技能的架构契约（实施文档 §10/§11）：
+ *   1. 自建 Skill frontmatter 合规（author / version 位于 metadata，不残留在顶层）
+ *   2. workflow 引用的必需 Skill 已安装
+ *   3. docs 中出现的 Skill 引用无悬空依赖（不存在已删除的旧 Skill 名）
+ *   4. strategy 文件存在
+ *   5. .claude/skills symlink 完整且指向 .agents/skills
+ *   6. SKILL.md 引用的脚本存在
+ *   7. skills-lock.json 覆盖 managed 第三方技能安装
+ *
+ * 纯静态：不联网、不读凭据、不写文件、无发布副作用。
+ *
+ * 用法:
+ *   bun run validate-architecture.mjs [--json]
+ */
+
+import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { basename, resolve } from "node:path";
+import { REQUIRED_SKILLS as WORKFLOW_REQUIRED } from "./workflow.mjs";
+
+/**
+ * 专用 frontmatter 解析（Skill spec 版）
+ *
+ * 支持顶层标量 + metadata: 一层嵌套 + description: > 折叠块。
+ * 与 frontmatter-lib.mjs 的扁平解析不同：它会把 metadata 内层键读作顶层，
+ * 不适合模拟 Skill spec。此解析器仅用于架构校验，不改变文章 frontmatter 语义。
+ */
+function parseSkillFrontmatter(text) {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return {};
+  const fm = {};
+  let meta = null;
+  let foldedKey = null; // 正在收集 description: > 折叠块
+  for (const raw of m[1].split(/\r?\n/)) {
+    if (raw.trim() === "" || raw.trim().startsWith("#")) continue;
+    if (foldedKey) {
+      const indent = raw.match(/^\s*/)[0].length;
+      if (indent > foldedKey.indent) continue; // 折叠续行，忽略内容
+      foldedKey = null;
+    }
+    const kv = raw.match(/^(\s*)([\w-]+):(?:\s*(.*))?$/);
+    if (!kv) continue;
+    const indent = kv[1].length;
+    const key = kv[2];
+    let value = (kv[3] ?? "").trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    // 顶层 metadata: 块（下一层缩进更大）
+    if (indent === 0 && key === "metadata" && value === "") {
+      meta = {};
+      fm.metadata = meta;
+      continue;
+    }
+    // metadata 子键
+    if (indent > 0 && meta) {
+      meta[key] = value;
+      continue;
+    }
+    // 顶层标量
+    if (value === ">") {
+      foldedKey = { indent };
+      continue; // description 折叠块内容已有形，不参与校验
+    }
+    fm[key] = value;
+  }
+  return fm;
+}
+
+const SKILL_DIR = resolve(import.meta.dir, "..");
+const REPO_ROOT = resolve(SKILL_DIR, "../../..");
+const SKILLS_ROOT = resolve(REPO_ROOT, ".agents/skills");
+const CLAUDE_SKILLS = resolve(REPO_ROOT, ".claude/skills");
+const LOCK_PATH = resolve(REPO_ROOT, "skills-lock.json");
+
+/** 自建技能判定：frontmatter 中 metadata.author 或顶层 author 为 NTLx */
+const CUSTOM_AUTHOR = "NTLx";
+
+/** workflow 指令引用的必需 Skill（缺失 = 阻断），唯一来源是 workflow.mjs */
+const REQUIRED_SKILLS = WORKFLOW_REQUIRED;
+
+/** 已被删除、不应再被任何文档引用的旧 Skill 名 */
+const RETIRED_SKILL_NAMES = ["ljg-paper-river"];
+
+/** 精确名技能（不满足 <prefix>-<word> 形态，需单独列出） */
+const EXACT_SKILL_NAMES = [
+  "aihot",
+  "gzh-design",
+  "last30days",
+  "beautiful-article",
+  "github-image-hosting",
+  "website-observe",
+  "wechat-article-write",
+];
+
+/** 已知第三方技能前缀（<prefix>-<word> 形态） */
+const KNOWN_SKILL_PREFIXES = ["baoyu", "ljg", "renwei", "humanizer"];
+
+/**
+ * 从文档文本提取“看起来是第三方技能名”的候选。
+ * 只接受纯技能名形态：全小写 kebab-case、第一段命中已知前缀、
+ * 不含路径分隔符、不以 . 开头（避免 .baoyu-skills/、~/.cache/... 这类误报）。
+ */
+function skillNameCandidates(text) {
+  const found = new Set();
+
+  // ① 反引号块内的第一个 word（覆盖 `baoyu-image-gen --provider codex-cli` 这类带参数的引用）
+  for (const m of text.matchAll(/`([^`\n]+)`/g)) {
+    const items = m[1].trim().split(/\s+/);
+    for (const raw of items) {
+      const name = raw.replace(/^[./]+/, "");
+      if (EXACT_SKILL_NAMES.includes(name)) found.add(name);
+      else if (isPrefixedSkillName(name)) found.add(name);
+    }
+  }
+
+  // ② 无反引号的裸词（如正文直接提 "调用 ljg-paper"）；排除路径残片
+  for (const m of text.matchAll(/[`\s()[\]，,：:]([a-z][a-z0-9]*(-[a-z0-9]+)+)/g)) {
+    const name = m[1];
+    if (EXACT_SKILL_NAMES.includes(name)) found.add(name);
+    else if (isPrefixedSkillName(name)) found.add(name);
+  }
+
+  return found;
+}
+
+function isPrefixedSkillName(name) {
+  if (name.includes("/") || name.includes(".")) return false;
+  if (name.endsWith("-*") || name.endsWith("-")) return false; // 通配符泛称，如 `baoyu-*` / `ljg-*`
+  const prefix = name.split("-")[0];
+  return KNOWN_SKILL_PREFIXES.includes(prefix);
+}
+
+function skillDir(name) {
+  return resolve(SKILLS_ROOT, name);
+}
+
+function installedSkills() {
+  return readdirSync(SKILLS_ROOT)
+    .filter((name) => existsSync(resolve(skillDir(name), "SKILL.md")))
+    .sort();
+}
+
+/** 读取技能 frontmatter（含 metadata 嵌套，用于校验） */
+function readSkillFrontmatter(name) {
+  const p = resolve(skillDir(name), "SKILL.md");
+  if (!existsSync(p)) return null;
+  return parseSkillFrontmatter(readFileSync(p, "utf8"));
+}
+
+/**
+ * 1. 自建 Skill frontmatter 合规
+ * 自定义 author / version 必须位于 metadata；顶层不得残留 author / version。
+ */
+function checkCustomSkillFrontmatter(errors, warnings) {
+  const state = { errors, warnings };
+  for (const name of installedSkills()) {
+    const fm = readSkillFrontmatter(name);
+    if (!fm) continue;
+
+    const isCustom =
+      fm.metadata?.author === CUSTOM_AUTHOR || fm["author"] === CUSTOM_AUTHOR;
+
+    if (!isCustom) {
+      // 第三方技能保持上游原样：即使有顶层 author 也不视为违规（例如上游自带作者字段）
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(fm, "author")) {
+      state.errors.push(`${name}: 自建技能 author 必须位于 metadata.author，顶层 author 已弃用`);
+    }
+    if (Object.prototype.hasOwnProperty.call(fm, "version")) {
+      state.errors.push(`${name}: 自建技能 version 必须位于 metadata.version，顶层 version 已弃用`);
+    }
+    if (fm.metadata?.author !== CUSTOM_AUTHOR) {
+      state.errors.push(`${name}: 自建技能缺少 metadata.author: ${CUSTOM_AUTHOR}`);
+    }
+    if (!fm.metadata?.version) {
+      state.errors.push(`${name}: 自建技能缺少 metadata.version`);
+    }
+    if (!fm["license"]) {
+      state.warnings.push(`${name}: 建议补 license 字段`);
+    }
+    if (fm["name"] && fm["name"] !== name) {
+      state.errors.push(`${name}: frontmatter name 与目录名不一致（frontmatter=${fm["name"]}）`);
+    }
+  }
+  return state;
+}
+
+/**
+ * 2. workflow 引用的必需 Skill 已安装
+ */
+function checkRequiredSkills(errors, warnings) {
+  const state = { errors, warnings };
+  for (const name of REQUIRED_SKILLS) {
+    if (!existsSync(resolve(skillDir(name), "SKILL.md"))) {
+      state.errors.push(`必需 Skill 缺失: ${name}`);
+    }
+  }
+  return state;
+}
+
+/**
+ * 3. docs 中出现的 Skill 引用无悬空依赖
+ * 扫描 SKILL.md + references，提取技能名候选；缺失的给 warning（可选技能），
+ * 已删旧名给出 error。
+ */
+function checkDanglingSkillReferences(errors, warnings) {
+  const state = { errors, warnings };
+  const scanRoot = resolve(SKILL_DIR, "references");
+  const docs = [
+    resolve(SKILL_DIR, "SKILL.md"),
+    ...readdirSync(scanRoot)
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => resolve(scanRoot, f)),
+  ];
+  const installed = new Set(installedSkills());
+
+  const mentioned = new Set();
+  let allText = "";
+  for (const p of docs) {
+    if (!existsSync(p)) continue;
+    const text = readFileSync(p, "utf8");
+    allText += text;
+    for (const s of skillNameCandidates(text)) mentioned.add(s);
+  }
+
+  for (const name of RETIRED_SKILL_NAMES) {
+    // 精确匹配反引号引用，避免把「不要使用 xxx」的否定句也算进去
+    if (allText.includes(`\`${name}\``) || allText.includes(`${name}`)) {
+      state.errors.push(`已删除技能名仍被引用: ${name}（请迁移到替代技能组合）`);
+    }
+  }
+
+  for (const name of mentioned) {
+    if (!installed.has(name) && !REQUIRED_SKILLS.includes(name)) {
+      state.warnings.push(`文档引用未安装技能: ${name}`);
+    }
+  }
+  return state;
+}
+
+/**
+ * 4. strategy 文件存在
+ */
+function checkStrategyFiles(errors, warnings) {
+  const state = { errors, warnings };
+  for (const s of ["reader-response", "tutorial", "news-digest"]) {
+    const p = resolve(SKILL_DIR, "references", `strategy-${s}.md`);
+    if (!existsSync(p)) state.errors.push(`strategy 文件缺失: references/strategy-${s}.md`);
+  }
+  return state;
+}
+
+/**
+ * 5. .claude/skills symlink 完整
+ * 已有 symlink 必须指向 .agents/skills/<name>；缺失的给 warning。
+ */
+function checkSymlinks(errors, warnings) {
+  const state = { errors, warnings };
+  if (!existsSync(CLAUDE_SKILLS)) {
+    state.warnings.push(".claude/skills 不存在，无法校验 symlink");
+    return state;
+  }
+  for (const name of installedSkills()) {
+    const link = resolve(CLAUDE_SKILLS, name);
+    if (!existsSync(link)) {
+      state.warnings.push(`缺少 .claude/skills/${name} symlink`);
+      continue;
+    }
+    try {
+      const target = realpathSync(link);
+      if (!target.startsWith(resolve(SKILLS_ROOT, name))) {
+        state.errors.push(`.claude/skills/${name} 指向错误: ${target}`);
+      }
+    } catch (e) {
+      state.errors.push(`.claude/skills/${name} 为断链: ${e.message}`);
+    }
+  }
+  return state;
+}
+
+/**
+ * 6. SKILL.md 引用的脚本存在
+ */
+function checkReferencedScripts(errors, warnings) {
+  const state = { errors, warnings };
+  const skill = readFileSync(resolve(SKILL_DIR, "SKILL.md"), "utf8");
+  const scriptsDir = resolve(SKILL_DIR, "scripts");
+  const re = /\.agents\/skills\/wechat-article-write\/scripts\/([\w-]+\.(?:mjs|ts|py))/g;
+  const seen = new Set();
+  for (const m of skill.matchAll(re)) {
+    const f = m[1];
+    if (seen.has(f)) continue;
+    seen.add(f);
+    if (!existsSync(resolve(scriptsDir, f))) {
+      state.errors.push(`SKILL.md 引用脚本不存在: scripts/${f}`);
+    }
+  }
+  return state;
+}
+
+/**
+ * 7. skills-lock.json 覆盖 managed 第三方技能安装
+ */
+function checkLockCoverage(errors, warnings) {
+  const state = { errors, warnings };
+  if (!existsSync(LOCK_PATH)) {
+    state.errors.push("skills-lock.json 缺失");
+    return state;
+  }
+  let lock;
+  try {
+    lock = JSON.parse(readFileSync(LOCK_PATH, "utf8"));
+  } catch (e) {
+    state.errors.push(`skills-lock.json 解析失败: ${e.message}`);
+    return state;
+  }
+  for (const name of Object.keys(lock.skills ?? {})) {
+    if (["wechat-article-write", "github-image-hosting", "website-observe"].includes(name)) {
+      continue; // 自建技能不入 lock
+    }
+    if (!existsSync(resolve(skillDir(name), "SKILL.md"))) {
+      state.errors.push(`skills-lock.json 中技能未安装: ${name}`);
+    }
+  }
+  return state;
+}
+
+/** 合并各检查结果 */
+export function runArchitectureChecks() {
+  const errors = [];
+  const warnings = [];
+  checkCustomSkillFrontmatter(errors, warnings);
+  checkRequiredSkills(errors, warnings);
+  checkDanglingSkillReferences(errors, warnings);
+  checkStrategyFiles(errors, warnings);
+  checkSymlinks(errors, warnings);
+  checkReferencedScripts(errors, warnings);
+  checkLockCoverage(errors, warnings);
+  return { ok: errors.length === 0, errors, warnings };
+}
+
+if (import.meta.main) {
+  const json = process.argv.includes("--json");
+  const result = runArchitectureChecks();
+  if (json) {
+    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
+  } else {
+    for (const w of result.warnings) process.stdout.write(`validate-architecture: WARN ${w}\n`);
+    for (const e of result.errors) process.stdout.write(`validate-architecture: FAIL ${e}\n`);
+    if (result.warnings.length > 0 || result.errors.length > 0) process.stdout.write("\n");
+    if (result.ok) {
+      process.stdout.write(`validate-architecture: OK (${result.warnings.length} warnings)\n`);
+    }
+  }
+  process.exit(result.ok ? 0 : 2);
+}

@@ -1,12 +1,14 @@
 ---
 name: wechat-article-write
-version: "1.44.0"
-author: NTLx
 description: >
   Use when creating, adapting, illustrating, building, or publishing WeChat
   Official Account articles from this repository, especially when the task
   involves raw materials, article drafts, blog/WeChat dual artifacts,
   "写公众号文章", "公众号推文", "wechat article", or the wechat-article-write pipeline.
+license: MIT
+metadata:
+  author: NTLx
+  version: "1.50.0"
 ---
 
 # 微信公众号文章写作
@@ -18,13 +20,13 @@ description: >
 | 任务 | 必读文件 |
 |---|---|
 | 完整写作/续跑 | `references/pipeline-overview.md` |
-| Steps 1-3 策略选择 | `references/strategies/{reader-response,tutorial,news-digest}.md` |
+| Steps 1-3 策略选择 | `references/{strategy-reader-response,strategy-tutorial,strategy-news-digest}.md` |
 | 材料理解增强 | `references/material-understanding.md` |
 | 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
 | 原创度增量 / 形式变体 / 节奏感知 | `references/originality-policy.md` |
 | 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
 | 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
-| 微信排版（gzh-design） | `references/wechat-gzh-layout.md` |
+| 微信排版（gzh-design） | `references/adapter-gzh-design.md` |
 | 构建、博客发布、微信草稿 | `references/publishing.md` |
 | 依赖、环境 | `references/dependency-manifest.md` |
 | 排错 | `references/troubleshooting.md` |
@@ -45,7 +47,7 @@ description: >
 | 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 由 `wechat-link-normalizer.mjs` 将所有非图片链接转换为纯文本（正文行内链接→”文本（链接：URL）”，参考资料/延伸阅读独立列表链接→”标题 + 换行 + URL”），`article-wechat-source.md` 不得含 Markdown 链接语法；`article-wechat.html` 不得含普通 `<a href>`；finalize 阶段额外执行 `stripWechatAnchors` 防护 |
 | 微信排版中间产物 | Step 5 先生成 `article-wechat-source.md`，再由 Agent 调用 `gzh-design` 产出 `article-wechat.html`，最后用 `gzh-design` 自带校验脚本 finalize |
 | 禁止 per-post 渲染脚本 | 不得在 `posts/<date-slug>/` 下创建任何用于生成 `article-wechat.html` 的自研脚本（如 `render-wechat.mjs`、临时 `.py`/`.sh`）。微信 HTML 只能由 `gzh-design` 技能按主题组件库装配产出。发现别的 post 下有此类脚本时，不得复制或改写它当作当前文章的排版产物——那是上一篇文章的本地脏产物，会带来硬编码金句漏改、模板复制链等故障；正确做法是重新调用 `gzh-design` |
-| renwei-writing | 除 `tutorial` 策略显式 `humanizer: skip` 外，Step 3 必须调用 `renwei-writing` |
+| 后处理路由 | Step 3 按初稿来源路由：material 是人类手稿 → `renwei-writing` 按需轻改；material 是 AI 初稿 → 先 `baoyu-format-markdown` 确定性脚本 lint，命中明显 AI 模式时才用 `humanizer-zh` 定点修复。`tutorial` 策略保留 `humanizer: skip` |
 | 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
 | 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |
 | 图片后端 | Step 4 必须先通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI；Codex CLI 可用时是唯一首选，不能被原生 `imagegen` / `image_gen` 工具或 `preferred_image_backend` 绕过；只有 Codex CLI 明确失败后才回退到项目配置的 baoyu provider |
@@ -53,7 +55,7 @@ description: >
 | 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；禁止 `batch.json` |
 | 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `claymation` 默认风格，头部信息图固定阳光明亮鲜艳高饱和度与高可读性配色；封面和文内图继续走 baoyu 模板 |
 | 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
-| 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/wechat-gzh-layout.md` |
+| 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/adapter-gzh-design.md` |
 | 作者签名 | 调用 `gzh-design` 时，签名区 `{{作者名}}` 固定写 `NTLx`，`{{简介}}` 固定写 `热衷于分享 AI 观察与干货`；不要留占位符，不要让 Agent 自行猜测 |
 | 原创度政策 | 写作契约列 ≥3 条增量（第一人称经验/独立判断/跨来源连接/预测行动）并逐条落地 draft；标题×开头×章节数组合不得与最近 2 篇相同；Step 0 一句话报告近 7 天篇数与分类分布 |
 | 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |

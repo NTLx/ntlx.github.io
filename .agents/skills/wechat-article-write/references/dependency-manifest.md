@@ -21,15 +21,18 @@
 | ljg-constraint | 内容理解技能 | Step 1.8 条件处理行业、角色、产品行为、方案争论和约束错配 |
 | ljg-plain | 内容理解技能 | Step 1.8 条件处理技术或术语密集材料 |
 | ljg-learn | 内容理解技能 | Step 1.8 条件解剖核心概念 |
-| ljg-paper | 内容理解技能 | Step 1.8 条件处理论文、arXiv、研究 PDF |
-| ljg-paper-river | 内容理解技能 | Step 1.8 条件处理论文脉络和问题演化史 |
+| ljg-paper | 内容理解技能 | Step 1.8 条件处理论文、arXiv、研究 PDF；讲论文脉络时与 ljg-rank 组合 |
 | ljg-book | 内容理解技能 | Step 1.8 条件处理书或书摘 |
 | ljg-roundtable | 内容理解技能 | Step 1.8 条件压力测试争议观点 |
 | ljg-invest | 内容理解技能 | Step 1.8 条件处理项目、公司、商业模式分析 |
 | ljg-word | 内容理解技能 | Step 1.8 条件处理英文词或命名文章 |
-| ljg-writes | 内容技能 | Step 2 写作 |
-| renwei-writing | 内容技能 | Step 3 去 AI 味，tutorial 可跳过 |
-| baoyu-format-markdown | 格式技能 | Step 3 Markdown 格式化 |
+| ljg-writes | 内容技能 | **reader-response** Step 2 产出正文候选（思想与文风内核）；news-digest 禁止调用 |
+| renwei-writing | 内容技能 | Step 3 人工手稿按需轻改（source_provenance=human）；AI 初稿不默认调用 |
+| humanizer-zh | 内容技能 | Step 3 AI 初稿命中明显 AI 模式时的定点修复（不全文重写） |
+| baoyu-format-markdown | 格式技能 | Step 3 只调用确定性脚本 `scripts/main.ts` 做 typography，不再整体调用完整 Skill |
+| aihot | 内容技能 | news-digest Step 1 候选发现（“发生了什么”）；reader-response 可选热点感知 |
+| baoyu-youtube-transcript | 内容技能 | 输入是 YouTube URL 时的转录/字幕获取（优先于通用网页抓取） |
+| baoyu-translate | 内容技能 | 目标输出语言 ≠ 源材料语言且需要整篇翻译时；first-time setup 需预先配置项目级 EXTEND |
 | baoyu-cover-image | 图片技能 | 封面 prompt 模板 |
 | baoyu-article-illustrator | 图片技能 | 文内插图 prompt 模板 |
 | baoyu-image-gen | 图片技能 | 实际文生图执行；Codex CLI 可用时必须先走 `codex-cli`，失败后才走 baoyu fallback |

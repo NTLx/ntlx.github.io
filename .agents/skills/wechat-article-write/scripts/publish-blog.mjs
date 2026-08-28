@@ -20,7 +20,7 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname, relative } from "node:path";
+import { resolve, dirname, relative, basename } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markBlogDone } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
@@ -43,8 +43,8 @@ function trySpawn(cmd, args, opts = {}) {
   return r.status ?? 1;
 }
 
-function captureStdout(cmd, args) {
-  const r = spawnSync(cmd, args, { encoding: "utf8" });
+function captureStdout(cmd, args, opts = {}) {
+  const r = spawnSync(cmd, args, { encoding: "utf8", ...opts });
   if (r.status !== 0) return null;
   return r.stdout.trim();
 }
@@ -153,7 +153,8 @@ function validateSourceUrl(fm, slug) {
 
 function assertMainBranchIfNeeded(opts) {
   if (opts.noPush || opts.allowNonMain) return;
-  const branch = captureStdout("git", ["branch", "--show-current"]);
+  // 分支检查必须在配置的目标 repo（PIPELINE_REPO_ROOT）上执行，不是进程 cwd
+  const branch = captureStdout("git", ["branch", "--show-current"], { cwd: repoRoot() });
   if (branch !== "main") {
     process.stderr.write("publish-blog: 当前分支非 main，拒绝发布（使用 --allow-non-main 跳过检查）\n");
     process.exit(6);
@@ -246,10 +247,15 @@ if (existsSync(targetPath) && !opts.overwrite) {
 }
 
 // 覆盖前自动备份已有文件
+// 备份放在 posts/.backups/（gitignore 的管线中间产物区），
+// 避免落在 src/content/docs/ 里被 Starlight 当作页面渲染。
 let backupPath = null;
 if (existsSync(targetPath) && opts.overwrite) {
   const ts = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "").replace("T", "T");
-  backupPath = resolve(repoRoot(), "src/content/docs", `${relativePath}.backup-${ts}.md`);
+  const backupsRoot = resolve(repoRoot(), "posts/.backups");
+  mkdirSync(backupsRoot, { recursive: true });
+  const baseName = `${basename(relativePath)}.backup-${ts}.md`;
+  backupPath = resolve(backupsRoot, baseName);
   copyFileSync(targetPath, backupPath);
   process.stdout.write(`backup: ${backupPath}\n`);
 }
@@ -304,7 +310,7 @@ if (!opts.noPush) {
   }
 }
 
-const sha = opts.noPush ? null : captureStdout("git", ["rev-parse", "HEAD"]);
+const sha = opts.noPush ? null : captureStdout("git", ["rev-parse", "HEAD"], { cwd: repoRoot() });
 
 // 写 RESUME.md（push 失败时必须；push 成功时不写）
 let resumeFile = null;
