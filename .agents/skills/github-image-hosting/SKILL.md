@@ -1,9 +1,10 @@
 ---
 name: github-image-hosting
 description: Upload images to a GitHub repository for image hosting and return jsDelivr CDN URLs. Use when user wants to upload images for blog, WeChat articles, or needs CDN-accessible image URLs. Supports automatic filename collision detection, custom naming, and per-project repository configuration via .github-image-hosting.env files.
-version: 1.2.0
-author: NTLx
 license: MIT
+metadata:
+  author: NTLx
+  version: "1.4.1"
 ---
 
 # GitHub Image Hosting
@@ -33,7 +34,8 @@ The target repository is resolved from (highest to lowest priority):
 1. **CLI `--repo`** flag — one-off override for any invocation
 2. **Project-level** `<git-root>/.github-image-hosting.env` — per-project config, tracked in git
 3. **User-level** `~/.github-image-hosting.env` — personal default across all projects
-4. **Hardcoded defaults** in the script — `NTLx/Pic@master` with folder `blog`
+
+**未配置任何仓库时，脚本会阻断失败**（不会静默上传到内置默认仓库）。请始终提供 env 文件或 `--repo`。
 
 ### Env file format
 
@@ -47,7 +49,7 @@ GITHUB_IMAGE_REPO_BRANCH=master     # Branch to push images to
 GITHUB_IMAGE_DEFAULT_FOLDER=blog    # Default folder path inside the repo
 ```
 
-All four keys are optional — only override the values you want to change. If no env file exists, the script falls back to hardcoded defaults (`NTLx/Pic@master`, folder `blog`).
+All four keys are optional — only override the values you want to change. But at least one of project-level env, user-level env, or CLI `--repo` must provide the repository; otherwise the script fails with a clear message instead of silently uploading to a default repo.
 
 ## When to Use
 
@@ -167,4 +169,4 @@ This means transient network issues should not require manual intervention from 
 - **`gh` CLI** authenticated with GitHub (the script uses `gh api` for all GitHub operations — no tokens in code)
 - **`bun`** runtime
 - **Write access** to the configured GitHub repository
-- **`.github-image-hosting.env`** at project root (recommended, tracks repo config in git; if absent, hardcoded defaults apply)
+- **`.github-image-hosting.env`** at project root (recommended, tracks repo config in git; if absent, `~/.github-image-hosting.env` or CLI `--repo` is required — script fails otherwise)
