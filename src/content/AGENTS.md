@@ -53,4 +53,5 @@ sidebar:
 
 ## Git 提交
 
-用 Conventional Commits：`docs: 简短描述（≤50 字符）` + 列表式变更点。示例见 [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)。
+- 普通手工内容 / 文档维护（如修 typo、改链接、更新已有文档）使用 Conventional Commit：`docs: 简短描述（≤50 字符）`，并附列表式变更点。示例见 [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)。
+- 通过 `wechat-article-write` 正式发布博客时，提交消息由 `publish-blog.mjs` 生成和管理；Agent 不要把它覆盖或重写为 `docs:`。自动发布的具体 commit template 以该脚本为唯一来源。
