@@ -49,9 +49,9 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 ## 文本后处理
 
-- `reader-response` / `news-digest` 默认必须调用 `renwei-writing`。
-- `tutorial` 可跳过 humanizer，并通过 `--no-humanizer` 写入状态。
-- 后处理不应磨平第一人称判断、疑问和读后感式表达。
+- 后处理不得磨平第一人称判断、疑问、读后感式表达和作者自身立场。
+- 后处理目标是减少明显的机械化 / AI 写作痕迹，而不是把文本统一润色成更正式的风格。
+- 具体后处理工具、调用顺序、`source_provenance` 路由以及各 strategy 的例外，由对应 `strategy-*.md` 负责；本文件不规定必须调用某个特定 Skill。
 
 ## 站内记忆与链接双轨
 
