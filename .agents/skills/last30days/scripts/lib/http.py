@@ -9,11 +9,12 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import Future
 from contextlib import contextmanager
 from contextvars import ContextVar, copy_context
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit, quote
 
 from . import health
 from . import log as _log
@@ -416,6 +417,16 @@ class HTTPError(Exception):
         )
 
 
+class DeadlineExceeded(HTTPError):
+    """The caller's shared wall deadline expired across request retries."""
+
+    def __init__(self):
+        super().__init__(
+            "Request deadline exceeded",
+            outcome_state=health.TIMEOUT,
+        )
+
+
 @contextmanager
 def capture_failures():
     """Capture terminal request failures in the current retrieval context.
@@ -433,6 +444,27 @@ def capture_failures():
 
 
 @contextmanager
+def tee_failures():
+    """Observe failures locally WITHOUT hiding them from the enclosing sink.
+
+    ``capture_failures()`` *replaces* the context-local sink, so nesting it
+    inside a retrieval context swallows the very failure the pipeline needs.
+    This yields a local list and forwards its contents to the parent sink on
+    exit, so a swallow site (``get_text`` returns None and drops the status)
+    can recover what it lost while the pipeline still sees the failure.
+    """
+    parent = _failure_sink.get()
+    local: list[HTTPError] = []
+    token = _failure_sink.set(local)
+    try:
+        yield local
+    finally:
+        _failure_sink.reset(token)
+        if parent is not None:
+            parent.extend(local)
+
+
+@contextmanager
 def expected_misses(*status_codes: int):
     """Exclude adapter-declared probe misses from captured run failures."""
     token = _expected_miss_statuses.set(
@@ -444,7 +476,7 @@ def expected_misses(*status_codes: int):
         _expected_miss_statuses.reset(token)
 
 
-def submit_with_context(executor, func, /, *args, **kwargs):
+def submit_with_context(executor, func, /, *args, **kwargs) -> Future:
     """Submit a worker with the caller's failure-capture context."""
     context = copy_context()
     return executor.submit(context.run, func, *args, **kwargs)
@@ -483,6 +515,12 @@ def classify_failure(*, status_code: Optional[int] = None, message: str = "") ->
             "forbidden",
             "authentication failed",
             "expired token",
+            "not signed in",
+            "not logged in",
+            "invalid_grant",
+            "refresh token",
+            "session expired",
+            "grok session expired",
         )
     ):
         return health.AUTH_FAILED
@@ -523,10 +561,11 @@ def request(
     headers: Optional[Dict[str, str]] = None,
     json_data: Optional[Dict[str, Any]] = None,
     params: Optional[Dict[str, Any]] = None,
-    timeout: int = DEFAULT_TIMEOUT,
+    timeout: float = DEFAULT_TIMEOUT,
     retries: int = MAX_RETRIES,
     max_429_retries: int = MAX_429_RETRIES,
     raw: bool = False,
+    deadline_monotonic: float | None = None,
 ) -> Union[Dict[str, Any], str]:
     """Make an HTTP request and return JSON response.
 
@@ -541,6 +580,8 @@ def request(
         retries: Number of retries on failure
         max_429_retries: Maximum 429 retries before giving up (separate cap)
         raw: If True, return raw response text instead of parsed JSON
+        deadline_monotonic: Optional absolute monotonic deadline shared by all
+            attempts and retry delays.
 
     Returns:
         Parsed JSON response as dict, or raw text string if raw=True.
@@ -556,6 +597,19 @@ def request(
         if filtered:
             separator = "&" if ("?" in url) else "?"
             url = f"{url}{separator}{urlencode(filtered)}"
+    # Encode any non-ASCII characters to prevent UnicodeEncodeError from
+    # http.client.HTTPConnection.putrequest (which uses latin-1 internally).
+    # Only encode path, query, and fragment — not the hostname (netloc), which
+    # needs IDNA encoding instead of percent-encoding for non-ASCII domains.
+    parts = urlsplit(url)
+    safe = '/:@!$&\'()*+,;=-._~%?#[]=+'
+    url = urlunsplit((
+        parts.scheme,
+        parts.netloc,
+        quote(parts.path, safe=safe),
+        quote(parts.query, safe=safe),
+        quote(parts.fragment, safe=safe),
+    ))
 
     fixture_request = _fixture_request(method, url, json_data, raw)
     fixture_redactions = _fixture_redactions(url, headers, json_data)
@@ -586,17 +640,77 @@ def request(
         _fixture_record(fixture_request, error=error, redactions=fixture_redactions)
         _raise(error)
 
-    while attempt < effective_retries:
+    def deadline_error() -> HTTPError:
+        return DeadlineExceeded()
+
+    def sleep_before_retry(delay: float) -> bool:
+        """Sleep only when the full delay fits inside the caller's deadline."""
+        nonlocal last_error
+        if deadline_monotonic is not None:
+            remaining = deadline_monotonic - time.monotonic()
+            if remaining <= 0 or delay >= remaining:
+                last_error = deadline_error()
+                return False
+        time.sleep(delay)
+        return True
+
+    def open_and_read(request_timeout: float) -> tuple[int, str]:
+        with urllib.request.urlopen(req, timeout=request_timeout) as response:
+            return response.status, response.read().decode('utf-8')
+
+    def open_and_read_before_deadline(
+        request_timeout: float,
+    ) -> tuple[int, str]:
+        """Stop waiting at the wall deadline, even during DNS or body reads."""
+        if deadline_monotonic is None:
+            return open_and_read(request_timeout)
+        remaining = deadline_monotonic - time.monotonic()
+        if remaining <= 0:
+            raise deadline_error()
+        future: Future = Future()
+
+        def worker() -> None:
+            try:
+                future.set_result(open_and_read(request_timeout))
+            except BaseException as exc:
+                future.set_exception(exc)
+
+        threading.Thread(target=worker, daemon=True).start()
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as response:
-                body = response.read().decode('utf-8')
-                log(f"Response: {response.status} ({len(body)} bytes)")
-                if raw:
-                    _fixture_record(fixture_request, value=body, redactions=fixture_redactions)
-                    return body
-                parsed = json.loads(body) if body else {}
-                _fixture_record(fixture_request, value=parsed, redactions=fixture_redactions)
-                return parsed
+            return future.result(timeout=remaining)
+        except TimeoutError as exc:
+            # A worker-side socket TimeoutError is a transport failure, not
+            # proof that the command-wide wall deadline expired. Re-read a
+            # completed future so its original exception reaches the normal
+            # transport classifier below.
+            if future.done():
+                return future.result()
+            raise deadline_error() from exc
+
+    while attempt < effective_retries:
+        request_timeout = timeout
+        if deadline_monotonic is not None:
+            remaining = deadline_monotonic - time.monotonic()
+            if remaining <= 0:
+                last_error = deadline_error()
+                break
+            request_timeout = min(timeout, remaining)
+        try:
+            response_status, body = open_and_read_before_deadline(request_timeout)
+            if (
+                deadline_monotonic is not None
+                and time.monotonic() >= deadline_monotonic
+            ):
+                raise_recorded(deadline_error())
+            log(f"Response: {response_status} ({len(body)} bytes)")
+            if raw:
+                _fixture_record(fixture_request, value=body, redactions=fixture_redactions)
+                return body
+            parsed = json.loads(body) if body else {}
+            _fixture_record(fixture_request, value=parsed, redactions=fixture_redactions)
+            return parsed
+        except DeadlineExceeded as exc:
+            raise_recorded(exc)
         except urllib.error.HTTPError as e:
             body = None
             try:
@@ -635,7 +749,8 @@ def request(
                     log(f"Rate limited (429). Waiting {delay:.1f}s before retry {attempt + 2}/{retries}")
                 else:
                     delay = RETRY_DELAY * (2 ** attempt)
-                time.sleep(delay)
+                if not sleep_before_retry(delay):
+                    break
             else:
                 # Caller's original retry budget exhausted; an earlier DNS
                 # failure may have widened `effective_retries`, but that
@@ -671,11 +786,13 @@ def request(
                         f"DNS resolution failure (attempt {dns_attempts}); "
                         f"retrying in {delay:.1f}s"
                     )
-                    time.sleep(delay)
+                    if not sleep_before_retry(delay):
+                        break
             elif attempt < retries - 1:
                 # Non-DNS URLError (e.g. ConnectionRefused) respects the
                 # caller's original retry budget, not the DNS-widened bound.
-                time.sleep(RETRY_DELAY * (attempt + 1))
+                if not sleep_before_retry(RETRY_DELAY * (attempt + 1)):
+                    break
             else:
                 # Caller's original retry budget exhausted; an earlier DNS
                 # failure widening `effective_retries` does not carry over
@@ -698,7 +815,8 @@ def request(
             )
             if attempt < retries - 1:
                 # Socket errors respect the caller's original retry budget.
-                time.sleep(RETRY_DELAY * (attempt + 1))
+                if not sleep_before_retry(RETRY_DELAY * (attempt + 1)):
+                    break
             else:
                 # Original budget exhausted; DNS widening doesn't apply here.
                 break

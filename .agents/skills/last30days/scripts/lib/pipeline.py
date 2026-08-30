@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Iterable
 import math
 import queue
 import re
@@ -10,17 +11,20 @@ import sqlite3
 import sys
 import threading
 import time
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from shutil import which
 from typing import Any
 
 from . import (
+    amazon,
     arxiv,
     bird_x,
     bluesky,
+    brightdata,
     corpus,
     dates,
     dedupe,
@@ -29,6 +33,7 @@ from . import (
     entity_extract,
     env,
     github,
+    grok_x,
     grounding,
     hackernews,
     health,
@@ -39,6 +44,7 @@ from . import (
     linkedin,
     library,
     library_index,
+    log,
     normalize,
     permission_preflight,
     perplexity,
@@ -57,10 +63,13 @@ from . import (
     snippet,
     stocktwits,
     techmeme,
+    telegram,
     threads,
     tiktok,
+    topic_shape,
     truthsocial,
     trustpilot,
+    x_judge,
     xai_x,
     xiaohongshu_api,
     xquik,
@@ -93,7 +102,78 @@ SEARCH_ALIAS = {
 # trustpilot is capped at 1: every subquery would use the identical company
 # identifier, so N streams are pure redundancy -- and each extra stream risks
 # its own WAF-cookie Chrome harvest.
-MAX_SOURCE_FETCHES: dict[str, int] = {"x": 2, "jobs": 1, "linkedin": 1, "stocktwits": 1, "trustpilot": 1}
+# amazon is capped at 1 for the same reason as trustpilot: the model supplies
+# one product keyword for the run, so every subquery would issue the identical
+# product search. Extra streams would be pure redundancy at one credit each.
+MAX_SOURCE_FETCHES: dict[str, int] = {
+    "x": 2, "jobs": 1, "linkedin": 1, "stocktwits": 1, "trustpilot": 1, "amazon": 1,
+    "telegram": 1,
+}
+
+_FAILURE_SPECIFICITY = {
+    health.AUTH_FAILED: 0,
+    health.RATE_LIMITED: 1,
+    health.SCHEMA_DRIFT: 2,
+    health.TIMEOUT: 3,
+    health.UNREACHABLE: 4,
+    health.ERROR: 5,
+}
+
+
+@dataclass
+class PaidSourceBudget:
+    """Command-wide, thread-safe budget for paid source adapter calls."""
+
+    used: int = 0
+    owner: str | None = None
+    _lock: Any = field(default_factory=threading.Lock, repr=False)
+
+    def try_consume(self, limit: int, *, claimant: str | None = None) -> bool:
+        with self._lock:
+            if self.owner is not None and claimant != self.owner:
+                return False
+            if self.used >= limit:
+                return False
+            self.used += 1
+            return True
+
+
+def _source_fetch_cap(source: str, config: dict[str, Any]) -> int | None:
+    """Return the effective per-run cap for one source.
+
+    Every Perplexity adapter call is paid, and ``both`` performs two paid POSTs.
+    A generic fetch-cap override must not multiply either normal or Deep
+    Research mode across planner subqueries.
+    """
+    override = config.get("_max_source_fetches")
+    if source == "perplexity":
+        return 1 if override is None else min(1, int(override))
+    cap = MAX_SOURCE_FETCHES.get(source)
+    if cap is not None and override is not None:
+        return int(override)
+    return cap
+
+
+def _resolve_depth_settings(depth: str, config: dict[str, Any]) -> dict[str, int]:
+    """Depth profile with optional CLI cap overrides applied (issue #716).
+
+    Returns a copy so the module-level DEPTH_SETTINGS is never mutated. Overrides
+    are set directly (not max()) so callers can also lower a cap. `--max-results`
+    raises the final ranked pool (pool_limit/rerank_limit); `--max-per-source`
+    raises the per-stream truncation applied before pooling. The per-source fetch
+    cap (`--max-source-fetches`) is applied separately at the fetch site.
+    """
+    settings = dict(DEPTH_SETTINGS[depth])
+    # `is not None` (not truthiness) so an explicit 0 is honored as a real lower
+    # bound rather than ignored as "unset" — matches how main() stashes these.
+    max_per_source = config.get("_max_per_source")
+    if max_per_source is not None:
+        settings["per_stream_limit"] = int(max_per_source)
+    max_results = config.get("_max_results")
+    if max_results is not None:
+        settings["pool_limit"] = int(max_results)
+        settings["rerank_limit"] = int(max_results)
+    return settings
 
 # Per-handle result caps for the X handle-search lanes. The FROM lane (the
 # subject's own timeline) is the single best source for a person topic, so it
@@ -105,7 +185,11 @@ RELATED_HANDLE_COUNT_PER = 3
 
 
 def _has_perplexity_provider(config: dict[str, Any]) -> bool:
-    return bool(config.get("PERPLEXITY_API_KEY") or config.get("OPENROUTER_API_KEY"))
+    # Prefer direct Agent/Search APIs, but preserve the synchronous OpenRouter
+    # Sonar fallback for existing installs.
+    return bool(
+        config.get("PERPLEXITY_API_KEY") or config.get("OPENROUTER_API_KEY")
+    )
 
 MOCK_AVAILABLE_SOURCES = [
     "reddit",
@@ -127,10 +211,12 @@ MOCK_AVAILABLE_SOURCES = [
     "arxiv",
     "techmeme",
     "trustpilot",
+    "amazon",
     "jobs",
     "linkedin",
     "corpus",
     "dripstack",
+    "telegram",
 ]
 
 
@@ -228,7 +314,7 @@ def available_sources(
         available.append("grounding")
     if requested_sources and "jobs" in requested_sources:
         available.append("jobs")
-    # Perplexity Sonar: opt-in additive source via INCLUDE_SOURCES=perplexity
+    # Perplexity Agent API: opt-in additive source via INCLUDE_SOURCES=perplexity
     if _has_perplexity_provider(config) and (
         "perplexity" in include_sources or (requested_sources and "perplexity" in requested_sources)
     ):
@@ -250,6 +336,16 @@ def available_sources(
         "trustpilot" in include_sources or (requested_sources and "trustpilot" in requested_sources)
     ):
         available.append("trustpilot")
+    # Amazon: opt-in additive source, dual-gated. The Bright Data CLI must be
+    # on the agent subprocess PATH and carry a credential signal, AND the run
+    # must ask for it -- the model per-run via --search, or the user durably
+    # via INCLUDE_SOURCES=amazon. Never inferred from topic shape: the engine
+    # misroutes most shopping phrasings, and auto-firing would spend a CLI
+    # owner's credits on runs that have nothing to do with products.
+    if brightdata.is_available(config) and (
+        "amazon" in include_sources or (requested_sources and "amazon" in requested_sources)
+    ):
+        available.append("amazon")
     if (
         "xiaohongshu" in include_sources
         or (requested_sources and "xiaohongshu" in requested_sources)
@@ -269,6 +365,14 @@ def available_sources(
         "pinterest" in include_sources or (requested_sources and "pinterest" in requested_sources)
     ):
         available.append("pinterest")
+    # Telegram: opt-in via INCLUDE_SOURCES AND requires a channel list. The
+    # channel list (TELEGRAM_SOURCES env or --telegram-sources CLI) is the gate:
+    # without named channels there is no discovery endpoint to call.
+    if config.get("SCRAPECREATORS_API_KEY") and (
+        "telegram" in include_sources or (requested_sources and "telegram" in requested_sources)
+    ):
+        if telegram.is_telegram_configured(config):
+            available.append("telegram")
     # xquik is a backend of the single "x" source (see env.x_backend_chain),
     # not a separate parallel source — registered via the "x" entry above.
     exclude = {s.strip().lower() for s in (config.get("EXCLUDE_SOURCES") or "").split(",") if s.strip()}
@@ -429,16 +533,12 @@ def _fetch_discovery_source(
             ]
         return items, result.get("error")
     if source == "x":
-        subquery = schema.SubQuery(
-            label="discovery-listings",
-            search_query=plan.domain,
-            ranking_query=f"What is accelerating in {plan.domain}?",
-            sources=["x"],
-        )
+        # Discovery uses domain directly as query (no planner search_query)
+        query = plan.domain
         last_error = ""
         for backend in env.x_backend_chain(config):
             items, error = _fetch_x_backend(
-                backend, subquery, from_date, to_date, depth, config,
+                backend, query, from_date, to_date, depth, config,
             )
             if items:
                 # Earlier failed-over backends' errors are observability, not
@@ -451,41 +551,6 @@ def _fetch_discovery_source(
                 last_error = f"{backend}: {error}"
         return [], last_error or None
     raise ValueError(f"Unsupported discovery source: {source}")
-
-
-def discovery_topic_name(
-    cluster: schema.Cluster,
-    candidates: dict[str, schema.Candidate],
-    domain: str,
-) -> str:
-    """Turn a story cluster into a concise, reusable research topic."""
-    members = [candidates[cid] for cid in cluster.candidate_ids if cid in candidates]
-    leader = candidates.get(cluster.representative_ids[0]) if cluster.representative_ids else None
-    leader = leader or (members[0] if members else None)
-    if leader is None:
-        return domain
-    title = re.sub(r"^(?:show|ask|tell|launch) hn:\s*", "", leader.title, flags=re.I)
-    title = re.sub(r"^digg cluster (?:about|on)\s+", "", title, flags=re.I)
-    title = re.sub(r"\s*(?::|-)?\s*(?:discussion thread|gains momentum)$", "", title, flags=re.I)
-
-    if len(members) > 1:
-        entity_sets = [
-            entity_extract.extract_text_entities(f"{member.title} {member.snippet}")
-            for member in members
-        ]
-        shared = set.intersection(*entity_sets) if entity_sets else set()
-        shared_words = [
-            word.strip(".,:;!?()[]{}\"'")
-            for word in title.split()
-            if word.strip(".,:;!?()[]{}\"'").lower() in shared
-        ]
-        if 2 <= len(shared_words) <= 7:
-            title = " ".join(shared_words)
-
-    title = " ".join(title.split()).strip(" -:;,.\"'")
-    if len(title) > 96:
-        title = title[:93].rsplit(" ", 1)[0] + "..."
-    return title or domain
 
 
 def _discovery_engagement(
@@ -606,34 +671,155 @@ def nominate_candidates(
 class Nomination:
     """A named candidate topic produced by the nominate stage.
 
-    ``seed_score`` is the cheap pre-enrichment velocity rank - enough to decide
-    WHICH candidates deserve a full pipeline pass, but not the final ranking
-    signal (that comes from enriched evidence downstream).
+    ``seed_score`` is the cheap pre-enrichment rank - seed velocity on the
+    nominate stage, blended with the HOST judge's content-worthiness on the
+    protocol resume leg (see ``rerank.judge_blended_score``). Enough to
+    decide WHICH candidates deserve a full pipeline pass, but not the final
+    ranking signal (that comes from enriched evidence downstream).
+    ``junk_shape`` flags help-me/beginner/musing shapes that should not
+    become content topics; ``worthiness`` is the host judge's 0-100 content
+    score, None on the heuristic path.
     """
 
     name: str
     seed_score: float
     items: list[schema.SourceItem] = field(default_factory=list)
     summary: str = ""
+    junk_shape: bool = False
+    worthiness: float | None = None
 
 
-def nominate_topics(
+def _cluster_entity_counts(
+    cluster: schema.Cluster,
+    candidate_map: dict[str, schema.Candidate],
+) -> Counter:
+    """Entity-token frequencies across a cluster's members (title + snippet)."""
+    counts: Counter = Counter()
+    for candidate_id in cluster.candidate_ids:
+        candidate = candidate_map.get(candidate_id)
+        if candidate:
+            counts.update(entity_extract.extract_text_entities(
+                f"{candidate.title} {candidate.snippet}"
+            ))
+    return counts
+
+
+# Bound on how many distinguishing entity tokens a colliding cluster may try
+# before it is treated as indistinguishable from the earlier story. Keeps a
+# pathological cluster (dozens of unique tokens, every resulting name already
+# taken) from scanning its whole vocabulary.
+_DISAMBIGUATION_TOKEN_LIMIT = 5
+
+
+def _disambiguated_topic_name(
+    name: str,
+    cluster: schema.Cluster,
+    earlier_cluster: schema.Cluster,
+    candidate_map: dict[str, schema.Candidate],
+    entity_counts_cache: dict[str, Counter],
+    taken_names: dict[str, schema.Cluster],
+) -> str | None:
+    """Disambiguate a colliding topic name by appending the later cluster's
+    strongest entity token that the earlier cluster does not share.
+
+    Distinguishing tokens are tried in descending strength order (bounded at
+    ``_DISAMBIGUATION_TOKEN_LIMIT``) and the first resulting name not already
+    present in ``taken_names`` (casefolded keys) wins: a first-choice suffix
+    colliding with an already-taken name must not drop a distinct story while
+    another distinguishing token remains.
+
+    ``entity_counts_cache`` (keyed by cluster id, owned by the caller) memoizes
+    per-cluster entity counts so repeated collisions against the same cluster
+    never recompute them.
+
+    Returns None when no distinguishing entity yields an unused name - the
+    clusters cannot be told apart by content, so the caller treats them as the
+    same story.
+    """
+    def cached_counts(target: schema.Cluster) -> Counter:
+        counts = entity_counts_cache.get(target.cluster_id)
+        if counts is None:
+            counts = _cluster_entity_counts(target, candidate_map)
+            entity_counts_cache[target.cluster_id] = counts
+        return counts
+
+    later_counts = cached_counts(cluster)
+    earlier_entities = set(cached_counts(earlier_cluster))
+    name_tokens = {token.casefold() for token in name.split()}
+    choices = [
+        (count, token) for token, count in later_counts.items()
+        if token not in earlier_entities and token.casefold() not in name_tokens
+    ]
+    # Strongest first = most frequent across the cluster; alphabetical
+    # tie-break keeps the result deterministic.
+    ranked = sorted(choices, key=lambda entry: (-entry[0], entry[1]))
+    for _, token in ranked[:_DISAMBIGUATION_TOKEN_LIMIT]:
+        display = token
+        for candidate_id in cluster.candidate_ids:
+            candidate = candidate_map.get(candidate_id)
+            if candidate is None:
+                continue
+            match = next(
+                (
+                    word.strip("\"'`()[]{}.,:;!?")
+                    for word in f"{candidate.title} {candidate.snippet}".split()
+                    if word.strip("\"'`()[]{}.,:;!?").lower() == token
+                ),
+                None,
+            )
+            if match:
+                display = match
+                break
+        resolved = f"{name} {display}"
+        if resolved.casefold() not in taken_names:
+            return resolved
+    return None
+
+
+def nominate_topic_pool(
     bundle: schema.RetrievalBundle,
     query_plan: schema.QueryPlan,
     plan: schema.DiscoveryPlan,
     *,
+    from_date: str,
     to_date: str,
     limit: int,
-) -> list[Nomination]:
+) -> list[tuple[Nomination, str]]:
     """Stage 1b of discovery: cluster nominated items into named candidate
-    topics and rank them by seed velocity.
+    topics, rank them, and pair each with its source cluster id.
 
-    Names are deduped casefold so the same story surfacing under two clusters
-    yields one nomination. Returns at most ``limit`` nominations, never padded -
-    fewer clusters than ``limit`` means a shorter list, and the confidence
-    floor downstream decides whether what survived is worth showing.
+    This is the shared core behind ``nominate_topics`` (the one-shot path,
+    which drops the cluster ids) and the leg-1 nominate-only sweep (which
+    keys nominations-bundle rows on them, see ``run_discover_nominate``).
+
+    Naming and junk classification are the deterministic ``topic_shape``
+    heuristics and ranking is velocity-only - the engine runs no LLM here.
+    Reasoning-model judgment lives in the host-judged protocol: the host
+    renames, junk-filters, and worthiness-scores this pool from the leg-1
+    bundle, and ``run_discover_resume`` applies those verdicts. The one-shot
+    path ships the heuristic names as-is.
+
+    Casefold name collisions are disambiguated (the later cluster's strongest
+    non-shared entity token is appended, trying successive tokens when the
+    first-choice suffix is itself already taken) rather than blindly dropped:
+    short distilled names collide far more often than raw 96-char titles, and
+    a silent drop hides a distinct story. A colliding cluster is dropped only
+    when it shares a representative candidate with the earlier one (the same
+    story surfacing twice) or when no distinguishing entity token yields an
+    unused name.
+
+    Returns at most ``limit`` ``(nomination, cluster_id)`` pairs, never
+    padded - fewer clusters than ``limit`` means a shorter list, and the
+    confidence floor downstream decides whether what survived is worth
+    showing.
     """
-    candidates = weighted_rrf(bundle.items_by_source_and_query, query_plan, pool_limit=80)
+    candidates = weighted_rrf(
+        bundle.items_by_source_and_query,
+        query_plan,
+        pool_limit=80,
+        range_from=from_date,
+        range_to=to_date,
+    )
     for candidate in candidates:
         velocity = rerank.discovery_velocity_score(candidate.source_items, as_of_date=to_date)
         candidate.final_score = min(100.0, 12.0 * math.log1p(velocity)) if velocity else 0.0
@@ -654,25 +840,66 @@ def nominate_topics(
         ranked_clusters.append((score, cluster, cluster_items))
     ranked_clusters.sort(key=lambda entry: (-entry[0], entry[1].title.lower()))
 
-    nominations: list[Nomination] = []
-    seen_topic_names: set[str] = set()
+    # Heuristic naming from each cluster's leader text (title + snippet).
+    named: list[tuple[float, schema.Cluster, list[schema.SourceItem], str, bool]] = []
     for score, cluster, cluster_items in ranked_clusters:
-        name = discovery_topic_name(cluster, candidate_map, plan.domain)
+        leader = candidate_map.get(cluster.representative_ids[0]) if cluster.representative_ids else None
+        title = (leader.title if leader else cluster.title) or ""
+        snip = (leader.snippet if leader else "") or ""
+        name = topic_shape.distill_topic_name(title, snip) or plan.domain or title
+        junk_shape = topic_shape.is_junk_shape(title, snip)
+        named.append((score, cluster, cluster_items, name, junk_shape))
+    named.sort(key=lambda entry: (-entry[0], entry[3].lower()))
+
+    pool: list[tuple[Nomination, str]] = []
+    taken_names: dict[str, schema.Cluster] = {}
+    entity_counts_cache: dict[str, Counter] = {}
+    for score, cluster, cluster_items, name, junk_shape in named:
         name_key = name.casefold()
-        if name_key in seen_topic_names:
-            continue
-        seen_topic_names.add(name_key)
+        if name_key in taken_names:
+            earlier_cluster = taken_names[name_key]
+            if set(cluster.representative_ids) & set(earlier_cluster.representative_ids):
+                continue  # same story surfacing twice
+            resolved = _disambiguated_topic_name(
+                name, cluster, earlier_cluster, candidate_map, entity_counts_cache,
+                taken_names,
+            )
+            if resolved is None:
+                continue  # indistinguishable by content: treat as the same story
+            name = resolved
+            name_key = name.casefold()
+        taken_names[name_key] = cluster
         leader = candidate_map.get(cluster.representative_ids[0]) if cluster.representative_ids else None
         summary = (leader.snippet if leader else "") or (leader.title if leader else name)
-        nominations.append(Nomination(
+        pool.append((Nomination(
             name=name,
             seed_score=score,
             items=cluster_items,
             summary=summary,
-        ))
-        if len(nominations) >= limit:
+            junk_shape=junk_shape,
+        ), cluster.cluster_id))
+        if len(pool) >= limit:
             break
-    return nominations
+    return pool
+
+
+def nominate_topics(
+    bundle: schema.RetrievalBundle,
+    query_plan: schema.QueryPlan,
+    plan: schema.DiscoveryPlan,
+    *,
+    from_date: str,
+    to_date: str,
+    limit: int,
+) -> list[Nomination]:
+    """``nominate_topic_pool`` without the cluster ids: the one-shot
+    discovery path's contract (see that function for the full semantics)."""
+    return [
+        nomination
+        for nomination, _cluster_id in nominate_topic_pool(
+            bundle, query_plan, plan, from_date=from_date, to_date=to_date, limit=limit,
+        )
+    ]
 
 
 # Enrichment fan-out bounds. Sub-runs hit the same upstream APIs as a normal
@@ -744,6 +971,7 @@ def enrich_nominations(
     # real - stragglers cannot delay process exit. Abandonment is safe because
     # internal_subrun passes write nothing to disk (no save, no library sync,
     # no store), and every fetch layer inside run() carries its own timeout.
+    youtube_yt.reset_search_cache()
     enriched: dict[str, EnrichedTopic] = {}
     results_queue: queue.Queue[tuple[Nomination, schema.Report | None, Exception | None]] = queue.Queue()
     slots = threading.Semaphore(max(1, max_workers))
@@ -853,29 +1081,38 @@ def _best_community_comment(items: list[schema.SourceItem]) -> str | None:
     return f'"{body}"{attribution}{votes}'
 
 
-def run_discover(
+@dataclass(frozen=True)
+class _DiscoverySweep:
+    """The shared front half of both discovery entry points: the resolved
+    plan and window, the swept listing bundle, and finalized per-source
+    status. Everything downstream (judging, enrichment, floor, queue)
+    belongs to the caller's leg."""
+
+    plan: schema.DiscoveryPlan
+    query_plan: schema.QueryPlan
+    from_date: str
+    to_date: str
+    bundle: schema.RetrievalBundle
+    source_status: dict[str, schema.SourceOutcome]
+
+
+def _discovery_sweep(
     *,
     domain: str,
     config: dict[str, Any],
-    depth: str = "default",
-    requested_sources: list[str] | None = None,
-    mock: bool = False,
-    subreddits: list[str] | None = None,
-    lookback_days: int = 30,
-    as_of_date: str | None = None,
-    limit: int = 10,
-    enrich: bool = False,
-    enrich_requested_sources: list[str] | None = None,
-) -> schema.DiscoveryReport:
-    """Sweep category listings and rank the topics gaining velocity.
+    depth: str,
+    requested_sources: list[str] | None,
+    mock: bool,
+    subreddits: list[str] | None,
+    lookback_days: int,
+    as_of_date: str | None,
+) -> _DiscoverySweep:
+    """Resolve the momentum window, validate/bound the listing sources, build
+    the discovery plan, sweep the river feeds, and finalize source status.
 
-    ``requested_sources`` bounds the listing sweep (discovery-capable feeds
-    only). ``enrich_requested_sources`` bounds the per-topic research passes:
-    None means every available source - which is what lets Techmeme, arXiv,
-    YouTube, Polymarket, and community comments reach discovery despite having
-    no river feed of their own. Pass the user's original --search list here so
-    an explicit source boundary holds through enrichment too.
-    """
+    Shared verbatim by ``run_discover`` (one-shot) and
+    ``run_discover_nominate`` (protocol leg 1) so the two paths can never
+    drift on what a sweep means."""
     from_date, to_date = dates.get_date_range(lookback_days, as_of_date=as_of_date)
     requested = normalize_requested_sources(requested_sources)
     unsupported = sorted(set(requested or []) - set(DISCOVERY_SOURCES))
@@ -898,7 +1135,6 @@ def run_discover(
 
     global_mode = not plan.domain
     domain_label = plan.domain or "everything"
-    source_status: dict[str, schema.SourceOutcome] = {}
     query_plan = schema.QueryPlan(
         intent="breaking_news",
         freshness_mode="breaking",
@@ -927,6 +1163,7 @@ def run_discover(
         keyword_gate=not global_mode,
     )
 
+    source_status: dict[str, schema.SourceOutcome] = {}
     for source in DISCOVERY_SOURCES:
         if source in bundle.source_status:
             continue
@@ -941,10 +1178,349 @@ def run_discover(
             fix_hint="doctor",
         )
     source_status.update(_finalize_source_status(bundle.source_status, bundle.items_by_source))
+    return _DiscoverySweep(
+        plan=plan,
+        query_plan=query_plan,
+        from_date=from_date,
+        to_date=to_date,
+        bundle=bundle,
+        source_status=source_status,
+    )
+
+
+def _degraded_discovery_sources(
+    source_status: dict[str, schema.SourceOutcome],
+) -> list[str]:
+    """Sources whose outcome is neither clean nor an expected skip."""
+    return [
+        source for source, outcome_state in source_status.items()
+        if outcome_state.state not in {health.OK, schema.NO_RESULTS, schema.SKIPPED_UNCONFIGURED}
+    ]
+
+
+@dataclass(frozen=True)
+class DiscoverNominateResult:
+    """Leg 1 output of the host-judged discovery protocol: the ranked judge
+    pool as ``(nomination, cluster_id)`` pairs plus the sweep context the CLI
+    needs to write the nominations bundle - or to render the nothing-solid
+    brief when the pool is empty."""
+
+    plan: schema.DiscoveryPlan
+    from_date: str
+    to_date: str
+    source_status: dict[str, schema.SourceOutcome]
+    pool: list[tuple[Nomination, str]]
+
+
+def run_discover_nominate(
+    *,
+    domain: str,
+    config: dict[str, Any],
+    depth: str = "default",
+    requested_sources: list[str] | None = None,
+    mock: bool = False,
+    subreddits: list[str] | None = None,
+    lookback_days: int = 30,
+    as_of_date: str | None = None,
+) -> DiscoverNominateResult:
+    """Protocol leg 1: sweep the listings and build the FULL judge pool.
+
+    Same sweep and clustering as ``run_discover``, but the pool is cut at
+    ``rerank.JUDGE_POOL_LIMIT`` (not the enrichment limit). Like every
+    discovery path it is deterministic-heuristic: no provider is ever
+    resolved, so names and junk flags are the ``topic_shape`` baselines the
+    host judges against. No enrichment, no confidence floor, no queue
+    writes - those belong to legs 2 and 3.
+    """
+    sweep = _discovery_sweep(
+        domain=domain,
+        config=config,
+        depth=depth,
+        requested_sources=requested_sources,
+        mock=mock,
+        subreddits=subreddits,
+        lookback_days=lookback_days,
+        as_of_date=as_of_date,
+    )
+    pool = nominate_topic_pool(
+        sweep.bundle, sweep.query_plan, sweep.plan,
+        from_date=sweep.from_date,
+        to_date=sweep.to_date,
+        limit=rerank.JUDGE_POOL_LIMIT,
+    )
+    return DiscoverNominateResult(
+        plan=sweep.plan,
+        from_date=sweep.from_date,
+        to_date=sweep.to_date,
+        source_status=sweep.source_status,
+        pool=pool,
+    )
+
+
+def nominate_nothing_solid_report(result: DiscoverNominateResult) -> schema.DiscoveryReport:
+    """The honest-empty leg-1 report: a zero-nomination sweep renders the
+    same nothing-solid brief a one-shot run would (and writes no bundle)."""
+    warnings = [
+        "The listing sweep nominated no topics this window; reporting "
+        "nothing solid instead of ranked noise."
+    ]
+    failed = _degraded_discovery_sources(result.source_status)
+    if failed:
+        warnings.append(f"Some discovery sources degraded: {', '.join(sorted(failed))}.")
+    return schema.DiscoveryReport(
+        domain=result.plan.domain,
+        range_from=result.from_date,
+        range_to=result.to_date,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        plan=result.plan,
+        topics=[],
+        source_status=result.source_status,
+        warnings=warnings,
+        outcome="nothing-solid",
+        weak_signal=None,
+    )
+
+
+def _floor_survivor_records(
+    enriched_entries: list[EnrichedTopic],
+    *,
+    to_date: str,
+    topic_limit: int,
+) -> tuple[
+    list[dict[str, Any]],
+    tuple[float, str] | None,
+    tuple[float, str] | None,
+]:
+    """Apply the discovery confidence floor to enriched entries in order,
+    returning the survivor records plus the strongest non-junk and junk weak
+    signals among the failures.
+
+    Shared verbatim by ``run_discover`` (one-shot) and ``run_discover_resume``
+    (protocol leg 2) so floor semantics can never drift between the paths.
+    """
+    survivors: list[dict[str, Any]] = []
+    weak_signal: tuple[float, str] | None = None
+    junk_weak_signal: tuple[float, str] | None = None
+    for entry in enriched_entries:
+        nomination = entry.nomination
+        evidence_items = _enriched_evidence_items(entry)
+        sources = sorted({item.source for item in evidence_items})
+        native_total = sum(
+            rerank.discovery_engagement_total(item) for item in evidence_items
+        )
+        score = rerank.discovery_velocity_score(evidence_items, as_of_date=to_date)
+        if not rerank.passes_discovery_floor(
+            source_count=len(sources),
+            engagement_total=native_total,
+            item_count=len(evidence_items),
+            junk_shape=nomination.junk_shape,
+            # Junk corroboration counts distinct SEED listing sources, never
+            # the enriched corpus - a successful enrichment pass is
+            # multi-source for almost any topic, so it would never bind.
+            seed_source_count=len({item.source for item in nomination.items}),
+        ):
+            # Sub-floor evidence never ranks; remember what came closest so a
+            # nothing-solid brief can still name the strongest weak signal.
+            # Junk-shaped failures are tracked separately: the brief prefers
+            # the strongest NON-junk failure and names a junk one only when
+            # every failure is junk-shaped (never empty when failures exist).
+            if nomination.junk_shape:
+                if junk_weak_signal is None or score > junk_weak_signal[0]:
+                    junk_weak_signal = (score, nomination.name)
+            elif weak_signal is None or score > weak_signal[0]:
+                weak_signal = (score, nomination.name)
+            continue
+        if len(survivors) >= topic_limit:
+            break
+        source_phrase = ", ".join(sources[:-1]) + (
+            f" and {sources[-1]}" if len(sources) > 1 else (sources[0] if sources else "the listings")
+        )
+        noun = "evidence item" if entry.report is not None else "listing item"
+        why = (
+            f"{len(evidence_items)} {noun}{'s' if len(evidence_items) != 1 else ''} on "
+            f"{source_phrase} generated {native_total:,.0f} native interactions. "
+            f"{nomination.summary[:220]}"
+        )
+        top_comment = _best_community_comment(evidence_items) if entry.report is not None else None
+        # Stage-2 angle input: the survivor's strongest evidence, enriched
+        # corpus when the pipeline pass succeeded, seed items otherwise
+        # (evidence_items already resolves that).
+        top_titles = [
+            item.title.strip()
+            for item in sorted(
+                evidence_items,
+                key=rerank.discovery_engagement_total,
+                reverse=True,
+            )
+            if item.title and item.title.strip()
+        ][:3]
+        survivors.append({
+            "name": nomination.name,
+            "why": why,
+            "momentum": _discovery_momentum(evidence_items, to_date),
+            "velocity_score": round(score, 2),
+            "sources": sources,
+            "engagement_by_source": _discovery_engagement(evidence_items),
+            "evidence_urls": list(dict.fromkeys(item.url for item in evidence_items if item.url))[:5],
+            "top_comment": top_comment,
+            "titles": "; ".join(top_titles),
+            "engagement_phrase": f"{native_total:,.0f} native interactions across {source_phrase}",
+        })
+    return survivors, weak_signal, junk_weak_signal
+
+
+def _fold_same_story_records(survivors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Same-story fold + velocity ordering over floor-survivor records.
+
+    Floor survivors that share enriched evidence are the SAME story wearing
+    two judged names (the real-run failure: two topics quoting the identical
+    1,635-vote comment). Duplicates = identical non-None top comment OR >= 2
+    shared evidence URLs; the lower-velocity twin is dropped, and a winning
+    replacement re-scans the kept list to a fixpoint so chained overlap
+    (A~C~B) still collapses to one survivor. Selection stays seed-ordered
+    upstream; this only prunes, then sorts by displayed velocity (stable) so
+    rank 1 is the highest velocity_score.
+    """
+    def _same_story(a: dict[str, Any], b: dict[str, Any]) -> bool:
+        if a["top_comment"] is not None and a["top_comment"] == b["top_comment"]:
+            return True
+        return len(set(a["evidence_urls"]) & set(b["evidence_urls"])) >= 2
+
+    folded: list[dict[str, Any]] = []
+    for record in survivors:
+        # Fold to a fixpoint: when the incoming record REPLACES a kept one,
+        # the replacement may share evidence with entries the dropped record
+        # never matched (three-way chains: A kept, C shares the comment with
+        # A and URLs with B). The winner re-scans the remaining kept entries
+        # until nothing matches, so one story always yields one survivor.
+        incoming: dict[str, Any] | None = record
+        while incoming is not None:
+            dup_index = next(
+                (index for index, kept in enumerate(folded) if _same_story(incoming, kept)),
+                None,
+            )
+            if dup_index is None:
+                folded.append(incoming)
+                break
+            kept = folded[dup_index]
+            if incoming["velocity_score"] > kept["velocity_score"]:
+                folded.pop(dup_index)
+                dropped_name, kept_name = kept["name"], incoming["name"]
+            else:
+                dropped_name, kept_name = incoming["name"], kept["name"]
+                incoming = None  # dropped; the kept entry stays in place
+            log.source_log(
+                "Discover",
+                f"folded duplicate story {dropped_name!r} into {kept_name!r} (shared evidence)",
+                tty_only=False,
+            )
+
+    folded.sort(key=lambda record: record["velocity_score"], reverse=True)
+    return folded
+
+
+def _records_to_discovery_topics(
+    folded: list[dict[str, Any]],
+) -> list[schema.DiscoveryTopic]:
+    """Folded survivor records to ranked topics (ranks = 1-based positions)."""
+    return [
+        schema.DiscoveryTopic(
+            rank=position,
+            name=record["name"],
+            why_spiking=record["why"],
+            momentum=record["momentum"],
+            velocity_score=record["velocity_score"],
+            sources=record["sources"],
+            engagement_by_source=record["engagement_by_source"],
+            command=f'/last30days "{record["name"].replace(chr(34), chr(39))}"',
+            evidence_urls=record["evidence_urls"],
+            top_comment=record["top_comment"],
+            corroboration_count=len(record["sources"]),
+        )
+        for position, record in enumerate(folded, start=1)
+    ]
+
+
+def _discovery_report_warnings(
+    topics: list[schema.DiscoveryTopic],
+    outcome: str,
+    source_status: dict[str, schema.SourceOutcome],
+) -> list[str]:
+    """Coverage warnings shared by the one-shot and resume discovery paths.
+    The resume leg never re-sweeps: it passes the bundle's RESTORED leg-1
+    sweep status, so a degraded feed from the sweep still reaches the leg-2
+    report exactly as the one-shot reports it."""
+    warnings: list[str] = []
+    if outcome == "nothing-solid":
+        warnings.append(
+            "No topic cleared the discovery confidence floor this window; "
+            "reporting nothing solid instead of ranked noise."
+        )
+    elif len(topics) < 5:
+        warnings.append("Fewer than five topic clusters cleared the confidence floor this window.")
+    if topics and all(len(topic.sources) == 1 for topic in topics):
+        warnings.append("Discovery evidence is single-source; configure Digg for broader confirmation.")
+    failed = _degraded_discovery_sources(source_status)
+    if failed:
+        warnings.append(f"Some discovery sources degraded: {', '.join(sorted(failed))}.")
+    return warnings
+
+
+def run_discover(
+    *,
+    domain: str,
+    config: dict[str, Any],
+    depth: str = "default",
+    requested_sources: list[str] | None = None,
+    mock: bool = False,
+    subreddits: list[str] | None = None,
+    lookback_days: int = 30,
+    as_of_date: str | None = None,
+    limit: int = 10,
+    enrich: bool = False,
+    enrich_requested_sources: list[str] | None = None,
+) -> schema.DiscoveryReport:
+    """Sweep category listings and rank the topics gaining velocity.
+
+    ``requested_sources`` bounds the listing sweep (discovery-capable feeds
+    only). ``enrich_requested_sources`` bounds the per-topic research passes:
+    None means every available source - which is what lets Techmeme, arXiv,
+    YouTube, Polymarket, and community comments reach discovery despite having
+    no river feed of their own. Pass the user's original --search list here so
+    an explicit source boundary holds through enrichment too.
+    """
+    sweep = _discovery_sweep(
+        domain=domain,
+        config=config,
+        depth=depth,
+        requested_sources=requested_sources,
+        mock=mock,
+        subreddits=subreddits,
+        lookback_days=lookback_days,
+        as_of_date=as_of_date,
+    )
+    plan = sweep.plan
+    from_date, to_date = sweep.from_date, sweep.to_date
+    source_status = sweep.source_status
+
+    # The engine never names or angles topics with an LLM: the one-shot path
+    # is deterministic-heuristic by design, and reasoning-model judgment
+    # lives in the host-judged SKILL.md protocol. Say so loudly once per live
+    # run; --mock stays silent (a deliberate mock run is not a degraded run).
+    if not mock:
+        log.source_log(
+            "Discover",
+            "one-shot run: topic names use deterministic heuristics and no "
+            "content angles are generated - a reasoning-model host running "
+            "the SKILL.md discovery protocol gets host-judged names, junk "
+            "filtering, and podcast/X angles",
+            tty_only=False,
+        )
 
     topic_limit = max(5, min(10, limit))
     nominations = nominate_topics(
-        bundle, query_plan, plan,
+        sweep.bundle, sweep.query_plan, plan,
+        from_date=from_date,
         to_date=to_date,
         limit=ENRICH_LIMIT if enrich else topic_limit,
     )
@@ -963,69 +1539,19 @@ def run_discover(
             EnrichedTopic(nomination=nomination) for nomination in nominations
         ]
 
-    topics: list[schema.DiscoveryTopic] = []
-    weak_signal: tuple[float, str] | None = None
-    for entry in enriched_entries:
-        evidence_items = _enriched_evidence_items(entry)
-        sources = sorted({item.source for item in evidence_items})
-        native_total = sum(
-            rerank.discovery_engagement_total(item) for item in evidence_items
-        )
-        score = rerank.discovery_velocity_score(evidence_items, as_of_date=to_date)
-        if not rerank.passes_discovery_floor(
-            source_count=len(sources),
-            engagement_total=native_total,
-            item_count=len(evidence_items),
-        ):
-            # Sub-floor evidence never ranks; remember what came closest so a
-            # nothing-solid brief can still name the strongest weak signal.
-            if weak_signal is None or score > weak_signal[0]:
-                weak_signal = (score, entry.nomination.name)
-            continue
-        if len(topics) >= topic_limit:
-            break
-        nomination = entry.nomination
-        source_phrase = ", ".join(sources[:-1]) + (
-            f" and {sources[-1]}" if len(sources) > 1 else (sources[0] if sources else "the listings")
-        )
-        noun = "evidence item" if entry.report is not None else "listing item"
-        why = (
-            f"{len(evidence_items)} {noun}{'s' if len(evidence_items) != 1 else ''} on "
-            f"{source_phrase} generated {native_total:,.0f} native interactions. "
-            f"{nomination.summary[:220]}"
-        )
-        topics.append(schema.DiscoveryTopic(
-            rank=len(topics) + 1,
-            name=nomination.name,
-            why_spiking=why,
-            momentum=_discovery_momentum(evidence_items, to_date),
-            velocity_score=round(score, 2),
-            sources=sources,
-            engagement_by_source=_discovery_engagement(evidence_items),
-            command=f'/last30days "{nomination.name.replace(chr(34), chr(39))}"',
-            evidence_urls=list(dict.fromkeys(item.url for item in evidence_items if item.url))[:5],
-            top_comment=_best_community_comment(evidence_items) if entry.report is not None else None,
-            corroboration_count=len(sources),
-        ))
+    survivors, weak_signal, junk_weak_signal = _floor_survivor_records(
+        enriched_entries, to_date=to_date, topic_limit=topic_limit,
+    )
+    folded = _fold_same_story_records(survivors)
+    # One-shot topics ship without angles (podcast_angle / x_article_angle
+    # stay None and the renderer omits those lines): content angles are a
+    # host-judged protocol deliverable, written on the finalize leg.
+    topics = _records_to_discovery_topics(folded)
+
+    if weak_signal is None:
+        weak_signal = junk_weak_signal
 
     outcome = "ok" if topics else "nothing-solid"
-
-    warnings: list[str] = []
-    if outcome == "nothing-solid":
-        warnings.append(
-            "No topic cleared the discovery confidence floor this window; "
-            "reporting nothing solid instead of ranked noise."
-        )
-    elif len(topics) < 5:
-        warnings.append("Fewer than five topic clusters cleared the confidence floor this window.")
-    if topics and all(len(topic.sources) == 1 for topic in topics):
-        warnings.append("Discovery evidence is single-source; configure Digg for broader confirmation.")
-    failed = [
-        source for source, outcome_state in source_status.items()
-        if outcome_state.state not in {health.OK, schema.NO_RESULTS, schema.SKIPPED_UNCONFIGURED}
-    ]
-    if failed:
-        warnings.append(f"Some discovery sources degraded: {', '.join(sorted(failed))}.")
 
     return schema.DiscoveryReport(
         domain=plan.domain,
@@ -1035,10 +1561,226 @@ def run_discover(
         plan=plan,
         topics=topics,
         source_status=source_status,
-        warnings=warnings,
+        warnings=_discovery_report_warnings(topics, outcome, source_status),
         outcome=outcome,
         weak_signal=weak_signal[1] if weak_signal and not topics else None,
     )
+
+
+# Protocol leg 2 (resume) deep-tier enrichment bounds. The module-level
+# ENRICH_* constants above stay the one-shot --discover contract (quick depth,
+# 240s budget, 3 workers); a deep-tier bundle upgrades its per-topic sub-runs
+# to the default research depth with a wider wall-clock budget and one more
+# worker, because leg 2 is the protocol's only research pass. Shallow-tier
+# bundles keep the one-shot quick constants. Both tiers flow through
+# enrich_nominations' PARAMETERS - the constants themselves are never edited,
+# so neither tier can leak into the other path.
+RESUME_DEEP_ENRICH_DEPTH = "default"
+RESUME_DEEP_ENRICH_MAX_WORKERS = 4
+RESUME_DEEP_ENRICH_BUDGET_SECONDS = 450.0
+
+
+def _resume_enrich_budget_seconds(config: dict[str, Any]) -> float:
+    """Deep-tier batch budget: LAST30DAYS_ENRICH_BUDGET_SECONDS from the
+    RESOLVED config dict only (env.get_config already layers the process env
+    over the .env files) - never read from bare os.environ. Blank,
+    non-numeric, or non-positive values fall back to the 450s default."""
+    raw = config.get("LAST30DAYS_ENRICH_BUDGET_SECONDS")
+    if raw is None or str(raw).strip() == "":
+        return RESUME_DEEP_ENRICH_BUDGET_SECONDS
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return RESUME_DEEP_ENRICH_BUDGET_SECONDS
+    return value if value > 0 else RESUME_DEEP_ENRICH_BUDGET_SECONDS
+
+
+@dataclass(frozen=True)
+class DiscoverResumeResult:
+    """Leg 2 output of the host-judged discovery protocol: the floored,
+    folded, velocity-ranked report plus the per-topic angle inputs (keyed by
+    surviving nomination id) that the host writes leg-3 angles from.
+    ``report.source_status`` is the bundle's restored leg-1 sweep status -
+    leg 2 never re-sweeps the listing feeds, so the sweep's degraded-coverage
+    signal must survive the handoff instead of reading as clean."""
+
+    report: schema.DiscoveryReport
+    angle_inputs: dict[str, dict[str, str]]
+
+
+def run_discover_resume(
+    bundle: Any,
+    judgments: dict[str, Any],
+    *,
+    config: dict[str, Any],
+    mock: bool = False,
+) -> DiscoverResumeResult:
+    """Protocol leg 2: apply host judgments to the leg-1 bundle, enrich the
+    slot winners, and floor/fold/rank on the same code path as the one-shot
+    run.
+
+    ``bundle`` is a ``discovery_handoff.NominationsBundle`` and ``judgments``
+    the mapping ``discovery_handoff.read_judgments`` returns (annotated
+    loosely because discovery_handoff imports this module at load time).
+
+    Judgment application is per field: an absent host name falls back to the
+    bundle's heuristic name, an absent junk flag to the heuristic junk flag,
+    and absent worthiness to the neutral blend default (None -> 50 inside
+    ``rerank.judge_blended_score`` - the same treatment the judge-absent path
+    always used). Applied names are collision-resolved over the whole pool
+    before anything keys on them, and the applied name IS the enrichment
+    sub-run topic.
+
+    Slot selection: host-junk rows never contend for enrichment slots, and a
+    heuristic-junk fallback row with fewer than ``rerank.FLOOR_MIN_SOURCES``
+    distinct seed sources is skipped pre-enrichment (it structurally cannot
+    pass the floor's seed-corroboration rule). Both stay eligible to be the
+    junk-tracked weak signal of a nothing-solid brief, and the brief prefers
+    a non-junk weak signal exactly like the one-shot path. At the floor,
+    host-judged rows pass ``junk_shape=False`` (host-junk never earned a
+    slot) while heuristic-fallback rows keep their heuristic flag with the
+    existing seed-source corroboration.
+
+    Velocity, momentum, and the enrichment window all score against the
+    bundle's momentum window (from_date/to_date), never the resume-time
+    clock: the host may judge up to the handoff TTL after the sweep, and the
+    numbers must describe the window the sweep captured.
+    """
+    # Runtime-only import: discovery_handoff imports pipeline at module load,
+    # so the reverse import must happen at call time (no import-time cycle).
+    from . import discovery_handoff
+
+    to_date = bundle.to_date
+    verdicts = [
+        discovery_handoff.judgment_for(judgments, entry.nomination_id)
+        for entry in bundle.nominations
+    ]
+    applied_names = discovery_handoff.resolve_name_collisions([
+        (
+            entry.nomination,
+            verdict.name or entry.heuristic_name or entry.nomination.name,
+        )
+        for entry, verdict in zip(bundle.nominations, verdicts)
+    ])
+
+    ranked: list[tuple[float, str, Nomination]] = []
+    junk_weak_signal: tuple[float, str] | None = None
+    for entry, verdict, name in zip(bundle.nominations, verdicts, applied_names):
+        items = entry.nomination.items
+        velocity = rerank.discovery_velocity_score(items, as_of_date=to_date)
+        seed_source_count = len({item.source for item in items})
+        host_junk = verdict.junk is True
+        fallback_junk = verdict.junk is None and entry.heuristic_junk
+        if host_junk or (
+            fallback_junk and seed_source_count < rerank.FLOOR_MIN_SOURCES
+        ):
+            if junk_weak_signal is None or velocity > junk_weak_signal[0]:
+                junk_weak_signal = (velocity, name)
+            continue
+        worthiness = (
+            float(verdict.worthiness) if verdict.worthiness is not None else None
+        )
+        blended = rerank.judge_blended_score(velocity, worthiness)
+        ranked.append((
+            blended,
+            entry.nomination_id,
+            replace(
+                entry.nomination,
+                name=name,
+                seed_score=blended,
+                junk_shape=(
+                    False if verdict.junk is not None else entry.heuristic_junk
+                ),
+                worthiness=worthiness,
+            ),
+        ))
+
+    ranked.sort(key=lambda row: (-row[0], row[2].name.lower()))
+    selected = ranked[:ENRICH_LIMIT]
+    nominations = [nomination for _blended, _nomination_id, nomination in selected]
+
+    if bundle.tier == "shallow":
+        depth, max_workers, budget_seconds = (
+            ENRICH_DEPTH, ENRICH_MAX_WORKERS, ENRICH_BUDGET_SECONDS,
+        )
+    else:
+        depth = RESUME_DEEP_ENRICH_DEPTH
+        max_workers = RESUME_DEEP_ENRICH_MAX_WORKERS
+        budget_seconds = _resume_enrich_budget_seconds(config)
+
+    enriched_entries = enrich_nominations(
+        nominations,
+        config=config,
+        requested_sources=bundle.enrichment_source_boundary,
+        mock=mock,
+        depth=depth,
+        lookback_days=bundle.lookback_days,
+        as_of_date=to_date,
+        max_workers=max_workers,
+        budget_seconds=budget_seconds,
+    ) if nominations else []
+
+    # topic_limit mirrors the one-shot default cap (limit=10); the slot cut
+    # above already bounds the pool at ENRICH_LIMIT.
+    survivors, weak_signal, floor_junk_weak_signal = _floor_survivor_records(
+        enriched_entries, to_date=to_date, topic_limit=10,
+    )
+    if floor_junk_weak_signal is not None and (
+        junk_weak_signal is None
+        or floor_junk_weak_signal[0] > junk_weak_signal[0]
+    ):
+        junk_weak_signal = floor_junk_weak_signal
+    folded = _fold_same_story_records(survivors)
+    topics = _records_to_discovery_topics(folded)
+
+    nomination_id_by_name = {
+        nomination.name: nomination_id
+        for _blended, nomination_id, nomination in selected
+    }
+    angle_inputs = {
+        nomination_id_by_name[record["name"]]: {
+            "name": record["name"],
+            "titles": record["titles"],
+            "top_comment": record["top_comment"] or "",
+            "engagement": record["engagement_phrase"],
+        }
+        for record in folded
+    }
+
+    if weak_signal is None:
+        weak_signal = junk_weak_signal
+    outcome = "ok" if topics else "nothing-solid"
+    plan = schema.DiscoveryPlan(
+        domain=bundle.domain,
+        category=None,
+        subreddits=[],
+        sources=(
+            list(bundle.requested_sources)
+            if bundle.requested_sources
+            else sorted({
+                item.source
+                for entry in bundle.nominations
+                for item in entry.nomination.items
+            })
+        ),
+    )
+    # The bundle's restored leg-1 sweep status (empty for pre-field bundles):
+    # degraded sweep coverage must reach this report's status map and its
+    # degraded-sources warning exactly as the one-shot reports it.
+    source_status = dict(getattr(bundle, "source_status", None) or {})
+    report = schema.DiscoveryReport(
+        domain=bundle.domain,
+        range_from=bundle.from_date,
+        range_to=to_date,
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        plan=plan,
+        topics=topics,
+        source_status=source_status,
+        warnings=_discovery_report_warnings(topics, outcome, source_status),
+        outcome=outcome,
+        weak_signal=weak_signal[1] if weak_signal and not topics else None,
+    )
+    return DiscoverResumeResult(report=report, angle_inputs=angle_inputs)
 
 
 def diagnose(
@@ -1078,8 +1820,13 @@ def diagnose(
         "arxiv-pp-cli": bool(which("arxiv-pp-cli")),
         "techmeme-pp-cli": bool(which("techmeme-pp-cli")),
         "trustpilot-pp-cli": bool(which("trustpilot-pp-cli")),
+        "brightdata": bool(which("brightdata")),
         "gh": bool(which("gh")),
     }
+    # Network-free two-field probe (bird_installed/bird_authenticated
+    # precedent): "installed" is PATH resolution, "authenticated" is a
+    # presence-only credential signal that never reads the secret.
+    brightdata_status = brightdata.gate_status(config)
     credential_destinations = {
         "global_env": str(env.CONFIG_FILE) if env.CONFIG_FILE else None,
     }
@@ -1111,6 +1858,8 @@ def diagnose(
         "native_search": env.is_native_search(config),
         "has_scrapecreators": bool(config.get("SCRAPECREATORS_API_KEY")),
         "has_github": bool(config.get("GITHUB_TOKEN") or which("gh")),
+        "brightdata_installed": brightdata_status["brightdata_installed"],
+        "brightdata_authenticated": brightdata_status["brightdata_authenticated"],
         # safe=True (doctor/--diagnose/--preflight) must stay network-free:
         # answer X availability from local evidence only. x_pending is
         # precomputed by diagnose() to avoid double evaluation.
@@ -1254,8 +2003,17 @@ def run(
     corpus_dirs: list[str] | None = None,
     corpus_all_time: bool = False,
 ) -> schema.Report:
-    settings = DEPTH_SETTINGS[depth]
+    # Standalone runs (not competitor/discover sub-runs) own the YouTube
+    # search-cache lifecycle. Comparison fan-out clears once before submit so
+    # parallel entity sub-runs can still share in-run hits.
+    if not internal_subrun:
+        youtube_yt.reset_search_cache()
+    settings = _resolve_depth_settings(depth, config)
     requested_sources = normalize_requested_sources(requested_sources)
+    # Wall-clock origin for budget-aware enrichment lanes. Amazon review
+    # enrichment starts at search time (inside _retrieve_stream_impl) so it
+    # overlaps other sources instead of waiting for them all to finish.
+    run_started = time.monotonic()
     from_date, to_date = dates.get_date_range(lookback_days, as_of_date=as_of_date)
     resolved_corpus_dirs = corpus.resolve_directories(
         corpus_dirs or config.get("_CORPUS_DIRS"),
@@ -1298,9 +2056,12 @@ def run(
         available.append("corpus")
     if web_backend == "none":
         available = [s for s in available if s != "grounding"]
-    elif web_backend in ("brave", "exa", "serper", "parallel", "keyless") and "grounding" not in available:
+    elif web_backend in ("brave", "exa", "serper", "parallel", "parallel-mcp", "keyless") and "grounding" not in available:
         available.append("grounding")
-    if (hiring_signals_mode or _company_topic_likely(topic)) and "jobs" not in available:
+    if (
+        hiring_signals_mode
+        or (not requested_sources and _company_topic_likely(topic))
+    ) and "jobs" not in available:
         available.append("jobs")
     if hiring_signals_mode:
         config = dict(config)
@@ -1314,9 +2075,10 @@ def run(
     if hiring_signals_mode and not planner_requested_sources:
         planner_requested_sources = ["jobs"]
 
-    if external_plan:
+    if external_plan is not None:
         # External plan provided (e.g., from Claude Code via --plan flag).
-        # Parse it through the same sanitizer to validate structure.
+        # Explicit input is a contract: validate it before permissive sanitization.
+        planner.validate_external_plan(external_plan)
         plan = planner._sanitize_plan(
             external_plan, topic, available, planner_requested_sources, depth,
         )
@@ -1366,6 +2128,17 @@ def run(
             plan.source_weights["corpus"] = 1.0
             plan.source_weights = planner._normalize_weights(plan.source_weights)
 
+    # Add the paid-only Perplexity lane after all normal-source safety nets.
+    # This preserves the planner's primary subquery, gives the bounded paid
+    # call the whole user topic, and prevents grounding, jobs, or corpus from
+    # being attached to the dedicated lane.
+    _ensure_perplexity_in_plan(
+        plan,
+        topic,
+        available,
+        force=bool(config.get("_deep_research")),
+    )
+
     # Always-on planner trace. Emits one summary line plus one per subquery
     # so retrieval-breadth failures like the 2026-04-19 Hermes Agent Use Cases
     # disaster are visible without --debug. Stderr only; does not leak into
@@ -1388,6 +2161,32 @@ def run(
         print("[Planner]   (no subqueries in plan)", file=sys.stderr)
 
     bundle = schema.RetrievalBundle(artifacts={"grounding": []})
+    # Handles the user named explicitly. Available before any retrieval, unlike
+    # the entity-extracted set, so Phase 1 and quick-depth runs get first-party
+    # protection too. Without this the exemption reached only the Phase 2
+    # supplement path -- which quick runs skip entirely -- so a subject-authored
+    # post retrieved in Phase 1 was still pruned before fusion, which is exactly
+    # the evidence loss this change exists to prevent.
+    explicit_first_party = {
+        h.lstrip("@").strip().lower()
+        for h in ([x_handle, github_user, *(x_related or [])])
+        if h and h.strip()
+    }
+    # Real X handles: --x-handle, --x-related, or @mentions in the topic. These
+    # determine whether the deferred X floor applies. Topic words like "peter"
+    # are NOT real handles and should not trigger the floor — when no real
+    # handle is identified, the floor is skipped entirely (policy: a noisier
+    # report beats losing the subject's evidence).
+    explicit_x_handles = {
+        h.lstrip("@").strip().lower()
+        for h in ([x_handle, *(x_related or [])])
+        if h and h.strip()
+    } | _topic_handle_mentions(topic)
+    # Plus handle-shaped tokens from the topic. Phase 1 and quick-depth runs
+    # never reach automatic handle resolution, so without this a quick search
+    # naming a subject still discards everything that subject wrote.
+    explicit_first_party |= _topic_first_party_candidates(topic)
+
     for source in (requested_sources or []):
         if source not in available:
             bundle.record_failure(
@@ -1412,6 +2211,14 @@ def run(
     # the LAW 7 degraded-run and Step 0.55 pre-research banners do not apply -
     # they would contradict the documented jobs-scoped flow. Suppress them.
     bundle.artifacts["hiring_signals_mode"] = hiring_signals_mode
+    # Record the resolved Amazon keyword whenever the lane is active, so the
+    # footer can name it on an empty result. A search that matched nothing
+    # still spent a credit, and the fix is almost always the keyword -- a
+    # suppressed line means nobody ever learns it was wrong.
+    if "amazon" in (available or []):
+        bundle.artifacts["amazon_query"] = (
+            str(config.get("_amazon_query") or "").strip() or topic
+        )
 
     # Project-mode or person-mode GitHub: run once before the main subquery loop
     _github_custom_done = False
@@ -1443,6 +2250,7 @@ def run(
     _github_person_done = False
     if github_user and "github" in available and not _github_custom_done:
         bundle.mark_attempted("github")
+        _github_person_done = True
         try:
             person_items = github.search_github_person(
                 github_user, from_date, to_date,
@@ -1457,7 +2265,15 @@ def run(
                 # Use the first subquery's label so RRF can look up the weight
                 primary_label = plan.subqueries[0].label if plan.subqueries else "primary"
                 bundle.add_items(primary_label, "github", normalized)
-                _github_person_done = True
+            else:
+                # A pinned --github-user that yields nothing must not be
+                # silently backfilled by generic keyword search: the report
+                # would then present unrelated repos as this person's work.
+                bundle.record_failure(
+                    "github",
+                    "no-results",
+                    f"Person mode found no activity for @{github_user} in the window",
+                )
         except Exception as exc:
             bundle.errors_by_source["github"] = f"Person-mode failed: {exc}"
             state, attempted = _classify_source_failure(exc)
@@ -1540,11 +2356,33 @@ def run(
                 # Skip GitHub keyword search if person-mode already ran
                 if source == "github" and (_github_person_done or _github_custom_done):
                     continue
-                # Enforce per-source fetch cap
-                cap = MAX_SOURCE_FETCHES.get(source)
+                # Enforce per-source fetch cap. A CLI override (issue #716) raises
+                # the cap for capped sources so every X subquery in a multi-angle
+                # --plan fetches, instead of only the first two.
+                cap = _source_fetch_cap(source, config)
                 if cap is not None:
+                    if cap <= 0:
+                        continue
                     current = source_fetch_count.get(source, 0)
                     if current >= cap:
+                        continue
+                    shared_paid_budget = config.get("_perplexity_paid_budget")
+                    if (
+                        source == "perplexity"
+                        and isinstance(shared_paid_budget, PaidSourceBudget)
+                        and not shared_paid_budget.try_consume(
+                            cap,
+                            claimant=topic,
+                        )
+                    ):
+                        bundle.artifacts.setdefault("paid_source_budget", {})[
+                            "perplexity"
+                        ] = {
+                            "state": "skipped-budget",
+                            "attempted": False,
+                            "owner": shared_paid_budget.owner,
+                            "claimant": topic,
+                        }
                         continue
                     source_fetch_count[source] = current + 1
                 bundle.mark_attempted(source)
@@ -1569,6 +2407,7 @@ def run(
                         ig_creators=ig_creators,
                         trustpilot_domain=trustpilot_domain,
                         trustpilot_domain_is_hint=trustpilot_domain_is_hint,
+                        run_started=run_started,
                     )
                 ] = (subquery, source)
 
@@ -1603,6 +2442,7 @@ def run(
                             ig_creators=ig_creators,
                             trustpilot_domain=trustpilot_domain,
                             trustpilot_domain_is_hint=trustpilot_domain_is_hint,
+                            run_started=run_started,
                         )
                     except Exception as retry_exc:
                         detail = f"{exc} (retried once, still failed: {retry_exc})"
@@ -1629,6 +2469,10 @@ def run(
                 source, raw_items, from_date, to_date,
                 freshness_mode=plan.freshness_mode,
                 ranking_query=subquery.ranking_query,
+                first_party_handles=explicit_first_party,
+                # X defers its relevance floor until resolved_handles exists.
+                # Everything else prunes here as before.
+                defer_relevance_prune=(source == "x"),
             )
             # Jobs is exempt from per_stream_limit: a careers board is a complete
             # snapshot of open roles, and truncating it to the default 12 drops
@@ -1640,6 +2484,7 @@ def run(
                 bundle.artifacts.setdefault("grounding", []).append(artifact)
 
     # Phase 2: supplemental entity-based searches
+    supplemental_handles: list[str] = []
     _run_supplemental_searches(
         topic=topic,
         bundle=bundle,
@@ -1653,6 +2498,7 @@ def run(
         rate_limit_lock=rate_limit_lock,
         x_handle=x_handle,
         x_related=x_related,
+        resolved_handles_out=supplemental_handles,
     )
 
     # Phase 2b: retry thin sources with simplified query
@@ -1675,6 +2521,12 @@ def run(
         settings=settings,
         web_backend=web_backend,
         skip_sources=_github_skip_retry,
+        subreddits=subreddits,
+        tiktok_hashtags=tiktok_hashtags,
+        tiktok_creators=tiktok_creators,
+        ig_creators=ig_creators,
+        first_party_handles=explicit_first_party,
+        run_started=run_started,
     )
 
     # Reclassify partial failures as DEGRADED instead of silently dropping them.
@@ -1699,19 +2551,56 @@ def run(
 
     items_by_source = _finalize_items_by_source(
         bundle.items_by_source, topic=topic, config=config, depth=depth, mock=mock,
+        elapsed=time.monotonic() - run_started,
     )
     source_status = _finalize_source_status(bundle.source_status, items_by_source)
-    candidates = weighted_rrf(bundle.items_by_source_and_query, plan, pool_limit=settings["pool_limit"])
     # Normalized set of handles this run resolved for the topic. A candidate
     # authored by one of these is first-party and is exempted from the
     # entity-miss demotion in rerank (a post never repeats its own author's
     # name, so the body-text grounding check would otherwise zero out the
-    # subject's own highest-signal posts).
-    resolved_handles = {
+    # subject's own highest-signal posts). Built before fusion so the
+    # per-author cap can give the topic's subject a higher allowance than an
+    # incidental third-party account.
+    resolved_handles = explicit_first_party | {
         h.lstrip("@").strip().lower()
-        for h in ([x_handle, github_user, *(x_related or [])])
+        for h in supplemental_handles
         if h and h.strip()
     }
+    # Real X handles from explicit flags, @mentions in topic, or Phase 2 discovery.
+    # When no real handle is identified, skip the X floor entirely — a noisier
+    # report beats losing the subject's evidence. Topic tokens like "peter" are
+    # NOT real handles: they populate resolved_handles for downstream first-party
+    # protection but should NOT trigger the floor.
+    real_x_handles = explicit_x_handles | {
+        h.lstrip("@").strip().lower()
+        for h in supplemental_handles
+        if h and h.strip()
+    }
+    # Deferred X relevance floor. Phase 1 skipped it so this could run with the
+    # run's actual resolved handles rather than a guess made before anyone knew
+    # who the subject was. Applied per subquery stream so fusion sees the same
+    # shape it always has. Only applied when we have real X handles — topic
+    # tokens alone cannot identify the subject.
+    if real_x_handles:
+        for key, stream in list(bundle.items_by_source_and_query.items()):
+            if key[1] != "x" or not stream:
+                continue
+            bundle.items_by_source_and_query[key] = signals.prune_low_relevance(
+                stream, first_party_handles=resolved_handles
+            )
+        if bundle.items_by_source.get("x"):
+            bundle.items_by_source["x"] = signals.prune_low_relevance(
+                bundle.items_by_source["x"], first_party_handles=resolved_handles
+            )
+
+    candidates = weighted_rrf(
+        bundle.items_by_source_and_query,
+        plan,
+        pool_limit=settings["pool_limit"],
+        range_from=from_date,
+        range_to=to_date,
+        first_party_handles=resolved_handles,
+    )
     private_candidates = [
         candidate
         for candidate in candidates
@@ -1743,9 +2632,14 @@ def run(
         shortlist_size=settings["rerank_limit"],
         resolved_handles=resolved_handles,
     )
+    ranked_public = rerank.prune_fallback_entity_misses(ranked_public, topic=topic)
+    # Private corpus already cleared a body-aware retrieval floor; do not apply
+    # the public title/snippet visibility gate (filenames often omit the head
+    # token even when the document body matched).
     ranked_candidates = sorted(
         [*ranked_public, *ranked_private],
         key=lambda candidate: (
+            1 if schema.candidate_out_of_window(candidate) else 0,
             -candidate.final_score,
             -(candidate.engagement or -1),
             min(candidate.native_ranks.values(), default=999),
@@ -1792,6 +2686,10 @@ def run(
 
     clusters = cluster_candidates(ranked_candidates, plan)
     warnings = _warnings(items_by_source, ranked_candidates, bundle.errors_by_source, degraded_by_source)
+    # One-sided entity coverage is a reporting warning, not a source failure:
+    # marking the source PARTIAL would trip LAST30DAYS_STRICT_EXIT on runs that
+    # returned good X results.
+    warnings.extend(bundle.artifacts.get("x_partial_coverage", []))
     library_context, library_warning = _load_library_context(
         topic=topic,
         config=config,
@@ -1997,6 +2895,26 @@ def merge_drill_report(
     return merged
 
 
+def _batch_subject_handles(raw_items: list[dict], *, top_n: int = 2) -> set[str]:
+    """Most-mentioned handles in a batch of X items, as first-party candidates.
+
+    Mirrors entity_extract's ranking but runs before pruning rather than after,
+    and keys on *mentions only* rather than mentions plus authors. That
+    distinction is the safety property: a prolific commentator inflates the
+    author count, but being mentioned by other accounts is what identifies the
+    subject of a topic. Capped at the top few so a busy thread cannot exempt
+    the whole batch.
+    """
+    counts: Counter = Counter()
+    for item in raw_items or []:
+        text = str((item or {}).get("text") or "")
+        for mention in re.findall(r"@([A-Za-z0-9_]{1,15})", text):
+            counts[mention.lower()] += 1
+    if not counts:
+        return set()
+    return {handle for handle, _ in counts.most_common(top_n)}
+
+
 def _normalize_score_dedupe(
     source: str,
     raw_items: list[dict],
@@ -2004,8 +2922,20 @@ def _normalize_score_dedupe(
     to_date: str,
     freshness_mode: str,
     ranking_query: str,
+    first_party_handles: Iterable[str] | None = None,
+    defer_relevance_prune: bool = False,
 ) -> list[schema.SourceItem]:
-    """Normalize, annotate, prune, dedupe, and extract snippets for a batch of raw items."""
+    """Normalize, annotate, prune, dedupe, and extract snippets for a batch of raw items.
+
+    ``defer_relevance_prune`` skips the relevance floor here so the caller can
+    apply it once the run has resolved who the topic's subject is. Pruning X
+    before handle resolution is the ordering bug behind the whole first-party
+    evidence loss: the floor cannot exempt an author nobody has identified yet,
+    and no amount of guessing at prune time substitutes for knowing.
+
+    ``first_party_handles`` names accounts this run is explicitly searching, so
+    their own posts survive the relevance floor (see signals.prune_low_relevance).
+    """
     normalized = normalize.normalize_source_items(
         source, raw_items, from_date, to_date,
         freshness_mode=freshness_mode,
@@ -2022,8 +2952,24 @@ def _normalize_score_dedupe(
         reference_date=to_date,
         max_days=lookback_window_days,
     )
-    if source != "jobs":
-        normalized = signals.prune_low_relevance(normalized)
+    if source != "jobs" and not defer_relevance_prune:
+        floor_handles = set(first_party_handles or ())
+        if source == "x":
+            # Union, never a fallback. The caller's set is derived partly from
+            # topic tokens, so it is non-empty for essentially every real topic
+            # -- gating this on "no handles supplied" would make it dead code
+            # and leave the name-only case exactly as broken as before.
+            #
+            # Reuses the engine's own resolution signal on the batch already in
+            # hand: posts *about* a subject mention their handle, so the
+            # most-mentioned account in a topic's own results is the subject.
+            # Costs nothing extra -- no search, no network -- and closes the
+            # case where the handle never appears in the topic at all
+            # ("Peter Steinberger" -> @steipete).
+            floor_handles |= _batch_subject_handles(raw_items)
+        normalized = signals.prune_low_relevance(
+            normalized, first_party_handles=floor_handles
+        )
     normalized = dedupe.dedupe_items(normalized)
     for item in normalized:
         item.snippet = snippet.extract_best_snippet(item, prepared_query)
@@ -2036,6 +2982,7 @@ def _finalize_items_by_source(
     config: dict | None = None,
     depth: str = "default",
     mock: bool = False,
+    elapsed: float = 0.0,
 ) -> dict[str, list[schema.SourceItem]]:
     finalized = {}
     for source, items in items_by_source_raw.items():
@@ -2088,6 +3035,24 @@ def _finalize_items_by_source(
                 items = _merge_replayed_enrichment(items, replayed)
             else:
                 digg.enrich_source_items(items, top_k=3)
+                http.fixture_source_record(enrichment_request, schema.to_dict(items))
+        if source == "amazon" and items and not mock:
+            # Attach-if-missing: review enrichment now runs at search time in
+            # _retrieve_stream_impl, so items arriving here should already have
+            # top_comments. enrich_source_items no-ops when top_comments is set.
+            # This path handles fixture replay and any edge cases where retrieve
+            # didn't enrich (e.g., run_started was not passed).
+            matched, replayed = http.fixture_source_replay(enrichment_request)
+            if matched:
+                items = _merge_replayed_enrichment(items, replayed)
+            else:
+                amazon.enrich_source_items(
+                    items,
+                    depth=depth,
+                    config=config,
+                    keyword=str((config or {}).get("_amazon_query") or "").strip() or topic,
+                    elapsed=elapsed,
+                )
                 http.fixture_source_record(enrichment_request, schema.to_dict(items))
         finalized[source] = items
     return finalized
@@ -2151,6 +3116,46 @@ def _ensure_jobs_in_plan(
     for subquery in plan.subqueries:
         if "jobs" not in subquery.sources:
             subquery.sources.append("jobs")
+
+
+def _ensure_perplexity_in_plan(
+    plan: schema.QueryPlan,
+    topic: str,
+    available: list[str],
+    *,
+    force: bool,
+) -> None:
+    """Route a bounded paid Perplexity action through the whole topic.
+
+    Deep Research forces its explicit lane. Normal modes are rerouted only when
+    the sanitized plan already selected Perplexity.
+    """
+    if "perplexity" not in available:
+        return
+    planned = any(
+        "perplexity" in subquery.sources for subquery in plan.subqueries
+    )
+    if not force and not planned:
+        return
+    retained: list[schema.SubQuery] = []
+    for subquery in plan.subqueries:
+        sources = [
+            source for source in subquery.sources if source != "perplexity"
+        ]
+        if sources:
+            retained.append(replace(subquery, sources=sources))
+    retained.append(
+        schema.SubQuery(
+            label="deep-research" if force else "perplexity-whole-topic",
+            search_query=topic,
+            ranking_query=f"What current source-grounded evidence matters for {topic}?",
+            sources=["perplexity"],
+            weight=1.0,
+        ),
+    )
+    plan.subqueries = planner._normalize_subquery_weights(retained)
+    plan.source_weights.setdefault("perplexity", 1.0)
+    plan.source_weights = planner._normalize_weights(plan.source_weights)
 
 
 def _company_topic_likely(topic: str) -> bool:
@@ -2251,7 +3256,16 @@ def _classify_source_failure(exc: Exception) -> tuple[schema.RunOutcomeState, bo
         return schema.SKIPPED_UNCONFIGURED, False
     if any(
         marker in lowered
-        for marker in ("cookie expired", "expired cookie", "login required", "not logged in")
+        for marker in (
+            "cookie expired",
+            "expired cookie",
+            "login required",
+            "not logged in",
+            "grok session expired",
+            "session expired or was revoked",
+            "invalid_grant",
+            "not signed in",
+        )
     ):
         return schema.AUTH_FAILED, True
     state = getattr(exc, "outcome_state", None) or http.classify_failure(
@@ -2311,22 +3325,45 @@ def _legacy_artifact_outcome(
     explicit = artifact.get("_source_outcome")
     if isinstance(explicit, dict):
         return explicit
-    if source == "perplexity" and artifact.get("error"):
-        error = str(artifact["error"])
-        detail = str(
-            artifact.get("asyncErrorMessage")
-            or artifact.get("message")
-            or error
-        )
-        state = (
-            health.TIMEOUT
-            if error.lower() == "timeout"
-            else http.classify_failure(
-                status_code=artifact.get("statusCode"),
-                message=f"{error}: {detail}",
+    if source == "perplexity":
+        candidates: list[tuple[str | None, dict[str, Any]]] = [(None, artifact)]
+        if artifact.get("mode") == "both":
+            for leg in ("search", "agent"):
+                value = artifact.get(leg)
+                if isinstance(value, dict):
+                    candidates.append((leg, value))
+        outcomes: list[dict[str, Any]] = []
+        for leg, candidate in candidates:
+            if not candidate.get("error"):
+                continue
+            error = str(candidate["error"])
+            detail = str(
+                candidate.get("backgroundErrorMessage")
+                or candidate.get("backgroundPollError")
+                or candidate.get("agentErrorMessage")
+                or candidate.get("asyncErrorMessage")
+                or candidate.get("message")
+                or error
             )
-        )
-        return _outcome_artifact(state, detail)["_source_outcome"]
+            if leg:
+                detail = f"{leg} leg: {detail}"
+            status_code = candidate.get("statusCode")
+            if status_code is None:
+                status_code = candidate.get("backgroundPollStatusCode")
+            state = (
+                health.TIMEOUT
+                if error.lower() == "timeout"
+                else http.classify_failure(
+                    status_code=status_code,
+                    message=f"{error}: {detail}",
+                )
+            )
+            outcomes.append(_outcome_artifact(state, detail)["_source_outcome"])
+        if outcomes:
+            return min(
+                outcomes,
+                key=lambda outcome: _FAILURE_SPECIFICITY.get(outcome["state"], 9),
+            )
     if (
         source == "grounding"
         and artifact.get("reason") == "keyless-search-unavailable"
@@ -2350,14 +3387,6 @@ def _resolve_stream_outcome(
     # Pick the most specific failure rather than the last-appended one:
     # parallel workers append in nondeterministic order, and an auth failure
     # must not be masked by a later 429 (wrong doctor prescription).
-    _FAILURE_SPECIFICITY = {
-        health.AUTH_FAILED: 0,
-        health.RATE_LIMITED: 1,
-        health.SCHEMA_DRIFT: 2,
-        health.TIMEOUT: 3,
-        health.UNREACHABLE: 4,
-        health.ERROR: 5,
-    }
     failure = min(
         failures,
         key=lambda f: _FAILURE_SPECIFICITY.get(f.outcome_state, 9),
@@ -2416,6 +3445,65 @@ def _is_transient_error(exc: Exception) -> bool:
     return any(code in msg for code in ("500", "502", "503", "504"))
 
 
+def _topic_handle_mentions(topic: str) -> set[str]:
+    """@mentions in the topic, which are real X handles.
+
+    These are used to determine whether the subject was identified: an
+    @mention like "@steipete" is a real handle that can exempt its owner from
+    the relevance floor. Regular words like "Peter" are not real handles.
+    """
+    return {
+        mention.lower()
+        for mention in re.findall(r"@([A-Za-z0-9_]{1,15})", topic or "")
+    }
+
+
+def _topic_first_party_candidates(topic: str) -> set[str]:
+    """Handle-shaped tokens in the topic itself, usable before any retrieval.
+
+    Phase 1 runs before automatic handle resolution, and a quick-depth run
+    skips that resolution entirely, so neither has access to the extracted
+    handle set. Without this a quick search for "Peter Steinberger steipete"
+    still drops every post steipete wrote, which is the exact failure this
+    branch exists to fix.
+
+    Deliberately permissive about what looks like a handle and strict about
+    what it does: a candidate only ever matters if a retrieved post's *author*
+    matches it, so an ordinary word like "lunch" costs nothing -- no author is
+    named "lunch". The realistic false positive is an account named after a
+    topic word, which the frequency-ranked path could surface anyway.
+    """
+    tokens = set()
+    for mention in re.findall(r"@([A-Za-z0-9_]{1,15})", topic or ""):
+        tokens.add(mention.lower())
+    for word in re.findall(r"[A-Za-z0-9_]{3,15}", topic or ""):
+        lowered = word.lower()
+        if lowered not in relevance.STOPWORDS:
+            tokens.add(lowered)
+    return tokens
+
+
+def _name_lane_subject(topic: str) -> str:
+    """Resolve the entity name to search for by name, not the whole topic.
+
+    Phrase-quoting a raw topic ("Peter Steinberger steipete") matches nothing
+    on X: nobody writes the handle and the display name together. Prefer a
+    title-cased proper noun the way the planner's keyword query does, and fall
+    back to the first compound term, then to the topic.
+    """
+    import re as _re
+    compounds = query.extract_compound_terms(topic) or []
+    title_cased = [
+        term for term in compounds
+        if _re.match(r"^(?:[A-Z][a-z]+\s+){1,}[A-Z][a-z]+$", term)
+    ]
+    if title_cased:
+        return title_cased[0]
+    if compounds:
+        return compounds[0]
+    return topic.strip()
+
+
 def _run_supplemental_searches(
     *,
     topic: str,
@@ -2430,6 +3518,7 @@ def _run_supplemental_searches(
     rate_limit_lock: threading.Lock,
     x_handle: str | None = None,
     x_related: list[str] | None = None,
+    resolved_handles_out: list[str] | None = None,
 ) -> None:
     """Phase 2: extract entities from Phase 1 results, run targeted supplemental searches."""
     if depth == "quick" or mock:
@@ -2482,6 +3571,40 @@ def _run_supplemental_searches(
             if rh_clean and rh_clean != primary_lower and rh_clean not in [h.lower() for h in handles]:
                 related_handles.append(rh_clean)
 
+    # Surface every handle this run resolved back to the caller. resolved_handles
+    # is built later from --x-handle / --github-user / --x-related only, so
+    # without this an auto-discovered subject handle never reaches it and every
+    # downstream first-party protection (entity-miss exemption, FIRST_PARTY_FLOOR,
+    # interaction floor) stays inert on any run that did not pass --x-handle.
+    # Populated before the early return below so a run whose lanes cannot execute
+    # still contributes its resolved handles.
+    if resolved_handles_out is not None:
+        # Only corroborated handles get first-party status. The extracted set is
+        # frequency-ranked over retrieved post text, so a prolific commentator --
+        # or an engagement-farming account that posts on every topic -- lands in
+        # it without being the subject. First-party status is strong: it exempts
+        # an author from the relevance floor entirely and raises their per-author
+        # cap, so granting it on frequency alone would let a spam account buy
+        # immunity from filtering. Require the handle to look like the topic's
+        # subject, or to have been named explicitly by the user.
+        explicit = {
+            h.lstrip("@").strip().lower()
+            for h in ([x_handle] + list(x_related or []))
+            if h and h.strip()
+        }
+        topic_tokens = {t for t in re.findall(r"[a-z0-9]+", topic.lower()) if len(t) > 2}
+        seen = {h.lower() for h in resolved_handles_out}
+        for h in [*handles, *related_handles]:
+            clean = h.lstrip("@").strip().lower()
+            if not clean or clean in seen:
+                continue
+            corroborated = clean in explicit or any(
+                token in clean or clean in token for token in topic_tokens
+            )
+            if corroborated:
+                resolved_handles_out.append(clean)
+                seen.add(clean)
+
     if not handles and not related_handles:
         return
 
@@ -2498,22 +3621,62 @@ def _run_supplemental_searches(
     pinned = runtime.x_search_backend
     if pinned:
         chain = [pinned] + [b for b in chain if b != pinned]
-    primary = next((b for b in chain if b in ("bird", "xquik")), None)
+    primary = next((b for b in chain if b in ("grok", "bird", "xquik")), None)
 
-    if primary == "bird":
-        def _from_lane(hs: list, count: int) -> list:
-            return bird_x.search_handles(hs, topic, from_date, count_per=count)
+    # Name lane (posts naming the subject in plain text, no @-mention) is
+    # grok-only for now: it needs phrase-quoting and negation operators the
+    # other handle-capable backends do not expose uniformly. It is NOT a
+    # fallback for the mention lane -- most discussion of a person or company
+    # never @-mentions them, so the two lanes reach disjoint sets.
+    _name_lane = None
 
-        def _about_lane(hs: list, count: int) -> list:
-            return bird_x.search_mentions(hs, from_date, count_per=count)
+    if primary == "grok":
+        # One budget shared by all three lanes, started here rather than per
+        # lane: the point is to bound the total, not each part.
+        lane_deadline = time.monotonic() + grok_x.LANE_BUDGET_SECONDS
+
+        def _from_lane(hs: list, count: int, and_topic: bool = False) -> tuple[list, bool]:
+            items, revoked = grok_x.search_handles(
+                hs, topic, from_date, to_date, count_per=count,
+                deadline=lane_deadline, and_topic=and_topic,
+            )
+            return items, revoked
+
+        def _about_lane(hs: list, count: int) -> tuple[list, bool]:
+            items, revoked = grok_x.search_mentions(
+                hs, from_date, to_date, topic=topic, count_per=count,
+                deadline=lane_deadline,
+            )
+            return items, revoked
+
+        def _name_lane(hs: list, count: int) -> tuple[list, bool]:
+            # Use the resolved entity name, not the raw topic. Phrase-quoting
+            # the whole topic ("Peter Steinberger steipete") matches nothing on
+            # X; the subject's name is what other people actually write.
+            subject = _name_lane_subject(topic)
+            if not subject.strip():
+                return [], False
+            items, revoked = grok_x.search_name(
+                subject, from_date, to_date, exclude_handles=hs, count_per=count,
+                deadline=lane_deadline,
+            )
+            return items, revoked
+    elif primary == "bird":
+        def _from_lane(hs: list, count: int, and_topic: bool = False) -> tuple[list, bool]:
+            # bird_x.search_handles doesn't support and_topic yet
+            return bird_x.search_handles(hs, topic, from_date, count_per=count), False
+
+        def _about_lane(hs: list, count: int) -> tuple[list, bool]:
+            return bird_x.search_mentions(hs, from_date, count_per=count), False
     elif primary == "xquik":
         xquik_token = env.get_xquik_token(config)
 
-        def _from_lane(hs: list, count: int) -> list:
-            return xquik.search_handles(hs, topic, from_date, to_date, count_per=count, token=xquik_token)
+        def _from_lane(hs: list, count: int, and_topic: bool = False) -> tuple[list, bool]:
+            # xquik.search_handles doesn't support and_topic yet
+            return xquik.search_handles(hs, topic, from_date, to_date, count_per=count, token=xquik_token), False
 
-        def _about_lane(hs: list, count: int) -> list:
-            return xquik.search_mentions(hs, from_date, to_date, topic=topic, count_per=count, token=xquik_token)
+        def _about_lane(hs: list, count: int) -> tuple[list, bool]:
+            return xquik.search_mentions(hs, from_date, to_date, topic=topic, count_per=count, token=xquik_token), False
     else:
         return  # primary X backend has no handle-lane support (xai/xurl) or none configured
 
@@ -2532,29 +3695,86 @@ def _run_supplemental_searches(
     ranking_query = plan.subqueries[0].ranking_query if plan.subqueries else topic
     primary_label = plan.subqueries[0].label if plan.subqueries else "primary"
 
+    # Split FROM promotion: determine which handles get FROM lane and how.
+    # - Primary explicit handle (--x-handle): always FROM, no AND topic, full weight
+    # - x_related handles: searched separately with lower weight (0.3), kept in
+    #   related_handles variable for the supplemental-related section below
+    # - Extracted handles: FROM only if ≥2 on-topic hits AND ratio ≥0.5,
+    #   and those pulls DO AND the topic (from:handle Rome)
+    primary_explicit = [x_handle] if x_handle else []
+
+    explicit_promotable, extracted_promotable = x_judge.promotable_handles(
+        x_dicts,  # Phase 1 X items for judging
+        topic,
+        handles,  # entity_extract handles
+        explicit_handles=primary_explicit,
+        ranking_query=ranking_query,
+    )
+
+    # All promotable handles for ABOUT and NAME lanes (primary only, not related)
+    all_promotable = list(set(explicit_promotable + extracted_promotable))
+
     # Search primary handles (full weight): FROM lane (their own tweets) +
     # ABOUT lane (tweets mentioning them). Both engagement-weighted and deduped
     # by URL at normalize time.
-    if handles:
+    any_revoked = False  # Track auth revocation across lanes
+    if all_promotable:
         # Independent try/except per lane so a failure in one does not discard
         # the other's already-computed results.
         from_items: list = []
         about_items: list = []
+        about_revoked = False
+        name_revoked = False
+
+        # FROM lane: explicit handles without AND topic (person posts omit their own name)
+        if explicit_promotable:
+            try:
+                explicit_items, explicit_revoked = _from_lane(explicit_promotable, FROM_LANE_COUNT_PER, and_topic=False)
+                from_items.extend(explicit_items)
+                if explicit_revoked:
+                    any_revoked = True
+                    bundle.record_failure(
+                        x_slug, schema.AUTH_FAILED,
+                        "Phase 2 FROM-lane (explicit): grok session expired or was revoked",
+                        attempted=True,
+                    )
+            except Exception as exc:
+                print(f"[Pipeline] Phase 2 FROM-lane (explicit) failed: {exc}", file=sys.stderr)
+                state, attempted = _classify_source_failure(exc)
+                bundle.record_failure(
+                    x_slug, state, f"Phase 2 FROM-lane (explicit): {exc}", attempted=attempted,
+                )
+
+        # FROM lane: extracted handles WITH AND topic (from:handle Rome)
+        if extracted_promotable:
+            try:
+                extracted_items, extracted_revoked = _from_lane(extracted_promotable, FROM_LANE_COUNT_PER, and_topic=True)
+                from_items.extend(extracted_items)
+                if extracted_revoked:
+                    any_revoked = True
+                    bundle.record_failure(
+                        x_slug, schema.AUTH_FAILED,
+                        "Phase 2 FROM-lane (extracted): grok session expired or was revoked",
+                        attempted=True,
+                    )
+            except Exception as exc:
+                print(f"[Pipeline] Phase 2 FROM-lane (extracted) failed: {exc}", file=sys.stderr)
+                state, attempted = _classify_source_failure(exc)
+                bundle.record_failure(
+                    x_slug, state, f"Phase 2 FROM-lane (extracted): {exc}", attempted=attempted,
+                )
+                if not bundle.items_by_source.get(x_slug):
+                    bundle.errors_by_source[x_slug] = f"Phase 2 FROM-lane: {exc}"
+
         try:
-            from_items = _from_lane(handles, FROM_LANE_COUNT_PER)
-        except Exception as exc:
-            print(f"[Pipeline] Phase 2 FROM-lane search failed: {exc}", file=sys.stderr)
-            state, attempted = _classify_source_failure(exc)
-            bundle.record_failure(
-                x_slug,
-                state,
-                f"Phase 2 FROM-lane: {exc}",
-                attempted=attempted,
-            )
-            if not bundle.items_by_source.get(x_slug):
-                bundle.errors_by_source[x_slug] = f"Phase 2 FROM-lane: {exc}"
-        try:
-            about_items = _about_lane(handles, MENTION_LANE_COUNT_PER)
+            about_items, about_revoked = _about_lane(all_promotable, MENTION_LANE_COUNT_PER)
+            if about_revoked:
+                any_revoked = True
+                bundle.record_failure(
+                    x_slug, schema.AUTH_FAILED,
+                    "Phase 2 ABOUT-lane: grok session expired or was revoked",
+                    attempted=True,
+                )
         except Exception as exc:
             print(f"[Pipeline] Phase 2 ABOUT-lane search failed: {exc}", file=sys.stderr)
             state, attempted = _classify_source_failure(exc)
@@ -2564,13 +3784,61 @@ def _run_supplemental_searches(
                 f"Phase 2 ABOUT-lane: {exc}",
                 attempted=attempted,
             )
-        raw_items = from_items + about_items
+        name_items: list = []
+        if _name_lane is not None:
+            try:
+                name_items, name_revoked = _name_lane(all_promotable, MENTION_LANE_COUNT_PER)
+                if name_revoked:
+                    any_revoked = True
+                    bundle.record_failure(
+                        x_slug, schema.AUTH_FAILED,
+                        "Phase 2 NAME-lane: grok session expired or was revoked",
+                        attempted=True,
+                    )
+            except Exception as exc:
+                print(f"[Pipeline] Phase 2 NAME-lane search failed: {exc}", file=sys.stderr)
+                state, attempted = _classify_source_failure(exc)
+                bundle.record_failure(
+                    x_slug, state, f"Phase 2 NAME-lane: {exc}", attempted=attempted,
+                )
+
+        raw_items = from_items + about_items + name_items
+
+        # Partial coverage is a reportable outcome, not a normal result: a
+        # report carrying only one side of an entity topic is incomplete, and
+        # without this it looks indistinguishable from genuinely thin
+        # discussion.
+        if _name_lane is not None:
+            empty = [
+                label for label, items in
+                (("by", from_items), ("mention", about_items), ("name", name_items))
+                if not items
+            ]
+            if empty and len(empty) < 3:
+                # A warning, not a source outcome. record_failure would set the
+                # X source to PARTIAL, which is outside _STRICT_EXIT_OK_STATES
+                # and would make wrappers using LAST30DAYS_STRICT_EXIT exit 3 on
+                # runs that returned perfectly good X coverage. An empty lane is
+                # common and legitimate: the name lane carries an engagement
+                # floor and the mention lane is empty for most non-famous
+                # handles.
+                bundle.artifacts.setdefault("x_partial_coverage", []).append(
+                    f"X partial coverage: {', '.join(empty)} lane(s) returned "
+                    "nothing; the report may show only one side of this entity."
+                )
 
         if raw_items:
+            # First-party handles: only primary explicit handle, not promoted commentators
+            # (first-party exempts from relevance floor; granting to commentators
+            # would let junk become un-prunable)
+            first_party_for_normalize = list(set(
+                h.lower().lstrip("@") for h in primary_explicit if h
+            ))
             normalized = _normalize_score_dedupe(
                 x_slug, raw_items, from_date, to_date,
                 freshness_mode=plan.freshness_mode,
                 ranking_query=ranking_query,
+                first_party_handles=first_party_for_normalize,
             )
             # Deduplicate against Phase 1 URLs
             normalized = [item for item in normalized if item.url not in existing_urls]
@@ -2582,9 +3850,17 @@ def _run_supplemental_searches(
                         existing_urls.add(item.url)
 
     # Search related handles with lower weight (0.3)
+    # Related handles are explicit (--x-related), so FROM without AND topic.
     if related_handles:
         try:
-            raw_items = _from_lane(related_handles, RELATED_HANDLE_COUNT_PER)
+            raw_items, rel_revoked = _from_lane(related_handles, RELATED_HANDLE_COUNT_PER, and_topic=False)
+            if rel_revoked:
+                any_revoked = True
+                bundle.record_failure(
+                    x_slug, schema.AUTH_FAILED,
+                    "Phase 2 related handle search: grok session expired or was revoked",
+                    attempted=True,
+                )
         except Exception as exc:
             print(f"[Pipeline] Phase 2 related handle search failed: {exc}", file=sys.stderr)
             state, attempted = _classify_source_failure(exc)
@@ -2601,6 +3877,7 @@ def _run_supplemental_searches(
                 x_slug, raw_items, from_date, to_date,
                 freshness_mode=plan.freshness_mode,
                 ranking_query=ranking_query,
+                first_party_handles=related_handles,
             )
             # Deduplicate against all existing URLs (Phase 1 + primary handles)
             normalized = [item for item in normalized if item.url not in existing_urls]
@@ -2636,6 +3913,12 @@ def _retry_thin_sources(
     settings: dict[str, Any],
     web_backend: str = "auto",
     skip_sources: set[str] | None = None,
+    subreddits: list[str] | None = None,
+    tiktok_hashtags: list[str] | None = None,
+    tiktok_creators: list[str] | None = None,
+    ig_creators: list[str] | None = None,
+    first_party_handles: Iterable[str] | None = None,
+    run_started: float | None = None,
 ) -> None:
     """Retry sources with thin results using simplified core subject query."""
     if depth == "quick":
@@ -2651,7 +3934,7 @@ def _retry_thin_sources(
     # MAX_SOURCE_FETCHES and re-resolving WITHOUT the caller's
     # --trustpilot-domain (a lookalike-misattribution path). Its thin result
     # is its normal success state; never retry it here.
-    _skip = (skip_sources or set()) | {"trustpilot"}
+    _skip = (skip_sources or set()) | {"trustpilot", "perplexity"}
     thin_sources = [
         source
         for source in planned_sources
@@ -2698,6 +3981,15 @@ def _retry_thin_sources(
             rate_limit_lock=rate_limit_lock,
             web_backend=web_backend,
             raw_topic=topic,
+            subreddits=subreddits,
+            tiktok_hashtags=tiktok_hashtags,
+            tiktok_creators=tiktok_creators,
+            ig_creators=ig_creators,
+            run_started=run_started,
+            # Skip Amazon review enrichment here to avoid duplicate Bright Data
+            # pulls for ASINs already enriched in Phase 1. Finalize will enrich
+            # any genuinely new products that weren't in Phase 1.
+            skip_amazon_enrichment=True,
         )
         outcome_note = artifact.get("_source_outcome") if isinstance(artifact, dict) else None
         normalized = _normalize_score_dedupe(
@@ -2707,6 +3999,13 @@ def _retry_thin_sources(
             to_date,
             freshness_mode=plan.freshness_mode,
             ranking_query=retry_subquery.ranking_query,
+            first_party_handles=first_party_handles,
+            # Match Phase 1: X defers its relevance floor until the run has
+            # resolved handles. Applying it here would discard a subject-
+            # authored post that does not repeat the subject's name, and the
+            # later resolved-handle floor cannot recover a post that never
+            # entered the bundle.
+            defer_relevance_prune=(source == "x"),
         )
         if source == "jobs":
             return source, normalized, outcome_note
@@ -2745,17 +4044,30 @@ def _retry_thin_sources(
                 )
 
 
-def _fetch_x_backend(backend, subquery, from_date, to_date, depth, config):
+def _fetch_x_backend(backend, query, from_date, to_date, depth, config):
     """Fetch X items from a single backend. Returns (items, error_str).
 
     Backends are tried in priority order by the caller (env.x_backend_chain);
     a non-empty error_str signals a hard failure (auth/payment/etc.) so the
     caller can fail over to the next backend or surface the error honestly.
+
+    For grok, auth_revoked signals mid-run session revocation: the error
+    string includes "grok session expired" so _classify_source_failure maps
+    it to AUTH_FAILED with a proper fix hint, distinct from "never signed in".
+
+    The ``query`` parameter is the compiled search query - typically
+    ``raw_topic or topic`` (like Reddit/YouTube), NOT the planner's
+    ``search_query`` which may contain operator strings like "Rome Italy".
     """
-    query = subquery.search_query
     if backend == "bird":
         result = bird_x.search_x(query, from_date, to_date, depth=depth)
         items = bird_x.parse_bird_response(result, query=query)
+    elif backend == "grok":
+        result = grok_x.search_x(query, from_date, to_date, depth=depth)
+        items = result.get("items", []) if isinstance(result, dict) else []
+        if isinstance(result, dict) and result.get("auth_revoked"):
+            err = result.get("error") or "grok session expired or was revoked"
+            return items, f"grok: {err}"
     elif backend == "xai":
         model = config.get("LAST30DAYS_X_MODEL") or config.get("XAI_MODEL_PIN") or providers.XAI_DEFAULT
         result = xai_x.search_x(config["XAI_API_KEY"], model, query, from_date, to_date, depth=depth)
@@ -2797,6 +4109,7 @@ def _merge_reddit_items(free: list[dict], sc: list[dict]) -> list[dict]:
 
 def _retrieve_stream(*args, **kwargs) -> tuple[list[dict], dict]:
     """Run one stream and retain HTTP failures swallowed by source adapters."""
+    # run_started is passed through but not used here; it goes to _retrieve_stream_impl
     source = str(kwargs.get("source") or "")
     fixture_request = {
         "source": source,
@@ -2867,6 +4180,8 @@ def _retrieve_stream_impl(
     ig_creators: list[str] | None = None,
     trustpilot_domain: str | None = None,
     trustpilot_domain_is_hint: bool = False,
+    run_started: float | None = None,
+    skip_amazon_enrichment: bool = False,
 ) -> tuple[list[dict], dict]:
     # Early exit if source was rate-limited by a sibling future
     if rate_limited_sources is not None and source in rate_limited_sources:
@@ -3015,6 +4330,11 @@ def _retrieve_stream_impl(
             )
         return merged, {}
     if source == "x":
+        # Compile X query from raw_topic (like Reddit/YouTube), not planner's
+        # search_query which may contain operator strings like "Rome Italy".
+        x_query = raw_topic or topic or subquery.search_query
+        ranking_query = subquery.ranking_query
+
         # One X source, an ordered chain of interchangeable backends. Try the
         # primary; fall through to the next only if it returns nothing or errors.
         chain = env.x_backend_chain(config)
@@ -3026,33 +4346,149 @@ def _retrieve_stream_impl(
         if not chain:
             raise RuntimeError("No X backend is available.")
         last_error = ""
+        items = []
+        used_backend = None
         for i, backend in enumerate(chain):
-            items, err = _fetch_x_backend(backend, subquery, from_date, to_date, depth, config)
+            items, err = _fetch_x_backend(backend, x_query, from_date, to_date, depth, config)
             if items:
                 if i > 0:
                     print(f"[X] primary backend(s) returned nothing; used fallback '{backend}'", file=sys.stderr)
+                # Check for auth errors before proceeding to judge-retry
                 if last_error:
-                    state = (
-                        bird_x.classify_run_failure(last_error)
-                        if last_error.startswith("bird:")
-                        else http.classify_failure(message=last_error)
+                    # Fallback succeeded after earlier backend failed. Classify
+                    # the original error: if it was AUTH_FAILED (grok revoked),
+                    # preserve that state so user gets re-login guidance.
+                    prior_state = http.classify_failure(message=last_error)
+                    if prior_state == schema.AUTH_FAILED:
+                        # Keep AUTH_FAILED visible so host shows re-login hint
+                        return items, _outcome_artifact(
+                            schema.AUTH_FAILED,
+                            f"X served via {backend} after {last_error}; re-login needed for primary backend",
+                        )
+                    # Prior error was non-auth. Check if *current* backend also
+                    # reported an error (e.g., grok returned items + revocation).
+                    if err:
+                        current_state = http.classify_failure(message=err)
+                        if current_state == schema.AUTH_FAILED:
+                            return items, _outcome_artifact(
+                                schema.AUTH_FAILED,
+                                f"X served {len(items)} items via {backend} but also errored: {err}; re-login needed",
+                            )
+                    # Non-auth prior error, no current auth error → fallback OK
+                    return items, _outcome_artifact(
+                        health.OK,
+                        f"X served via {backend} after {last_error}",
                     )
+                if err:
+                    # Mixed result: backend returned items BUT also hit an error
+                    # (e.g., grok got some posts then auth was revoked mid-fanout).
+                    # Surface the error so the user gets re-login guidance.
+                    state = http.classify_failure(message=err)
                     return items, _outcome_artifact(
                         state,
-                        f"X fallback '{backend}' returned {len(items)} items after {last_error}",
+                        f"X returned {len(items)} items but also errored: {err}",
                     )
-                return items, {}
+                # No auth issues and no prior errors - proceed to judge-retry
+                used_backend = backend
+                break
             if err:
                 last_error = f"{backend}: {err}"
                 print(f"[X] backend '{backend}' failed ({err}); trying next", file=sys.stderr)
-        if last_error:
+
+        if not items and last_error:
             state = (
                 bird_x.classify_run_failure(last_error)
                 if last_error.startswith("bird:")
                 else http.classify_failure(message=last_error)
             )
             raise SourceRunError(f"All X backends failed — {last_error}", state)
-        return [], {}
+
+        # Retrieve-judge-retry: judge corpus and retry if off-topic flood.
+        # Skip retry on quick/mock (same as Phase 2).
+        artifact = {}
+        if items and depth != "quick" and not mock:
+            items_for_judge = [
+                {"author_handle": it.get("author_handle", ""), "text": it.get("text", "")}
+                for it in items
+            ]
+            if x_judge.should_retry_x_search(items_for_judge, x_query, ranking_query=ranking_query, depth=depth):
+                # Retry with cleaned query (1 retry, ≤2 extra grok calls)
+                # Strip noise words but preserve all significant terms to avoid
+                # losing disambiguating terms (e.g., "react server components")
+                core_tokens = query.extract_core_subject(x_query)
+                retry_query = core_tokens or x_query
+                print(f"[X] corpus off-topic; retrying with '{retry_query}'", file=sys.stderr)
+
+                if used_backend:
+                    retry_items, retry_err = _fetch_x_backend(
+                        used_backend, retry_query, from_date, to_date, depth, config
+                    )
+                    if retry_items:
+                        # Judge retry corpus
+                        retry_for_judge = [
+                            {"author_handle": it.get("author_handle", ""), "text": it.get("text", "")}
+                            for it in retry_items
+                        ]
+                        retry_judgment = x_judge.judge_x_corpus(
+                            retry_for_judge, x_query, ranking_query=ranking_query
+                        )
+                        orig_judgment = x_judge.judge_x_corpus(
+                            items_for_judge, x_query, ranking_query=ranking_query
+                        )
+                        # Use retry if better on-topic ratio
+                        if retry_judgment["on_topic_ratio"] > orig_judgment["on_topic_ratio"]:
+                            print(
+                                f"[X] retry improved on-topic ratio: "
+                                f"{orig_judgment['on_topic_ratio']:.0%} -> "
+                                f"{retry_judgment['on_topic_ratio']:.0%}",
+                                file=sys.stderr,
+                            )
+                            items = retry_items
+
+            # Prune off-topic items before the pool. Eight on-topic → ok with 8.
+            # Zero on-topic after retry → no-results, not ok with 40 junk.
+            # Only prune items that have text to judge; items without text pass through.
+            original_count = len(items)
+            items_with_text = [(i, it) for i, it in enumerate(items) if it.get("text", "").strip()]
+
+            if items_with_text:
+                items_for_prune = [
+                    {"author_handle": it.get("author_handle", ""), "text": it.get("text", "")}
+                    for _, it in items_with_text
+                ]
+                judgment = x_judge.judge_x_corpus(
+                    items_for_prune, x_query, ranking_query=ranking_query
+                )
+                # Build set of indices for on-topic items
+                on_topic_indices = set()
+                for (orig_idx, _), pruned_item in zip(items_with_text, items_for_prune):
+                    if pruned_item in judgment["on_topic_items"]:
+                        on_topic_indices.add(orig_idx)
+
+                # Keep items that are on-topic OR have no text (can't judge)
+                items = [
+                    it for i, it in enumerate(items)
+                    if i in on_topic_indices or not it.get("text", "").strip()
+                ]
+
+                # Record warning if significant pruning occurred (artifact, not failure)
+                if len(items) < original_count:
+                    pruned = original_count - len(items)
+                    artifact.setdefault("_warnings", []).append(
+                        f"X: pruned {pruned} off-topic items; {len(items)} on-topic remain"
+                    )
+
+        if last_error and items:
+            state = (
+                bird_x.classify_run_failure(last_error)
+                if last_error.startswith("bird:")
+                else http.classify_failure(message=last_error)
+            )
+            return items, _outcome_artifact(
+                state,
+                f"X fallback '{used_backend}' returned {len(items)} items after {last_error}",
+            )
+        return items, artifact
     if source == "youtube":
         # Use raw_topic so expand_youtube_queries() generates diverse variants
         # from the original user topic, not the planner's narrowed search_query.
@@ -3214,6 +4650,51 @@ def _retrieve_stream_impl(
             trustpilot.parse_trustpilot_response(result, query=relevance_topic),
             _result_outcome_artifact(source, result),
         )
+    if source == "amazon":
+        # The search keyword is model-supplied and may differ from the topic
+        # ("Matt Van Horn" searches "June Oven"), so it keys off the stable
+        # research topic rather than the narrowed per-subquery search_query.
+        keyword = (
+            str((config or {}).get("_amazon_query") or "").strip()
+            or raw_topic or topic or subquery.search_query
+        )
+        domain = str((config or {}).get("LAST30DAYS_AMAZON_DOMAIN") or amazon.DEFAULT_DOMAIN)
+        result = amazon.search_products(keyword, domain=domain, config=config)
+        products = amazon.parse_search_response(result, keyword, domain=domain)
+        artifact = _result_outcome_artifact(source, result)
+
+        # Skip enrichment when called from thin retry (_retry_thin_sources) to
+        # avoid duplicate Bright Data pulls for ASINs already enriched in Phase 1.
+        # Finalize will enrich any NEW products (enrich_source_items no-ops when
+        # top_comments is already set, so duplicates get skipped there too).
+        if skip_amazon_enrichment:
+            return products, artifact
+
+        # Start review enrichment now, while other sources are still running.
+        # Elapsed is measured from run_started so multi-source runs that finish
+        # search quickly (30-90s) still have 190-250s of budget (clamped to 180).
+        # This replaces the old deferred-to-finalize path which left only crumbs
+        # (e.g. 11s) after long retrieval phases.
+        elapsed = time.monotonic() - run_started if run_started else 0.0
+        enriched, review_status = amazon.enrich_with_reviews(
+            products,
+            depth=depth,
+            config=config,
+            elapsed=elapsed,
+            keyword=keyword,
+        )
+
+        # Record PARTIAL status if review lane was skipped or all pulls dropped
+        if review_status:
+            artifact = artifact or {}
+            artifact = dict(artifact) if artifact else {}
+            artifact["_source_outcome"] = {
+                "state": schema.PARTIAL,
+                "detail": review_status,
+                "attempted": True,
+            }
+
+        return enriched, artifact
     if source == "bluesky":
         result = bluesky.search_bluesky(subquery.search_query, from_date, to_date, depth=depth, config=config)
         return bluesky.parse_bluesky_response(result), _result_outcome_artifact(source, result)
@@ -3224,6 +4705,14 @@ def _retrieve_stream_impl(
             token=config.get("SCRAPECREATORS_API_KEY"),
         )
         return threads.parse_threads_response(result), _result_outcome_artifact(source, result)
+    if source == "telegram":
+        result = telegram.search_telegram(
+            subquery.search_query, from_date, to_date,
+            depth=depth,
+            token=config.get("SCRAPECREATORS_API_KEY"),
+            config=config,
+        )
+        return telegram.parse_telegram_response(result), _result_outcome_artifact(source, result)
     if source == "truthsocial":
         result = truthsocial.search_truthsocial(subquery.search_query, from_date, to_date, depth=depth, config=config)
         return truthsocial.parse_truthsocial_response(result), _result_outcome_artifact(source, result)
@@ -3278,17 +4767,22 @@ def _google_key(config: dict[str, Any]) -> str | None:
 
 
 def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[dict], dict]:
+    # Namespace URLs and the canned comment by topic: real runs never hand two
+    # distinct stories byte-identical evidence, and discovery's same-story fold
+    # (correctly) collapses topics that share it. Mock enrichment sub-runs feed
+    # this fixture one topic per subquery, so the slug keeps them distinct.
+    slug = re.sub(r"[^a-z0-9]+", "-", subquery.search_query.lower()).strip("-") or "topic"
     payloads = {
         "reddit": [
             {
                 "id": "R1",
                 "title": f"{subquery.search_query} discussion thread",
-                "url": "https://reddit.com/r/example/comments/1",
+                "url": f"https://reddit.com/r/example/comments/{slug}-1",
                 "subreddit": "example",
                 "date": dates.get_date_range(5)[0],
                 "engagement": {"score": 120, "num_comments": 48, "upvote_ratio": 0.91},
                 "selftext": f"Community discussion about {subquery.search_query}.",
-                "top_comments": [{"excerpt": "Strong firsthand feedback from users."}],
+                "top_comments": [{"excerpt": f"Strong firsthand feedback from {subquery.search_query} users."}],
                 "relevance": 0.82,
                 "why_relevant": "Mock Reddit result",
             }
@@ -3297,7 +4791,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "X1",
                 "text": f"People on X are discussing {subquery.search_query} right now.",
-                "url": "https://x.com/example/status/1",
+                "url": f"https://x.com/example/status/{slug}-1",
                 "author_handle": "example",
                 "date": dates.get_date_range(2)[0],
                 "engagement": {"likes": 200, "reposts": 35, "replies": 18, "quotes": 4},
@@ -3309,7 +4803,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "WB1",
                 "title": f"{subquery.search_query} article",
-                "url": "https://example.com/article",
+                "url": f"https://example.com/article/{slug}",
                 "source_domain": "example.com",
                 "snippet": f"Recent web reporting about {subquery.search_query}.",
                 "date": dates.get_date_range(7)[0],
@@ -3321,7 +4815,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "mock1abc",
                 "title": f"Digg cluster about {subquery.search_query}",
-                "url": "https://di.gg/ai/mock1abc",
+                "url": f"https://di.gg/ai/mock1abc-{slug}",
                 "tldr": f"Curated cluster summarizing recent {subquery.search_query} discussion across the AI 1000.",
                 "author": "",
                 "date": dates.get_date_range(3)[0],
@@ -3345,7 +4839,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "mock2def",
                 "title": f"Second Digg cluster on {subquery.search_query}",
-                "url": "https://di.gg/ai/mock2def",
+                "url": f"https://di.gg/ai/mock2def-{slug}",
                 "tldr": f"Another angle on {subquery.search_query}.",
                 "author": "",
                 "date": dates.get_date_range(8)[0],
@@ -3358,9 +4852,9 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
         ],
         "arxiv": [
             {
-                "id": "http://arxiv.org/abs/2606.00001v1",
+                "id": f"http://arxiv.org/abs/2606.00001v1-{slug}",
                 "title": f"A Survey of {subquery.search_query}",
-                "url": "https://arxiv.org/abs/2606.00001v1",
+                "url": f"https://arxiv.org/abs/2606.00001v1-{slug}",
                 "summary": f"We present a comprehensive study of {subquery.search_query} and its recent advances.",
                 "author": "Ada Lovelace et al.",
                 "authors": ["Ada Lovelace", "Alan Turing"],
@@ -3372,9 +4866,9 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
         ],
         "techmeme": [
             {
-                "id": "https://www.techmeme.com/260627/p1",
+                "id": f"https://www.techmeme.com/260627/p1-{slug}",
                 "title": f"Major development in {subquery.search_query} reshapes the industry",
-                "url": "https://www.techmeme.com/260627/p1",
+                "url": f"https://www.techmeme.com/260627/p1-{slug}",
                 "source_name": "techcrunch.com",
                 "date": dates.get_date_range(1)[0],
                 "engagement": {},
@@ -3386,7 +4880,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "DS1",
                 "title": f"Deep dive: {subquery.search_query} from a paid newsletter",
-                "url": "https://newsletter.example.com/deep-dive",
+                "url": f"https://newsletter.example.com/deep-dive-{slug}",
                 "author": "newsletter.example.com",
                 "date": dates.get_date_range(3)[0],
                 "engagement": {},
@@ -3405,7 +4899,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "example.com",
                 "title": f"{subquery.search_query}: TrustScore 3.4",
-                "url": "https://www.trustpilot.com/review/example.com",
+                "url": f"https://www.trustpilot.com/review/{slug}.example.com",
                 "summary": f"Across recent reviews, customers were split on {subquery.search_query}: some praised support, others cited delays.",
                 "name": subquery.search_query,
                 "trustScore": 3.4,
@@ -3416,11 +4910,115 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
                 "why_relevant": "Mock Trustpilot sentiment",
             },
         ],
+        # Three products spanning the drift states the footer renders: one
+        # sagging below its all-time average (with enough in-window reviews
+        # to clear the arrow threshold), one steady, and one too new to have
+        # a baseline. Mock runs exercise the full R1c line without a CLI.
+        "amazon": [
+            {
+                "asin": "B0MOCK00X1",
+                "date": dates.get_date_range(1)[1],
+                "name": f"{subquery.search_query} Pro Model | Flagship Edition",
+                "short_name": "Pro Model",
+                "brand": subquery.search_query.split()[0].title() if subquery.search_query else "Example",
+                "url": "https://www.amazon.com/dp/B0MOCK00X1",
+                "rating": 4.4,
+                "num_ratings": 459,
+                "price": 39.99,
+                "currency": "USD",
+                "badge": "Best Seller",
+                "sponsored": False,
+                "relevance": 0.85,
+                "why_relevant": "Mock Amazon product",
+                "product_rating": 4.4,
+                "product_rating_count": 459,
+                "star_distribution": {
+                    "one_star": 28, "two_star": 9, "three_star": 28,
+                    "four_star": 60, "five_star": 335,
+                },
+                "top_comments": [
+                    {
+                        "score": 3, "rating": 2, "verified": True,
+                        "date": dates.get_date_range(3)[1],
+                        "excerpt": "The tray shifts in transit and the lid jams shut.",
+                        "title": "Lid jams",
+                    },
+                    {
+                        "score": 1, "rating": 4, "verified": True,
+                        "date": dates.get_date_range(9)[1],
+                        "excerpt": "Solid build, but arrived with a dented panel.",
+                        "title": "Shipping dent",
+                    },
+                    {
+                        "score": 0, "rating": 5, "verified": True,
+                        "date": dates.get_date_range(14)[1],
+                        "excerpt": "Keeps everything cold through a full school day.",
+                        "title": "Works great",
+                    },
+                    {
+                        "score": 0, "rating": 4, "verified": True,
+                        "date": dates.get_date_range(19)[1],
+                        "excerpt": "Good size for the price.",
+                        "title": "Good value",
+                    },
+                    {
+                        "score": 0, "rating": 4, "verified": False,
+                        "date": dates.get_date_range(24)[1],
+                        "excerpt": "Does the job, nothing fancy.",
+                        "title": "Fine",
+                    },
+                ],
+            },
+            {
+                "asin": "B0MOCK00X2",
+                "date": dates.get_date_range(1)[1],
+                "name": f"{subquery.search_query} Classic | Everyday Model",
+                "short_name": "Classic",
+                "brand": subquery.search_query.split()[0].title() if subquery.search_query else "Example",
+                "url": "https://www.amazon.com/dp/B0MOCK00X2",
+                "rating": 4.7,
+                "num_ratings": 8446,
+                "price": 24.99,
+                "currency": "USD",
+                "sponsored": False,
+                "relevance": 0.8,
+                "why_relevant": "Mock Amazon product",
+                "product_rating": 4.7,
+                "product_rating_count": 8446,
+                "star_distribution": {
+                    "one_star": 120, "two_star": 90, "three_star": 300,
+                    "four_star": 1010, "five_star": 6926,
+                },
+                "top_comments": [
+                    {
+                        "score": 12, "rating": 5, "verified": True,
+                        "date": dates.get_date_range(4)[1],
+                        "excerpt": "Third one we've bought. They last.",
+                        "title": "Repeat buyer",
+                    },
+                ],
+            },
+            {
+                "asin": "B0MOCK00X3",
+                "date": dates.get_date_range(1)[1],
+                "name": f"{subquery.search_query} Mini | New Release",
+                "short_name": "Mini",
+                "brand": subquery.search_query.split()[0].title() if subquery.search_query else "Example",
+                "url": "https://www.amazon.com/dp/B0MOCK00X3",
+                "rating": None,
+                "num_ratings": 57,
+                "price": 19.99,
+                "currency": "USD",
+                "sponsored": False,
+                "relevance": 0.72,
+                "why_relevant": "Mock Amazon product",
+            },
+        ],
         "jobs": [
             {
                 "id": "J1",
                 "title": "Founding Enterprise Solutions Engineer",
-                "url": "https://boards.greenhouse.io/example/jobs/1",
+                "url": f"https://boards.greenhouse.io/example/jobs/{slug}-1",
                 "description": (
                     f"Work with enterprise customers on SSO, SOC 2, security, "
                     f"and procurement workflows for {subquery.search_query}."
@@ -3435,7 +5033,7 @@ def _mock_stream_results(source: str, subquery: schema.SubQuery) -> tuple[list[d
             {
                 "id": "J2",
                 "title": "Security Platform Engineer",
-                "url": "https://boards.greenhouse.io/example/jobs/2",
+                "url": f"https://boards.greenhouse.io/example/jobs/{slug}-2",
                 "description": "Build enterprise security, audit, and admin workflows.",
                 "department": "Engineering",
                 "location": "Remote",

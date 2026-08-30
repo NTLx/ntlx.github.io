@@ -39,7 +39,7 @@ class ProviderRuntime:
     reasoning_provider: Literal["gemini", "openai", "xai", "local"]
     planner_model: str
     rerank_model: str
-    x_search_backend: Literal["xai", "bird"] | None = None
+    x_search_backend: Literal["xai", "grok", "bird", "xurl", "xquik"] | None = None
 
 
 @dataclass(frozen=True)
@@ -284,6 +284,11 @@ class DiscoveryTopic:
     topic's enriched corpus (with attribution), present only on enriched runs.
     ``corroboration_count`` is the number of distinct sources confirming the
     topic - the floor's cross-source signal, surfaced for readers.
+
+    ``podcast_angle`` and ``x_article_angle`` are engine-generated content
+    hooks; ``None`` when no reasoning provider produced them.
+    ``previously_surfaced_count``, ``last_surfaced``, and ``covered`` are
+    topic-queue annotations; they keep their defaults when the queue is off.
     """
 
     rank: int
@@ -297,6 +302,11 @@ class DiscoveryTopic:
     evidence_urls: list[str] = field(default_factory=list)
     top_comment: str | None = None
     corroboration_count: int = 0
+    podcast_angle: str | None = None
+    x_article_angle: str | None = None
+    previously_surfaced_count: int = 0
+    last_surfaced: str | None = None
+    covered: bool = False
 
 
 @dataclass
@@ -347,9 +357,18 @@ class RetrievalBundle:
         *,
         attempted: bool = True,
     ) -> None:
-        """Record a failure, preserving already-returned items as partial."""
+        """Record a failure, preserving already-returned items as partial.
+
+        AUTH_FAILED is preserved even when items exist, since the re-login
+        signal shouldn't be downgraded to generic PARTIAL guidance.
+        """
         count = len(self.items_by_source.get(source, []))
-        outcome_state: RunOutcomeState = PARTIAL if count else state
+        # Preserve AUTH_FAILED even when items exist: it's an actionable signal
+        # (re-login needed) that shouldn't be downgraded to PARTIAL.
+        if state == AUTH_FAILED:
+            outcome_state: RunOutcomeState = AUTH_FAILED
+        else:
+            outcome_state = PARTIAL if count else state
         self.errors_by_source.setdefault(source, detail)
         self.source_status[source] = SourceOutcome(
             source=source,
@@ -369,7 +388,13 @@ class RetrievalBundle:
         detail = None
         fix_hint = None
         if previous and previous.state not in (health.OK, NO_RESULTS):
-            state = PARTIAL if self.items_by_source[source] else previous.state
+            # Preserve AUTH_FAILED state even when items are added: it's an
+            # actionable signal (re-login needed) that shouldn't be downgraded
+            # to PARTIAL. Other failure states become PARTIAL when items exist.
+            if previous.state == AUTH_FAILED:
+                state = AUTH_FAILED
+            else:
+                state = PARTIAL if self.items_by_source[source] else previous.state
             detail = previous.detail
             fix_hint = previous.fix_hint
         self.source_status[source] = SourceOutcome(
@@ -482,6 +507,24 @@ def cluster_from_dict(payload: dict[str, Any]) -> Cluster:
     )
 
 
+def _source_status_from_dict(payload: dict[str, Any]) -> dict[str, "SourceOutcome"]:
+    """Rebuild the per-source outcome map shared by every report
+    deserializer, so the SourceOutcome reconstruction cannot drift between
+    them."""
+    return {
+        source: SourceOutcome(
+            source=outcome.get("source") or source,
+            state=outcome["state"],
+            items_returned=int(outcome.get("items_returned") or 0),
+            attempted=bool(outcome.get("attempted", True)),
+            detail=outcome.get("detail"),
+            at=outcome.get("at") or _utc_now(),
+            fix_hint=outcome.get("fix_hint"),
+        )
+        for source, outcome in (payload.get("source_status") or {}).items()
+    }
+
+
 def report_from_dict(payload: dict[str, Any]) -> Report:
     return Report(
         topic=payload["topic"],
@@ -497,18 +540,7 @@ def report_from_dict(payload: dict[str, Any]) -> Report:
             for source, items in (payload.get("items_by_source") or {}).items()
         },
         errors_by_source=dict(payload.get("errors_by_source") or {}),
-        source_status={
-            source: SourceOutcome(
-                source=outcome.get("source") or source,
-                state=outcome["state"],
-                items_returned=int(outcome.get("items_returned") or 0),
-                attempted=bool(outcome.get("attempted", True)),
-                detail=outcome.get("detail"),
-                at=outcome.get("at") or _utc_now(),
-                fix_hint=outcome.get("fix_hint"),
-            )
-            for source, outcome in (payload.get("source_status") or {}).items()
-        },
+        source_status=_source_status_from_dict(payload),
         freshness_verdicts=[
             FreshnessVerdict(
                 claim_id=item["claim_id"],
@@ -557,6 +589,38 @@ def candidate_sources(candidate: Candidate) -> list[str]:
 def candidate_source_label(candidate: Candidate) -> str:
     sources = candidate_sources(candidate)
     return ", ".join(sources) if sources else "unknown"
+
+
+def candidate_out_of_window(candidate: Candidate) -> bool:
+    """True when every dated item behind this candidate falls outside the window.
+
+    Window membership is derived from the actual ``published_at`` date compared
+    to the run's ``range_from``/``range_to`` (stored in candidate.metadata by
+    fusion.weighted_rrf). Some adapters provide ``date_confidence="high"`` for
+    old dates, so relying solely on adapter-provided confidence is insufficient.
+
+    Candidates with no dated item at all are not treated as out of window — an
+    unknown date is a coverage gap, not a stale item.
+    """
+    dated = [item for item in candidate.source_items if item.published_at]
+    if not dated:
+        return False
+
+    range_from = candidate.metadata.get("range_from")
+    range_to = candidate.metadata.get("range_to")
+    if range_from and range_to:
+        try:
+            start = datetime.fromisoformat(range_from).date()
+            end = datetime.fromisoformat(range_to).date()
+            for item in dated:
+                item_date = datetime.fromisoformat(item.published_at[:10]).date()
+                if start <= item_date <= end:
+                    return False
+            return True
+        except (ValueError, TypeError):
+            pass
+
+    return all(item.date_confidence != "high" for item in dated)
 
 
 def candidate_best_published_at(candidate: Candidate) -> str | None:
@@ -673,7 +737,7 @@ def without_sources(report: Report, excluded_sources: set[str]) -> Report:
     return clean
 
 
-DISCOVERY_EXPORT_SCHEMA_VERSION = "1.0"
+DISCOVERY_EXPORT_SCHEMA_VERSION = "1.1"
 
 
 def _agent_summary(candidate: Candidate) -> str:
@@ -828,6 +892,114 @@ def to_agent_export(
     }
 
 
+# Discovery nominations handoff bundle (leg 1 of the three-command
+# host-judged protocol). The bundle serializes the FULL judge pool losslessly
+# so leg 2 can recompute floor/velocity/entity-token disambiguation exactly
+# as an in-memory run would. Bump the version on any incompatible change to
+# the bundle shape; the handoff reader rejects other versions outright.
+DISCOVERY_NOMINATIONS_SCHEMA_VERSION = "1.0"
+DISCOVERY_NOMINATIONS_KIND = "discovery-nominations"
+
+# Pending-report contract (leg 2 -> leg 3 of the host-judged protocol). Leg 2
+# persists the floored/folded/ranked report plus the per-topic angle inputs;
+# leg 3 rebuilds the report from it and never re-runs anything. Bump the
+# version on any incompatible change; the handoff reader rejects others.
+DISCOVERY_PENDING_SCHEMA_VERSION = "1.0"
+DISCOVERY_PENDING_KIND = "discovery-pending"
+
+
+def discovery_topic_from_dict(payload: dict[str, Any]) -> DiscoveryTopic:
+    """Parse one serialized DiscoveryTopic back (to_dict drops None fields,
+    so every optional field restores through its dataclass default)."""
+    return DiscoveryTopic(
+        rank=int(payload["rank"]),
+        name=payload["name"],
+        why_spiking=payload.get("why_spiking") or "",
+        momentum=payload.get("momentum") or "building",
+        velocity_score=float(_first_non_none(payload.get("velocity_score"), 0.0)),
+        sources=list(payload.get("sources") or []),
+        engagement_by_source={
+            str(source): dict(metrics)
+            for source, metrics in (payload.get("engagement_by_source") or {}).items()
+            if isinstance(metrics, dict)
+        },
+        command=payload.get("command") or "",
+        evidence_urls=list(payload.get("evidence_urls") or []),
+        top_comment=payload.get("top_comment"),
+        corroboration_count=int(payload.get("corroboration_count") or 0),
+        podcast_angle=payload.get("podcast_angle"),
+        x_article_angle=payload.get("x_article_angle"),
+        previously_surfaced_count=int(payload.get("previously_surfaced_count") or 0),
+        last_surfaced=payload.get("last_surfaced"),
+        covered=bool(payload.get("covered")),
+    )
+
+
+def discovery_report_from_dict(payload: dict[str, Any]) -> DiscoveryReport:
+    """Rebuild a DiscoveryReport from its ``to_dict`` form (the pending-report
+    round trip the finalize leg performs; mirrors ``report_from_dict``)."""
+    plan = payload.get("plan") or {}
+    return DiscoveryReport(
+        domain=payload.get("domain") or "",
+        range_from=payload["range_from"],
+        range_to=payload["range_to"],
+        generated_at=payload["generated_at"],
+        plan=DiscoveryPlan(
+            domain=plan.get("domain") or "",
+            category=plan.get("category"),
+            subreddits=list(plan.get("subreddits") or []),
+            sources=list(plan.get("sources") or []),
+        ),
+        topics=[
+            discovery_topic_from_dict(topic)
+            for topic in payload.get("topics") or []
+        ],
+        source_status=_source_status_from_dict(payload),
+        warnings=list(payload.get("warnings") or []),
+        outcome=payload.get("outcome") or "ok",
+        weak_signal=payload.get("weak_signal"),
+    )
+
+
+def nomination_to_dict(nomination: Any) -> dict[str, Any]:
+    """Serialize a nominate-stage Nomination to a plain dict.
+
+    Duck-typed on the Nomination fields (name, seed_score, items, summary,
+    junk_shape, worthiness) because the dataclass lives in ``pipeline``,
+    which this module must not import. Seed items serialize through
+    ``to_dict`` so the full evidence set round-trips losslessly.
+    """
+    return {
+        "name": nomination.name,
+        "seed_score": nomination.seed_score,
+        "summary": nomination.summary,
+        "junk_shape": bool(nomination.junk_shape),
+        "worthiness": nomination.worthiness,
+        "items": [to_dict(item) for item in nomination.items],
+    }
+
+
+def nomination_kwargs_from_dict(payload: dict[str, Any]) -> dict[str, Any]:
+    """Parse a serialized nomination back to Nomination constructor kwargs.
+
+    Returns kwargs rather than an instance because the Nomination dataclass
+    lives in ``pipeline``, which this module must not import; the caller
+    (``discovery_handoff``) constructs ``pipeline.Nomination(**kwargs)``.
+    """
+    return {
+        "name": payload["name"],
+        "seed_score": float(_first_non_none(payload.get("seed_score"), 0.0)),
+        "items": [source_item_from_dict(item) for item in payload.get("items") or []],
+        "summary": payload.get("summary") or "",
+        "junk_shape": bool(payload.get("junk_shape")),
+        "worthiness": (
+            float(payload["worthiness"])
+            if payload.get("worthiness") is not None
+            else None
+        ),
+    }
+
+
 def to_discovery_export(report: DiscoveryReport) -> dict[str, Any]:
     """Serialize discovery output without changing the normal agent contract."""
     start = datetime.fromisoformat(report.range_from).date()
@@ -860,6 +1032,11 @@ def to_discovery_export(report: DiscoveryReport) -> dict[str, Any]:
                 "evidence_urls": list(topic.evidence_urls),
                 "top_comment": topic.top_comment,
                 "corroboration_count": topic.corroboration_count,
+                "podcast_angle": topic.podcast_angle,
+                "x_article_angle": topic.x_article_angle,
+                "previously_surfaced_count": topic.previously_surfaced_count,
+                "last_surfaced": topic.last_surfaced,
+                "covered": topic.covered,
             }
             for topic in report.topics
         ],
