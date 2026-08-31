@@ -34,15 +34,31 @@ default_provider: codex-cli
 
 ## 预检与调用
 
-在图片阶段开始前运行：
+图片依赖有两种性质不同的预检，不能混用：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs
+# static repository contract：CI 可执行，不要求 Codex CLI、登录态或 .env
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --static
+
+# runtime readiness：真实进入 Step 4 生图前执行
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
 ```
 
-预检必须确认配置 provider 为 `codex-cli`、当前使用的高层 raster 配置
-指向 `baoyu-image-gen`、`codex --version` 成功，并在 CLI 暴露该命令时
+`check-image-backend.mjs` 不传模式时默认使用 runtime 语义；这是为避免把
+“准备真实生图”的检查意外降级成 static 检查。static 只确认仓库配置、
+高层 backend 合同和模板依赖，runtime 额外确认 Codex CLI、登录态和本地
+非 Secret 调优项。
+
+真实图片阶段开始前必须通过 runtime 预检；repository static preflight
+不能替代它：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+```
+
+runtime 预检必须确认配置 provider 为 `codex-cli`、当前使用的高层 raster
+配置指向 `baoyu-image-gen`、`codex --version` 成功，并在 CLI 暴露该命令时
 确认登录态。Codex CLI 不可用或未登录即阻塞。图片阶段不以 warning 放行。
 
 常规调用让 `EXTEND.md` 解析默认 provider，**不要传 `--provider`**：

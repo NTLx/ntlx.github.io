@@ -112,7 +112,7 @@ function printStageContract(slug, strategy, stage) {
     process.stdout.write("  Adapt on failure: 诊断缺口后修正输入、重试、换 Skill 或改由 Agent 补足，再重新运行 Gate。\n");
   }
   if (stage === "illustrate") {
-    process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")}\n`);
+    process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")} --runtime\n`);
     process.stdout.write("  Raster policy: 由项目配置解析到 baoyu-image-gen → codex-cli；不可用时 fail closed。\n");
   }
 

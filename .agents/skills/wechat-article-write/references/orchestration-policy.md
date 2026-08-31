@@ -97,6 +97,22 @@ Gate 失败后，先读取错误和当前产物，诊断失败原因，再选择
 修复后重新运行同一 Gate。失败状态要保留在 state，不能跳过 Gate 进入
 下一阶段。相同错误连续出现时应停止重试并报告阻塞原因。
 
+## Trace（可选、尽力而为）
+
+需要交接或审计时，在完成一次候选选择和 Gate 后追加一条最小 trace：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/orchestration-trace.mjs <date-slug> \
+  --stage <stage> --gap "<当前缺口>" --candidates "skill-a,skill-b" \
+  --selected "skill-a" --reason "<简短可外显理由>" \
+  --gate <gate> --result <pass|fail|blocked|rerouted>
+```
+
+它只写入现有 `posts/<date-slug>/orchestration-trace.jsonl` 运行时目录，记录
+阶段、缺口、候选、选择、简短理由和 Gate 结果。字段有长度和数量上限，接口
+不接受 prompt、完整 Skill 输出、凭据或隐藏推理。trace 写入失败只产生 warning，
+不改变 artifact、state 或 Gate 的成功条件。
+
 ## 视觉专用规则
 
 视觉阶段先回答“读者需要看懂什么”，再决定使用何种视觉能力。意图可以
@@ -109,13 +125,13 @@ raster rendering。
 本文章管线的 raster 成本边界不可改变：高层视觉能力必须收束到
 `baoyu-image-gen`，而 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的
 `default_provider` 必须是 `codex-cli`。日常命令不传冲突的 `--provider`；
-依赖配置和 Codex 登录态由 `check-image-backend.mjs` 预检。Codex CLI
-不可用、登录失效或生成失败时，当前图片阶段 BLOCKED；只允许在同一
+依赖配置和 Codex 登录态由 `check-image-backend.mjs` 预检。进入真实生图前必须运行
+`bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime`。
+Codex CLI 不可用、登录失效或生成失败时，当前图片阶段 BLOCKED；只允许在同一
 Codex 路径内诊断、修 prompt 或有限重试，禁止切换任何其它 raster provider。
 
 ## 阶段完成记录
 
-Agent 不需要为每次选择维护新的 Router 文件。若任务需要交接或审计，
-可在对应 post 的过程说明中记录：发现的 gap、选择的路线、输入产物、
-Gate 结果和失败后的改道理由。该记录是辅助信息，最终真相仍是 stage
-artifact、state 和确定性 Gate。
+Agent 不需要为每次选择维护新的 Router 文件。需要审计时使用上面的 trace
+命令即可；该记录是辅助信息，最终真相仍是 stage artifact、state 和确定性
+Gate。

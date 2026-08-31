@@ -89,6 +89,10 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
 
+需要交接或复盘 Adaptive Stage 时，可按 policy 使用
+`scripts/orchestration-trace.mjs` 写入尽力而为的 JSONL 记录；它不属于
+Stage Contract，不会替代 artifact、state 或 Gate。
+
 ## Step 4：视觉意图与图片资产
 
 先说明每个 SLOT 要让读者看懂什么，再从当前 catalog 选择分析、布局或插图
@@ -96,7 +100,9 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 契约必须复核。
 
 所有 raster rendering 的链路固定为：高层视觉能力 → `baoyu-image-gen` →
-`codex-cli`。运行图片预检后，日常命令不传 provider 覆盖参数；Codex CLI
+`codex-cli`。repository static 依赖检查不要求本机 runtime；真实生图前必须运行
+`bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime`。
+运行图片预检后，日常命令不传 provider 覆盖参数；Codex CLI
 不可用或失败时当前 stage BLOCKED，不得切换其它后端。完整规则见
 `references/image-backends.md`。
 

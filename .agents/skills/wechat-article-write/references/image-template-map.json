@@ -46,50 +46,52 @@
     "technical-schematic",
     "ui-wireframe"
   ],
-  "style_families": {
-    "journal": { "infoStyle": "claymation", "illStyle": "warm" },
-    "tech": { "infoStyle": "claymation", "illStyle": "editorial" },
-    "editorial": { "infoStyle": "claymation", "illStyle": "editorial" },
-    "bold": { "infoStyle": "claymation", "illStyle": "notion" },
-    "minimal": { "infoStyle": "claymation", "illStyle": "minimal" },
-    "retro": { "infoStyle": "claymation", "illStyle": "retro" },
-    "elegant": { "infoStyle": "claymation", "illStyle": "elegant" }
-  },
-  "article_type_defaults": {
-    "deep-analysis": {
-      "family": "journal",
-      "infoLayout": "bento-grid",
-      "cover": { "type": "scene", "palette": "elegant", "rendering": "painterly" }
+  "legacy_defaults": {
+    "style_families": {
+      "journal": { "infoStyle": "claymation", "illStyle": "warm" },
+      "tech": { "infoStyle": "claymation", "illStyle": "editorial" },
+      "editorial": { "infoStyle": "claymation", "illStyle": "editorial" },
+      "bold": { "infoStyle": "claymation", "illStyle": "notion" },
+      "minimal": { "infoStyle": "claymation", "illStyle": "minimal" },
+      "retro": { "infoStyle": "claymation", "illStyle": "retro" },
+      "elegant": { "infoStyle": "claymation", "illStyle": "elegant" }
     },
-    "opinion-essay": {
-      "family": "journal",
-      "infoLayout": "hub-spoke",
-      "cover": { "type": "metaphor", "palette": "warm", "rendering": "hand-drawn" }
-    },
-    "technical-deep-dive": {
-      "family": "tech",
-      "infoLayout": "structural-breakdown",
-      "cover": { "type": "conceptual", "palette": "cool", "rendering": "flat-vector" }
-    },
-    "tutorial": {
-      "family": "minimal",
-      "infoLayout": "linear-progression",
-      "cover": { "type": "conceptual", "palette": "vivid", "rendering": "digital" }
-    },
-    "news-digest": {
-      "family": "retro",
-      "infoLayout": "bento-grid",
-      "cover": { "type": "conceptual", "palette": "mono", "rendering": "screen-print" }
-    },
-    "listicle": {
-      "family": "bold",
-      "infoLayout": "comparison-matrix",
-      "cover": { "type": "conceptual", "palette": "vivid", "rendering": "flat-vector" }
-    },
-    "data-story": {
-      "family": "bold",
-      "infoLayout": "dashboard",
-      "cover": { "type": "conceptual", "palette": "cool", "rendering": "digital" }
+    "article_type_defaults": {
+      "deep-analysis": {
+        "family": "journal",
+        "infoLayout": "bento-grid",
+        "cover": { "type": "scene", "palette": "elegant", "rendering": "painterly" }
+      },
+      "opinion-essay": {
+        "family": "journal",
+        "infoLayout": "hub-spoke",
+        "cover": { "type": "metaphor", "palette": "warm", "rendering": "hand-drawn" }
+      },
+      "technical-deep-dive": {
+        "family": "tech",
+        "infoLayout": "structural-breakdown",
+        "cover": { "type": "conceptual", "palette": "cool", "rendering": "flat-vector" }
+      },
+      "tutorial": {
+        "family": "minimal",
+        "infoLayout": "linear-progression",
+        "cover": { "type": "conceptual", "palette": "vivid", "rendering": "digital" }
+      },
+      "news-digest": {
+        "family": "retro",
+        "infoLayout": "bento-grid",
+        "cover": { "type": "conceptual", "palette": "mono", "rendering": "screen-print" }
+      },
+      "listicle": {
+        "family": "bold",
+        "infoLayout": "comparison-matrix",
+        "cover": { "type": "conceptual", "palette": "vivid", "rendering": "flat-vector" }
+      },
+      "data-story": {
+        "family": "bold",
+        "infoLayout": "dashboard",
+        "cover": { "type": "conceptual", "palette": "cool", "rendering": "digital" }
+      }
     }
   }
 }

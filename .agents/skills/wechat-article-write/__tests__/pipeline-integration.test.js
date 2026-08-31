@@ -149,7 +149,26 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
 
 - [官方资料](https://example.com/agentic-orchestration)
 `);
-    writeFileSync(join(dir, "image-plan.json"), JSON.stringify({ article_type: "deep-analysis" }, null, 2) + "\n");
+    writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
+      article_type: "deep-analysis",
+      cover: {
+        intent: "表达确定性协议与自适应方法之间的边界",
+        type: "conceptual",
+        style: "technical editorial",
+        palette: "cool",
+        rendering: "flat-vector",
+      },
+      infographic: {
+        intent: "压缩缺口、选择、产物和 Gate 的闭环",
+        layout: "circular-flow",
+        style: "technical-schematic",
+      },
+      illustrations: [
+        { slot: 1, intent: "比较确定性内核与 Agent 自适应层", type: "comparison", style: "editorial", description: "core-boundary" },
+        { slot: 2, intent: "解释 Gate 失败后的改道路径", type: "flowchart", style: "minimal", description: "gate-reroute" },
+        { slot: 3, intent: "呈现图片成本边界的分层结构", type: "framework", style: "scientific", description: "cost-boundary" },
+      ],
+    }, null, 2) + "\n");
 
     expectSuccess(runScript("step2-write.mjs", slug, fx.postsRoot, ["--allow-no-related"]));
     expectSuccess(runScript("step3-polish.mjs", slug, fx.postsRoot));

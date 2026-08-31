@@ -35,10 +35,9 @@
 
 `generate-image-prompts.mjs` 不负责从 catalog 选择视觉 Skill；它只消费
 Agent 已写入的 `image-plan.json`，把当前 SLOT、命名和 prompt 合同落成
-文件。`article_type`、视觉方向和插图类型只是这个协议的计划字段与默认值，
-不是隐藏的 Skill Router。未来视觉能力可参与意图分析或 prompt 设计，
-但任何直接承担 raster 的能力都必须能按官方配置收束到
-`baoyu-image-gen`；否则不能直接渲染本管线图片。
+文件。视觉方法由 Agent 或被选中的视觉能力判断；任何直接承担 raster 的能力
+都必须能按官方配置收束到 `baoyu-image-gen`，否则只能承担分析、构图或 prompt
+设计，不能直接渲染本管线图片。
 
 ## Prompt 与计划
 
@@ -46,22 +45,19 @@ Agent 已写入的 `image-plan.json`，把当前 SLOT、命名和 prompt 合同�
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <date-slug>
 ```
 
-`image-plan.json` 可以只写：
+`image-plan.json` 是 Agent 做完视觉判断后的权威计划。正常模式必须明确写出
+封面意图、SLOT 00 的意图/layout/style，以及每个 SLOT_IMG_01+ 的
+intent/type/style；不能只写 `article_type`。字段和合法值见
+`references/image-template-catalog.md`。旧文章若只有 article-type/direction
+默认信息，必须显式传 `--allow-default-image-plan` 才能兼容运行。
 
-```json
-{"article_type":"deep-analysis"}
-```
-
-也可按 `references/image-template-catalog.md` 合法覆盖文章类型、视觉方向、
-信息图 layout/style 或单个插图。覆盖只表达视觉意图，不得绕过图片后端
-policy。文内 prompt 要包含附近正文上下文、中文可见文字规则和文章解释
-图 guardrail；除非用户明确要求，不加入日期、版本号、图号、标题栏、
-尺寸线、坐标标记或工程边框。
+视觉计划只表达意图和协议值，不得绕过图片后端 policy。文内 prompt 要包含
+附近正文上下文、中文可见文字规则和文章解释图 guardrail；除非用户明确要求，
+不加入日期、版本号、图号、标题栏、尺寸线、坐标标记或工程边框。
 
 SLOT 00 的 prompt 必须综合全文的核心信息、论证路径、关键关系和结论。
-SLOT 01+ 才负责局部概念、流程或对比。当前默认信息图样式和明亮高对比
-配色仍由项目模板映射维护；SLOT 00 默认使用 `claymation`，不在本文件
-复制模板算法。
+SLOT 01+ 才负责局部概念、流程或对比。正常流程尊重 plan 中明确写出的
+layout/style/type；旧的 `claymation` 等默认值只在显式兼容模式下使用。
 
 ## 图片成本边界
 
@@ -69,7 +65,7 @@ SLOT 01+ 才负责局部概念、流程或对比。当前默认信息图样式�
 `references/image-backends.md`。执行前必须通过：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
 ```
 
 所有 raster 必须走 `baoyu-image-gen → codex-cli`。常规命令让

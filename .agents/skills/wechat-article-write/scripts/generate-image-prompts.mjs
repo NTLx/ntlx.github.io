@@ -17,7 +17,7 @@
  * the configured baoyu-image-gen backend.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { postDir, repoRoot } from "./path-resolver.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
@@ -169,14 +169,33 @@ const IMAGE_TEMPLATE_MAP = JSON.parse(readRequired(resolve(repoRoot(), ".agents/
 // SLOT 00 信息图 prompt 同时读取两个文件并组合，而不是单一 hybrid 模板。
 const VALID_INFOGRAPHIC_LAYOUTS = new Set(IMAGE_TEMPLATE_MAP.infographic_layouts);
 const VALID_INFOGRAPHIC_STYLES = new Set(IMAGE_TEMPLATE_MAP.infographic_styles);
-const STYLE_FAMILIES = IMAGE_TEMPLATE_MAP.style_families;
-const ARTICLE_TYPE_DEFAULTS = IMAGE_TEMPLATE_MAP.article_type_defaults;
+const LEGACY_DEFAULTS = IMAGE_TEMPLATE_MAP.legacy_defaults ?? {
+  style_families: IMAGE_TEMPLATE_MAP.style_families ?? {},
+  article_type_defaults: IMAGE_TEMPLATE_MAP.article_type_defaults ?? {},
+};
+const LEGACY_STYLE_FAMILIES = LEGACY_DEFAULTS.style_families ?? {};
+const LEGACY_ARTICLE_TYPE_DEFAULTS = LEGACY_DEFAULTS.article_type_defaults ?? {};
+const VALID_ARTICLE_TYPES = new Set(Object.keys(LEGACY_ARTICLE_TYPE_DEFAULTS));
+const VALID_ILLUSTRATION_TYPES = new Set(["comparison", "flowchart", "framework"]);
 
 // 动态定位 baoyu-infographic skill 目录。
 // 这是 baoyu 系列（`npx skills` 管理）的第三方技能，路径可能因 home 目录不同而异。
 const BAOYU_INFOGRAPHIC_DIR = skillDir("baoyu-infographic");
 const BAOYU_INFOGRAPHIC_LAYOUTS_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/layouts");
 const BAOYU_INFOGRAPHIC_STYLES_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/styles");
+const BAOYU_ILLUSTRATOR_DIR = skillDir("baoyu-article-illustrator");
+const BAOYU_ILLUSTRATOR_STYLES_DIR = resolve(BAOYU_ILLUSTRATOR_DIR, "references/styles");
+
+function templateNames(dir) {
+  if (!existsSync(dir)) return new Set();
+  return new Set(
+    readdirSync(dir)
+      .filter((name) => name.endsWith(".md"))
+      .map((name) => name.slice(0, -3)),
+  );
+}
+
+const VALID_ILLUSTRATION_STYLES = templateNames(BAOYU_ILLUSTRATOR_STYLES_DIR);
 
 function readBaoyuInfographicLayout(layoutName) {
   const path = resolve(BAOYU_INFOGRAPHIC_LAYOUTS_DIR, `${layoutName}.md`);
@@ -190,7 +209,7 @@ function readBaoyuInfographicStyle(styleName) {
   return readFileSync(path, "utf8");
 }
 
-function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect }) {
+function buildCompactInfographicPrompt({ fm, body, labels, intent, layout, style, aspect }) {
   const labelText = labels.map((label) => `"${label}"`).join(", ");
   const layoutDoc = readBaoyuInfographicLayout(layout);
   const styleDoc = readBaoyuInfographicStyle(style);
@@ -203,6 +222,7 @@ function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect
     "Whole-article compression contract: this is not a local body illustration. A time-poor reader who only sees this image should understand the article's core message, reasoning structure, and conclusion.",
     "Required information architecture: central thesis; argument path with 3-5 major supporting points; key contrast, cause-effect link, or decision fork; final takeaway or action cue.",
     "Do not merely visualize one nearby section. Synthesize the full article into a readable map of the author's reasoning.",
+    `Agent visual intent: ${intent}`,
     "Scene/background: bright, sunny, clean neutral editorial canvas with high-contrast background",
     "Color/Atmosphere: sunny, bright, vibrant, high saturation, clear distinction between background and content for maximum readability and legibility",
     `Subject: ${subject}`,
@@ -219,22 +239,22 @@ function buildCompactInfographicPrompt({ fm, body, labels, layout, style, aspect
   ].join("\n");
 }
 
-function resolveConfigDefaults(imagePlan) {
+function resolveLegacyDefaults(imagePlan) {
   const articleType = imagePlan?.article_type ?? "deep-analysis";
-  const typeDefaults = ARTICLE_TYPE_DEFAULTS[articleType];
+  const typeDefaults = LEGACY_ARTICLE_TYPE_DEFAULTS[articleType];
 
   if (!typeDefaults) {
     if (!allowDefaultImagePlan) fail(`unknown article_type "${articleType}" in image-plan.json`);
     process.stderr.write(`generate-image-prompts: WARN - unknown article_type "${articleType}", falling back to deep-analysis\n`);
   }
-  const td = typeDefaults ?? ARTICLE_TYPE_DEFAULTS["deep-analysis"];
+  const td = typeDefaults ?? LEGACY_ARTICLE_TYPE_DEFAULTS["deep-analysis"];
 
   const direction = imagePlan?.direction;
-  if (direction && !STYLE_FAMILIES[direction] && !allowDefaultImagePlan) {
+  if (direction && !LEGACY_STYLE_FAMILIES[direction] && !allowDefaultImagePlan) {
     fail(`unknown direction "${direction}" in image-plan.json`);
   }
-  const familyId = (direction && STYLE_FAMILIES[direction]) ? direction : td.family;
-  const family = STYLE_FAMILIES[familyId] ?? STYLE_FAMILIES.journal;
+  const familyId = (direction && LEGACY_STYLE_FAMILIES[direction]) ? direction : td.family;
+  const family = LEGACY_STYLE_FAMILIES[familyId] ?? LEGACY_STYLE_FAMILIES.journal;
 
   return {
     cover: { ...td.cover },
@@ -245,10 +265,13 @@ function resolveConfigDefaults(imagePlan) {
 
 function validateImagePlan(imagePlan) {
   if (!imagePlan) return;
-  if (imagePlan.article_type && !ARTICLE_TYPE_DEFAULTS[imagePlan.article_type] && !allowDefaultImagePlan) {
+  if (typeof imagePlan !== "object" || Array.isArray(imagePlan)) {
+    fail("image-plan.json must contain a JSON object");
+  }
+  if (imagePlan.article_type && !VALID_ARTICLE_TYPES.has(imagePlan.article_type) && !allowDefaultImagePlan) {
     fail(`unknown article_type "${imagePlan.article_type}" in image-plan.json`);
   }
-  if (imagePlan.direction && !STYLE_FAMILIES[imagePlan.direction] && !allowDefaultImagePlan) {
+  if (imagePlan.direction && !LEGACY_STYLE_FAMILIES[imagePlan.direction] && !allowDefaultImagePlan) {
     fail(`unknown direction "${imagePlan.direction}" in image-plan.json`);
   }
 
@@ -260,6 +283,84 @@ function validateImagePlan(imagePlan) {
     if (info.layout && !VALID_INFOGRAPHIC_LAYOUTS.has(info.layout)) {
       fail(`unknown infographic layout "${info.layout}" in image-plan.json (must be one of baoyu-infographic layouts)`);
     }
+  }
+
+  if (imagePlan.illustrations !== undefined && !Array.isArray(imagePlan.illustrations)) {
+    fail("image-plan.illustrations must be an array");
+  }
+  for (const entry of imagePlan.illustrations ?? []) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      fail("image-plan.illustrations entries must be objects");
+    }
+    if (entry.type && !VALID_ILLUSTRATION_TYPES.has(entry.type)) {
+      fail(`unknown illustration type "${entry.type}" in image-plan.json`);
+    }
+    if (entry.style && !VALID_ILLUSTRATION_STYLES.has(entry.style)) {
+      fail(`unknown illustration style "${entry.style}" in image-plan.json (must match baoyu-article-illustrator styles)`);
+    }
+  }
+}
+
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function requireText(value, path) {
+  if (!hasText(value)) fail(`${path} is required in image-plan.json`);
+}
+
+function validateVisualPlan(imagePlan, slots) {
+  if (allowDefaultImagePlan) return;
+  if (!imagePlan) {
+    fail("image-plan.json is required; use --allow-default-image-plan only for legacy defaults");
+  }
+
+  const cover = imagePlan.cover;
+  if (!cover || typeof cover !== "object" || Array.isArray(cover)) {
+    fail("image-plan.cover is required for the normal visual plan");
+  }
+  requireText(cover.intent, "image-plan.cover.intent");
+  requireText(cover.type, "image-plan.cover.type");
+  if (!hasText(cover.style) && !(hasText(cover.palette) && hasText(cover.rendering))) {
+    fail("image-plan.cover.style or both image-plan.cover.palette and image-plan.cover.rendering are required");
+  }
+
+  const infographic = imagePlan.infographic;
+  if (!infographic || typeof infographic !== "object" || Array.isArray(infographic)) {
+    fail("image-plan.infographic is required for the normal visual plan");
+  }
+  requireText(infographic.intent, "image-plan.infographic.intent");
+  requireText(infographic.layout, "image-plan.infographic.layout");
+  requireText(infographic.style, "image-plan.infographic.style");
+
+  const bodySlots = slots.filter((slot) => slot.slot > 0);
+  const illustrations = imagePlan.illustrations;
+  if (!Array.isArray(illustrations)) {
+    if (bodySlots.length > 0) fail("image-plan.illustrations is required for every body SLOT");
+    return;
+  }
+
+  const draftSlotNumbers = new Set(bodySlots.map((slot) => slot.slot));
+  const entriesBySlot = new Map();
+  for (const entry of illustrations) {
+    if (!Number.isInteger(entry?.slot) || entry.slot < 1) {
+      fail("image-plan.illustrations entries require a positive integer slot");
+    }
+    if (!draftSlotNumbers.has(entry.slot)) {
+      fail(`image-plan.illustrations slot ${entry.slot} has no matching body SLOT`);
+    }
+    if (entriesBySlot.has(entry.slot)) {
+      fail(`image-plan.illustrations contains duplicate slot ${entry.slot}`);
+    }
+    entriesBySlot.set(entry.slot, entry);
+  }
+
+  for (const slot of bodySlots) {
+    const entry = entriesBySlot.get(slot.slot);
+    if (!entry) fail(`image-plan.illustrations is missing a plan for SLOT_IMG_${String(slot.slot).padStart(2, "0")}`);
+    requireText(entry.intent, `image-plan.illustrations[slot=${slot.slot}].intent`);
+    requireText(entry.type, `image-plan.illustrations[slot=${slot.slot}].type`);
+    requireText(entry.style, `image-plan.illustrations[slot=${slot.slot}].style`);
   }
 }
 
@@ -293,12 +394,6 @@ if (existsSync(imagePlanPath)) {
 }
 validateImagePlan(imagePlan);
 
-// --- Resolve template configuration ---
-const defaults = resolveConfigDefaults(imagePlan);
-const useOldCover = imagePlan?.cover && (imagePlan.cover.type || imagePlan.cover.palette);
-const useOldInfo = imagePlan?.infographic && (imagePlan.infographic.layout || imagePlan.infographic.style);
-const useOldIllArray = Array.isArray(imagePlan?.illustrations) && imagePlan.illustrations.length > 0;
-
 const raw = readRequired(draftPath);
 const fm = parseFrontmatter(raw);
 if (!fm) fail("frontmatter missing in draft.md");
@@ -318,20 +413,46 @@ const slots = [...body.matchAll(SLOT_EXTRACT_RE)].map((m) => {
 });
 if (!slots.some((s) => s.slot === 0)) fail("SLOT_IMG_00 is required before generating prompts");
 
+validateVisualPlan(imagePlan, slots);
+
+// Legacy article-type/direction defaults are available only when the caller
+// explicitly opts into compatibility mode.  The normal path consumes the
+// Agent-authored visual decisions above without consulting a router.
+const defaults = allowDefaultImagePlan ? resolveLegacyDefaults(imagePlan) : null;
+
 const labels = extractLabels(body, fm);
 
 const coverSlug = safeDesc(fm.blogSlug ?? slug, "article");
-const coverConfig = useOldCover ? imagePlan.cover : defaults.cover;
+const coverConfig = allowDefaultImagePlan
+  ? { ...defaults.cover, ...(imagePlan?.cover ?? {}) }
+  : imagePlan.cover;
+const coverIntent = coverConfig.intent ?? "用一个清晰隐喻表达文章中心张力（legacy fallback）";
 const coverType = coverConfig.type ?? "conceptual";
-const coverPalette = coverConfig.palette ?? "cool";
-const coverRendering = coverConfig.rendering ?? "flat-vector";
+const coverPalette = coverConfig.palette;
+const coverRendering = coverConfig.rendering;
+const coverStyle = coverConfig.style;
 const coverText = coverConfig.text ?? "none";
 const coverMood = coverConfig.mood ?? "bold";
-const coverPrompt = `---
-type: cover
-palette: ${coverPalette}
-rendering: ${coverRendering}
----
+const coverHeader = [
+  "---",
+  "type: cover",
+  coverPalette ? `palette: ${coverPalette}` : null,
+  coverRendering ? `rendering: ${coverRendering}` : null,
+  "---",
+].filter(Boolean).join("\n");
+const coverVisualDesign = [
+  `Visual intent: ${coverIntent}`,
+  `Type: ${coverType}`,
+  coverStyle ? `Style: ${coverStyle}` : null,
+  coverPalette ? `Palette: ${coverPalette}` : null,
+  coverRendering ? `Rendering: ${coverRendering}` : null,
+  "Font: none",
+  `Text level: ${coverText}`,
+  `Mood: ${coverMood}`,
+  "Aspect ratio: 16:9",
+  "Language: Chinese",
+].filter(Boolean).join("\n");
+const coverPrompt = `${coverHeader}
 
 # Content Context
 Article title: ${fm.title}
@@ -340,14 +461,7 @@ Keywords: ${labels.replace(/^- /gm, "").split("\n").filter(Boolean).slice(0, 8).
 
 # Visual Design
 Cover theme: conceptual visual hammer
-Type: ${coverType}
-Palette: ${coverPalette}
-Rendering: ${coverRendering}
-Font: none
-Text level: ${coverText}
-Mood: ${coverMood}
-Aspect ratio: 16:9
-Language: Chinese
+${coverVisualDesign}
 
 # Text Elements
 No text elements. Do not render title, labels, captions, logos, watermarks, color names, or hex codes.
@@ -356,10 +470,13 @@ No text elements. Do not render title, labels, captions, logos, watermarks, colo
 Type composition: abstract shapes representing the article's central tension; information hierarchy, clean zones.
 Visual composition: one strong symbolic metaphor derived from the article, centered with generous negative space.
 Color constraint: Color values (#hex) and color names are rendering guidance only — do NOT display color names, hex codes, or palette labels as visible text in the image.
-Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photorealism.
+${coverRendering ? `Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photorealism.` : "Rendering notes: clean outlines, bold contrast, no photorealism."}
 `;
 
-const infographicConfig = useOldInfo ? imagePlan.infographic : defaults.infographic;
+const infographicConfig = allowDefaultImagePlan
+  ? { ...defaults.infographic, ...(imagePlan?.infographic ?? {}) }
+  : imagePlan.infographic;
+const infographicIntent = infographicConfig.intent ?? "压缩全文中心判断、论证路径和结论（legacy fallback）";
 const infoLayout = infographicConfig.layout ?? "bento-grid";
 const infoStyle = infographicConfig.style ?? "claymation";
 const infoAspect = infographicConfig.aspect ?? "16:9";
@@ -368,6 +485,7 @@ const infographicPrompt = buildCompactInfographicPrompt({
   fm,
   body,
   labels: compactLabels(body, fm),
+  intent: infographicIntent,
   layout: infoLayout,
   style: infoStyle,
   aspect: infoAspect,
@@ -399,8 +517,12 @@ for (const slot of slots.filter((s) => s.slot > 0)) {
   const context = sectionContext(body, slot.index);
 
   const planEntry = imagePlan?.illustrations?.find((e) => e.slot === slot.slot);
-  const type = planEntry?.type ?? inferIllustrationType(context, slot.desc);
-  const style = planEntry?.style ?? defaults.illustrationStyle;
+  const type = planEntry?.type ?? (allowDefaultImagePlan ? inferIllustrationType(context, slot.desc) : null);
+  const style = planEntry?.style ?? (allowDefaultImagePlan ? defaults.illustrationStyle : null);
+  const intent = planEntry?.intent ?? (allowDefaultImagePlan ? "解释正文附近的关键论证节点" : null);
+  if (!type || !style || !intent) {
+    fail(`visual plan is incomplete for SLOT_IMG_${String(slot.slot).padStart(2, "0")}`);
+  }
 
   const nn = String(slot.slot).padStart(2, "0");
   const desc = safeDesc(planEntry?.description ?? slot.desc, "illustration");
@@ -417,7 +539,8 @@ style: ${style}
 
 Article title: ${fm.title}
 Slot: SLOT_IMG_${nn}${slot.desc ? `_${slot.desc}` : ""}
-Purpose: explain the nearby argument with a high-information visual aid, not decoration.
+Purpose: ${intent}
+Visual intent: ${intent}
 
 ${typeTemplate(type)}
 

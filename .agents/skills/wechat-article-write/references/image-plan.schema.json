@@ -16,7 +16,9 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "intent": { "type": "string" },
         "type": { "type": "string" },
+        "style": { "type": "string" },
         "palette": { "type": "string" },
         "rendering": { "type": "string" },
         "text": { "type": "string" },
@@ -27,6 +29,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "intent": { "type": "string" },
         "layout": {
           "type": "string",
           "enum": ["bento-grid", "binary-comparison", "bridge", "circular-flow", "comic-strip", "comparison-matrix", "dashboard", "dense-modules", "funnel", "hierarchical-layers", "hub-spoke", "iceberg", "isometric-map", "jigsaw", "linear-progression", "periodic-table", "story-mountain", "structural-breakdown", "tree-branching", "venn-diagram", "winding-roadmap"]
@@ -46,6 +49,7 @@
         "required": ["slot"],
         "properties": {
           "slot": { "type": "integer", "minimum": 1 },
+          "intent": { "type": "string" },
           "type": { "type": "string", "enum": ["comparison", "flowchart", "framework"] },
           "style": { "type": "string" },
           "description": { "type": "string" }

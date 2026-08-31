@@ -63,8 +63,8 @@ AI 编程工具开始接管从需求理解到代码修改的连续流程。
   return dir;
 }
 
-function runGenerator(slug, postsRoot) {
-  return spawnSync("bun", ["run", SCRIPT, slug], {
+function runGenerator(slug, postsRoot, args = []) {
+  return spawnSync("bun", ["run", SCRIPT, slug, ...args], {
     cwd: REPO_ROOT,
     env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
     encoding: "utf8",
@@ -73,6 +73,30 @@ function runGenerator(slug, postsRoot) {
 
 function writeImagePlan(postDir, content) {
   writeFileSync(join(postDir, "image-plan.json"), JSON.stringify(content, null, 2));
+}
+
+function completeImagePlan(overrides = {}) {
+  return {
+    article_type: "deep-analysis",
+    cover: {
+      intent: "表达工具变化背后的判断权迁移",
+      type: "conceptual",
+      style: "technical editorial",
+      palette: "cool",
+      rendering: "flat-vector",
+    },
+    infographic: {
+      intent: "压缩全文的判断权、组织摩擦和行动路径",
+      layout: "bento-grid",
+      style: "technical-schematic",
+    },
+    illustrations: [
+      { slot: 1, intent: "比较工具接管与判断权迁移", type: "comparison", style: "minimal", description: "agent-workflow" },
+      { slot: 2, intent: "解释判断权重新分配的结构", type: "framework", style: "editorial", description: "decision-rights" },
+      { slot: 3, intent: "呈现组织摩擦如何形成闭环", type: "flowchart", style: "warm", description: "review-loop" },
+    ],
+    ...overrides,
+  };
 }
 
 describe("generate-image-prompts head infographic prompt", () => {
@@ -90,6 +114,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     cleanup.push(fx.root);
     const slug = "2026-06-15-prompt-style";
     const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, completeImagePlan());
 
     const r = runGenerator(slug, fx.postsRoot);
     expect(r.status).toBe(0);
@@ -110,6 +135,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     cleanup.push(fx.root);
     const slug = "2026-06-15-whole-article-infographic";
     const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, completeImagePlan());
 
     const r = runGenerator(slug, fx.postsRoot);
     expect(r.status).toBe(0);
@@ -136,19 +162,86 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(r.stderr).toContain('unknown article_type "technical-deepdive"');
   });
 
-  test("keeps head infographic style claymation even for tech direction", () => {
+  test("uses the explicit head infographic style instead of direction defaults", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-tech-infographic-style";
     const dir = writeDraft(fx.postsRoot, slug);
-    writeImagePlan(dir, { article_type: "deep-analysis", direction: "tech" });
+    writeImagePlan(dir, completeImagePlan({
+      direction: "tech",
+      infographic: {
+        intent: "把判断权变化压缩成技术编辑式结构",
+        layout: "structural-breakdown",
+        style: "technical-schematic",
+      },
+    }));
 
     const r = runGenerator(slug, fx.postsRoot);
     expect(r.status).toBe(0);
 
     const prompt = readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8");
-    expect(prompt).toContain("style=claymation");
-    expect(prompt).not.toContain("style=technical-schematic");
+    expect(prompt).toContain("style=technical-schematic");
+    expect(prompt).toContain("把判断权变化压缩成技术编辑式结构");
+  });
+
+  test("uses explicit illustration type, style, and intent without heuristic overrides", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-explicit-illustration-plan";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, completeImagePlan());
+
+    const r = runGenerator(slug, fx.postsRoot);
+    expect(r.status).toBe(0);
+
+    const prompt = readFileSync(join(dir, "imgs/prompts/01-agent-workflow.md"), "utf8");
+    expect(prompt).toContain("type: comparison");
+    expect(prompt).toContain("style: minimal");
+    expect(prompt).toContain("Purpose: 比较工具接管与判断权迁移");
+  });
+
+  test("fails in normal mode when the visual plan omits required decisions", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-incomplete-visual-plan";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, { article_type: "deep-analysis" });
+
+    const r = runGenerator(slug, fx.postsRoot);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("image-plan.cover is required");
+  });
+
+  test("allows legacy defaults only with the explicit compatibility flag", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-legacy-default-plan";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeImagePlan(dir, { article_type: "deep-analysis" });
+
+    const r = runGenerator(slug, fx.postsRoot, ["--allow-default-image-plan"]);
+    expect(r.status).toBe(0);
+    expect(readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8")).toContain("style=claymation");
+  });
+
+  test("fails on unknown infographic layout or style", () => {
+    for (const [field, value] of [["layout", "made-up-layout"], ["style", "made-up-style"]]) {
+      const fx = makeFixture();
+      cleanup.push(fx.root);
+      const slug = `2026-06-15-invalid-${field}`;
+      const dir = writeDraft(fx.postsRoot, slug);
+      writeImagePlan(dir, completeImagePlan({
+        infographic: {
+          intent: "测试非法视觉协议值",
+          layout: field === "layout" ? value : "bento-grid",
+          style: field === "style" ? value : "technical-schematic",
+        },
+      }));
+
+      const r = runGenerator(slug, fx.postsRoot);
+      expect(r.status).not.toBe(0);
+      expect(r.stderr).toContain(`unknown infographic ${field}`);
+    }
   });
 
   // §3.5 pinned compatibility: generate-image-prompts 把 baoyu-infographic

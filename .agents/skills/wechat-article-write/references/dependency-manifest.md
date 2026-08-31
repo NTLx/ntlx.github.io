@@ -35,8 +35,12 @@
 图片阶段预检：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --json
+# static repository contract（CI 可执行，不要求 Codex runtime）
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --static --json
+
+# runtime readiness（真实 Step 4 生图前执行）
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime --json
 ```
 
 ## 项目级配置接口

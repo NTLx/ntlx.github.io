@@ -251,8 +251,8 @@ function checkWorkflowArtifacts(errors, warnings) {
 }
 
 /**
- * 2c. 图片成本边界的静态配置合同。CLI 登录状态属于 check-deps --stage images
- * 的运行时 preflight，不在此处执行。
+ * 2c. 图片成本边界的静态配置合同。CLI 登录状态属于显式
+ * check-image-backend --runtime preflight，不在此处执行。
  */
 function checkImageBackendContract(errors, warnings) {
   const result = runImageBackendChecks({ root: REPO_ROOT, checkCli: false, checkEnv: false });

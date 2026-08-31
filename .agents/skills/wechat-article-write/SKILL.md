@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.51.0"
+  version: "1.52.0"
 ---
 
 # 微信公众号文章写作
@@ -62,7 +62,7 @@ metadata:
 日常命令不传冲突的 `--provider`。先运行：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
 ```
 
 Codex CLI 不可用、未登录或生成失败时，图片阶段必须 fail closed。允许在

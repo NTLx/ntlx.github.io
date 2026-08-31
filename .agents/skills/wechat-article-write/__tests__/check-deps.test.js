@@ -19,22 +19,12 @@ function run(stage, env = {}) {
 }
 
 describe("check-deps", () => {
-  test("passes image template preflight using gpt-image-2 as template source only", () => {
-    const r = run("images");
+  test("passes image repository preflight without Codex CLI runtime", () => {
+    const r = run("images", { PATH: "/nonexistent" });
     expect(r.status).toBe(0);
     const payload = JSON.parse(r.stdout);
     expect(payload.ok).toBe(true);
     expect(payload.stage).toBe("images");
-  });
-
-  test("fails closed when codex CLI is unavailable", () => {
-    const r = run("images", { PATH: "/nonexistent" });
-    expect(r.status).toBe(2);
-    const payload = JSON.parse(r.stdout);
-    expect(payload.ok).toBe(false);
-    expect(payload.stage).toBe("images");
-    expect(payload.errors.join("\n")).toContain("Codex CLI unavailable");
-    expect(payload.errors.join("\n")).not.toMatch(/fallback|openai|google|dashscope/i);
   });
 
   test("passes build dependency preflight when gzh-design is installed", () => {

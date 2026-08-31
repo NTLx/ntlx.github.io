@@ -105,11 +105,12 @@ function checkHighLevelConfigs(root, errors, details) {
 }
 
 function checkLocalRuntime(root, errors, warnings, details, checkEnv) {
+  if (!checkEnv) return;
+
   const envPath = resolve(root, ".baoyu-skills/.env");
   const fileEnv = parseEnvFile(envPath);
   const keys = Object.keys(fileEnv).sort();
   details.env = { path: envPath, present: existsSync(envPath), keys };
-  if (!checkEnv) return;
 
   const effective = (key) => process.env[key] ?? fileEnv[key] ?? null;
   if (!existsSync(envPath)) warnings.push(`project env missing: ${envPath} (secrets are not required for this read-only preflight)`);
@@ -188,15 +189,26 @@ export function runImageBackendChecks({
 }
 
 function printHelp() {
-  process.stdout.write(`check-image-backend.mjs — verify the article raster backend policy\n\nUsage:\n  bun run check-image-backend.mjs [--json]\n`);
+  process.stdout.write(`check-image-backend.mjs — verify the article raster backend policy\n\nUsage:\n  bun run check-image-backend.mjs [--static|--runtime] [--json]\n\nModes:\n  --static   verify repository configuration and template contracts only\n  --runtime  verify the full local Codex CLI and environment readiness (default)\n`);
 }
 
 if (import.meta.main) {
+  const staticMode = process.argv.includes("--static");
+  const runtimeMode = process.argv.includes("--runtime");
+  if (staticMode && runtimeMode) {
+    process.stderr.write("check-image-backend: --static and --runtime are mutually exclusive\n");
+    printHelp();
+    process.exit(1);
+  }
+
   if (process.argv.includes("--help")) {
     printHelp();
     process.exit(0);
   }
-  const result = runImageBackendChecks();
+  const result = runImageBackendChecks({
+    checkCli: !staticMode,
+    checkEnv: !staticMode,
+  });
   if (process.argv.includes("--json")) {
     process.stdout.write(JSON.stringify(result, null, 2) + "\n");
   } else {

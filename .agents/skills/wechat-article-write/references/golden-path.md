@@ -77,7 +77,24 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 ```json
 {
-  "article_type": "deep-analysis"
+  "article_type": "deep-analysis",
+  "cover": {
+    "intent": "表达文章中心张力",
+    "type": "conceptual",
+    "style": "editorial",
+    "palette": "warm",
+    "rendering": "flat-vector"
+  },
+  "infographic": {
+    "intent": "压缩全文判断、论证路径和结论",
+    "layout": "hub-spoke",
+    "style": "morandi-journal"
+  },
+  "illustrations": [
+    { "slot": 1, "intent": "解释第一个关键关系", "type": "framework", "style": "editorial" },
+    { "slot": 2, "intent": "呈现第二个关键流程", "type": "flowchart", "style": "minimal" },
+    { "slot": 3, "intent": "比较第三个关键分歧", "type": "comparison", "style": "warm" }
+  ]
 }
 ```
 
@@ -94,7 +111,13 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs 2026-06-16-
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2026-06-16-example-article
 ```
 
-先运行图片后端预检。日常命令不传 `--provider`，让
+先运行图片后端 runtime 预检：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+```
+
+日常命令不传 `--provider`，让
 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `default_provider: codex-cli`
 生效；不要使用 batch.json。Codex CLI 失败时停止当前图片任务，不能切换
 其它 provider：

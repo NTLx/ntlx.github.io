@@ -65,7 +65,9 @@ function checkSharedProjectEnv() {
 }
 
 function checkImageConfig() {
-  const result = runImageBackendChecks({ root, checkCli: true, checkEnv: true });
+  // Image dependencies are a repository/static contract.  Local Codex CLI
+  // readiness belongs to the explicit check-image-backend runtime preflight.
+  const result = runImageBackendChecks({ root, checkCli: false, checkEnv: false });
   for (const error of result.errors) errors.push(error);
   for (const warning of result.warnings) warnings.push(warning);
 }

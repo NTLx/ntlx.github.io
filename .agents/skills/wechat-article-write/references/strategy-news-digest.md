@@ -37,13 +37,9 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 `## 参考资料`。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
 把猜测伪装成事实。
 
-保存 `draft.md` 和：
-
-```json
-{"article_type":"news-digest"}
-```
-
-到 `image-plan.json`，再运行：
+保存 `draft.md` 和由 Agent 根据共同趋势、对比或影响路径明确规划的
+`image-plan.json`（至少包含每个视觉节点的 intent 与合法 layout/style/type），
+再运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>

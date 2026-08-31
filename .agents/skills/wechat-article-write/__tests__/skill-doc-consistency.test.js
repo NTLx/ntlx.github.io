@@ -64,6 +64,8 @@ describe("wechat-article-write documentation consistency", () => {
     expect(policy).toContain("Gate 失败");
     expect(policy).toContain("default_provider");
     expect(policy).toContain("codex-cli");
+    expect(policy).toContain("orchestration-trace.mjs");
+    expect(policy).toContain("trace 写入失败");
     expect(policy).not.toMatch(/自动切换.*(?:OpenAI|Google|DashScope)|付费 API fallback/i);
   });
 
