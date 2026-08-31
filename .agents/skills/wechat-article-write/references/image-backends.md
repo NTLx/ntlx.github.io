@@ -1,61 +1,99 @@
 # 图片后端策略
 
-本管线的封面、信息图、文内插图默认走 Codex CLI：通过 `baoyu-image-gen --provider codex-cli` 间接调用本机 `codex exec` 和 Codex 内置 image generation。这样任何 AI Agent 只要能执行 shell 命令，并且机器上已有 `codex login`，都能使用同一条文生图路径。
+这是本管线图片成本边界的唯一说明。图片方法可以动态选择，raster
+provider 不可以动态选择：
 
-Codex CLI 可用时，它是唯一首选文生图后端。不得因为当前 Agent 自带 image generation 工具就改走该工具，也不得因为 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 配了其他 provider 就跳过 `--provider codex-cli`。
+```text
+高层视觉能力
+    ↓
+baoyu-image-gen
+    ↓
+default_provider: codex-cli
+    ↓
+Codex CLI / codex exec
+```
 
-Codex CLI 失败后才走 baoyu fallback。preferred_image_backend 只定义 Codex CLI 明确失败后的 baoyu fallback，通常是 `openai` / `dashscope` / `google` 等 API 后端。不要修改第三方 `baoyu-image-gen` 源码；它已经提供 `codex-cli` provider、输出路径、PNG 校验、错误分类和重试。
+## 两层配置
 
-## 后端顺序
+高层视觉 Skill 若会直接生成 raster，必须通过其官方项目配置将
+`preferred_image_backend` 固定为 `baoyu-image-gen`。如果某个新 Skill 无法
+这样配置，它只能负责视觉意图、布局、分析或 prompt，不得直接渲染本管线
+图片。
 
-1. **唯一首选后端**：`baoyu-image-gen --provider codex-cli`
-2. **失败后 fallback 后端**：`baoyu-image-gen --provider <preferred_image_backend>`
-3. **验证门控**：无论哪个后端成功，最后都必须运行 `step4-images.mjs`
+`.baoyu-skills/baoyu-image-gen/EXTEND.md` 使用当前 schema：
 
-Codex CLI 路径使用用户的 Codex / ChatGPT 登录态，不需要 `OPENAI_API_KEY`。如果 fallback 设为 OpenAI API，才需要 `.baoyu-skills/.env` 中的 `OPENAI_API_KEY`，默认模型可继续是 `gpt-image-2`。
+```yaml
+---
+version: 1
+default_provider: codex-cli
+---
+```
 
-## 调用原则
+其它 provider 的 `default_model` 可以保留，供仓库的其它任务使用；这不
+改变本文章管线的默认 provider，也不要为 Codex 编造普通 API 模型 ID。
 
-- **”Switch model” 提示不是错误**：`baoyu-image-gen --provider codex-cli` 运行时几乎总会打印 `Switch model: --model <id> | EXTEND.md default_model.codex-cli | env CODEX-CLI_IMAGE_MODEL`。这是 `main.ts` 检测到 EXTEND.md 中没有 `codex-cli` 条目时输出的**信息提示**，不是失败信号。codex-cli provider 内部 `getDefaultModel()` 返回 `”codex-image-gen”`，不依赖外部模型配置。只要命令退出码为 0 且输出文件存在，图片就是成功的。**不要**因为看到这条提示就认为 Codex CLI 失败并提前切 fallback。
-- Codex CLI 单张图超时要设得长一些，建议显式导出 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`（30 分钟）后再跑 Step 4。
-- 每张图片先用 `--provider codex-cli`，明确传 `--image` 到目标文件。
-- 只有 Codex CLI 返回**明确失败信号**时，才调用 baoyu fallback。明确失败信号包括：命令非零退出**且**输出文件不存在、输出中出现明确 error/fail/rejected 结果、登录态失效、内容审核拒绝、或进程确定结束但没有产出 PNG。注意：仅打印 “Switch model” 提示但退出码为 0 且文件存在，不算失败。
-- **不要**把”长时间没有新输出”当成失败信号。`codex exec`/`image_gen` 可能静默运行较久；只要进程仍在，就继续等待，不要因为沉默而提前切 fallback。
-- fallback 每张最多执行 1 次；仍失败就记录失败项，停止对该图继续重试。
-- 不使用 provider 默认随机名；输出文件名必须符合 `cover.png` 或 `imgs/NN-<desc>.png`。
-- 所有图片必须逐张串行完成：禁止并发启动多个 `baoyu-image-gen` / `codex exec`。这不是性能优化空间；并发会增加锁、限额和上下文风险。
-- 若 Codex CLI 返回 `lock_busy` 并指向 `/home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock`，先确认没有仍在运行的 `codex exec` / `baoyu-image-gen` 进程，再删除这个 stale lock 后按串行方式重试。
+## 预检与调用
 
-## 审核失败处理
+在图片阶段开始前运行：
 
-复杂 prompt 可能触发内容过滤。不要批量重跑；只对失败图片逐个处理：
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs
+bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
+```
 
-1. 移除可能触发审核的具象词汇，改用抽象隐喻。
-2. 缩短 prompt，只保留核心视觉元素、构图和必要文字。
-3. 删除不必要的政治、暴力、攻防、医疗、安全风险等词。
-4. 保留文章所需的逻辑表达，但用更中性的视觉语言。
+预检必须确认配置 provider 为 `codex-cli`、当前使用的高层 raster 配置
+指向 `baoyu-image-gen`、`codex --version` 成功，并在 CLI 暴露该命令时
+确认登录态。Codex CLI 不可用或未登录即阻塞。图片阶段不以 warning 放行。
 
-示例：
+常规调用让 `EXTEND.md` 解析默认 provider，**不要传 `--provider`**：
 
-- "攻击" → "冲击波"
-- "黑客" → "暗影操作者"
-- "监管惩罚" → "红色警示牌"
-- "系统崩溃" → "断裂的流程线"
+```bash
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --promptfiles posts/<date-slug>/imgs/prompts/00-cover-<desc>.md \
+  --image posts/<date-slug>/cover.png \
+  --ar 16:9
 
-## 构图问题处理
+bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
+  --promptfiles posts/<date-slug>/imgs/prompts/01-<desc>.md \
+  --image posts/<date-slug>/imgs/01-<desc>.png \
+  --ar 16:9
+```
 
-| 问题 | 处理 |
-|------|------|
-| 内容太集中 | 改为左右对比、三栏结构、流程带、平铺全景 |
-| 画面太空 | 增加具体对象和前中后景关系 |
-| 文字乱码 | 减少文字数量，只保留 2-4 个短标签 |
-| 标签太多 | 改成图标 + 少量关键词 |
-| 风格不稳 | 明确使用同一风格词，如 craft-handmade、vector-illustration |
+测试或诊断时若必须显式指定 provider，也只能写
+`--provider codex-cli`；文章管线不得传其它 provider。不能使用运行时
+原生 image generation 绕过这条链路，也不能因为 `.env` 中有其它 API key
+就改变选择。
 
-## 重试策略
+## 失败语义
 
-1. 第一次失败：先确认失败是**明确失败**，不是静默长跑；如果是 Codex CLI 环境问题或明确报错，再进入 baoyu fallback。
-2. fallback 失败：简化 prompt，保留核心信息后重新从 Codex CLI 开始。
-3. 仍失败：停止并报告失败项，等待用户决定是否继续调整或稍后重试。
+成功必须同时满足：命令 exit code 为 0、目标文件存在且是有效图片、输出
+provider 可追溯为 `codex-cli`。只看到“Switch model”提示不是失败；Codex
+长时间没有 stdout 也不是失败，只要进程仍在就继续等待。
 
-核心原则：默认节省 API 成本并保持通用 Agent 可用性；失败路径必须显式、有限、可验证。
+失败后只允许：
+
+1. 确认进程和锁状态，清理已确认的 stale lock；
+2. 简化或修正 prompt，保留必要的信息；
+3. 沿同一 Codex 路径有限重试；
+4. 仍失败则把当前图片和 stage 标记为 BLOCKED 并报告。
+
+禁止自动或手动 fallback 到任何其它 raster provider。失败的图片不能以
+“文件存在”作为成功，也不能跳过 `step4-images.mjs`。
+
+## 串行、命名和质量
+
+- 主 Agent 逐张串行执行；禁止 batch 模式，不使用 `batch.json`、
+  `--batchfile`、并发任务、`Promise.all`、`xargs -P`、后台任务或多个
+  subagent；底层 `codex-exec.lock` 也必须保持单写者；
+- 封面写到 post 根目录 `cover.png`；SLOT 图写到
+  `imgs/NN-<desc>.png`，并与 prompt basename 一致；
+- 运行 `step4-images.mjs` 前逐张查看图片，复核可见文字、数字和正文关系；
+- SLOT 00 是全文压缩信息图，不是只解释附近一段文字的局部插图；
+- 文内图默认是文章解释图，除非用户明确要求，不使用会伪装成工程图纸的
+  日期、图号、标题栏、尺寸线等装饰。
+
+最终 Gate：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
+```

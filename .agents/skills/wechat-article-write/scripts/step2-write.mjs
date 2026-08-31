@@ -13,7 +13,7 @@
  *   - 参考资料区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
  *
- * 字数控制由 ljg-writes 技能自律负责（1000-1500 字），本脚本仅记录字数不设门控。
+ * 字数属于内容策略和 Agent 的编辑判断，本脚本仅记录字数不设门控。
  *
  * 用法:
  *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--no-humanizer]
@@ -97,7 +97,7 @@ if (!targetPath) {
   if (!/^https?:\/\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（需为合法 URL）: ${sourceUrl}`);
 }
 
-// 2. Word count (informational only — ljg-writes controls its own word count)
+// 2. Word count (informational only — the active strategy owns this decision)
 const body = extractBody(content);
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 

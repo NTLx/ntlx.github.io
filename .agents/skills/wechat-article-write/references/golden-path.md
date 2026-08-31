@@ -87,30 +87,30 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs 2026-06-16-e
 
 ## 4. 后处理与图片
 
-按策略调用 `renwei-writing` / `baoyu-format-markdown` 后：
+按当前 refine 阶段的实际问题完成必要修改后：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs 2026-06-16-example-article
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2026-06-16-example-article
 ```
 
-默认先用 Codex CLI 后端串行生成图片；不要使用 batch.json。只有该命令失败时，才把 `--provider codex-cli` 换成 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback：
+先运行图片后端预检。日常命令不传 `--provider`，让
+`.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `default_provider: codex-cli`
+生效；不要使用 batch.json。Codex CLI 失败时停止当前图片任务，不能切换
+其它 provider：
 
 ```bash
 bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --provider codex-cli \
   --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-cover-example-article.md \
   --image posts/2026-06-16-example-article/cover.png \
   --ar 16:9
 
 bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --provider codex-cli \
   --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-infographic-core-summary.md \
   --image posts/2026-06-16-example-article/imgs/00-infographic-core-summary.png \
   --ar 16:9
 
 bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --provider codex-cli \
   --promptfiles posts/2026-06-16-example-article/imgs/prompts/01-decision_flow.md \
   --image posts/2026-06-16-example-article/imgs/01-decision_flow.png \
   --ar 16:9

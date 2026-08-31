@@ -1,92 +1,98 @@
 # wechat-article-write 运行时配置
 
-此文件定义技能执行时的默认行为。
+此文件只保存本技能自己的运行偏好。阶段合同、Gate 和自适应编排规则
+分别由 `scripts/workflow.mjs` 与 `references/orchestration-policy.md`
+维护；这里不登记内容或写作 Skill 路由。
 
 ## 配置项
 
 ### quick_mode
 
-是否尽量跳过可选确认。Step 1-4 仍由 Agent 完成智能判断；Step 5 的微信排版阶段允许 Agent 自动继续推进，除非用户主动介入。
+是否尽量跳过可选确认。它不改变 Agent 的缺口判断，也不改变任何 Gate。
 
 ```yaml
 quick_mode: true
 ```
 
-**推荐值**：`true` — 减少非必要确认，但不改变脚本门控。
-
 ### default_publish_method
 
-发布到公众号的默认方式。本项目核心管线默认走 API；浏览器方式仅作为第三方技能的人工降级路径，不作为 `wechat-article-write` 主路径。
+公众号发布的默认方式。当前工程主路径是 API，浏览器方式由发布适配器按需
+处理。
 
 ```yaml
 default_publish_method: api
 ```
 
-可选值：
-- `api`：通过微信公众号 API 发布（推荐，更快）
-- `browser`：通过浏览器自动化发布（需要 Chrome 登录）
+可选值：`api`、`browser`。
 
 ### wechat_layout_default_theme
 
-`gzh-design` 默认优先尝试的公众号主题。它是 Agent 的偏好信号，不是硬编码锁定；若文章明显更适合其他内置主题，允许 Agent 自主调整。
+微信排版的默认偏好信号，不锁定文章必须使用的主题。
 
 ```yaml
 wechat_layout_default_theme: zen-whitespace
 ```
 
-**推荐值**：`zen-whitespace` — 对应 `留白禅意风`。
-
 ### wechat_layout_secondary_theme
 
-当文章更偏工具清单、方法拆解、轻量实用分享时，Agent 应优先考虑的备选主题。
+工具清单、方法拆解等文章的备选偏好信号。
 
 ```yaml
 wechat_layout_secondary_theme: moyu-green
 ```
 
-**推荐值**：`moyu-green` — 对应 `摸鱼绿`。
-
 ### wechat_layout_generate_preview
 
-Step 5 finalize 后是否自动生成 `_预览.html`，方便本地浏览器一键复制到公众号编辑器。
+finalize 后是否生成本地预览包装。
 
 ```yaml
 wechat_layout_generate_preview: true
 ```
 
-**推荐值**：`true`。
+## 确定性适配器与项目配置
 
-## 依赖技能配置
+以下是工程协议需要的适配器，不是开放式内容路由：
 
-本技能依赖项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env`。完整依赖清单见 `references/dependency-manifest.md`；本文件只保留运行时偏好。
+| 适配器 | 配置或来源 | 作用 |
+|---|---|---|
+| `baoyu-image-gen` | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | raster backend；`default_provider` 必须为 `codex-cli` |
+| 当前高层视觉模板 | `.baoyu-skills/{skill}/EXTEND.md` | 若承担 raster，`preferred_image_backend` 必须为 `baoyu-image-gen` |
+| `gzh-design` | `.agents/skills/gzh-design/` | 微信 HTML 排版、校验和预览 |
+| `github-image-hosting` | `.agents/skills/github-image-hosting/` | 博客图片 CDN 适配 |
+| `baoyu-post-to-wechat` | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信草稿适配 |
 
-| 技能 | 配置路径 | 必需配置项 |
-|-----|---------|-----------|
-| baoyu-cover-image | `.baoyu-skills/baoyu-cover-image/EXTEND.md` | `quick_mode: true` |
-| baoyu-article-illustrator | `.baoyu-skills/baoyu-article-illustrator/EXTEND.md` | `quick_mode: true` |
-| baoyu-image-gen | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `preferred_image_backend`（Codex CLI 失败后的 baoyu fallback） |
-| baoyu-post-to-wechat | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | `default_author`, `default_publish_method` |
-| gzh-design | 第三方技能目录 | 无项目级配置；只调用、不修改 |
+`generate-image-prompts.mjs` 当前读取若干 Baoyu 官方模板文件，因此相关
+模板安装是现有图片 prompt 适配器的工程前提；它不复制第三方生成算法。
 
-## 环境变量
+## 本地环境
 
-baoyu 系列技能使用的 `.env` 文件位于：
+本地配置文件固定为：
 
-```
+```text
 .baoyu-skills/.env
 ```
 
-需包含以下变量（根据使用的技能）：
+它被 Git 忽略。可以包含微信、GitHub 图床及其它任务需要的凭据；本技能
+不得打印、复制或提交 Secret。图片成本边界不依赖删除其它 API key，而由
+`default_provider: codex-cli` 和图片预检保证。
+
+Codex 图片任务建议使用以下非 Secret 调优项：
 
 ```env
-# 微信公众号 API（baoyu-post-to-wechat）
-WECHAT_APP_ID=your_app_id
-WECHAT_APP_SECRET=your_app_secret
-
-# GitHub 图床（github-image-hosting）
-GITHUB_TOKEN=your_github_token
-GITHUB_REPO=NTLx/Pic
-
-# OpenAI API（仅在 baoyu fallback 或模板技能需要 OpenAI API 时使用）
-OPENAI_API_KEY=your_openai_key
+BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000
+BAOYU_IMAGE_GEN_CODEX_CLI_CONCURRENCY=1
+BAOYU_IMAGE_GEN_CODEX_CLI_START_INTERVAL_MS=2000
 ```
+
+`BAOYU_CODEX_IMAGEGEN_RETRIES` 若已存在则按上游支持的值使用；没有必要
+为了显式化默认值而新增。`check-image-backend.mjs` 只报告键名和配置问题，
+不会输出值。
+
+修改 provider policy 前运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --json
+```
+
+任何 raster 任务不能用 CLI 参数把 provider 改成其它值；Codex CLI 不可用
+或生成失败时，图片阶段阻塞，不自动切换后端。

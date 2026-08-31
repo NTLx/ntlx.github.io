@@ -5,11 +5,12 @@
  * This checks project-level configuration and template/patch dependencies.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { repoRoot } from "./path-resolver.mjs";
-import { requiredSkillsForStage } from "./workflow.mjs";
+import { hardDependenciesForStage } from "./workflow.mjs";
+import { runImageBackendChecks } from "./check-image-backend.mjs";
 
 const args = process.argv.slice(2);
 const json = args.includes("--json");
@@ -53,20 +54,10 @@ function warnPath(rel, label = rel) {
   return path;
 }
 
-function readIfExists(rel) {
-  const path = resolve(root, rel);
-  return existsSync(path) ? readFileSync(path, "utf8") : null;
-}
-
 function checkSkillDirs(names) {
   for (const name of names) {
     requirePath(`.agents/skills/${name}/SKILL.md`, `skill ${name}`);
   }
-}
-
-function commandExists(command) {
-  const r = spawnSync(command, ["--version"], { stdio: "ignore" });
-  return !r.error && r.status === 0;
 }
 
 function checkSharedProjectEnv() {
@@ -74,19 +65,13 @@ function checkSharedProjectEnv() {
 }
 
 function checkImageConfig() {
-  for (const rel of [
-    ".baoyu-skills/baoyu-image-gen/EXTEND.md",
-  ]) {
-    warnPath(rel, "project EXTEND.md");
-  }
+  const result = runImageBackendChecks({ root, checkCli: true, checkEnv: true });
+  for (const error of result.errors) errors.push(error);
+  for (const warning of result.warnings) warnings.push(warning);
 }
 
 function checkBuildConfig() {
-  for (const rel of [
-    ".baoyu-skills/baoyu-image-gen/EXTEND.md",
-  ]) {
-    warnPath(rel, "project EXTEND.md");
-  }
+  // Build configuration is owned by the deterministic adapters below.
 }
 
 function checkPublishConfig() {
@@ -98,27 +83,24 @@ function checkPublishConfig() {
 }
 
 function checkImageTemplates() {
-  checkSkillDirs(["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-image-gen", "baoyu-infographic"]);
-  if (!commandExists("codex")) {
-    warnings.push("codex CLI unavailable: Step 4 defaults to baoyu-image-gen --provider codex-cli; install/login codex or use baoyu-image-gen fallback");
-  }
+  checkSkillDirs(hardDependenciesForStage("illustrate"));
   // baoyu-infographic 的 layouts/ 和 styles/ 目录是 SLOT 00 信息图 prompt 的模板来源。
   // 第三方技能可能升级或更换目录名，仅校验关键目录存在，不展开列举每个模板文件。
   requirePath(".agents/skills/baoyu-infographic/SKILL.md", "baoyu-infographic SKILL.md");
-  warnPath(".agents/skills/baoyu-infographic/references/layouts", "baoyu-infographic layouts directory");
-  warnPath(".agents/skills/baoyu-infographic/references/styles", "baoyu-infographic styles directory");
+  requirePath(".agents/skills/baoyu-infographic/references/layouts", "baoyu-infographic layouts directory");
+  requirePath(".agents/skills/baoyu-infographic/references/styles", "baoyu-infographic styles directory");
   requirePath(".agents/skills/wechat-article-write/references/image-template-map.json", "image template map");
   requirePath(".agents/skills/wechat-article-write/references/image-plan.schema.json", "image-plan schema");
 }
 
 function checkBuildDeps() {
-  checkSkillDirs(["github-image-hosting", "gzh-design"]);
+  checkSkillDirs(hardDependenciesForStage("build"));
   requirePath(".agents/skills/gzh-design/scripts/validate_gzh_html.py", "gzh validator");
   requirePath(".agents/skills/gzh-design/scripts/wrap_preview.py", "gzh preview wrapper");
 }
 
 function checkPublishDeps() {
-  checkSkillDirs(["baoyu-post-to-wechat"]);
+  checkSkillDirs(hardDependenciesForStage("publish"));
 }
 
 // --stage architecture：委托 validate-architecture.mjs（纯静态架构契约校验）
@@ -135,18 +117,14 @@ function checkArchitecture() {
   }
 }
 
-// --stage research：所有策略在 research 阶段 required 技能的并集（workflow.mjs schema 来源）。
-// news-digest 需要 aihot / reader-response 需要 ljg-qa+ljg-think；可选理解器不作为缺失阻断。
+// --stage research：资料获取与理解能力由运行时 catalog 发现；没有固定 Skill 依赖。
 function checkResearchDeps() {
-  checkSkillDirs(requiredSkillsForStage("research"));
+  return;
 }
 
-// --stage writing：写作链路核心技能（draft + refine 的所有策略 required 并集）。
+// --stage writing：只检查确定性 typography adapter；认知/写作 Skill 不阻断。
 function checkWritingDeps() {
-  checkSkillDirs([
-    ...requiredSkillsForStage("draft"),
-    ...requiredSkillsForStage("refine"),
-  ]);
+  checkSkillDirs(hardDependenciesForStage("refine"));
 }
 
 checkSharedProjectEnv();

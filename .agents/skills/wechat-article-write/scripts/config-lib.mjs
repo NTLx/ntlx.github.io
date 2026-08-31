@@ -3,13 +3,13 @@
  * config-lib.mjs — 集中配置解析（精简版）
  *
  * 从项目级 .baoyu-skills 目录下各 EXTEND.md 读取 baoyu 系列技能配置。
- * 原理：自己的默认值放在这里，脚本只从这里读；EXTEND.md 里的值覆盖默认值。
- * CLI 参数仍可覆盖一切。
+ * 原理：确定性脚本只读取它真正需要的项目配置；开放式能力不在这里路由。
+ * CLI 参数仍可覆盖第三方工具本身，但本文章管线不使用它来改写图片 provider。
  *
  * 设计约束：
  *   - 不修改第三方技能源码或 EXTEND 格式
  *   - 不引入外部 YAML 解析器（配置足够简单，正则即够）
- *   - 每个 getter 有硬编码 fallback，对应原各脚本中的默认值
+ *   - 每个 getter 只为兼容现有脚本提供协议默认值，不承担 Skill 路由
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -99,31 +99,31 @@ export function getPostToWechatConfig() {
   };
 }
 
-/** Step 4: baoyu-cover-image 模板配置；preferredBackend 仅用于 Codex CLI 失败后的 fallback */
+/** Step 4: baoyu-cover-image 模板配置；raster backend 由项目 policy 统一校验。 */
 export function getCoverImageConfig() {
   const c = loadAll().coverImage;
   return {
-    preferredBackend: c.preferred_image_backend ?? "openai",
+    preferredBackend: c.preferred_image_backend ?? "baoyu-image-gen",
     quickMode:        c.quick_mode               ?? true,
     language:         c.language                 ?? "zh",
     defaultAspect:    c.default_aspect           ?? "2.35:1",
   };
 }
 
-/** Step 4: baoyu-image-gen fallback 配置；Codex CLI 仍是可用时的唯一首选 */
+/** Step 4: baoyu-image-gen 配置；defaultProvider 是项目级硬约束。 */
 export function getImagineConfig() {
   const c = loadAll().imagine;
   return {
-    preferredBackend: c.preferred_image_backend ?? "openai",
+    defaultProvider:   c.default_provider ?? null,
     defaultModel:     c.default_model           ?? {},
   };
 }
 
-/** Step 4: baoyu-article-illustrator 模板配置；preferredBackend 仅用于 Codex CLI 失败后的 fallback */
+/** Step 4: baoyu-article-illustrator 模板配置；raster backend 由项目 policy 统一校验。 */
 export function getArticleIllustratorConfig() {
   const c = loadAll().illustrator;
   return {
-    preferredBackend: c.preferred_image_backend ?? "openai",
+    preferredBackend: c.preferred_image_backend ?? "baoyu-image-gen",
     preferredStyle:   c.preferred_style         ?? "vector-illustration",
     defaultOutputDir: c.default_output_dir      ?? "imgs-subdir",
   };

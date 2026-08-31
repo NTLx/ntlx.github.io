@@ -2,7 +2,7 @@
 /**
  * Step 3: 文本后处理验证
  *
- * 验证 draft.md 经过 renwei-writing + baoyu-format-markdown 处理后：
+ * 验证 draft.md 经过当前 refine 阶段的必要修改后：
  *   - 文件存在且非空
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
@@ -10,7 +10,7 @@
  *   - SLOT_IMG_00 信息图和至少 3 张文内插图占位符未丢失
  *   - 参考资料 区块未丢失（若原文存在）
  *
- * 字数控制由 ljg-writes 技能自律负责，本脚本仅记录字数不设门控。
+ * 字数属于当前 strategy 的编辑判断，本脚本仅记录字数不设门控。
  *
  * 用法:
  *   bun run step3-polish.mjs <date-slug>
@@ -97,7 +97,7 @@ if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
   fail(2, `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张（polish 可能删除）`);
 }
 
-// 4. Word count (informational only — ljg-writes controls its own word count)
+// 4. Word count (informational only — the active strategy owns this decision)
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
 // 5. Interaction preserved unless Step 2 explicitly allowed skipping it

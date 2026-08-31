@@ -1,104 +1,99 @@
-# 依赖清单
+# 工程依赖清单
 
-## 项目级配置
+这份清单只记录让确定性管线能够运行的依赖、配置接口和运行时前提。
+内容理解、写作、调研和辅助视觉能力不在这里登记；它们由
+`skill-catalog.mjs` 动态发现，再由 Agent 按阶段合同选择。
 
-| 依赖 | 路径 | 用途 |
+## Hard engineering dependencies
+
+| 依赖 | 类型 | 用途 |
 |---|---|---|
-| Codex CLI | `codex` on `PATH` | Step 4 默认文生图后端（通过 `baoyu-image-gen --provider codex-cli` 调用） |
-| baoyu-image-gen 配置 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | Step 4 baoyu fallback provider；不改变 Codex CLI 可用时的唯一首选规则 |
-| wechat-article-write 配置 | `.agents/skills/wechat-article-write/EXTEND.md` | Step 5 微信排版偏好（默认主题、备选主题、预览开关） |
-| baoyu-post-to-wechat 配置 | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | Step 6 微信作者/发布方式 |
-| 密钥 | `.baoyu-skills/.env` | 微信 API、GitHub 图床、baoyu fallback 图像后端 |
+| `baoyu-cover-image` | prompt 适配器 | 当前封面模板来源 |
+| `baoyu-article-illustrator` | prompt 适配器 | 当前文内解释图模板来源 |
+| `baoyu-infographic` | prompt 适配器 | 当前 SLOT 00 layout/style 模板来源 |
+| `baoyu-image-gen` | raster 适配器 | 图片实际生成入口；默认 provider 必须是 `codex-cli` |
+| `github-image-hosting` | 确定性适配器 | 博客图片上传和 CDN URL |
+| `gzh-design` | 确定性适配器 | 微信 HTML 排版、validator 和预览包装 |
+| `baoyu-post-to-wechat` | 确定性适配器 | 微信草稿发布 |
 
-## 技能依赖
+上述依赖由 `scripts/workflow.mjs` 的 `HARD_DEPENDENCIES` 单一声明，
+`check-deps.mjs` 和 `validate-architecture.mjs` 只检查它们。缺少任何
+认知、写作或可选视觉 Skill 不应因此阻断流程。
 
-| 技能 | 类型 | 用途 |
+当前 prompt 生成脚本会读取上述视觉 Skill 的官方参考模板；这只是协议
+适配器的输入，不是本技能重新实现它们的布局、风格或生成算法。
+
+## 必需 CLI 与脚本
+
+| 项目 | 位置/命令 | 说明 |
 |---|---|---|
-| ljg-qa | 内容理解技能 | reader-response Step 1.8 强制抽取核心问题链 |
-| ljg-think | 内容理解技能 | reader-response Step 1.8 强制下钻中心论点 |
-| ljg-read | 内容理解技能 | Step 1.8 条件处理长文、英文、复杂文本 |
-| ljg-rank | 内容理解技能 | Step 1.8 条件处理领域、趋势、产业、工具链分析 |
-| ljg-constraint | 内容理解技能 | Step 1.8 条件处理行业、角色、产品行为、方案争论和约束错配 |
-| ljg-plain | 内容理解技能 | Step 1.8 条件处理技术或术语密集材料 |
-| ljg-learn | 内容理解技能 | Step 1.8 条件解剖核心概念 |
-| ljg-paper | 内容理解技能 | Step 1.8 条件处理论文、arXiv、研究 PDF；讲论文脉络时与 ljg-rank 组合 |
-| ljg-book | 内容理解技能 | Step 1.8 条件处理书或书摘 |
-| ljg-roundtable | 内容理解技能 | Step 1.8 条件压力测试争议观点 |
-| ljg-invest | 内容理解技能 | Step 1.8 条件处理项目、公司、商业模式分析 |
-| ljg-word | 内容理解技能 | Step 1.8 条件处理英文词或命名文章 |
-| ljg-writes | 内容技能 | **reader-response** Step 2 产出正文候选（思想与文风内核）；news-digest 禁止调用 |
-| renwei-writing | 内容技能 | Step 3 人工手稿按需轻改（source_provenance=human）；AI 初稿不默认调用 |
-| humanizer-zh | 内容技能 | Step 3 AI 初稿命中明显 AI 模式时的定点修复（不全文重写） |
-| baoyu-format-markdown | 格式技能 | Step 3 只调用确定性脚本 `scripts/main.ts` 做 typography，不再整体调用完整 Skill |
-| aihot | 内容技能 | news-digest Step 1 候选发现（“发生了什么”）；reader-response 可选热点感知 |
-| baoyu-youtube-transcript | 内容技能 | 输入是 YouTube URL 时的转录/字幕获取（优先于通用网页抓取） |
-| baoyu-translate | 内容技能 | 目标输出语言 ≠ 源材料语言且需要整篇翻译时；first-time setup 需预先配置项目级 EXTEND |
-| baoyu-cover-image | 图片技能 | 封面 prompt 模板 |
-| baoyu-article-illustrator | 图片技能 | 文内插图 prompt 模板 |
-| baoyu-image-gen | 图片技能 | 实际文生图执行；Codex CLI 可用时必须先走 `codex-cli`，失败后才走 baoyu fallback |
-| baoyu-infographic | 图片技能 | SLOT 00 信息图 prompt 的 layout/style 模板来源 |
-| github-image-hosting | 发布技能 | Step 5 CDN 上传 |
-| gzh-design | 发布技能 | Step 5 微信 HTML 排版 + validator + 预览包装 |
-| baoyu-post-to-wechat | 发布技能 | Step 6 微信草稿 |
+| Bun | `bun` | 运行本技能脚本和 Baoyu CLI |
+| Codex CLI | `codex --version` | Step 4 的唯一 raster provider；需有有效登录态 |
+| Python | `uv run python` | 仅由 HTML validator 等仓库工具按需使用 |
+| Astro/npm | `npm run build` | Step 5 后的博客构建验证 |
 
-## 技能路径解析
-
-脚本执行型调用第三方技能时，优先使用项目级 `.agents/skills/<skill>`，例如 `.agents/skills/baoyu-format-markdown/scripts/...`。不要硬编码 `~/.claude/skills/<skill>`；不同运行时的 Skill loader 可能把 `{baseDir}` 指到用户级目录，但本仓库的实际安装位置通常是项目级 `.agents/skills/`。不确定时先 `ls .agents/skills/<skill>`，再退到 `~/.agents/skills/<skill>` 或 `~/.claude/skills/<skill>`。
-
-## baoyu-infographic 文生图模板目录
-
-`generate-image-prompts.mjs` 在运行时动态读取以下两个目录：
-
-- `.agents/skills/baoyu-infographic/references/layouts/` — 21 个 layout 模板
-- `.agents/skills/baoyu-infographic/references/styles/` — 22 个 style 模板
-
-合法命名见 `references/image-template-map.json` 的 `infographic_layouts` / `infographic_styles` 数组，或 `references/image-template-catalog.md`。`check-deps.mjs --stage images` 校验目录存在；模板文件缺失会在 `generate-image-prompts.mjs` 运行时报错。
-
-## Codex CLI 默认后端
-
-Step 4 默认命令形态：
+图片阶段预检：
 
 ```bash
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --provider codex-cli \
-  --promptfiles posts/<date-slug>/imgs/prompts/01-<desc>.md \
-  --image posts/<date-slug>/imgs/01-<desc>.png \
-  --ar 16:9
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --json
+bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
 ```
 
-前置条件：
+## 项目级配置接口
 
-```bash
-codex --version
-codex login status
+| 配置 | 用途 |
+|---|---|
+| `.agents/skills/wechat-article-write/EXTEND.md` | 本技能运行偏好 |
+| `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `default_provider: codex-cli` 和其它上游合法默认值 |
+| `.baoyu-skills/{高层视觉 Skill}/EXTEND.md` | raster 高层 Skill 的 `preferred_image_backend: baoyu-image-gen` |
+| `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信作者和发布偏好 |
+| `.baoyu-skills/.env` | 本地 Secret 和运行时参数；被 Git 忽略，不打印不提交 |
+
+高层 raster Skill 的官方配置必须能保证：
+
+```text
+高层视觉能力 → baoyu-image-gen → codex-cli
 ```
 
-`check-deps.mjs --stage images` 找不到 `codex` 时只给 warning，不阻断。此时 Step 4 的 Codex CLI 默认路径会失败，应直接使用 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `preferred_image_backend` 作为 baoyu fallback。若 `codex` 可用且已登录，`preferred_image_backend` 只是失败路径配置，不得作为首选后端。
+无法通过其官方配置固定 raster backend 的新能力，可以提供分析、构图或
+prompt 设计，但不能直接承担本管线的图片渲染。
 
-Codex CLI 路径使用 Codex / ChatGPT 登录态，不使用 `OPENAI_API_KEY`。如果 fallback provider 是 OpenAI API，默认模型可继续使用 `gpt-image-2`。
+## Provider policy
 
-## 环境变量
+`baoyu-image-gen` 的默认 provider 由 `EXTEND.md` 的
+`default_provider` 固定为 `codex-cli`。日常调用不传与之冲突的
+`--provider`；`.env` 中即使存在其它 API key，也不改变这条默认路径。
 
-`.baoyu-skills/.env` 至少应包含发布所需凭据；图像 API key 只在对应 baoyu fallback provider 被调用时才需要：
+Codex CLI 不可执行、登录失效、超时或生成失败时，图片阶段停止并报告
+BLOCKED。允许在同一路径内修复锁、缩短 prompt、重新生成或使用上游已经
+提供的有限重试；禁止静默切换 OpenAI、Google、DashScope、OpenRouter、
+Replicate、Seedream、Jimeng、MiniMax、Z.AI 或其它 raster provider。
+
+建议的本地非 Secret 调优项：
 
 ```env
-WECHAT_APP_ID=...
-WECHAT_APP_SECRET=...
-GITHUB_TOKEN=...
-GITHUB_REPO=...
-OPENAI_API_KEY=...       # fallback provider=openai 时需要
-DASHSCOPE_API_KEY=...    # fallback provider=dashscope 时需要
-GOOGLE_API_KEY=...       # fallback provider=google 时需要
+BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000
+BAOYU_IMAGE_GEN_CODEX_CLI_CONCURRENCY=1
+BAOYU_IMAGE_GEN_CODEX_CLI_START_INTERVAL_MS=2000
 ```
 
-按阶段检查：
+重试键如果已经存在则保留上游合法值；无需为了显式化默认值而新增。
+预检只列出环境变量键名和错误类型，不输出值。
+
+## Skill 路径与发现
+
+需要读取完整 Skill 时优先使用项目级：
+
+```text
+.agents/skills/<skill>/SKILL.md
+```
+
+不要把用户目录复制进本仓库，也不要修改第三方 Skill 源码。开放式能力
+从以下命令动态发现：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage images
-bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage build
-bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage publish
+bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json
 ```
 
-- `images`：只检查图片模板和图片技能
-- `build`：检查 Step 5 需要的 `github-image-hosting`、`gzh-design`、validator / preview wrapper
-- `publish`：只检查微信发布依赖，不再要求 `baoyu-markdown-to-html`
+目录读取 frontmatter 的 `name`、`description`、`version` 和
+`user_invocable`，排除 `wechat-article-write` 自身，不维护人工白名单。

@@ -1,150 +1,136 @@
 #!/usr/bin/env bun
 /**
- * workflow.mjs 单元测试
- *
- * 验证命名阶段的机器源：策略→阶段序列、step→stage 映射、next 推导、
- * 依赖表覆盖（required 全集必须与文档声明的硬依赖一致）。
+ * workflow.mjs 单元测试：数字 state 与命名 Stage Contract 的兼容性。
  */
 
 import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_STRATEGY,
   STRATEGIES,
-  REQUIRED_SKILLS,
+  STAGE_CONTRACTS,
+  STAGE_ORDER,
+  HARD_SKILLS,
   initStages,
+  stageContractFor,
   stageForStep,
   nextStageFromStep,
+  stagesForStep,
   stageReadRef,
+  stageReadRefs,
   requiredSkillsFor,
   optionalSkillsFor,
   requiredSkillsForStage,
+  validateWorkflow,
 } from "../scripts/workflow.mjs";
 
-describe("workflow stage machine", () => {
-  test("all strategies declare a valid stage sequence", () => {
-    for (const [name, s] of Object.entries(STRATEGIES)) {
-      expect(s.stages.length).toBeGreaterThanOrEqual(3);
-      expect(s.stages[0]).toBe("prepare");
-      expect(s.stages[s.stages.length - 1]).toBe("publish");
-      // stepToStage 的 value 必须都在 stages 里
-      for (const stage of Object.values(s.stepToStage)) {
-        expect(s.stages).toContain(stage);
+describe("workflow stage contracts", () => {
+  test("all strategies declare valid stage sequences", () => {
+    for (const [name, strategy] of Object.entries(STRATEGIES)) {
+      expect(strategy.objective).toBeString();
+      expect(strategy.stages[0]).toBe("prepare");
+      expect(strategy.stages.at(-1)).toBe("publish");
+      for (const stage of strategy.stages) expect(stageContractFor(stage)).toBeDefined();
+      for (const stage of Object.values(strategy.stepToStage)) {
+        expect(strategy.stages).toContain(stage);
       }
+      expect(strategy.dependencies).toBeUndefined();
+      expect(strategy.optional).toBeUndefined();
+      expect(name).toBeString();
     }
   });
 
-  test("DEFAULT_STRATEGY resolves to an existing strategy", () => {
+  test("every stage has a contract and adaptive stages have a Gate", () => {
+    for (const stage of STAGE_ORDER) {
+      const contract = STAGE_CONTRACTS[stage];
+      expect(contract).toBeDefined();
+      expect(contract.goal).toBeString();
+      expect(contract.inputs.length).toBeGreaterThan(0);
+      expect(Array.isArray(contract.outputs)).toBe(true);
+      expect(contract.acceptance.length).toBeGreaterThan(0);
+      if (contract.mode.startsWith("adaptive")) {
+        expect(contract.gate ?? contract.gates).toBeDefined();
+      }
+    }
+    expect(validateWorkflow()).toEqual([]);
+  });
+
+  test("adaptive contracts do not regress into static Skill routing tables", () => {
+    const forbiddenFields = [
+      "dependencies",
+      "requiredSkills",
+      "optionalSkills",
+      "preferredSkills",
+      "skills",
+      "skill",
+      "skillRoutes",
+      "routes",
+      "router",
+    ];
+
+    for (const [stage, contract] of Object.entries(STAGE_CONTRACTS)) {
+      if (!contract.mode.startsWith("adaptive")) continue;
+      for (const field of forbiddenFields) {
+        expect(Object.hasOwn(contract, field), `${stage}.${field}`).toBe(false);
+      }
+    }
+    expect(validateWorkflow()).toEqual([]);
+  });
+
+  test("DEFAULT_STRATEGY and pending stage view remain stable", () => {
     expect(STRATEGIES[DEFAULT_STRATEGY]).toBeDefined();
+    const view = initStages(DEFAULT_STRATEGY);
+    expect(view.prepare).toBe("pending");
+    expect(view.publish).toBe("pending");
+    expect(Object.keys(view)).toHaveLength(STRATEGIES[DEFAULT_STRATEGY].stages.length);
   });
 
-  test("initStages builds all-pending view", () => {
-    const v = initStages("reader-response");
-    expect(v.prepare).toBe("pending");
-    expect(v.publish).toBe("pending");
-    expect(Object.keys(v).length).toBe(STRATEGIES["reader-response"].stages.length);
-  });
-
-  test("stageForStep maps completed step to stage", () => {
+  test("numeric step mappings remain compatible", () => {
     expect(stageForStep("reader-response", 0)).toBe("prepare");
     expect(stageForStep("reader-response", 1)).toBe("research");
     expect(stageForStep("reader-response", 4)).toBe("illustrate");
-    // tutorial 的 step 1/2 都归入 adapt
     expect(stageForStep("tutorial", 1)).toBe("adapt");
     expect(stageForStep("tutorial", 2)).toBe("adapt");
-  });
 
-  test("nextStageFromStep walks the sequence", () => {
-    // reader-response: after research(1) → synthesize, after draft(2) → refine
     expect(nextStageFromStep("reader-response", 0)).toBe("research");
     expect(nextStageFromStep("reader-response", 1)).toBe("synthesize");
     expect(nextStageFromStep("reader-response", 2)).toBe("refine");
-    expect(nextStageFromStep("reader-response", 3)).toBe("illustrate");
     expect(nextStageFromStep("reader-response", 4)).toBe("build");
-    expect(nextStageFromStep("reader-response", 5)).toBe("publish");
-    // tutorial: after adapt(2) → illustrate
     expect(nextStageFromStep("tutorial", 1)).toBe("illustrate");
-    expect(nextStageFromStep("tutorial", 4)).toBe("build");
-  });
-
-  test("nextStageFromStep handles partial publish", () => {
-    expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "pending" })).toBe("publish");
-    expect(nextStageFromStep("reader-response", 6, { blog: "blocked", wechat: "pending" })).toBe("publish");
-    expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "done" })).toBe("done");
-  });
-
-  test("unknown strategy returns unknown instead of impersonating a default", () => {
-    expect(nextStageFromStep("nope", 0)).toBe("unknown");
-    expect(nextStageFromStep("nope", 3)).toBe("unknown");
-  });
-
-  test("strategy sequences are strategy-specific (no cross-strategy impersonation)", () => {
-    // reader-response：step → 下一阶段
-    expect(nextStageFromStep("reader-response", 0)).toBe("research");
-    expect(nextStageFromStep("reader-response", 1)).toBe("synthesize");
-    expect(nextStageFromStep("reader-response", 2)).toBe("refine");
-    expect(nextStageFromStep("reader-response", 3)).toBe("illustrate");
-    expect(nextStageFromStep("reader-response", 4)).toBe("build");
-
-    // tutorial：内容适配后直接进图片
-    expect(nextStageFromStep("tutorial", 0)).toBe("adapt");
-    expect(nextStageFromStep("tutorial", 1)).toBe("illustrate");
-    expect(nextStageFromStep("tutorial", 2)).toBe("illustrate");
-    expect(nextStageFromStep("tutorial", 4)).toBe("build");
-
-    // news-digest：research → draft → refine
-    expect(nextStageFromStep("news-digest", 0)).toBe("research");
     expect(nextStageFromStep("news-digest", 1)).toBe("draft");
-    expect(nextStageFromStep("news-digest", 2)).toBe("refine");
-    expect(nextStageFromStep("news-digest", 3)).toBe("illustrate");
   });
 
-  test("required skill set is non-empty and covers hard deps", () => {
-    expect(REQUIRED_SKILLS).toContain("ljg-qa");
-    expect(REQUIRED_SKILLS).toContain("ljg-think");
-    expect(REQUIRED_SKILLS).toContain("ljg-writes");
-    expect(REQUIRED_SKILLS).toContain("gzh-design");
-    expect(REQUIRED_SKILLS).toContain("baoyu-post-to-wechat");
-    // aihot 是 news-digest research 的 required，应出现在全集
-    expect(REQUIRED_SKILLS).toContain("aihot");
-    // last30days 在所有策略中都是 optional，不应出现在 required 全集
-    expect(REQUIRED_SKILLS).not.toContain("last30days");
+  test("Step 2 can expose synthesize and draft contracts together", () => {
+    expect(stagesForStep("reader-response", 1, 2)).toEqual(["synthesize", "draft"]);
+    expect(stagesForStep("news-digest", 1, 2)).toEqual(["draft"]);
   });
 
-  // PR 2 路由契约：依赖必须 strategy-aware，不能用一个全局表重新制造冲突
-  test("dependencies are strategy-aware (news-digest forbids ljg-writes)", () => {
-    // reader-response 的 draft 需要 ljg-writes
-    expect(requiredSkillsFor("reader-response", "draft")).toContain("ljg-writes");
-    // news-digest 的 draft 禁止 ljg-writes（简报由自身结构化合同直接产出）
-    expect(requiredSkillsFor("news-digest", "draft")).not.toContain("ljg-writes");
-    expect(requiredSkillsFor("news-digest", "draft")).toHaveLength(0);
-    // tutorial 的 adapt 不需要写作文本技能
-    expect(requiredSkillsFor("tutorial", "adapt")).toHaveLength(0);
+  test("partial publish and unknown strategy remain safe", () => {
+    expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "pending" })).toBe("publish");
+    expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "done" })).toBe("done");
+    expect(nextStageFromStep("unknown", 0)).toBe("unknown");
+  });
 
-    // reader-response research 强制 ljg-qa / ljg-think；news-digest research 强制 aihot
-    expect(requiredSkillsFor("reader-response", "research")).toContain("ljg-qa");
-    expect(requiredSkillsFor("reader-response", "research")).toContain("ljg-think");
-    expect(requiredSkillsFor("news-digest", "research")).toContain("aihot");
-    expect(optionalSkillsFor("news-digest", "research")).toContain("last30days");
-
-    // 共享管线阶段各策略一致
-    for (const strategy of ["reader-response", "tutorial", "news-digest"]) {
-      expect(requiredSkillsFor(strategy, "illustrate")).toContain("baoyu-infographic");
-      expect(requiredSkillsFor(strategy, "build")).toContain("gzh-design");
-      expect(requiredSkillsFor(strategy, "publish")).toContain("baoyu-post-to-wechat");
+  test("only protocol adapters are hard dependencies", () => {
+    expect(HARD_SKILLS).toEqual(expect.arrayContaining([
+      "baoyu-image-gen",
+      "gzh-design",
+      "github-image-hosting",
+      "baoyu-post-to-wechat",
+    ]));
+    for (const skill of ["ljg-qa", "ljg-think", "ljg-writes", "aihot", "last30days"]) {
+      expect(HARD_SKILLS).not.toContain(skill);
     }
+    expect(requiredSkillsFor("reader-response", "research")).toEqual([]);
+    expect(requiredSkillsFor("reader-response", "draft")).toEqual([]);
+    expect(requiredSkillsFor("reader-response", "refine")).toEqual([]);
+    expect(requiredSkillsForStage("research")).toEqual([]);
+    expect(optionalSkillsFor("reader-response", "research")).toEqual([]);
   });
 
-  test("requiredSkillsForStage aggregates across strategies per stage", () => {
-    // research 阶段：reader-response 的 ljg-qa + news-digest 的 aihot 都是硬依赖
-    expect(requiredSkillsForStage("research")).toContain("ljg-qa");
-    expect(requiredSkillsForStage("research")).toContain("aihot");
-    expect(requiredSkillsForStage("draft")).toContain("ljg-writes");
-    expect(requiredSkillsForStage("refine")).toContain("baoyu-format-markdown");
-  });
-
-  test("stageReadRef returns strategy doc for content stages, pipeline overview for build stages", () => {
+  test("adaptive stages instruct progressive disclosure", () => {
+    expect(stageReadRefs("reader-response", "synthesize")).toContain("references/orchestration-policy.md");
+    expect(stageReadRefs("reader-response", "synthesize")).toContain("references/strategy-reader-response.md");
     expect(stageReadRef("reader-response", "draft")).toBe("references/strategy-reader-response.md");
-    expect(stageReadRef("news-digest", "research")).toBe("references/strategy-news-digest.md");
     expect(stageReadRef("reader-response", "build")).toBe("references/pipeline-overview.md");
     expect(stageReadRef("reader-response", "publish")).toBe("references/pipeline-overview.md");
   });

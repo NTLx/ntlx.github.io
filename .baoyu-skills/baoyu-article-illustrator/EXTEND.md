@@ -1,2 +1,6 @@
-preferred_image_backend: baoyu-imagine
-preferred_style: blueprint
+---
+version: 1
+preferred_image_backend: baoyu-image-gen
+preferred_style:
+  name: blueprint
+---

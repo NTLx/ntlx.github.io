@@ -8,93 +8,77 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.50.1"
+  version: "1.51.0"
 ---
 
 # 微信公众号文章写作
 
-本技能维护微信公众号 + 博客双轨发布管线。入口只做路由和硬规则；细节按需读取 `references/`。
+本技能是博客 + 微信双轨管线的监督层。它固定文件协议、状态、Gate 和
+发布顺序；内容理解、写作和视觉方法在每个开放阶段按当前任务动态选择。
 
 ## 先读路由
 
 | 任务 | 必读文件 |
 |---|---|
 | 完整写作/续跑 | `references/pipeline-overview.md` |
-| Steps 1-3 策略选择 | `references/{strategy-reader-response,strategy-tutorial,strategy-news-digest}.md` |
-| 材料理解增强 | `references/material-understanding.md` |
-| 正文、frontmatter、SLOT 不变量 | `references/content-invariants.md` |
-| 原创度增量 / 形式变体 / 节奏感知 | `references/originality-policy.md` |
-| 图片 prompt / 模板 / 生成 | `references/image-policy.md` |
-| 图片后端顺序 / Codex CLI fallback | `references/image-backends.md` |
-| 微信排版（gzh-design） | `references/adapter-gzh-design.md` |
-| 构建、博客发布、微信草稿 | `references/publishing.md` |
-| 依赖、环境 | `references/dependency-manifest.md` |
-| 排错 | `references/troubleshooting.md` |
-| 最小正确例子 | `references/golden-path.md` |
+| Adaptive Stage 编排 | `references/orchestration-policy.md` |
+| 三种编辑目标 | `references/strategy-{reader-response,tutorial,news-digest}.md` |
+| 理解 brief 合同 | `references/material-understanding.md` |
+| 正文和 frontmatter/SLOT 不变量 | `references/content-invariants.md` |
+| 图片意图、命名和审核 | `references/image-policy.md` |
+| 图片 provider 成本边界 | `references/image-backends.md` |
+| 微信排版与发布 | `references/adapter-gzh-design.md`、`references/publishing.md` |
+| 依赖和本地配置 | `references/dependency-manifest.md` |
 
-## 核心不变量
+## 不可变的工程协议
 
-| 领域 | 不变量 |
-|---|---|
-| 双轨分离 | 博客轨消费 `article.md` + CDN URL；微信轨消费 `article-wechat.html` + 本地图片 |
-| 正文标题 | 正文禁止 H1；博客轨和微信轨都必须保留正文 H2，Step 5 不得把正文第一个 H2 当作 title 删除 |
-| 状态续跑 | 任一步失败先读 `scripts/state.mjs next <date-slug>`，不要从头重做 |
-| sourceUrl | Step 2 预写 canonical 博客公网 URL；Step 6.2 传给微信“阅读原文”前统一追加 `utm_source=wechat&utm_medium=social&utm_campaign=article_push` |
-| summary | frontmatter `summary` 是微信 digest 唯一来源，必须是 ≤120 字金句式摘要 |
-| 站内记忆 | Step 1 后运行 `select-related-articles.mjs` 生成 `blog-memory.md/json`；Step 2 必须读取并自然联动相关旧文，或用 `--allow-no-related` 显式跳过 |
-| 理解增强 | `reader-response` 在 Step 2 前必须生成 `understanding-brief.md`，并把其中的写作契约喂给 `ljg-writes` |
-| last30days 调研 | Step 1 可按策略触发 `last30days`，获取近 30 天社区讨论、用户反馈和舆情脉搏；结果写入 `materials.md`，供 Step 2 作为论据吸收，禁止照搬 `last30days` 用户输出格式 |
-| 链接双轨 | `draft.md` 使用 Markdown inline links；`## 参考资料` 标准写法是 `- [标题](URL)`；博客轨保留可点击 Markdown 链接；微信轨在 Step 5 由 `wechat-link-normalizer.mjs` 将所有非图片链接转换为纯文本（正文行内链接→”文本（链接：URL）”，参考资料/延伸阅读独立列表链接→”标题 + 换行 + URL”），`article-wechat-source.md` 不得含 Markdown 链接语法；`article-wechat.html` 不得含普通 `<a href>`；finalize 阶段额外执行 `stripWechatAnchors` 防护 |
-| 微信排版中间产物 | Step 5 先生成 `article-wechat-source.md`，再由 Agent 调用 `gzh-design` 产出 `article-wechat.html`，最后用 `gzh-design` 自带校验脚本 finalize |
-| 禁止 per-post 渲染脚本 | 不得在 `posts/<date-slug>/` 下创建任何用于生成 `article-wechat.html` 的自研脚本（如 `render-wechat.mjs`、临时 `.py`/`.sh`）。微信 HTML 只能由 `gzh-design` 技能按主题组件库装配产出。发现别的 post 下有此类脚本时，不得复制或改写它当作当前文章的排版产物——那是上一篇文章的本地脏产物，会带来硬编码金句漏改、模板复制链等故障；正确做法是重新调用 `gzh-design` |
-| 后处理路由 | Step 3 按初稿来源路由：material 是人类手稿 → `renwei-writing` 按需轻改；material 是 AI 初稿 → 先 `baoyu-format-markdown` 确定性脚本 lint，命中明显 AI 模式时才用 `humanizer-zh` 定点修复。`tutorial` 策略保留 `humanizer: skip` |
-| 图片 | SLOT 00 是全文压缩信息图，必须解析到 `00-infographic-core-summary.*`；文内 `SLOT_IMG_01+` 不少于 3 张，按内容节点放置 |
-| 文内图风格 | 文内插图默认是“文章解释图”，不是工程图纸；除非用户明确要求技术制图感，否则禁止使用会诱发日期/版本号/图号/尺寸线/图纸边框的图纸语法 |
-| 图片后端 | Step 4 必须先通过 `baoyu-image-gen --provider codex-cli` 调用 Codex CLI；Codex CLI 可用时是唯一首选，不能被原生 `imagegen` / `image_gen` 工具或 `preferred_image_backend` 绕过；只有 Codex CLI 明确失败后才回退到项目配置的 baoyu provider |
-| 图片串行 | Step 4 生图必须由主会话逐张串行执行；禁止 batch、`Promise.all`、`xargs -P`、后台任务 `&`、多 subagent 分派或任何并发启动多个 `baoyu-image-gen` / `codex exec` 的方式 |
-| 图片命名 | imgs/ 下 SLOT 图必须 `NN-<desc>.<ext>`，与 `imgs/prompts/NN-<desc>.md` 一致；禁止 `batch.json` |
-| 图片模板 | 信息图走 `baoyu-infographic` 的 layouts × `claymation` 默认风格，头部信息图固定阳光明亮鲜艳高饱和度与高可读性配色；封面和文内图继续走 baoyu 模板 |
-| 配置 | 项目级 `.baoyu-skills/{skill}/EXTEND.md` 和 `.baoyu-skills/.env` 是权威配置 |
-| 微信风格偏好 | 默认偏好 `留白禅意风`（`zen-whitespace`），主备选 `摸鱼绿`（`moyu-green`）；具体调用规则见 `references/adapter-gzh-design.md` |
-| 作者签名 | 调用 `gzh-design` 时，签名区 `{{作者名}}` 固定写 `NTLx`，`{{简介}}` 固定写 `热衷于分享 AI 观察与干货`；不要留占位符，不要让 Agent 自行猜测 |
-| 原创度政策 | 写作契约列 ≥3 条增量（第一人称经验/独立判断/跨来源连接/预测行动）并逐条落地 draft；标题×开头×章节数组合不得与最近 2 篇相同；Step 0 一句话报告近 7 天篇数与分类分布 |
-| 第三方技能 | `baoyu-*` / `ljg-*` 由 `npx skills` 管理，未经用户同意不得改源码 |
+- state 使用现有 v2 数字 Step；续跑前先读 `state.mjs next`，不要从头重做。
+- 博客轨消费 `article.md` 和 CDN 图片；微信轨消费
+  `article-wechat.html` 和本地图片。两条产物不能混用。
+- frontmatter、`summary`、`blogSlug`、`sourceUrl`、SLOT 占位符、图片命名、
+  MDX 安全和链接双轨规则由确定性脚本校验。
+- Step 5 先产出 `article-wechat-source.md`，再由 `gzh-design` 排版，最后
+  运行 finalize；不得用 post 内自写渲染脚本替代它。
+- 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
+- 第三方 Skill 源码只读。运行时动态 catalog 发现能力，不把认知/写作 Skill
+  登记成固定流程依赖。
 
-## 标准流程
+## Adaptive Stage 规则
 
-1. Step 0：选择策略文件；不确定时向用户确认。
-2. Step 1-3：按策略完成资料、理解增强、写作、后处理，并运行对应门控脚本。
-3. Step 4：运行 `generate-image-prompts.mjs`，审核 prompt 后用 Codex CLI 唯一首选、baoyu fallback 逐张串行生图，再运行 `step4-images.mjs`。
-4. Step 5：先运行 `step5-build.mjs` 生成 `article.md` + `article-wechat-source.md`（参考资料和延伸阅读中的 Markdown 链接会被 `wechat-link-normalizer.mjs` 展开为"标题 + 纯文本 URL"），再调用 `gzh-design` 产出 `article-wechat.html`（须确保参考资料/延伸阅读区域不含 `<a href>`），最后重新运行 `step5-build.mjs --finalize-only` 完成校验和落状态。finalize 阶段会额外执行 `stripWechatAnchors` 防护，剥离残留 `<a href>` 标签。
-5. Step 6：先 `publish-blog.mjs`，再 `publish-wechat.mjs`。
+1. 读取当前 Stage Contract、输入、已有 artifacts 和上一 Gate 结果。
+2. 先定义真正缺口，再运行 catalog：
+   `bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json`。
+3. 渐进式读取少量候选的完整 `SKILL.md`，选择 Agent 原生、单个 Skill 或
+   少量互补 Skill；no-skill 是合法路线。
+4. 将结果适配成 contract 要求的 artifact，运行对应 Gate。
+5. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
+   重复，也不得绕过 Gate。具体规则见 `orchestration-policy.md`。
 
-完整说明见 `references/pipeline-overview.md`。
+## 图片成本硬约束
 
-## 最小命令索引
+所有 raster rendering 必须经高层视觉能力 → `baoyu-image-gen` →
+`codex-cli`。项目默认 provider 在
+`.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `default_provider` 中固定；
+日常命令不传冲突的 `--provider`。先运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs
+```
+
+Codex CLI 不可用、未登录或生成失败时，图片阶段必须 fail closed。允许在
+同一路径内诊断、修改 prompt 和有限重试；禁止切换其它 provider，也不能
+使用运行时原生 image generation 绕过配置。
+
+## 最小流程
+
+Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
+按策略完成理解或适配/写作；Step 3 针对实际问题 refine；Step 4 先定
+视觉意图再生成图片；Step 5 构建并校验双轨产物；Step 6 按顺序发布。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all
 bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
-bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
-bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug> --auto
+bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
 ```
 
-## 快速失败规则
-
-- 依赖缺失先跑 `check-deps.mjs`，不要静默降级。
-- 微信排版默认是 Agent 自动，不是裸脚本自动；Step 5 预处理后若缺少 `article-wechat.html`，必须调用 `gzh-design`，不能跳过到 Step 6。
-- Codex CLI 生图默认按长超时处理（建议每张图 `BAOYU_CODEX_IMAGEGEN_TIMEOUT_MS=1800000`）；Codex CLI 可用时不得切到其他文生图后端；只有返回明确失败信号才切到项目配置的 baoyu fallback；fallback 每张最多 1 次。
-- 微信原文链接由 `baoyu-post-to-wechat` 原生处理，本技能不检查底层实现能力。
-- 任何会改变发布内容的修复，都必须重新运行对应 step 门控。
-- **禁止全局替换 HTML 文件中的引号**。`article-wechat.html` 中 HTML 属性必须使用 ASCII 双引号 `"`（U+0022）；正文文本可用中文弯引号 `""`（U+201C/U+201D）。如果 `validate_gzh_html.py` 报正文半角引号 WARNING，只改 `<span leaf="">` 内部的文本，不动标签属性。全局 `fix_quotes()` 会把 `src="..."` 的 ASCII 引号替换成花弯引号，导致 `wechat-api.ts` 的 regex 匹配不到 `<img>` 标签，图片全部上传失败、样式丢失。`publish-wechat.mjs` 已加 HTML 属性引号预检，遇到花弯引号会直接 exit 5 阻断发布。
-- 修复 `article-wechat.html` 后必须重跑 `step5-build.mjs --finalize-only` 再重发 `publish-wechat.mjs`；不能跳过 finalize 直接发布。`publish-wechat.mjs` 退出码含义见 `references/troubleshooting.md` 的"Step 6.2 publish-wechat 退出码速查"。
+完成或修复任何阶段后，重新运行该阶段 Gate，再继续 `pipeline.mjs`。

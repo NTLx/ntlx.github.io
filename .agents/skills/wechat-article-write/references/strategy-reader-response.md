@@ -1,204 +1,92 @@
 ---
 name: reader-response
-description: 深度读后感，以原文为起点展开个人判断和延展思考
-applies_when: 用户提供了一篇或多篇原始材料（URL/文件），要求写读后感、深度分析或观点文章
+description: 深度读后感，以原始材料为起点形成作者自己的判断和延展思考
+applies_when: 用户提供一篇或多篇原始材料，要求写读后感、深度分析或观点文章
 ---
 
 # reader-response 策略
 
-## Step 1: 资料收集
-行为: full
+## Objective Function
 
-- 检测输入类型（URL / 文件路径 / 粘贴文本）
-- **输入是 YouTube URL 时**：优先用 `baoyu-youtube-transcript` 获取字幕/转录文本，再结合其封面做来源识别；不要直接走通用网页抓取。转录结果是材料的一部分，仍按本节规则写背景调研
-- URL 内容获取和联网搜索由 Agent 自行选择合适的工具完成
-- 无论输入是否已含原文，都必须额外联网查询背景资料，并在 `materials.md` 中写入 `## 背景调研` 章节：
-  - 相关人物、组织或公司的背景
-  - 文中提及的重要概念、事件、技术、文化或理念背景
-  - 可找到的相关评论、讨论、争议或二手分析
-  - 每条背景资料标注来源 URL；无法找到的项要写明"未找到可靠来源"
-- 当原文涉及近期热点、人物/公司/产品/开源项目/模型发布、工具对比、推荐或社区反馈时，调用 `last30days` 作为补充调研，并在 `materials.md` 增加 `## last30days 近期讨论` 小节：
-  - 压缩记录调研主题、时间窗口、覆盖来源、关键发现、社区原话、分歧/争议、可用于正文的判断、原始结果文件和参考 URL
-  - `last30days` 结果只作为材料证据，不作为文章结构模板；Step 2 写作时吸收其中的真实反馈和争议信号
-  - 若 `last30days` 首次运行需要用户授权或登录源不可用，先向用户说明覆盖差异；不要把普通 WebSearch 结果伪装成完整 `last30days` 调研
-- 原文插图处理：记录原文中值得保留的插图 URL/本地路径、图注、所在上下文，以及是否建议保留。只保留对理解正文有信息价值的图，不为装饰保留
-- 所有资料合并写入 `posts/{date-slug}/materials.md`，每份资料间用 `---` 分隔，标注来源
+从材料出发形成真正属于作者的判断、认知增量和延伸思考。文章不是材料
+摘要，也不是把外部分析报告拼接起来；读者应能看见材料如何改变、支持
+或限制作者的判断。
 
-**脚本验证**：
-```bash
-bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug> \
-  [--sources <成功数> --failed <失败数>]
+本策略只定义编辑目标。研究、理解、写作和润色方法由 Agent 根据当前
+缺口和 stage contract 决定，允许 no-skill、单个能力或少量互补能力。
+
+## Step 1：研究材料
+
+读取 URL、文件或用户粘贴的原文，辨认输入范围和来源。必要的背景、人物、
+概念、事件、争议和近期信号要通过可验证来源补齐；所有进入正文的事实
+保留 URL，无法核实的内容明确标记。输入是视频、论文或其它特殊格式时，
+由 Agent 依据 catalog 选择合适的提取/阅读能力，不能假设某个工具永远
+可用。
+
+将原始材料、背景核验、观点区分和可复用图片信息写入：
+
+```text
+posts/{date-slug}/materials.md
 ```
-脚本验证 materials.md 存在且非空、含 `## 背景调研` 且该章节至少有一个 URL；低质量检测（字数 < 200 打印警告，非阻塞），写状态。
 
-## Step 1.5: 站内记忆检索
-行为: script
+至少包含 `## 背景调研` 和可追溯 URL，然后运行：
 
 ```bash
+bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
 ```
 
-写作前必须读取 `posts/{date-slug}/blog-memory.md`。正文自然联动 1-2 篇旧文；文末 `## 延伸阅读` 放 2-4 篇站内旧文。旧文链接在 draft 中使用 Markdown inline link，Step 5 会为博客和微信生成不同链接形态。
+若需要近期社区反馈，记录实际覆盖范围、来源和不确定性；不要把调研工具
+的报告格式直接变成文章结构。
 
-## Step 1.8: 理解增强
-行为: full
+## Step 1.8：理解与契约
 
-按 `references/material-understanding.md` 执行，生成：
+读取 `materials.md`、`blog-memory.md`、用户意图和
+`references/orchestration-policy.md`，先定义缺口，再从 catalog 选择方法。
+生成 `understanding-brief.md`，并运行：
 
-```text
-posts/{date-slug}/understanding-brief.md
+```bash
+bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <date-slug>
 ```
 
-强制调用：
+brief 要给出核心问题、中心判断、机制、边界、反方、可视觉化节点，以及
+至少三条能在正文中逐条检查的原创增量承诺。它是写作契约，不是分析工具
+输出的存档区。
 
-- `ljg-qa`：抽出核心问题链，包含结论、形式化关系、论证步和边界。
-- `ljg-think`：对中心论点纵向下钻，产出文章真正要打的一句话。
+## Step 2：写作
 
-条件强制调用：
+从 brief 的契约出发，而不是从任何 Skill 的默认模板出发。Agent 可以自己
+写，也可以委托适合的写作能力；委托后仍由 Agent 完成仓库适配和事实判断。
+正文应：
 
-- 主材料是长文、英文或复杂文本：调用 `ljg-read`。
-- 文章是领域、趋势、产业或工具链分析：调用 `ljg-rank`。
-- 文章解释行业、角色、产品行为，或材料里有方案争论、约束错配、旧解释被当硬事实：调用 `ljg-constraint`。
-- 技术或术语密度高：调用 `ljg-plain`。
-- 有 1-2 个必须解释的核心概念：调用 `ljg-learn`。
-- 输入是论文、arXiv 或研究 PDF：调用 `ljg-paper`；讲论文脉络 / 问题演化史时组合 `ljg-rank` 综合新旧解法的问题演化位移。
-- 输入是书或书摘：调用 `ljg-book`。
-- 观点争议大或需要压力测试：调用 `ljg-roundtable`。
-- 项目、公司或商业模式分析：调用 `ljg-invest`。
-- 文章围绕英文词或命名：调用 `ljg-word`。
+- 只围绕一个中心判断展开，保留作者第一人称观察和疑问；
+- 吸收背景核验与站内记忆，而非堆砌原文摘要；
+- 逐条落实原创增量承诺，并明确重要边界；
+- 规划 3-6 个 H2 和有语义的 SLOT：SLOT 00 是全文速读信息图，SLOT 01+
+  至少三张，放在真正需要视觉解释的节点；
+- 写出金句式 `summary`（不超过 120 字）、互动问题和 `## 参考资料`。
 
-`understanding-brief.md` 必须包含 `## 写作契约`，写清这篇文章只打一件什么事、必须回答的问题、必须承认的边界、要自然织入的背景资料、可联动旧文和可视觉化节点。Step 2 调用 `ljg-writes` 时，写作契约优先级高于一般材料摘要。
+保存 `draft.md` 和 `image-plan.json`，再运行：
 
-## Step 2: 文章创作
-行为: full
-
-1. **正文候选（思想与文风内核）**：通过 **Skill 工具调用 ljg-writes**，传入资料内容、理解增强和写作契约，让它产出**正文候选内容**（章节思想、论证主线、关键句子、作者口吻）。
-   - ljg-writes 只负责“正文思想与文风内核”，**不承担仓库文件协议**。它原生输出可能带 H1、写 Denote `.org` 到 `~/Documents/notes/`、不产出 frontmatter/SLOT——这些差异由主 Agent 在本步的仓库适配中吸收，不要把 ljg-writes 当作能直接产出 `draft.md` 的写手。
-   - **⚠️ 结构与图片预规划（先规划再落笔）**：调用 ljg-writes 之前，先确定文章章节结构（3-6 个 `## ` 章节），再根据内容判断至少 3 个最值得视觉化的位置。每个插图位置明确：(a) 它解释的核心信息，(b) 放在正文的哪个论证节点附近，(c) 视觉内容描述（2-3 个英文关键词，具体到概念/数据/关系，禁止泛化描述如 "illustration" 或 "diagram"）。预规划结果直接体现在 draft.md 的章节标题、正文段落和 SLOT_IMG 占位符描述中
-2. **仓库适配**：把 ljg-writes 的正文候选改写成符合本节 `draft.md` 模板的仓库产物：
-   - 资料内容：`posts/{date-slug}/materials.md`
-   - 理解增强：`posts/{date-slug}/understanding-brief.md`，尤其是 `## 写作契约`
-   - 数据点列表（从材料中提取，≥ 5 个）
-   - 必须包含文末互动 + 参考资料区块
-   - 必须落实 `references/originality-policy.md` 的增量契约与形式变体契约：写作契约列出的增量承诺逐条落地正文，保住第一人称判断、疑问和读后感式表达
-   - 必须吸收 Step 1 的 `## 背景调研`：把相关背景自然织入正文，避免背景资料只留在材料文件里
-   - 若材料包含 `## last30days 近期讨论`，必须把其中的真实社区反馈、分歧和争议转化为正文论据或判断边界；不要照搬 `last30days` 的标题、footer、邀请语或报告模板
-   - 必须吸收 Step 1.5 的 `blog-memory.md`：正文自然联动 1-2 篇旧文，文末 `## 延伸阅读` 放 2-4 篇站内旧文；如确实不适合联动，运行 Step 2 时使用 `--allow-no-related` 并交代理由
-   - 必须服从 Step 1.8 的 `understanding-brief.md`：围绕写作契约展开，不把 `ljg-qa` / `ljg-think` / 条件技能输出原样堆进正文
-   - **必须规划插图占位符**：在写作时按 SLOT_IMG 编号规则插入语义占位符。**SLOT 00 信息图占位符必须插入**（位置在 frontmatter 之后、正文第一个段落之前），不得跳过。**SLOT_IMG_01+ 文内插图总数必须不少于 3 张**（不含封面图和 SLOT 00 头部信息图），但不要求每个 `## ` 章节都有图。Agent 应根据正文内容把占位符放在最需要视觉解释的位置，可以在 H2 标题后、关键段落后或小结前，关键是靠近其解释的概念/数据/关系。step2/3/4 会校验文内插图总数，step4-images.mjs 会校验占位符与图片文件一一对应。**占位符描述必须是附近正文核心内容的视觉化关键词**（如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`），generate-image-prompts.mjs 依赖此描述 + 附近上下文构建图片 prompt
-   - **必须做文内插图决策**：保留原文中有信息价值的插图；根据正文内容主动新增插图。新增图覆盖逻辑关系、流程、架构、概念对比、时间线、利益相关方关系等高信息密度内容，不为装饰而加图
-   - **必须生成金句式 summary**：在 frontmatter summary 字段写一句 ≤ 120 字的金句式摘要，概括文章核心洞察或最反直觉的结论。不要写平淡内容简介（如"本文介绍了…"），而要写让人想点进来的那句话。summary 是微信草稿箱 digest 字段的唯一来源，publish-wechat.mjs 缺 summary 直接 fail
-3. 保存为 `posts/{date-slug}/draft.md`
-4. 运行 `suggest-category.mjs` 获取推荐分类和 blog-slug
-5. 信任度低时，Agent 结合标题、summary、materials、正文主题和分类关键词自行裁决分类与 blog-slug，并在过程或最终说明中记录理由；只有 Agent 仍无法判断且当前运行时具备用户确认工具时才询问用户
-6. 用 `set-frontmatter.mjs` 写入 category、blogSlug，并确保 sourceUrl 与 blogSlug 一致。sourceUrl 是微信草稿"原文链接"的 canonical 来源，必须使用固定博客 URL 规则 `https://ntlx.github.io/articles/{blogSlug}`，不要留空、手写 UTM 或替换为原始素材链接；Step 6.2 会在传给微信前统一追加 WeChat UTM
-7. **视觉规划**：写完 draft.md 后，选择文章的内容类型，产出 `posts/{date-slug}/image-plan.json`。读取 `references/image-template-catalog.md` 的"文章类型 → 模板配置"章节选择最匹配的 article_type。脚本会根据 article_type 自动解析风格家族、信息图模板、插图风格和封面参数。
-
-   **image-plan.json 格式**（极简）：
-   ```json
-   {
-     "article_type": "deep-analysis"
-   }
-   ```
-
-   可选字段：
-   - `direction`：覆盖默认风格家族（可选值见 catalog "风格家族"表）。例如 `"direction": "tech"` 让一篇 opinion-essay 使用技术蓝图风格
-   - 不指定 direction 时使用 article_type 的默认风格家族（项目偏好 journal / 莫兰迪色调）
-
-   **约束**：
-   - `image-plan.json` 缺失时脚本 fallback 到 `deep-analysis` 默认配置（向后兼容）
-   - 脚本自动处理：风格家族解析 → 信息图 layout/style → 文内插图 style → 封面 type/palette/rendering → 每张图的 type 从上下文推断
-
-**draft.md 模板**（强制使用语义占位符）：
-```markdown
----
-title: {标题}
-date: {YYYY-MM-DD}
-summary: {金句式摘要 ≤ 120 字，概括核心洞察或最反直觉结论，而非内容简介}
-category: {6 枚举之一}
-blogSlug: {ascii-kebab-case}
-coverImage: cover.png
-sourceUrl: https://ntlx.github.io/articles/{blogSlug}
----
-
-<!-- SLOT_IMG_00_INFOGRAPHIC -->
-
-## {章节一标题}
-
-<!-- SLOT_IMG_01_{该处论证的视觉关键词} -->
-
-{章节一正文段落…}
-
-## {章节二标题}
-
-<!-- SLOT_IMG_02_{该处论证的视觉关键词} -->
-
-{章节二正文段落…}
-
-## {章节三标题}
-
-{章节三正文段落…}
-
-<!-- SLOT_IMG_03_{该处论证的视觉关键词} -->
-
-…（3-6 个章节，至少 3 个根据内容选择的位置放置文内插图）
-
-*{文末互动问题}*
-
-## 参考资料
-
-- [{来源标题}](https://example.com/source)
-```
-
-**关键**：文内插图不是每章打卡，而是为需要视觉解释的论证节点服务。写作时至少规划 3 个 SLOT_IMG_01+ 占位符，放在相关正文附近；可紧跟 H2，也可放在关键段落后或小结前。占位符描述必须具体——例如 `<!-- SLOT_IMG_01_TRUST_DECLINE_CURVE -->` 而非 `<!-- SLOT_IMG_01_CHART -->`。generate-image-prompts.mjs 依赖描述词 + 附近上下文构建图片 prompt，描述越具体，生成图与正文内容的匹配度越高。
-
-**SLOT_IMG 编号规则**：
-
-占位符编号与 imgs/ 文件名前缀一一对应，写作时按规则规划位置：
-
-| 编号 | 含义 | 位置约定 | 文件名示例 |
-|------|------|---------|-----------|
-| `00` | 信息图（默认生成） | 正文开头 frontmatter 之后 | `00-infographic-core-summary.png` |
-| `01` | 第一个核心概念/架构图 | 靠近相关论证节点 | `01-app-architecture.png` |
-| `02` | 第二个关键流程/对比图 | 靠近相关论证节点 | `02-sensors-overview.png` |
-| `03+` | 补充插图（总数至少 3 张） | 靠近相关论证节点 | `03-workflow-steps.png` |
-
-命名格式：`{编号}-{2-3词英文描述}.png`。编号与 `<!-- SLOT_IMG_{编号}_{英文描述} -->` 中的编号必须一致。**描述词必须反映附近正文的核心内容**（概念名/数据趋势/关系类型），禁止使用 `chart`、`diagram`、`illustration` 等泛化词。
-
-**脚本验证**：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
-脚本校验：frontmatter 完整（title/date/summary/category/blogSlug/coverImage/sourceUrl）、blogSlug 为 ASCII kebab-case、sourceUrl 与 blogSlug 一致、文末互动存在、无 H1、正文含 `## 参考资料`。materials.md 中的 URL 未在正文引用的打印 warning。任一硬门控不通过 exit 非零。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
-## Step 3: 文本后处理
-行为: full
+若没有合适的站内文章，使用 `--allow-no-related` 并记录理由；不要为了
+满足数量强行联动。
 
-**按初稿来源路由**（`source_provenance`）：
+## Step 3：按实际问题 refine
 
-- **material 是人类手稿**（用户拿来自己写的文字，希望少动、保手迹）：通过 **Skill 工具调用 renwei-writing** 做减法打磨，只检查它改过的句子，不要把作者的毛边磨掉。
-- **material 是 agent 初稿**（默认场景）：**不默认调用 renwei-writing**。先跑确定性 style lint（`baoyu-format-markdown` 的 `scripts/main.ts`，只做 CJK 间距/emphasis/标点校正，不重写句子）：
-  ```bash
-  bun run .agents/skills/baoyu-format-markdown/scripts/main.ts posts/<date-slug>/draft.md --no-quotes
-  ```
-  再检查是否有明显 AI 写作模式（宣传腔、三段式排比、万能展望结尾、破折号堆叠、过度连接词等）；只对**命中的片段**用 `humanizer-zh` 定点修复，不做全文重写。不要先调用 renwei-writing 再调用 formatter 整段重写。
+检查正文是否出现事实跳跃、论证缺口、机械表达或格式问题，再决定是否采用
+某个语言/格式能力。可以不调用任何 Skill。不要抹掉第一人称判断，不要
+全文套用“去 AI”模板。完成后运行：
 
-处理范围为正文内容（frontmatter 之后，参考资料之前）。语义占位符 `<!-- SLOT_IMG_ -->` 是 HTML 注释，post 处理不会修改它们。
-
-后处理目标不是"润色得更正式"，而是保住作者存在感的同时去掉 AI 痕迹：只做减法，毛边先假设是手迹而非瑕疵。不要把第一人称观察和读后感式判断磨平。
-
-**脚本验证**：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
-脚本验证 draft.md 存在、非空，并复验关键质量门控（frontmatter 完整、blogSlug/sourceUrl 一致、无 H1、SLOT_IMG_00 信息图和至少 3 张文内插图占位符存在、参考资料存在）。任一不通过 fail。字数由 ljg-writes 自律控制，脚本仅记录不设门控。
 
-若材料丰富度超出单篇承载能力，参考 `references/pipeline-overview.md` 的多文章拆分说明。
+## 后续工程阶段
 
-## 特殊约束
-- 必须落实 `references/originality-policy.md` 的增量与形式变体契约
-- 必须执行 Step 1.8 理解增强并读取 `understanding-brief.md`
-- 必须包含文末互动问题和参考资料区块
-- 参考资料区块标准写法为 `- [标题](URL)`；博客轨保留 Markdown 列表链接，微信轨保留无序列表形态并展开为标题 + 纯文本 URL
-- frontmatter summary 必须是金句式（≤120 字），publish-wechat.mjs 缺 summary 直接 fail
-- sourceUrl 必须使用固定规则 `https://ntlx.github.io/articles/{blogSlug}`
+Step 4-6 遵循 `pipeline-overview.md`：先定义视觉意图，图片统一经项目
+配置的 `baoyu-image-gen → codex-cli`，然后构建双轨产物并按博客、微信顺序
+发布。任何 Gate 失败都回到编排闭环改道，不跳过验证。

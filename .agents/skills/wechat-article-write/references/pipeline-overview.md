@@ -1,114 +1,139 @@
 # wechat-article-write 流水线概览
 
-## 6 步流程
+流水线由两层组成：`workflow.mjs` 提供可恢复的数字 Step 和阶段合同；
+Agent 在开放阶段根据 `orchestration-policy.md` 自主选择方法；脚本在每个
+边界运行确定性 Gate。阶段合同约束结果，不规定内容、写作或视觉 Skill。
 
-| Step | 动作 | 执行者 | 说明 |
+## Step 与 Stage
+
+| Step | 主要产物 | 负责者 | Gate |
 |---|---|---|---|
-| 0 | 文章类型判定 | Agent | 选择 `references/` 下的策略 |
-| 1 | 资料收集 | Agent + 门控 | 写 `materials.md`，运行 `step1-collect.mjs` |
-| 1.5 | 站内记忆检索 | 脚本 | 读取 `materials.md` 和已发布博客，生成 `blog-memory.md/json` |
-| 1.8 | 理解增强 | Agent | 读取 `materials.md` / `blog-memory.md`，调用 ljg 系列技能，生成 `understanding-brief.md` |
-| 2 | 文章创作 | Agent + 门控 | 写 `draft.md` / `image-plan.json`，运行 `step2-write.mjs` |
-| 3 | 文本后处理 | Agent + 门控 | 按初稿来源路由（手稿→renwei-writing；AI 初稿→format 确定性脚本 lint + 按需 humanizer-zh），运行 `step3-polish.mjs` |
-| 4 | 图片生成 | Agent + 门控 | 生成 prompt、串行生图，运行 `step4-images.mjs` |
-| 5 | 产物构建 | 脚本 + Agent | 脚本生成 `article.md` + `article-wechat-source.md`，Agent 调用 `gzh-design` 生成 `article-wechat.html`，脚本 finalize |
-| 6 | 双轨发布 | 脚本 | 博客先发，微信草稿后发 |
+| 0 | 策略与 post 目录 | Agent + state | 状态初始化 |
+| 1 | `materials.md` | Agent / 可选能力 | `step1-collect.mjs` |
+| 1.5 | `blog-memory.md/json` | 脚本 | 站内检索结果 |
+| 1.8 | `understanding-brief.md` | Agent / 可选能力 | `validate-understanding.mjs` |
+| 2 | `draft.md`、`image-plan.json` | Agent / 可选能力 | `step2-write.mjs` |
+| 3 | 更新后的 `draft.md` | Agent / 确定性 lint | `step3-polish.mjs` |
+| 4 | `cover.png`、`imgs/*` | Agent + 视觉适配器 | `step4-images.mjs` |
+| 5 | 三种双轨产物 | 脚本 + 微信排版适配器 | `step5-build.mjs` |
+| 6 | 博客提交、微信草稿 | 脚本 | publish Gates |
 
-## Step 1 last30days 近期讨论
+数字 state 格式和现有发布协议保持不变。`reader-response` 的 Step 2 先
+完成理解合同再写作；`tutorial` 将内容适配归入 `adapt`；其它策略按各自
+stage sequence 推导，不新增另一套断点格式。
 
-Step 1 资料收集可以调用 `last30days`，但它是资料来源，不是文章写作器。Agent 必须先按 `last30days` 自身技能要求完成 setup / preflight / engine 调用；如果首次运行需要用户授权或登录源不可用，不要静默假装已覆盖 X、YouTube、TikTok 等来源。
+## Step 0：选择编辑目标
 
-### 触发条件
+从三种 strategy 中选择一种：
 
-| 场景 | 处理 |
-|---|---|
-| AI 行业动态、新闻简报、热点复盘 | 推荐调用，覆盖主线热点或 3-5 个核心主题 |
-| 人物、公司、产品、开源项目、模型发布 | 推荐调用，获取社区反应、真实用户反馈、近期争议 |
-| 工具对比、推荐、趋势判断 | 推荐调用，补充 Reddit / X / YouTube / GitHub / Polymarket 等近期信号 |
-| evergreen 教程、已有文档转公众号、纯配置指南 | 默认不调用，除非用户要求近期反馈或社区评价 |
+- `reader-response`：从材料出发形成属于作者的判断、认知增量和延展思考；
+- `tutorial`：准确保留原知识，同时提高解释性、可读性和可执行性；
+- `news-digest`：发现事件、核实事实、判断重要性，压缩成可快速决策的信息。
 
-### 写入 materials.md
+策略只定义编辑目标和阶段序列。数据源、分析方法和写作方法在运行时按
+当前缺口选择。新任务先读 `references/originality-policy.md`，观察近期开文
+节奏，再建立 `posts/{date-slug}/`。
 
-`last30days` 结果应压缩成材料小节，不要把完整用户输出原样粘进文章：
+## Step 1：收集与核验材料
 
-```markdown
-## last30days 近期讨论
+把原始材料、用户意图和必要的背景/时效信息写入 `materials.md`。事实、
+推断和作者观点要分开；进入正文的外部事实必须保留可追溯 URL，无法核实
+的内容明确标注。需要近期社区反馈时，只使用当前可发现且实际可用的能力，
+不要把工具输出格式当成文章结构。
 
-- 调研主题：
-- 时间窗口：
-- 覆盖来源：
-- 关键发现：
-- 社区原话：
-- 分歧/争议：
-- 可用于正文的判断：
-- 原始结果文件：
-- 参考 URL：
+通过后运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 ```
 
-该小节不能替代 `## 背景调研`。凡是会进入正文判断的来源，都要在 `## 背景调研` 或参考资料中保留可追溯 URL；若 `last30days` 只返回来源标签或 raw file 路径，Agent 需要从 raw file / WebSearch supplement 中提取 URL 后再写入材料。
-
-## Step 1.5 站内记忆检索
-
-Step 1 通过后运行：
+然后生成站内记忆：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
 ```
 
-脚本扫描 `src/content/docs/articles/*.md`，忽略 `.backup-*` 文件，基于 `materials.md` 生成当前文章可联动的旧文候选。Step 2 写作时必须读取 `blog-memory.md`，正文自然联动 1-2 篇旧文，文末放 2-4 篇站内延伸阅读；如果候选不适合当前文章，运行 Step 2 时使用 `--allow-no-related` 并在最终说明中交代理由。
+## Step 1.8：形成理解合同
 
-## Step 1.8 理解增强
+需要深度理解的任务在写作前生成 `understanding-brief.md`。Agent 先读材料、
+站内记忆、策略目标和上一 Gate，再运行动态 catalog；可选择自己完成、一个
+专业 Skill 或少量互补 Skill。最终只保留对文章有用的判断，不把多份分析
+报告原样拼接。
 
-`reader-response` 策略必须在 Step 2 前生成：
+brief 至少应说明材料结构、核心问题、中心判断、关键概念、机制、约束与
+边界、反方、可写判断、可视觉化节点，以及至少三条可检查的写作增量承诺。
+通过：
 
-```text
-posts/{date-slug}/understanding-brief.md
+```bash
+bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <date-slug>
 ```
 
-具体调用规则见 `references/material-understanding.md`。强制调用 `ljg-qa` 和 `ljg-think`；按材料类型条件调用 `ljg-read`、`ljg-rank`、`ljg-constraint`、`ljg-plain`、`ljg-learn`、`ljg-paper`、`ljg-book`、`ljg-roundtable`、`ljg-invest`、`ljg-word`。
+## Step 2：写作或内容适配
 
-`understanding-brief.md` 不是素材堆放区，而是 Step 2 的写作契约。它必须把材料压成核心问题链、中心论点、判断边界、可视觉化节点和站内旧文联动建议。`reader-response` 的 Step 2 调用 `ljg-writes` 产出正文候选时，必须读取它。
+以 stage contract 为准生成 `draft.md` 和 `image-plan.json`。无论是否委托
+专业写作能力，Agent 都必须负责仓库适配：frontmatter、`summary`、
+`sourceUrl`、H2 正文、参考资料、互动（策略允许时）、站内联动和 SLOT
+占位符都要完整。SLOT 不是章节打卡，而是放在确实需要视觉解释的论证节点；
+当前兼容规则要求 SLOT 00 和至少三张文内图。
 
-## Step 0 策略选择
+教程适配还要保留 `targetPath` 和源文 canonical URL；具体例外见教程策略。
+写完运行 `step2-write.mjs`，失败时根据 Gate 错误修正产物，不要直接前进。
 
-选策略前按 `references/originality-policy.md` 做节奏软感知：一句话报告近 7 天篇数与分类分布，频率过高或同分类连排时提出间隔/换体裁建议。
+## Step 3：按问题 refine
 
-| 场景 | 策略 |
-|---|---|
-| 用户给 URL/材料，要求读后感、深度分析、观点文 | `reader-response` |
-| 用户给已有博文/文档，要求转公众号或配图发布 | `tutorial` |
-| 用户要求 AI 资讯/行业动态简报 | `news-digest`，experimental，首次使用先确认 |
+先诊断文本实际问题，再决定是否调用格式、语言或结构能力。可以不调用
+任何 Skill；已好的段落不为“润色”而重写。保住作者第一人称判断和自然
+毛边，不把全文统一成模板腔。确定性格式检查和最终内容协议由：
 
-策略只影响 Steps 1-3；Steps 4-6 始终按本技能工程管线执行。
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
+```
 
-## date-slug 与 blog-slug
+## Step 4：视觉意图与图片资产
 
-- `date-slug`：`posts/` 下本地目录名，可含中文，形如 `YYYY-MM-DD-标题片段`。
-- `blog-slug`：博客 URL 段，必须是纯 ASCII kebab-case。
-- `sourceUrl`：canonical 博客公网 URL，默认 `https://ntlx.github.io/articles/{blogSlug}`；`tutorial` 可指向已有博文实际 URL。不要在 frontmatter 手写 UTM；Step 6.2 会为微信“阅读原文”生成带 WeChat UTM 的 `wechatSourceUrl`。
+先说明每个 SLOT 要让读者看懂什么，再从当前 catalog 选择分析、布局或插图
+能力。生成 prompt 后逐张审阅；图片必须与正文信息对应，文字、数字和命名
+契约必须复核。
 
-## Step 5 自动化语义
+所有 raster rendering 的链路固定为：高层视觉能力 → `baoyu-image-gen` →
+`codex-cli`。运行图片预检后，日常命令不传 provider 覆盖参数；Codex CLI
+不可用或失败时当前 stage BLOCKED，不得切换其它后端。完整规则见
+`references/image-backends.md`。
 
-- **脚本自动**：`step5-build.mjs` 的预处理与 finalize、`publish-blog.mjs`、`publish-wechat.mjs`
-- **Agent 自动**：包含 `gzh-design` 排版在内的完整微信链路
+## Step 5：确定性双轨构建
 
-本仓库默认追求的是 **Agent 自动**。因此 `pipeline.mjs --auto` 遇到 Step 5 时，如果只完成了预处理，会继续提示 Agent 调用 `gzh-design`，而不是假装脚本已经能独立完成微信排版。
+先让脚本根据 `draft.md`、图片和 CDN 配置生成：
 
-## 多文章拆分（reader-response）
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
+```
 
-Step 1 后判断材料是否超出单篇 ljg-writes 文章承载（仅 `reader-response` 适用；`news-digest` 按简报自身结构组织）：
+得到 `article.md` 和 `article-wechat-source.md` 后，由 Agent 调用
+`gzh-design` 生成 `article-wechat.html`。博客保留 Markdown 链接和 CDN 图；
+微信源文件将普通链接展开为纯文本 URL，HTML 最终不得有普通 `<a href>`。
+然后运行：
 
-- 包含 3 个以上相互独立且各有深度的主题；
-- 每个主题都值得独立展开；
-- 拆分后每篇文章能独立成立。
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
+```
 
-若需要拆分，先向用户提出每篇主题、覆盖材料和建议发布顺序；用户确认后为每篇单独创建 `posts/{date-slug}/` 并从 Step 1.8 开始独立走完整管线。
+finalize（HTML finalize）会运行 HTML validator 并记录 Step 5 状态。不能用 post 内临时
+渲染脚本替代排版适配器。
 
-## 断点续跑
+## Step 6：发布
+
+只在 Step 5 通过后按“博客先行、微信草稿后行”运行发布。微信输入固定是
+`article-wechat.html`，阅读原文由 canonical `sourceUrl` 生成带 UTM 的地址。
+发布失败保留 state 和本地 artifacts；重试前先查看：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
 ```
 
-`next` 返回下一个待执行 step；不要在状态未知时从头重做。
+## Gate 失败与多文章拆分
+
+Gate 失败时遵循 Observe → Define Gap → Discover → Select → Delegate →
+Verify → Adapt 闭环。可修输入、换路线或由 Agent 补足；相同失败不应无脑
+重复。若材料含多个互相独立、各自足够成文的主题，先提出拆分方案并取得
+确认，再为每篇文章建立独立 post 和 state。

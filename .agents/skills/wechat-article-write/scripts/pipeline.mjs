@@ -1,48 +1,48 @@
 #!/usr/bin/env bun
 /**
- * pipeline.mjs — 最小编排器
+ * pipeline.mjs — 状态驱动的最小编排器
  *
- * 默认只读取状态并打印下一步指引；传 --auto 时自动串行执行确定性步骤（Step 5 构建 + Step 6 发布）。
- * 非确定性步骤（1-4）始终由 Agent 手动执行。
+ * 默认只读取状态并打印当前 Stage Contract。Step 1-4 的认知、写作和
+ * 视觉执行由 Agent 自主完成；--auto 只自动执行确定性构建/发布步骤。
  *
  * 用法:
  *   bun run pipeline.mjs <date-slug> [--auto]
- *
- * 行为:
- *   - 读取 state 获取 nextStep
- *   - nextStep 1-4: 打印相应指引后退出（Agent 需手动完成）
- *   - nextStep 5:   默认只提示；--auto 时运行 step5-build.mjs
- *   - nextStep 6:   默认只提示；--auto 时依次运行 publish-blog.mjs → publish-wechat.mjs（检查子状态）
- *   - nextStep done: 打印完成信息
- *   - 任何脚本失败: 写 state，报告错误，退出
- *
- * --auto: 自动执行所有可执行步骤直到完成或失败
  */
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { nextStageFromStep, stageReadRef } from "./workflow.mjs";
+import {
+  nextStageFromStep,
+  stageContractFor,
+  stageReadRefs,
+  stagesForStep,
+} from "./workflow.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const scriptsDir = resolve(import.meta.dirname);
 
 function run(args, label) {
   process.stdout.write(`\n[run] ${label}\n`);
-  const r = spawnSync("bun", ["run", ...args], { stdio: "inherit", encoding: "utf8", cwd: repoRoot });
-  if (r.status !== 0) {
-    process.stderr.write(`\n[fail] ${label} 失败（exit ${r.status}）\n`);
-    process.exit(r.status ?? 1);
+  const result = spawnSync("bun", ["run", ...args], {
+    stdio: "inherit",
+    encoding: "utf8",
+    cwd: repoRoot,
+  });
+  if (result.status !== 0) {
+    process.stderr.write(`\n[fail] ${label} 失败（exit ${result.status}）\n`);
+    process.exit(result.status ?? 1);
   }
   process.stdout.write(`[ok] ${label} 完成\n`);
-  return r;
+  return result;
 }
 
 function getNextStep(slug) {
-  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "next", slug], {
-    encoding: "utf8", cwd: repoRoot
+  const result = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "next", slug], {
+    encoding: "utf8",
+    cwd: repoRoot,
   });
-  return (r.stdout ?? "").trim();
+  return (result.stdout ?? "").trim();
 }
 
 function getStep5Paths(slug) {
@@ -54,84 +54,135 @@ function getStep5Paths(slug) {
 }
 
 function getStateData(slug) {
-  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
-    encoding: "utf8", cwd: repoRoot
+  const result = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
+    encoding: "utf8",
+    cwd: repoRoot,
   });
   try {
-    return JSON.parse(r.stdout ?? "{}");
+    return JSON.parse(result.stdout ?? "{}");
   } catch {
     return {};
   }
 }
 
-function getNextStage(slug) {
-  const s = getStateData(slug);
-  const strategy = s.strategy;
-  const last = s.last_complete_step ?? 0;
-  const pub = s.publish ?? { blog: "pending", wechat: "pending" };
-  if (!strategy) {
-    return { stage: "unknown", strategy: null, ref: null };
+function getNextStage(slug, nextStep) {
+  const state = getStateData(slug);
+  const strategy = state.strategy;
+  const last = state.last_complete_step ?? 0;
+  const publish = state.publish ?? { blog: "pending", wechat: "pending" };
+  if (!strategy) return { stage: "unknown", strategy: null, refs: [], stages: [] };
+
+  const stage = nextStageFromStep(strategy, last, publish);
+  return {
+    stage,
+    strategy,
+    refs: stageReadRefs(strategy, stage),
+    stages: stagesForStep(strategy, last, nextStep, publish),
+  };
+}
+
+function gateSpecs(contract) {
+  if (!contract) return [];
+  return contract.gates ?? (contract.gate ? [contract.gate] : []);
+}
+
+function gateCommand(gate, slug) {
+  const args = [slug, ...(gate.args ?? [])].join(" ");
+  return `bun run ${resolve(scriptsDir, gate.script)} ${args}`;
+}
+
+function printStageContract(slug, strategy, stage) {
+  const contract = stageContractFor(stage);
+  if (!contract) return;
+
+  process.stdout.write(`\n  Stage Contract: ${stage} (${contract.mode})\n`);
+  process.stdout.write(`  Goal: ${contract.goal}\n`);
+  process.stdout.write(`  Inputs: ${contract.inputs.join("、")}\n`);
+  process.stdout.write(`  Required artifacts: ${contract.outputs.length ? contract.outputs.join("、") : "（由状态/上下文承载）"}\n`);
+  process.stdout.write("  Acceptance criteria:\n");
+  for (const item of contract.acceptance) process.stdout.write(`    - ${item}\n`);
+
+  const refs = stageReadRefs(strategy, stage);
+  if (refs.length > 0) process.stdout.write(`  Read: ${refs.join("; ")}\n`);
+
+  if (contract.mode.startsWith("adaptive")) {
+    process.stdout.write(`  Discover capabilities: bun run ${resolve(scriptsDir, "skill-catalog.mjs")} --json\n`);
+    process.stdout.write("  Select route: Agent 原生完成、单个专业 Skill，或少量互补 Skill；no-skill 是合法路线。\n");
+    process.stdout.write("  Verify: Skill 输出不是成功定义，必须以本 Stage Contract 和 Gate 为准。\n");
+    process.stdout.write("  Adapt on failure: 诊断缺口后修正输入、重试、换 Skill 或改由 Agent 补足，再重新运行 Gate。\n");
   }
-  const stage = nextStageFromStep(strategy, last, pub);
-  return { stage, strategy, ref: stageReadRef(strategy, stage) };
+  if (stage === "illustrate") {
+    process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")}\n`);
+    process.stdout.write("  Raster policy: 由项目配置解析到 baoyu-image-gen → codex-cli；不可用时 fail closed。\n");
+  }
+
+  const gates = gateSpecs(contract);
+  if (gates.length > 0) {
+    process.stdout.write("  Gate command(s):\n");
+    for (const gate of gates) process.stdout.write(`    ${gateCommand(gate, slug)}\n`);
+  }
+}
+
+function printAgentGuide(step, slug, info) {
+  if (!["1", "2", "3", "4"].includes(step)) return;
+  if (info.stages.length === 0) {
+    process.stdout.write("  Agent: 先设置 strategy，再按当前 Stage Contract 执行。\n");
+    return;
+  }
+  process.stdout.write("\n  Agent action: 完成上面列出的输入、产物和验收标准；需要能力时先查看 catalog，再读取候选 Skill 的完整 SKILL.md。\n");
+  process.stdout.write(`  Gate 通过后重新运行 pipeline.mjs ${slug} 继续；Gate 失败时沿 Adapt 路径重规划，不要盲目重复。\n`);
+}
+
+function getPublishState(slug) {
+  const result = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
+    encoding: "utf8",
+    cwd: repoRoot,
+  });
+  try {
+    return JSON.parse(result.stdout ?? "{}").publish ?? { blog: "pending", wechat: "pending" };
+  } catch {
+    return { blog: "pending", wechat: "pending" };
+  }
 }
 
 function printNext(slug) {
   const step = getNextStep(slug);
   if (step === "done") {
     process.stdout.write("\n流水线全部完成。\n");
+    return;
+  }
+
+  const info = getNextStage(slug, step);
+  if (info.stage === "unknown") {
+    process.stdout.write(`\n下一步: Step ${step}（阶段: unknown，未记录写作策略）\n`);
+    process.stdout.write(`  提示: 运行 "bun run ${resolve(scriptsDir, "state.mjs")} strategy set ${slug} <reader-response|tutorial|news-digest>" 后，名称阶段可正常推导。\n`);
   } else {
-    const { stage, ref } = getNextStage(slug);
-    if (stage === "unknown") {
-      process.stdout.write(`\n下一步: Step ${step}（阶段: unknown，未记录写作策略）\n`);
-      process.stdout.write(`  提示: 运行 "bun run .agents/skills/wechat-article-write/scripts/state.mjs strategy set ${slug} <reader-response|tutorial|news-digest>" 后，名称阶段可正常推导\n`);
+    process.stdout.write(`\n下一步: Step ${step}（阶段: ${info.stage}）\n`);
+    for (const stage of info.stages.length > 0 ? info.stages : [info.stage]) {
+      printStageContract(slug, info.strategy, stage);
+    }
+  }
+
+  if (["1", "2", "3", "4"].includes(step)) {
+    printAgentGuide(step, slug, info);
+  } else if (step === "5") {
+    const paths = getStep5Paths(slug);
+    if (existsSync(paths.wechatSource) && !existsSync(paths.wechatHtml)) {
+      process.stdout.write(`\nStep 5 已完成预处理；请由 Agent 调用 gzh-design 基于 ${resolve(repoRoot, "posts", slug, "article-wechat-source.md")} 生成 article-wechat.html。\n`);
+      process.stdout.write(`  生成后运行: bun run ${resolve(scriptsDir, "step5-build.mjs")} ${slug} --finalize-only\n`);
     } else {
-      process.stdout.write(`\n下一步: Step ${step}（阶段: ${stage}）\n`);
-      if (ref) process.stdout.write(`  读取: ${ref}\n`);
+      process.stdout.write(`\n  运行: bun run ${resolve(scriptsDir, "pipeline.mjs")} ${slug} --auto\n`);
     }
-    if (["1", "2", "3", "4"].includes(step)) {
-      printAgentGuide(step, slug);
-    } else if (step === "5") {
-      const paths = getStep5Paths(slug);
-      if (existsSync(paths.wechatSource) && !existsSync(paths.wechatHtml)) {
-        process.stdout.write(`  Step 5 已完成预处理；请由 Agent 调用 gzh-design 基于 posts/${slug}/article-wechat-source.md 生成 article-wechat.html\n`);
-        process.stdout.write(`  生成后运行: bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs ${slug} --finalize-only\n`);
-      } else {
-        process.stdout.write(`  运行: bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs ${slug} --auto\n`);
-      }
-    } else if (step === "6") {
-      const pub = getPublishState(slug);
-      process.stdout.write(`  博客发布: ${pub.blog}; 微信发布: ${pub.wechat}\n`);
-      process.stdout.write(`  运行: bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs ${slug} --auto\n`);
-    }
+  } else if (step === "6") {
+    const publish = getPublishState(slug);
+    process.stdout.write(`\n  博客发布: ${publish.blog}; 微信发布: ${publish.wechat}\n`);
+    process.stdout.write(`  运行: bun run ${resolve(scriptsDir, "pipeline.mjs")} ${slug} --auto\n`);
   }
 }
 
-function printAgentGuide(step, slug) {
-  const guides = {
-    "1": `  Agent: 使用可用的联网工具收集原文和背景资料（materials.md 必须含 ## 背景调研 + 来源 URL）→ 写入 posts/${slug}/materials.md\n  然后运行: bun run step1-collect.mjs ${slug}`,
-    "2": `  Agent: 按策略研读 references/strategy-*.md 的 Step 2 写作合同（reader-response 用 ljg-writes 产正文候选；news-digest 不用 ljg-writes），保存 draft.md + image-plan.json\n  然后运行: bun run step2-write.mjs ${slug}`,
-    "3": `  Agent: 按 references/strategy-*.md 的 Step 3 按初稿来源做后处理（手稿→renwei-writing；AI 初稿→format lint + 按需 humanizer-zh）\n  完成后运行: bun run step3-polish.mjs ${slug}`,
-    "4": `  Agent: 运行 generate-image-prompts.mjs 生成 baoyu-infographic 信息图 prompt（layout + style）+ baoyu 封面/文内插图 prompt\n  生成 cover.png + imgs/*.png 后运行: bun run step4-images.mjs ${slug}`,
-  };
-  process.stdout.write(guides[step] ?? "");
-}
-
-function getPublishState(slug) {
-  const r = spawnSync("bun", ["run", resolve(scriptsDir, "state.mjs"), "dump", slug], {
-    encoding: "utf8", cwd: repoRoot
-  });
-  try {
-    return JSON.parse(r.stdout ?? "{}").publish ?? { blog: "pending", wechat: "pending" };
-  } catch {
-    return { blog: "pending", wechat: "pending" };
-  }
-}
-
-// Main
 const args = process.argv.slice(2);
 const auto = args.includes("--auto");
-const slug = args.find(a => !a.startsWith("--"));
+const slug = args.find((arg) => !arg.startsWith("--"));
 
 if (!slug) {
   process.stderr.write("usage: pipeline.mjs <date-slug> [--auto]\n");
@@ -152,14 +203,14 @@ if (!auto && !process.env.PIPELINE_AUTO) {
   process.exit(0);
 }
 
-// Steps 1-4: 需要 Agent 手动执行
+// Steps 1-4 remain Agent-controlled adaptive work.
 if (["1", "2", "3", "4"].includes(step)) {
-  printAgentGuide(step, slug);
-  process.stdout.write("\n完成上述步骤后，重新运行 pipeline.mjs 继续。\n");
+  printNext(slug);
+  process.stdout.write("\n完成当前 Stage Contract 并通过 Gate 后，重新运行 pipeline.mjs 继续。\n");
   process.exit(0);
 }
 
-// Step 5: 自动构建（仅 --auto）
+// Step 5: deterministic build (only with --auto).
 if (step === "5") {
   run([resolve(scriptsDir, "step5-build.mjs"), slug], "Step 5: 产物构建");
   step = getNextStep(slug);
@@ -173,20 +224,19 @@ if (step === "5") {
   }
 }
 
-// Step 6: 双轨发布（仅 --auto，检查子状态避免重复执行）
+// Step 6: deterministic dual-track publication with independent sub-state.
 if (step === "6" || step === "done") {
-  const pub = getPublishState(slug);
+  const publish = getPublishState(slug);
 
-  if (pub.blog === "pending" || pub.blog === "failed") {
+  if (publish.blog === "pending" || publish.blog === "failed") {
     run([resolve(scriptsDir, "publish-blog.mjs"), slug], "Step 6.1: 博客发布");
   } else {
-    process.stdout.write(`\n博客发布: ${pub.blog}（跳过）\n`);
+    process.stdout.write(`\n博客发布: ${publish.blog}（跳过）\n`);
   }
 
-  // 博客发布后可能有 blocked 状态（push 失败但 commit 成功），此时可以继续微信发布
-  if (pub.wechat === "pending" || pub.wechat === "failed") {
-    const blogPub = getPublishState(slug); // re-read after blog publish
-    if (blogPub.blog === "blocked") {
+  if (publish.wechat === "pending" || publish.wechat === "failed") {
+    const blogPublish = getPublishState(slug);
+    if (blogPublish.blog === "blocked") {
       process.stdout.write("\nWARNING: 博客 push 失败，commit 已保存。检查网络后手动 git push。\n");
       process.stdout.write("微信发布可继续（sourceUrl 将稍后就绪）。\n");
     }
@@ -194,7 +244,7 @@ if (step === "6" || step === "done") {
       run([resolve(scriptsDir, "publish-wechat.mjs"), slug, "--skip-deploy-check"], "Step 6.2: 微信发布");
     }
   } else {
-    process.stdout.write(`\n微信发布: ${pub.wechat}（跳过）\n`);
+    process.stdout.write(`\n微信发布: ${publish.wechat}（跳过）\n`);
   }
 }
 

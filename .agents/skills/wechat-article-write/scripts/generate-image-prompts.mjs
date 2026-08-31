@@ -9,6 +9,12 @@
  *   - imgs/prompts/00-cover-{blogSlug}.md
  *   - imgs/prompts/00-infographic-core-summary.md
  *   - imgs/prompts/{NN}-{desc}.md for SLOT_IMG_01+
+ *
+ * Boundary: image-plan.json is an Agent-authored visual plan. This adapter
+ * does not discover or select Skills and does not call a visual Skill; it only
+ * materializes the current repository SLOT/prompt protocol from that plan and
+ * the official Baoyu template references. Raster rendering happens later via
+ * the configured baoyu-image-gen backend.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";

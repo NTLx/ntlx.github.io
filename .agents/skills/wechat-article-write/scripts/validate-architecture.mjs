@@ -4,7 +4,7 @@
  *
  * 校验本技能及其依赖技能的架构契约（实施文档 §10/§11）：
  *   1. 自建 Skill frontmatter 合规（author / version 位于 metadata，不残留在顶层）
- *   2. workflow 引用的必需 Skill 已安装
+ *   2. workflow 声明的 hard engineering Skill 已安装
  *   3. docs 中出现的 Skill 引用无悬空依赖（不存在已删除的旧 Skill 名）
  *   4. strategy 文件存在
  *   5. .claude/skills symlink 完整且指向 .agents/skills
@@ -19,7 +19,14 @@
 
 import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { REQUIRED_SKILLS as WORKFLOW_REQUIRED } from "./workflow.mjs";
+import {
+  HARD_SKILLS as WORKFLOW_HARD_SKILLS,
+  STRATEGIES,
+  STAGE_CONTRACTS,
+  STAGE_ORDER,
+  validateWorkflow,
+} from "./workflow.mjs";
+import { runImageBackendChecks } from "./check-image-backend.mjs";
 
 /**
  * 专用 frontmatter 解析（Skill spec 版）
@@ -79,8 +86,8 @@ const LOCK_PATH = resolve(REPO_ROOT, "skills-lock.json");
 /** 自建技能判定：frontmatter 中 metadata.author 或顶层 author 为 NTLx */
 const CUSTOM_AUTHOR = "NTLx";
 
-/** workflow 指令引用的必需 Skill（缺失 = 阻断），唯一来源是 workflow.mjs */
-const REQUIRED_SKILLS = WORKFLOW_REQUIRED;
+/** workflow 的 hard engineering Skill（缺失 = 阻断），唯一来源是 workflow.mjs */
+const HARD_SKILLS = WORKFLOW_HARD_SKILLS;
 
 /** 已被删除、不应再被任何文档引用的旧 Skill 名 */
 const RETIRED_SKILL_NAMES = ["ljg-paper-river"];
@@ -191,16 +198,66 @@ function checkCustomSkillFrontmatter(errors, warnings) {
 }
 
 /**
- * 2. workflow 引用的必需 Skill 已安装
+ * 2. workflow 声明的 hard engineering Skill 已安装
  */
-function checkRequiredSkills(errors, warnings) {
+function checkHardSkills(errors, warnings) {
   const state = { errors, warnings };
-  for (const name of REQUIRED_SKILLS) {
+  for (const name of HARD_SKILLS) {
     if (!existsSync(resolve(skillDir(name), "SKILL.md"))) {
-      state.errors.push(`必需 Skill 缺失: ${name}`);
+      state.errors.push(`hard engineering Skill 缺失: ${name}`);
     }
   }
   return state;
+}
+
+/**
+ * 2b. Stage Contract 机器源合法，且不携带 adaptive Skill 注册表。
+ */
+function checkWorkflowContracts(errors, warnings) {
+  const state = { errors, warnings };
+  for (const error of validateWorkflow()) state.errors.push(`workflow contract: ${error}`);
+
+  for (const [name, strategy] of Object.entries(STRATEGIES)) {
+    if (!strategy.objective || !Array.isArray(strategy.stages)) continue;
+    for (const stage of strategy.stages) {
+      if (!Object.prototype.hasOwnProperty.call(STAGE_CONTRACTS, stage)) {
+        state.errors.push(`strategy ${name} 引用不存在 Stage Contract: ${stage}`);
+      }
+    }
+  }
+  return state;
+}
+
+/**
+ * 2a. Stage Contract 引用的文档和 Gate 脚本必须存在。
+ * 这一步只验证协议边界，不执行任何 Gate。
+ */
+function checkWorkflowArtifacts(errors, warnings) {
+  const state = { errors, warnings };
+  for (const [stage, contract] of Object.entries(STAGE_CONTRACTS)) {
+    for (const reference of contract.references ?? []) {
+      if (!existsSync(resolve(SKILL_DIR, reference))) {
+        state.errors.push(`Stage ${stage} 引用文件不存在: ${reference}`);
+      }
+    }
+    const gates = contract.gates ?? (contract.gate ? [contract.gate] : []);
+    for (const gate of gates) {
+      if (gate?.script && !existsSync(resolve(SKILL_DIR, "scripts", gate.script))) {
+        state.errors.push(`Stage ${stage} Gate 脚本不存在: scripts/${gate.script}`);
+      }
+    }
+  }
+  return state;
+}
+
+/**
+ * 2c. 图片成本边界的静态配置合同。CLI 登录状态属于 check-deps --stage images
+ * 的运行时 preflight，不在此处执行。
+ */
+function checkImageBackendContract(errors, warnings) {
+  const result = runImageBackendChecks({ root: REPO_ROOT, checkCli: false, checkEnv: false });
+  for (const error of result.errors) errors.push(`image backend contract: ${error}`);
+  for (const warning of result.warnings) warnings.push(`image backend contract: ${warning}`);
 }
 
 /**
@@ -236,7 +293,7 @@ function checkDanglingSkillReferences(errors, warnings) {
   }
 
   for (const name of mentioned) {
-    if (!installed.has(name) && !REQUIRED_SKILLS.includes(name)) {
+    if (!installed.has(name) && !HARD_SKILLS.includes(name)) {
       state.warnings.push(`文档引用未安装技能: ${name}`);
     }
   }
@@ -335,7 +392,10 @@ export function runArchitectureChecks() {
   const errors = [];
   const warnings = [];
   checkCustomSkillFrontmatter(errors, warnings);
-  checkRequiredSkills(errors, warnings);
+  checkWorkflowContracts(errors, warnings);
+  checkWorkflowArtifacts(errors, warnings);
+  checkHardSkills(errors, warnings);
+  checkImageBackendContract(errors, warnings);
   checkDanglingSkillReferences(errors, warnings);
   checkStrategyFiles(errors, warnings);
   checkSymlinks(errors, warnings);
