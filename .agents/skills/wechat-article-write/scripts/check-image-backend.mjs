@@ -3,8 +3,7 @@
  * check-image-backend.mjs — raster backend policy preflight
  *
  * This is a verifier, not a repairer.  It checks the project configuration,
- * the high-level visual adapters used by the current prompt helper, the local
- * Codex CLI, and non-secret runtime tuning.  A missing Codex CLI is an error:
+ * the local Codex CLI, and non-secret runtime tuning.  A missing Codex CLI is an error:
  * the article workflow has no paid-provider escape route.
  */
 
@@ -14,13 +13,6 @@ import { spawnSync } from "node:child_process";
 import { repoRoot as configuredRepoRoot } from "./path-resolver.mjs";
 
 const EXPECTED_PROVIDER = "codex-cli";
-const EXPECTED_HIGH_LEVEL_BACKEND = "baoyu-image-gen";
-
-export const HIGH_LEVEL_RASTER_SKILLS = [
-  "baoyu-cover-image",
-  "baoyu-article-illustrator",
-  "baoyu-infographic",
-];
 
 function scalarValue(text, key) {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -75,31 +67,6 @@ function checkProjectConfig(root, errors, details) {
     }
     if (legacy !== null) {
       errors.push("baoyu-image-gen EXTEND.md still uses legacy preferred_image_backend; use default_provider");
-    }
-  }
-}
-
-function checkHighLevelConfigs(root, errors, details) {
-  details.high_level = {};
-  for (const skill of HIGH_LEVEL_RASTER_SKILLS) {
-    const skillPath = resolve(root, ".agents/skills", skill, "SKILL.md");
-    if (!existsSync(skillPath)) {
-      details.high_level[skill] = { installed: false };
-      continue;
-    }
-
-    const configPath = resolve(root, ".baoyu-skills", skill, "EXTEND.md");
-    const item = { installed: true, config: configPath };
-    details.high_level[skill] = item;
-    if (!existsSync(configPath)) {
-      errors.push(`${skill} config missing: ${configPath}`);
-      continue;
-    }
-
-    const backend = scalarValue(readFileSync(configPath, "utf8"), "preferred_image_backend");
-    item.preferred_image_backend = backend;
-    if (backend !== EXPECTED_HIGH_LEVEL_BACKEND) {
-      errors.push(`${skill} preferred_image_backend must be ${EXPECTED_HIGH_LEVEL_BACKEND}`);
     }
   }
 }
@@ -182,7 +149,6 @@ export function runImageBackendChecks({
   const warnings = [];
   const details = {};
   checkProjectConfig(root, errors, details);
-  checkHighLevelConfigs(root, errors, details);
   checkLocalRuntime(root, errors, warnings, details, checkEnv);
   checkCodexCli(errors, warnings, details, checkCli);
   return { ok: errors.length === 0, errors, warnings, details };

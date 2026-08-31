@@ -56,13 +56,13 @@ wechat_layout_generate_preview: true
 | 适配器 | 配置或来源 | 作用 |
 |---|---|---|
 | `baoyu-image-gen` | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | raster backend；`default_provider` 必须为 `codex-cli` |
-| 当前高层视觉模板 | `.baoyu-skills/{skill}/EXTEND.md` | 若承担 raster，`preferred_image_backend` 必须为 `baoyu-image-gen` |
+| 条件式视觉 adapter 模板 | `.agents/skills/{skill}/` | 仅在 image-plan 选择 `adapter` 时按需读取；不属于全局 hard dependency |
 | `gzh-design` | `.agents/skills/gzh-design/` | 微信 HTML 排版、校验和预览 |
 | `github-image-hosting` | `.agents/skills/github-image-hosting/` | 博客图片 CDN 适配 |
 | `baoyu-post-to-wechat` | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信草稿适配 |
 
-`generate-image-prompts.mjs` 当前读取若干 Baoyu 官方模板文件，因此相关
-模板安装是现有图片 prompt 适配器的工程前提；它不复制第三方生成算法。
+`generate-image-prompts.mjs` 仅在实际资产选择 `adapter` 时读取兼容模板；
+`external` producer 路径不读取这些模板，也不复制第三方生成算法。
 
 ## 本地环境
 

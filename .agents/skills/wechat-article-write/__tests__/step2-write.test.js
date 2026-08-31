@@ -38,7 +38,7 @@ const VALID_BODY = `
 > https://example.com/source
 `;
 
-function writeDraft(slug, fmOverrides = {}) {
+function writeDraft(slug, fmOverrides = {}, body = VALID_BODY) {
   const dir = join(TMP_ROOT, slug);
   mkdirSync(dir, { recursive: true });
   const fm = {
@@ -54,7 +54,27 @@ function writeDraft(slug, fmOverrides = {}) {
   const lines = Object.entries(fm)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}: ${v}`);
-  writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n${VALID_BODY}`);
+  writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n${body}`);
+}
+
+function bodyWithBodySlots(slots) {
+  const placeholders = slots.map((slot) => `<!-- SLOT_IMG_${String(slot).padStart(2, "0")}_VISUAL_NODE -->`).join("\n\n");
+  return `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+${placeholders}
+
+一些正文内容。
+
+*你怎么看这个问题?*
+
+## 参考资料
+
+> 来源
+> https://example.com/source
+`;
 }
 
 function runStep2(slug) {
@@ -139,40 +159,23 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
     expect(r.stderr).toContain("SLOT_IMG");
   });
 
-  test("fewer than 3 body illustration slots fails", () => {
-    const slug = "2026-05-17-too-few-body-slots";
-    const dir = join(TMP_ROOT, slug);
-    mkdirSync(dir, { recursive: true });
-    const fm = {
-      title: "测试文章",
-      date: "2026-05-17",
-      summary: "用于测试 Step 2 门控。",
-      category: "ai-coding",
-      blogSlug: "valid-blog-slug",
-      coverImage: "cover.png",
-      sourceUrl: "https://ntlx.github.io/articles/valid-blog-slug",
-    };
-    const lines = Object.entries(fm).map(([k, v]) => `${k}: ${v}`);
-    writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n
-<!-- SLOT_IMG_00_INFOGRAPHIC -->
+  test("allows 0, 1, 2, and 4 body illustration slots", () => {
+    for (const [index, slots] of [[], [1], [1, 2], [1, 3, 7, 9]].entries()) {
+      const slug = `2026-05-17-body-slots-${index}`;
+      writeDraft(slug, {}, bodyWithBodySlots(slots));
+      const r = runStep2(slug);
+      expect(r.status, `body slot count ${slots.length}`).toBe(0);
+    }
+  });
 
-## 正文
-
-<!-- SLOT_IMG_01_CORE_TENSION -->
-
-一些正文内容。
-
-*你怎么看这个问题?*
-
-## 参考资料
-
-> 来源
-> https://example.com/source
-`);
+  test("fails when a draft SLOT number is duplicated", () => {
+    const slug = "2026-05-17-duplicate-body-slot";
+    writeDraft(slug, {}, bodyWithBodySlots([1, 1]));
 
     const r = runStep2(slug);
     expect(r.status).toBe(4);
-    expect(r.stderr).toContain("3 张文内插图");
+    expect(r.stderr).toContain("SLOT_IMG_01");
+    expect(r.stderr).toContain("必须唯一");
   });
 
   test("high-confidence blog memory candidate must be used or explicitly skipped", () => {

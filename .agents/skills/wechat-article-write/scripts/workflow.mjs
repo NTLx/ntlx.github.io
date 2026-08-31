@@ -106,7 +106,7 @@ export const STAGE_CONTRACTS = {
     acceptance: [
       "正文回答写作契约中的问题并保留作者判断",
       "frontmatter、summary、sourceUrl、参考资料和互动区块满足内容不变量",
-      "SLOT_IMG_00 与至少三张有语义描述的文内图占位符位于合适论证节点",
+      "SLOT_IMG_00 必须存在；正文视觉节点只在能降低理解成本时创建，数量由 image-plan 决定",
     ],
     gate: { script: "step2-write.mjs" },
     references: ["references/orchestration-policy.md", "references/content-invariants.md"],
@@ -131,7 +131,8 @@ export const STAGE_CONTRACTS = {
     outputs: ["cover.png", "imgs/*"],
     acceptance: [
       "视觉资产解释正文中的信息、关系或结论，而非只满足数量",
-      "每个 SLOT 与 prompt/image basename 一一对应，所有可见文字已复核",
+      "draft SLOT、image-plan、prompt 和最终 image 一一对应，所有可见文字已复核",
+      "视觉 producer 由 Agent 在运行时动态选择，不由 workflow 固定",
       "所有 raster rendering 都经过 baoyu-image-gen 的 codex-cli 默认 provider",
       "Codex CLI 不可用或失败时保留可诊断的阻塞状态",
     ],
@@ -174,16 +175,11 @@ export const STAGE_CONTRACTS = {
 };
 
 /**
- * 确定性工程依赖。这里不登记内容/写作/视觉路由，只登记协议适配器和
- * 当前 prompt helper 直接读取的模板来源。
+ * 确定性工程依赖。这里不登记内容/写作/视觉路由，也不登记条件式视觉
+ * adapter 模板；只登记协议适配器和最终 raster renderer。
  */
 export const HARD_DEPENDENCIES = {
-  illustrate: [
-    "baoyu-cover-image",
-    "baoyu-article-illustrator",
-    "baoyu-image-gen",
-    "baoyu-infographic",
-  ],
+  illustrate: ["baoyu-image-gen"],
   build: ["github-image-hosting", "gzh-design"],
   publish: ["baoyu-post-to-wechat"],
 };

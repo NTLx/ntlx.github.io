@@ -22,24 +22,61 @@
         "palette": { "type": "string" },
         "rendering": { "type": "string" },
         "text": { "type": "string" },
-        "mood": { "type": "string" }
-      }
+        "mood": { "type": "string" },
+        "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
+        "producer": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "prompt_source": { "const": "external" } },
+            "required": ["prompt_source"]
+          },
+          "then": { "required": ["producer"] }
+        }
+      ]
     },
     "infographic": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "intent": { "type": "string" },
-        "layout": {
-          "type": "string",
-          "enum": ["bento-grid", "binary-comparison", "bridge", "circular-flow", "comic-strip", "comparison-matrix", "dashboard", "dense-modules", "funnel", "hierarchical-layers", "hub-spoke", "iceberg", "isometric-map", "jigsaw", "linear-progression", "periodic-table", "story-mountain", "structural-breakdown", "tree-branching", "venn-diagram", "winding-roadmap"]
+        "layout": { "type": "string" },
+        "style": { "type": "string" },
+        "aspect": { "type": "string" },
+        "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
+        "producer": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "prompt_source": { "const": "external" } },
+            "required": ["prompt_source"]
+          },
+          "then": { "required": ["producer"] }
         },
-        "style": {
-          "type": "string",
-          "enum": ["aged-academia", "bold-graphic", "chalkboard", "claymation", "corporate-memphis", "craft-handmade", "cyberpunk-neon", "hand-drawn-edu", "ikea-manual", "kawaii", "knolling", "lego-brick", "morandi-journal", "origami", "pixel-art", "pop-laboratory", "retro-pop-grid", "retro-popup-pop", "storybook-watercolor", "subway-map", "technical-schematic", "ui-wireframe"]
-        },
-        "aspect": { "type": "string" }
-      }
+        {
+          "if": {
+            "anyOf": [
+              { "not": { "required": ["prompt_source"] } },
+              {
+                "properties": { "prompt_source": { "const": "adapter" } },
+                "required": ["prompt_source"]
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "layout": {
+                "enum": ["bento-grid", "binary-comparison", "bridge", "circular-flow", "comic-strip", "comparison-matrix", "dashboard", "dense-modules", "funnel", "hierarchical-layers", "hub-spoke", "iceberg", "isometric-map", "jigsaw", "linear-progression", "periodic-table", "story-mountain", "structural-breakdown", "tree-branching", "venn-diagram", "winding-roadmap"]
+              },
+              "style": {
+                "enum": ["aged-academia", "bold-graphic", "chalkboard", "claymation", "corporate-memphis", "craft-handmade", "cyberpunk-neon", "hand-drawn-edu", "ikea-manual", "kawaii", "knolling", "lego-brick", "morandi-journal", "origami", "pixel-art", "pop-laboratory", "retro-pop-grid", "retro-popup-pop", "storybook-watercolor", "subway-map", "technical-schematic", "ui-wireframe"]
+              }
+            }
+          }
+        }
+      ]
     },
     "illustrations": {
       "type": "array",
@@ -50,10 +87,37 @@
         "properties": {
           "slot": { "type": "integer", "minimum": 1 },
           "intent": { "type": "string" },
-          "type": { "type": "string", "enum": ["comparison", "flowchart", "framework"] },
+          "type": { "type": "string" },
           "style": { "type": "string" },
-          "description": { "type": "string" }
-        }
+          "description": { "type": "string" },
+          "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
+          "producer": { "type": "string", "minLength": 1 }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "prompt_source": { "const": "external" } },
+              "required": ["prompt_source"]
+            },
+            "then": { "required": ["producer"] }
+          },
+          {
+            "if": {
+              "anyOf": [
+                { "not": { "required": ["prompt_source"] } },
+                {
+                  "properties": { "prompt_source": { "const": "adapter" } },
+                  "required": ["prompt_source"]
+                }
+              ]
+            },
+            "then": {
+              "properties": {
+                "type": { "enum": ["comparison", "flowchart", "framework"] }
+              }
+            }
+          }
+        ]
       }
     }
   }

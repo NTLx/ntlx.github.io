@@ -4,8 +4,8 @@
  *
  * 1. 统一格式检测修正（MIME/扩展名不匹配）
  * 2. 更新 draft.md frontmatter 中的 coverImage 扩展名
- * 3. 插图引用一致性验证（imgs/ 文件数 vs draft.md 引用数）
- * 4. 信息图插入验证
+ * 3. draft SLOT、image-plan、prompt 和 image 的拓扑一致性验证
+ * 4. 信息图资产验证
  *
  * 用法:
  *   bun run step4-images.mjs <date-slug>
@@ -16,8 +16,9 @@ import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
-import { MIN_BODY_ILLUSTRATIONS, SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
-import { extractBody } from "./frontmatter-lib.mjs";
+import { normalizeSlotDesc } from "./validation-lib.mjs";
+import { extractBody, parseFrontmatter } from "./frontmatter-lib.mjs";
+import { normalizePromptSource, readImagePlan, validateVisualPlanTopology, visualPromptDescription } from "./visual-plan-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); process.exit(1); }
@@ -98,6 +99,32 @@ spawnSync("bun", ["run", setFmScript, draftPath, "set", "coverImage", `cover.${c
 // 3. Read draft.md (already validated to exist)
 const draft = readFileSync(draftPath, "utf8");
 const body = extractBody(draft);
+const fm = parseFrontmatter(draft);
+
+// 3b. The visual plan is the authoritative topology for every image asset.
+const imagePlanPath = resolve(base, "image-plan.json");
+let imagePlan;
+try {
+  imagePlan = readImagePlan(imagePlanPath);
+} catch (error) {
+  const msg = error.message;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
+}
+if (!imagePlan) {
+  const msg = `image-plan.json missing: ${imagePlanPath}. Write the visual plan before running Step 4.`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
+}
+const topology = validateVisualPlanTopology(imagePlan, body);
+if (!topology.ok) {
+  const msg = `visual plan topology invalid: ${topology.errors.join("; ")}`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
+}
 
 // 4. SLOT-only enforcement: no local imgs/ Markdown references allowed
 const localImgRefs = [...draft.matchAll(/!\[[^\]]*\]\([^)]*imgs\//g)];
@@ -106,66 +133,83 @@ if (localImgRefs.length > 0) {
   process.exit(2);
 }
 
-// 5. SLOT_IMG validation: every referenced slot must have a matching image file
-  const slotRefs = [...body.matchAll(SLOT_EXTRACT_RE)];
-  if (slotRefs.length > 0) {
-  const imgs = existsSync(imgsDir)
-    ? readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
-    : [];
-  const missingSlots = [];
-  for (const match of slotRefs) {
-    const slotNum = match[1];
-    const file = resolveSlotImageFile(match[0], imgs);
-    if (!file) {
-      missingSlots.push(slotNum);
-    }
-  }
-  if (missingSlots.length > 0) {
-    const detail = missingSlots.map(n => `SLOT_IMG_${n}`).join(", ");
-    const slot00Hint = missingSlots.includes("00")
-      ? "SLOT_IMG_00 must be generated as imgs/00-infographic-core-summary.png. "
-      : "";
-    // 区分"真缺图" vs "命名断裂"：imgs/ 有非 NN- 前缀图 = 产物命名未归位，应归位而非重生
-    const unprefixed = imgs.filter(f => !/^\d{2}-/.test(f));
-    const hint = unprefixed.length > 0
-      ? `imgs/ 下有 ${unprefixed.length} 张图片未遵循 NN-<desc> 命名约定（如 ${unprefixed.slice(0, 3).join(", ")}），图片可能已生成但命名断裂。用多模态识别后运行 align-image-names.mjs 归位，不要重新生图。`
-      : `imgs/ 下无对应图片，需生成这些 SLOT 的图（生图时显式指定输出名为 NN-<desc>.png）。`;
-    const msg = `Missing images for slots: ${detail}. ${slot00Hint}${hint}`;
+// 5. Plan/prompt/image consistency.  The body illustration list may be empty;
+// the plan, not a quantity threshold, decides how many assets are required.
+const imgs = existsSync(imgsDir)
+  ? readdirSync(imgsDir).filter((f) => /\.(png|jpe?g|webp|gif)$/i.test(f))
+  : [];
+
+function promptSource(node) {
+  try {
+    return normalizePromptSource(node?.prompt_source);
+  } catch (error) {
+    const msg = `invalid visual prompt source: ${error.message}`;
     process.stderr.write(`step4: FAIL - ${msg}\n`);
     markStepFailed(slug, 4, msg);
     process.exit(2);
   }
-  // Keep existing warning for images with no slot references
-  const nonInfoImgs = imgs.filter(f => !f.startsWith("00-"));
-  const referencedSlots = new Set(slotRefs.map((m) => m[1]));
-  const unreferencedImgs = nonInfoImgs.filter(f => {
-    const slotNum = f.split("-")[0];
-    return !referencedSlots.has(slotNum);
-  });
-  if (unreferencedImgs.length > 0) {
-    process.stderr.write(`step4: WARNING ${unreferencedImgs.length} images in imgs/ not referenced by any SLOT_IMG placeholder\n`);
+}
+
+function requirePrompt(path, label, node) {
+  const source = promptSource(node);
+  if (!existsSync(path)) {
+    const producerHint = source === "external"
+      ? `producer=${node.producer}\nRun/delegate the selected producer first, save its final rendering prompt to the expected path, then rerun generate-image-prompts.mjs.`
+      : "Run generate-image-prompts.mjs to materialize the adapter prompt, then rerun Step 4.";
+    const msg = `${source} visual prompt missing for ${label}\nproducer=${node?.producer ?? "(adapter)"}\nexpected: ${path}\n${producerHint}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
+    process.exit(2);
   }
-} else if (existsSync(imgsDir)) {
-  // No SLOT references at all — check if images exist without references
-  const imgs = readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f));
-  const nonInfoImgs = imgs.filter(f => !f.startsWith("00-"));
-  const mdRefs = [...draft.matchAll(/!\[[^\]]*\]\(imgs\/(\d{2})-/g)].map(m => m[1]);
-  if (nonInfoImgs.length > 0 && mdRefs.length === 0) {
-    process.stderr.write(`step4: WARNING ${nonInfoImgs.length} images in imgs/ but no references in draft.md\n`);
+  if (readFileSync(path, "utf8").trim().length === 0) {
+    const msg = `visual prompt is empty for ${label}: ${path}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
+    process.exit(2);
   }
 }
 
-// 5b. Body illustration count validation: cover and SLOT_IMG_00 do not count.
-const bodyIllustrationCount = new Set(slotRefs.map(m => parseInt(m[1], 10)).filter(n => n > 0)).size;
-if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
-  const msg = `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张。请在适合的位置规划 SLOT_IMG_01+ 占位符并生成对应图片。`;
+function imageWithStem(stem) {
+  return imgs.find((file) => file.replace(/\.(png|jpe?g|webp|gif)$/i, "") === stem) ?? null;
+}
+
+const coverPromptName = `00-cover-${normalizeSlotDesc(fm?.blogSlug ?? slug) || "article"}.md`;
+requirePrompt(resolve(promptsDir, coverPromptName), "cover", imagePlan.cover);
+requirePrompt(resolve(promptsDir, "00-infographic-core-summary.md"), "SLOT_IMG_00", imagePlan.infographic);
+
+const missingAssets = [];
+if (!imageWithStem("00-infographic-core-summary")) missingAssets.push("SLOT_IMG_00");
+for (const slot of topology.bodySlots) {
+  const entry = topology.entriesBySlot.get(slot.slot);
+  const desc = visualPromptDescription(entry, slot);
+  const nn = String(slot.slot).padStart(2, "0");
+  const stem = `${nn}-${desc}`;
+  requirePrompt(resolve(promptsDir, `${stem}.md`), `SLOT_IMG_${nn}`, entry);
+  if (!imageWithStem(stem)) missingAssets.push(`SLOT_IMG_${nn} (expected imgs/${stem}.png)`);
+}
+if (missingAssets.length > 0) {
+  const unprefixed = imgs.filter((file) => !/^\d{2}-/.test(file));
+  const hint = unprefixed.length > 0
+    ? `imgs/ 下有 ${unprefixed.length} 张图片未遵循 NN-<desc> 命名约定（如 ${unprefixed.slice(0, 3).join(", ")}），图片可能已生成但命名断裂。用多模态识别后运行 align-image-names.mjs 归位，不要重新生图。`
+    : "请按 image-plan 的确定性 basename 生成缺失图片，不要使用随机文件名。";
+  const msg = `Missing images for planned assets: ${missingAssets.join(", ")}. ${hint}`;
   process.stderr.write(`step4: FAIL - ${msg}\n`);
   markStepFailed(slug, 4, msg);
-  process.exit(4);
+  process.exit(2);
+}
+
+// Keep the existing warning for image files that have no draft SLOT reference.
+const referencedSlots = new Set(topology.slots.map((slot) => String(slot.slot).padStart(2, "0")));
+const unreferencedImgs = imgs.filter((file) => {
+  if (file.startsWith("00-")) return false;
+  return !referencedSlots.has(file.split("-")[0]);
+});
+if (unreferencedImgs.length > 0) {
+  process.stderr.write(`step4: WARNING ${unreferencedImgs.length} images in imgs/ not referenced by any SLOT_IMG placeholder\n`);
 }
 
 // 6. Infographic validation
-const infoFiles = existsSync(imgsDir) ? readdirSync(imgsDir).filter(f => f.startsWith("00-infographic")) : [];
+const infoFiles = imgs.filter((f) => f.startsWith("00-infographic"));
 if (infoFiles.length > 0) {
   const hasInfoRef = /infographic|SLOT_IMG_00/i.test(body);
   if (!hasInfoRef) {
@@ -177,9 +221,6 @@ if (infoFiles.length > 0) {
 //     This prevents ad-hoc batch payloads from writing 00-infographic.png for
 //     00-infographic-core-summary.md, which breaks deterministic SLOT mapping.
 if (existsSync(promptsDir)) {
-  const imgs = existsSync(imgsDir)
-    ? readdirSync(imgsDir).filter(f => /\.(png|jpe?g|webp|gif)$/i.test(f))
-    : [];
   const missingPromptOutputs = [];
   for (const promptFile of readdirSync(promptsDir).filter(f => /^\d{2}-.+\.md$/i.test(f))) {
     const baseName = promptFile.replace(/\.md$/i, "");

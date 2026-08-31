@@ -71,5 +71,8 @@ describe("pipeline", () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("Stage Contract: illustrate");
     expect(r.stdout).toContain("check-image-backend.mjs --runtime");
+    expect(r.stdout).toContain("Trace:");
+    expect(r.stdout).toContain("selected=no-skill");
+    expect(r.stdout).toContain("orchestration-trace.mjs");
   });
 });

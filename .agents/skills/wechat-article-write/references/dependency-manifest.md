@@ -8,9 +8,6 @@
 
 | 依赖 | 类型 | 用途 |
 |---|---|---|
-| `baoyu-cover-image` | prompt 适配器 | 当前封面模板来源 |
-| `baoyu-article-illustrator` | prompt 适配器 | 当前文内解释图模板来源 |
-| `baoyu-infographic` | prompt 适配器 | 当前 SLOT 00 layout/style 模板来源 |
 | `baoyu-image-gen` | raster 适配器 | 图片实际生成入口；默认 provider 必须是 `codex-cli` |
 | `github-image-hosting` | 确定性适配器 | 博客图片上传和 CDN URL |
 | `gzh-design` | 确定性适配器 | 微信 HTML 排版、validator 和预览包装 |
@@ -20,8 +17,18 @@
 `check-deps.mjs` 和 `validate-architecture.mjs` 只检查它们。缺少任何
 认知、写作或可选视觉 Skill 不应因此阻断流程。
 
-当前 prompt 生成脚本会读取上述视觉 Skill 的官方参考模板；这只是协议
-适配器的输入，不是本技能重新实现它们的布局、风格或生成算法。
+## Runtime adaptive capabilities
+
+开放式能力（包括内容、写作和视觉 producer）由
+`skill-catalog.mjs` 动态发现，Agent 按当前 Stage Contract 和 gap 选择；
+这里不列举完整清单，也不维护 Skill→场景映射。no-skill 始终是合法路线。
+
+## Conditional adapter template sources
+
+当当前 `image-plan.json` 选择 `prompt_source: adapter` 时，
+`generate-image-prompts.mjs` 才按需读取兼容模板，例如 Baoyu infographic
+layout/style 或 article illustrator style。它们不是 workflow hard dependency；
+选择 `external` 时脚本不读取 producer Skill，只检查确定性 prompt 文件。
 
 ## 必需 CLI 与脚本
 
@@ -49,18 +56,11 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --ru
 |---|---|
 | `.agents/skills/wechat-article-write/EXTEND.md` | 本技能运行偏好 |
 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `default_provider: codex-cli` 和其它上游合法默认值 |
-| `.baoyu-skills/{高层视觉 Skill}/EXTEND.md` | raster 高层 Skill 的 `preferred_image_backend: baoyu-image-gen` |
 | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信作者和发布偏好 |
 | `.baoyu-skills/.env` | 本地 Secret 和运行时参数；被 Git 忽略，不打印不提交 |
 
-高层 raster Skill 的官方配置必须能保证：
-
-```text
-高层视觉能力 → baoyu-image-gen → codex-cli
-```
-
-无法通过其官方配置固定 raster backend 的新能力，可以提供分析、构图或
-prompt 设计，但不能直接承担本管线的图片渲染。
+视觉 producer 只能产出视觉方案或 rendering prompt；最终图片始终由
+`baoyu-image-gen → codex-cli` 生成。
 
 ## Provider policy
 

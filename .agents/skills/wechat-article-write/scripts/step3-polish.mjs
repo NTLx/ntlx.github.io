@@ -7,7 +7,7 @@
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
- *   - SLOT_IMG_00 信息图和至少 3 张文内插图占位符未丢失
+ *   - SLOT_IMG_00 信息图保留且正文 SLOT 编号不重复
  *   - 参考资料 区块未丢失（若原文存在）
  *
  * 字数属于当前 strategy 的编辑判断，本脚本仅记录字数不设门控。
@@ -22,8 +22,9 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, MIN_BODY_ILLUSTRATIONS, countWords, countBodyIllustrationSlots, SLOT_EXTRACT_RE, extractSlotNumbers } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
+import { collectDraftSlots } from "./visual-plan-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
@@ -84,17 +85,18 @@ if (/^# /m.test(body)) {
 }
 
 // 3. SLOT_IMG placeholders preserved
-const slotPlaceholders = [...body.matchAll(SLOT_EXTRACT_RE)].map(m => m[0]);
-if (slotPlaceholders.length === 0) {
+const draftSlots = collectDraftSlots(body);
+if (draftSlots.length === 0) {
   fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
 }
-const slotNumbers = extractSlotNumbers(body);
-if (!slotNumbers.includes(0)) {
-  fail(2, "正文缺少 SLOT_IMG_00 信息图占位符（polish 可能清除）");
+const slotCounts = new Map();
+for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.slot) ?? 0) + 1);
+const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
+if (duplicateSlots.length > 0) {
+  fail(2, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}（polish 可能重复或复制占位符）`);
 }
-const bodyIllustrationCount = countBodyIllustrationSlots(body);
-if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
-  fail(2, `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张（polish 可能删除）`);
+if ((slotCounts.get(0) ?? 0) !== 1) {
+  fail(2, "正文必须保留恰好一次 SLOT_IMG_00 信息图占位符（polish 可能清除或复制）");
 }
 
 // 4. Word count (informational only — the active strategy owns this decision)

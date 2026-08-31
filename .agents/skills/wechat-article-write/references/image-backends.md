@@ -4,7 +4,9 @@
 provider 不可以动态选择：
 
 ```text
-高层视觉能力
+visual producer（Agent 或动态选择的视觉 Skill）
+    ↓
+visual design / rendering prompt
     ↓
 baoyu-image-gen
     ↓
@@ -15,10 +17,21 @@ Codex CLI / codex exec
 
 ## 两层配置
 
-高层视觉 Skill 若会直接生成 raster，必须通过其官方项目配置将
-`preferred_image_backend` 固定为 `baoyu-image-gen`。如果某个新 Skill 无法
-这样配置，它只能负责视觉意图、布局、分析或 prompt，不得直接渲染本管线
-图片。
+视觉 producer（Agent、当前第三方 Skill 或未来新增 Skill）只负责视觉设计、
+layout、信息架构和 rendering prompt，不直接承担本管线的 raster。无论
+producer 是谁，统一执行协议都是：
+
+```text
+visual capability
+    ↓
+visual design / rendering prompt
+    ↓
+deterministic prompt path
+    ↓
+baoyu-image-gen
+    ↓
+codex-cli
+```
 
 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 使用当前 schema：
 
@@ -47,8 +60,8 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --ru
 
 `check-image-backend.mjs` 不传模式时默认使用 runtime 语义；这是为避免把
 “准备真实生图”的检查意外降级成 static 检查。static 只确认仓库配置、
-高层 backend 合同和模板依赖，runtime 额外确认 Codex CLI、登录态和本地
-非 Secret 调优项。
+`baoyu-image-gen` 的 raster 协议合同和 hard dependencies，runtime 额外确认
+Codex CLI、登录态和本地非 Secret 调优项。
 
 真实图片阶段开始前必须通过 runtime 预检；repository static preflight
 不能替代它：
@@ -57,9 +70,9 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --ru
 bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
 ```
 
-runtime 预检必须确认配置 provider 为 `codex-cli`、当前使用的高层 raster
-配置指向 `baoyu-image-gen`、`codex --version` 成功，并在 CLI 暴露该命令时
-确认登录态。Codex CLI 不可用或未登录即阻塞。图片阶段不以 warning 放行。
+runtime 预检必须确认配置 provider 为 `codex-cli`、`codex --version` 成功，
+并在 CLI 暴露该命令时确认登录态。Codex CLI 不可用或未登录即阻塞。图片
+阶段不以 warning 放行。
 
 常规调用让 `EXTEND.md` 解析默认 provider，**不要传 `--provider`**：
 

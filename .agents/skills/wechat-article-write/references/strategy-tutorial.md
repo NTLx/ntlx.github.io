@@ -39,9 +39,10 @@ posts/{date-slug}/draft.md
 posts/{date-slug}/image-plan.json
 ```
 
-`draft.md` 至少包含 SLOT 00 和至少三张有语义描述的 SLOT 01+ 文内图；这些图
-服务于概念、流程、配置关系或常见误区，不是按章节凑数。`image-plan.json`
-还要由 Agent 明确写出每个视觉节点的 intent、layout/style 或 type/style；
+`draft.md` 必须包含 SLOT 00；SLOT 01+ 只在能降低理解成本时创建，数量由
+正文和 image-plan 决定，可以为零。这些图服务于概念、流程、配置关系或常见
+误区，不是按章节凑数。`image-plan.json` 还要由 Agent 明确写出每个视觉节点
+的 intent、prompt_source，以及 adapter 模式下的 layout/style 或 type/style；
 不能只写 article_type（旧文章仅在显式兼容 flag 下允许默认值）。
 
 完成后运行：

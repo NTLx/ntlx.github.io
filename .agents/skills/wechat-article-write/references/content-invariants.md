@@ -28,8 +28,11 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 ## SLOT 图片占位符
 
 - `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 必须存在，放在 frontmatter 后、正文第一个段落前。
-- 文内 `SLOT_IMG_01+` 不少于 3 张，不含封面图和 SLOT 00。
+- 文内 `SLOT_IMG_01+` 只在能显著降低理解成本的节点创建，数量可以为零，
+  由正文和 `image-plan.json` 共同决定。
 - 文内图按内容节点放置，可在 H2 后、关键段落后或小结前；不要按章节打卡。
+- `draft SLOT ↔ image-plan entry ↔ prompt ↔ image` 必须一一对应；每个 draft
+  SLOT 编号唯一，SLOT 00 恰好出现一次。
 - 占位符描述必须具体反映附近正文核心内容，禁止 `chart`、`diagram`、`illustration` 这类泛化描述。
 
 示例：

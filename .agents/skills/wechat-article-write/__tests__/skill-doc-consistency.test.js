@@ -38,7 +38,7 @@ describe("wechat-article-write documentation consistency", () => {
       const text = read(rel);
       expect(text).toContain("Objective Function");
       expect(text).toContain("catalog");
-      expect(text).toContain("至少三张");
+      expect(text).toContain("可以为零");
       expect(text).toContain("SLOT 00");
       expect(text).not.toMatch(/必须调用|禁止调用|固定调用|ljg-|renwei-writing|humanizer-zh/);
     }
@@ -65,7 +65,7 @@ describe("wechat-article-write documentation consistency", () => {
     expect(policy).toContain("default_provider");
     expect(policy).toContain("codex-cli");
     expect(policy).toContain("orchestration-trace.mjs");
-    expect(policy).toContain("trace 写入失败");
+    expect(policy).toContain("trace 写盘失败");
     expect(policy).not.toMatch(/自动切换.*(?:OpenAI|Google|DashScope)|付费 API fallback/i);
   });
 
@@ -103,7 +103,7 @@ describe("wechat-article-write documentation consistency", () => {
     expect(policy).toContain("禁止 `Promise.all`");
     expect(policy).toContain("禁止 `xargs -P`");
     expect(policy).toContain("禁止后台任务");
-    expect(policy).toContain("至少三张");
+    expect(policy).toContain("可以为零");
     expect(policy).toContain("全文压缩");
     expect(backends).toContain("逐张串行");
     expect(backends).toContain("codex-exec.lock");

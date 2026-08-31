@@ -20,6 +20,7 @@
 import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import {
+  HARD_DEPENDENCIES,
   HARD_SKILLS as WORKFLOW_HARD_SKILLS,
   STRATEGIES,
   STAGE_CONTRACTS,
@@ -251,6 +252,52 @@ function checkWorkflowArtifacts(errors, warnings) {
 }
 
 /**
+ * 2d. 自适应/视觉边界防回归：正文图片没有固定数量阈值，视觉 producer
+ * 不通过名称 dispatch，illustrate 只硬依赖最终 raster renderer。
+ */
+function checkAdaptiveVisualBoundaries(errors, warnings) {
+  const state = { errors, warnings };
+  const illustrateDeps = HARD_DEPENDENCIES.illustrate ?? [];
+  if (illustrateDeps.length !== 1 || illustrateDeps[0] !== "baoyu-image-gen") {
+    state.errors.push("illustrate hard dependencies must contain only baoyu-image-gen");
+  }
+
+  const protocolFiles = [
+    "scripts/validation-lib.mjs",
+    "scripts/step2-write.mjs",
+    "scripts/step3-polish.mjs",
+    "scripts/step4-images.mjs",
+    "scripts/workflow.mjs",
+    "scripts/generate-image-prompts.mjs",
+    "references/content-invariants.md",
+    "references/image-policy.md",
+  ];
+  for (const rel of protocolFiles) {
+    const path = resolve(SKILL_DIR, rel);
+    if (!existsSync(path)) continue;
+    const text = readFileSync(path, "utf8");
+    const fixedQuantityTokens = [
+      ["MIN_BODY_", "ILLUSTRATIONS"].join(""),
+      ["bodyIllustration", "Count"].join(""),
+      ["countBodyIllustration", "Slots"].join(""),
+    ];
+    if (fixedQuantityTokens.some((token) => text.includes(token))) {
+      state.errors.push(`fixed body illustration quantity rule remains in ${rel}`);
+    }
+  }
+
+  const generator = readFileSync(resolve(SKILL_DIR, "scripts/generate-image-prompts.mjs"), "utf8");
+  if (/\bproducer\s*(?:===|!==|==|!=)\s*["'`]/.test(generator)) {
+    state.errors.push("generate-image-prompts must not dispatch on producer name");
+  }
+  const backend = readFileSync(resolve(SKILL_DIR, "scripts/check-image-backend.mjs"), "utf8");
+  if (/HIGH_LEVEL_RASTER_SKILLS|checkHighLevelConfigs/.test(backend)) {
+    state.errors.push("image backend check must not keep a high-level visual Skill registry");
+  }
+  return state;
+}
+
+/**
  * 2c. 图片成本边界的静态配置合同。CLI 登录状态属于显式
  * check-image-backend --runtime preflight，不在此处执行。
  */
@@ -394,6 +441,7 @@ export function runArchitectureChecks() {
   checkCustomSkillFrontmatter(errors, warnings);
   checkWorkflowContracts(errors, warnings);
   checkWorkflowArtifacts(errors, warnings);
+  checkAdaptiveVisualBoundaries(errors, warnings);
   checkHardSkills(errors, warnings);
   checkImageBackendContract(errors, warnings);
   checkDanglingSkillReferences(errors, warnings);

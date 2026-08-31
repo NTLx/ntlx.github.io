@@ -110,6 +110,9 @@ function printStageContract(slug, strategy, stage) {
     process.stdout.write("  Select route: Agent 原生完成、单个专业 Skill，或少量互补 Skill；no-skill 是合法路线。\n");
     process.stdout.write("  Verify: Skill 输出不是成功定义，必须以本 Stage Contract 和 Gate 为准。\n");
     process.stdout.write("  Adapt on failure: 诊断缺口后修正输入、重试、换 Skill 或改由 Agent 补足，再重新运行 Gate。\n");
+    process.stdout.write("  Trace: 每次路线尝试完成 Gate 后 best-effort 追加 orchestration trace；no-skill 时 selected=no-skill；trace 失败不阻塞流程。\n");
+    process.stdout.write("  Trace command template:\n");
+    process.stdout.write(`    bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage <stage> --gap \"<当前缺口>\" --candidates \"<候选>\" --selected \"<skill-or-no-skill>\" --reason \"<简短理由>\" --gate <gate> --result <pass|fail|blocked|rerouted>\n`);
   }
   if (stage === "illustrate") {
     process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")} --runtime\n`);

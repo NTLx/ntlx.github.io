@@ -13,12 +13,15 @@ Step 2 的 Agent 或被选中的视觉能力先回答“读者在这个节点需
 
 正常模式至少需要：
 
-- `cover.intent`、`cover.type`，以及 `cover.style` 或完整的 `cover.palette` +
-  `cover.rendering`；
-- `infographic.intent`、合法的 `infographic.layout` 和合法的
-  `infographic.style`；
-- draft 中每个 `SLOT_IMG_01+` 对应一条 `illustrations`，并包含
-  `intent`、`type` 和 `style`。
+- `cover.intent` 和 `infographic.intent`；
+- 每个资产显式填写 `prompt_source`（旧计划缺失时按 `adapter` 兼容）；
+- `prompt_source: adapter` 时，cover 继续填写 `type` 以及 `style` 或完整的
+  `palette` + `rendering`，infographic 填写合法 `layout` 和 `style`，每个
+  正文 entry 填写 `intent`、合法 `type` 和 `style`；
+- `prompt_source: external` 时，每个资产填写 `producer`，不校验上述
+  Baoyu-specific 类型/风格枚举；
+- draft 中每个 `SLOT_IMG_01+` 恰好对应一条 `illustrations` entry；没有正文
+  视觉节点时使用 `illustrations: []`。
 
 计划可以使用以下结构（字段值由 Agent 根据文章选择）：
 
@@ -30,12 +33,14 @@ Step 2 的 Agent 或被选中的视觉能力先回答“读者在这个节点需
     "type": "conceptual",
     "style": "technical editorial",
     "palette": "cool",
-    "rendering": "flat-vector"
+    "rendering": "flat-vector",
+    "prompt_source": "adapter"
   },
   "infographic": {
     "intent": "压缩全文判断、论证路径和结论",
     "layout": "structural-breakdown",
-    "style": "technical-schematic"
+    "style": "technical-schematic",
+    "prompt_source": "adapter"
   },
   "illustrations": [
     {
@@ -43,7 +48,8 @@ Step 2 的 Agent 或被选中的视觉能力先回答“读者在这个节点需
       "intent": "比较两个方案在责任边界上的差异",
       "type": "comparison",
       "style": "editorial",
-      "description": "responsibility-comparison"
+      "description": "responsibility-comparison",
+      "prompt_source": "adapter"
     }
   ]
 }
@@ -54,15 +60,27 @@ Step 2 的 Agent 或被选中的视觉能力先回答“读者在这个节点需
 `--allow-default-image-plan` 才允许旧的 article-type/direction 默认值和
 插图关键词推断继续工作。
 
+外部 producer 示例：
+
+```json
+{
+  "slot": 1,
+  "intent": "解释 Agent escalation 状态变化",
+  "prompt_source": "external",
+  "producer": "future-visual-skill",
+  "description": "agent-escalation-state"
+}
+```
+
 ## 模板来源
 
-- 信息图 layout/style：`baoyu-infographic/references/layouts/*.md` 和
+- adapter 模式的信息图 layout/style：`baoyu-infographic/references/layouts/*.md` 和
   `references/styles/*.md`；脚本把 Agent 指定的两个文件原样拼入 SLOT 00
   prompt。
-- 文内插图 style：`baoyu-article-illustrator/references/styles/*.md`；脚本
+- adapter 模式的文内插图 style：`baoyu-article-illustrator/references/styles/*.md`；脚本
   校验名称后读取对应模板。
-- 封面：`baoyu-cover-image` 的协议字段由 Agent 明确写入 plan，脚本保留
-  当前封面 prompt 适配格式。
+- adapter 模式的封面：`baoyu-cover-image` 的协议字段由 Agent 明确写入 plan，
+  脚本保留当前封面 prompt 适配格式。external 模式不读取这些模板。
 
 ## 信息图 layouts
 

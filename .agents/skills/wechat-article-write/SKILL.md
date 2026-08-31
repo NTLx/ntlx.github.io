@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.52.0"
+  version: "1.53.0"
 ---
 
 # 微信公众号文章写作
@@ -45,18 +45,25 @@ metadata:
 
 ## Adaptive Stage 规则
 
-1. 读取当前 Stage Contract、输入、已有 artifacts 和上一 Gate 结果。
-2. 先定义真正缺口，再运行 catalog：
+1. 读取当前 Stage Contract、输入、已有 artifacts 和上一 Gate 结果，先定义
+   当前真正缺口。
+2. 运行 metadata-only catalog：
    `bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json`。
-3. 渐进式读取少量候选的完整 `SKILL.md`，选择 Agent 原生、单个 Skill 或
-   少量互补 Skill；no-skill 是合法路线。
-4. 将结果适配成 contract 要求的 artifact，运行对应 Gate。
-5. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
-   重复，也不得绕过 Gate。具体规则见 `orchestration-policy.md`。
+3. 不要根据 Skill 名称猜用途；先读 catalog description，只有入选少量候选
+   后才读取完整 `SKILL.md` 及直接引用的配置。
+4. 选择最小充分路线：Agent 原生、单 Skill 或少量互补 Skill；no-skill 是
+   合法路线。一个 Skill 已经能完成任务时，不再叠加其它 Skill，调用次数
+   不是质量指标。
+5. Delegate 后把结果适配成 contract 要求的 artifact，运行对应 Gate；每次
+   路线尝试完成 Gate 后都 best-effort 追加 orchestration trace。
+6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
+   重复，也不得绕过 Gate。trace 失败不影响 artifact、state 或 Gate。具体
+   规则见 `orchestration-policy.md`。
 
 ## 图片成本硬约束
 
-所有 raster rendering 必须经高层视觉能力 → `baoyu-image-gen` →
+视觉 producer（Agent 或动态选择的视觉 Skill）只负责视觉设计、layout 和
+rendering prompt；所有 raster rendering 必须统一经 `baoyu-image-gen` →
 `codex-cli`。项目默认 provider 在
 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `default_provider` 中固定；
 日常命令不传冲突的 `--provider`。先运行：
@@ -73,7 +80,9 @@ Codex CLI 不可用、未登录或生成失败时，图片阶段必须 fail clos
 
 Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
 按策略完成理解或适配/写作；Step 3 针对实际问题 refine；Step 4 先定
-视觉意图再生成图片；Step 5 构建并校验双轨产物；Step 6 按顺序发布。
+视觉增益和 image-plan，再生成 prompt 与图片；正文 SLOT 可以为零张，
+但 SLOT_IMG_00 必须存在且与 image-plan 一致；Step 5 构建并校验双轨产物；
+Step 6 按顺序发布。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all

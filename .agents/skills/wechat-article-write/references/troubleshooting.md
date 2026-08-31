@@ -13,7 +13,7 @@
 |---|---|
 | `summary` 缺失 | 补 ≤120 字金句式摘要 |
 | `sourceUrl` 缺失 | 按 blogSlug 写博客公网 URL；tutorial 用已有博文 URL |
-| 文内图不足 | 补足至少 3 个 `SLOT_IMG_01+`，放在内容节点附近 |
+| 视觉计划不一致 | 对照 draft SLOT、image-plan、prompt 和 image；没有信息增益的正文节点不必创建 SLOT |
 | step4 报 Missing images 但 imgs/ 有图 | 生图落盘成随机名，命名断裂。多模态识别后跑 `align-image-names.mjs` 归位，勿重生 |
 | step4 只输出 normalize 后报 cover missing | 封面必须在 post 根目录 `cover.png` / `cover.jpg`。若生成到 `imgs/00-cover.png` 或 `imgs/cover.png`，重跑 `step4-images.mjs` 会自动归位；若根目录已有封面，重复封面会移入 `imgs/_discard/` |
 | Codex CLI `lock_busy` | 若报 `Failed to acquire lock` 且指向 `/home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock`，先确认没有 `codex exec` / `baoyu-image-gen` 进程仍在跑，再 `rm -f /home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock` 并串行重试 |

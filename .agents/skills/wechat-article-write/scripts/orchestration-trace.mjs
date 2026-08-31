@@ -15,6 +15,7 @@ export const TRACE_FILENAME = "orchestration-trace.jsonl";
 const MAX_TEXT_LENGTH = 360;
 const MAX_LIST_ITEMS = 8;
 const MAX_ITEM_LENGTH = 120;
+export const VALID_RESULTS = new Set(["pass", "fail", "blocked", "rerouted"]);
 
 const SENSITIVE_VALUE_RE = /\b(api[\s_-]?key|access[\s_-]?token|refresh[\s_-]?token|secret|password|cookie|authorization)\b\s*[:=]\s*[^\s,;]+/gi;
 
@@ -42,6 +43,10 @@ function listOrEmpty(value) {
 
 /** Build the allow-listed, bounded record written to the trace. */
 export function buildTraceRecord(slug, input = {}, timestamp = new Date().toISOString()) {
+  const result = textOrUndefined(input.result, MAX_ITEM_LENGTH);
+  if (result !== undefined && !VALID_RESULTS.has(result)) {
+    throw new Error(`result must be one of: ${[...VALID_RESULTS].join(", ")}`);
+  }
   return {
     timestamp,
     slug: textOrUndefined(slug, MAX_ITEM_LENGTH),
@@ -51,7 +56,7 @@ export function buildTraceRecord(slug, input = {}, timestamp = new Date().toISOS
     selected: listOrEmpty(input.selected),
     reason: textOrUndefined(input.reason),
     gate: textOrUndefined(input.gate, MAX_ITEM_LENGTH),
-    result: textOrUndefined(input.result, MAX_ITEM_LENGTH),
+    result,
   };
 }
 
@@ -92,8 +97,11 @@ function parseArgs(argv) {
     i += 1;
   }
 
-  for (const key of ["stage", "gap", "gate", "result"]) {
+  for (const key of ["stage", "gap", "selected", "gate", "result"]) {
     if (!textOrUndefined(input[key])) throw new Error(`--${key} is required`);
+  }
+  if (!VALID_RESULTS.has(textOrUndefined(input.result))) {
+    throw new Error(`--result must be one of: ${[...VALID_RESULTS].join(", ")}`);
   }
   return input;
 }
@@ -101,7 +109,7 @@ function parseArgs(argv) {
 function main() {
   const [slug, ...argv] = process.argv.slice(2);
   if (!slug) {
-    process.stderr.write("usage: orchestration-trace.mjs <date-slug> --stage <name> --gap <text> --gate <name> --result <result> [--candidates <a,b>] [--selected <a,b>] [--reason <text>]\n");
+    process.stderr.write("usage: orchestration-trace.mjs <date-slug> --stage <name> --gap <text> --selected <skill-or-no-skill> --gate <name> --result <pass|fail|blocked|rerouted> [--candidates <a,b>] [--reason <text>]\n");
     process.exit(2);
   }
 

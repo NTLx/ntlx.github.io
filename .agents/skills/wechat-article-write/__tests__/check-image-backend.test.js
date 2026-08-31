@@ -13,12 +13,6 @@ const SCRIPT = resolve(import.meta.dir, "../scripts/check-image-backend.mjs");
 function createValidFixture(root) {
   mkdirSync(join(root, ".baoyu-skills", "baoyu-image-gen"), { recursive: true });
   writeFileSync(join(root, ".baoyu-skills", "baoyu-image-gen", "EXTEND.md"), "---\nversion: 1\ndefault_provider: codex-cli\n---\n");
-  for (const skill of ["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-infographic"]) {
-    mkdirSync(join(root, ".agents", "skills", skill), { recursive: true });
-    mkdirSync(join(root, ".baoyu-skills", skill), { recursive: true });
-    writeFileSync(join(root, ".agents", "skills", skill, "SKILL.md"), `---\nname: ${skill}\n---\n`);
-    writeFileSync(join(root, ".baoyu-skills", skill, "EXTEND.md"), "---\nversion: 1\npreferred_image_backend: baoyu-image-gen\n---\n");
-  }
 }
 
 function runCli(root, args = [], env = {}) {
@@ -37,7 +31,7 @@ describe("image backend policy preflight", () => {
       const result = runImageBackendChecks({ root, checkCli: false, checkEnv: false });
       expect(result.ok).toBe(true);
       expect(result.details.default_provider).toBe("codex-cli");
-      expect(result.details.high_level["baoyu-article-illustrator"].preferred_image_backend).toBe("baoyu-image-gen");
+      expect(result.details.high_level).toBeUndefined();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

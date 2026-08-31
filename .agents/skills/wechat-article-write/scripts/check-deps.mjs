@@ -86,11 +86,8 @@ function checkPublishConfig() {
 
 function checkImageTemplates() {
   checkSkillDirs(hardDependenciesForStage("illustrate"));
-  // baoyu-infographic 的 layouts/ 和 styles/ 目录是 SLOT 00 信息图 prompt 的模板来源。
-  // 第三方技能可能升级或更换目录名，仅校验关键目录存在，不展开列举每个模板文件。
-  requirePath(".agents/skills/baoyu-infographic/SKILL.md", "baoyu-infographic SKILL.md");
-  requirePath(".agents/skills/baoyu-infographic/references/layouts", "baoyu-infographic layouts directory");
-  requirePath(".agents/skills/baoyu-infographic/references/styles", "baoyu-infographic styles directory");
+  // Optional visual producers and adapter template sources are loaded only by
+  // generate-image-prompts when the current image-plan selects them.
   requirePath(".agents/skills/wechat-article-write/references/image-template-map.json", "image template map");
   requirePath(".agents/skills/wechat-article-write/references/image-plan.schema.json", "image-plan schema");
 }

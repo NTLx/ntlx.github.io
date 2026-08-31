@@ -1,5 +1,11 @@
 # Golden Path：最小正确例子
 
+```text
+Observe → Gap → Discover → Select → Delegate → Artifact → Gate → Trace
+                                      ↘ no-skill
+                         Pass / Replan
+```
+
 ## 1. 准备目录
 
 ```bash
@@ -44,19 +50,13 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 ## 第一个判断
 
-<!-- SLOT_IMG_01_DECISION_FLOW -->
-
 正文……
 
 ## 第二个判断
 
 正文……
 
-<!-- SLOT_IMG_02_ACTOR_RELATIONSHIP -->
-
 ## 第三个判断
-
-<!-- SLOT_IMG_03_REVIEW_LOOP -->
 
 正文……
 
@@ -83,20 +83,23 @@ sourceUrl: https://ntlx.github.io/articles/example-article
     "type": "conceptual",
     "style": "editorial",
     "palette": "warm",
-    "rendering": "flat-vector"
+    "rendering": "flat-vector",
+    "prompt_source": "adapter"
   },
   "infographic": {
     "intent": "压缩全文判断、论证路径和结论",
     "layout": "hub-spoke",
-    "style": "morandi-journal"
+    "style": "morandi-journal",
+    "prompt_source": "adapter"
   },
-  "illustrations": [
-    { "slot": 1, "intent": "解释第一个关键关系", "type": "framework", "style": "editorial" },
-    { "slot": 2, "intent": "呈现第二个关键流程", "type": "flowchart", "style": "minimal" },
-    { "slot": 3, "intent": "比较第三个关键分歧", "type": "comparison", "style": "warm" }
-  ]
+  "illustrations": []
 }
 ```
+
+这个最小例子只保留文章级摘要图；正文没有明确视觉增益时，
+`illustrations: []` 是合法计划。需要局部解释时，再为对应正文 SLOT 增加
+entry；也可以把该 entry 标成 `prompt_source: "external"` 并填写任意当前
+catalog producer，不需要修改 workflow。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs 2026-06-16-example-article
@@ -117,7 +120,7 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2
 bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
 ```
 
-日常命令不传 `--provider`，让
+图片层的 producer 只负责设计和 rendering prompt；日常命令不传 `--provider`，让
 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `default_provider: codex-cli`
 生效；不要使用 batch.json。Codex CLI 失败时停止当前图片任务，不能切换
 其它 provider：
@@ -139,13 +142,16 @@ bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
   --ar 16:9
 ```
 
-串行生成所有图片后：
+按 image-plan 逐张串行生成已计划的图片后：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-example-article
 ```
 
-生图时务必让封面输出到 post 根目录 `cover.png`，让 SLOT 图输出到 `imgs/NN-<desc>.png`（与 `imgs/prompts/NN-<desc>.md` 同名），不要用 provider 默认随机名——否则 step4 会报 `Missing images for slots` 且 step5 无法匹配占位符。若已生成但落盘成随机名，用 `align-image-names.mjs` 归位（见 `references/image-policy.md`），不要重新生图。
+生图时务必让封面输出到 post 根目录 `cover.png`，让已计划的 SLOT 图输出到
+`imgs/NN-<desc>.png`（与 `imgs/prompts/NN-<desc>.md` 同名），不要用 provider
+默认随机名——否则 Step 4 无法匹配占位符。若已生成但落盘成随机名，用
+`align-image-names.mjs` 归位（见 `references/image-policy.md`），不要重新生图。
 
 ## 5. 构建和发布
 

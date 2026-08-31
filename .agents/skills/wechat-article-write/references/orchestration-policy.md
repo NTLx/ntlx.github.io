@@ -54,21 +54,28 @@ bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json
 
 ## Delegate
 
-委托必须包含以下信息：
+通用 Delegate 合同：
 
 ```text
-目标：当前阶段要解决的缺口
-输入：文件路径或必要摘录
-上下文：用户目标、strategy、已通过的产物和相关 Gate
-全局约束：内容不变量、来源可追溯性、作者声音和成本边界
-输出：可被当前 stage contract 消费的内容或文件
-不得破坏：frontmatter、SLOT、链接、state、图片命名等协议
-验收：当前 stage contract 的 acceptance criteria
+目标：解决当前明确 gap。
+输入：只提供完成该 gap 所需的文件或摘录。
+上下文：说明文章目标、strategy 和当前 Stage Contract。
+只做：当前委托范围内的专业任务。
+不要：修改 state；发布文章；破坏 frontmatter；修改 SLOT；修改仓库协议；
+修改第三方 Skill；擅自切换 raster provider。
+输出：返回可以被当前 stage artifact 消费的最小结果。
+验收：由主 Agent 按当前 Stage Contract 和 Gate 判断。
 ```
 
 Skill 的返回值只是候选材料。主 Agent 必须判断它是否真正解决了缺口，
 再把有用部分压缩进阶段产物；不得原样堆叠报告或把 Skill 名称写成文章
 论据。
+
+视觉委托在上述合同后追加：
+
+```text
+只提供视觉方案、layout、信息架构或 rendering prompt；不要执行最终 raster rendering。
+```
 
 ## Verify
 
@@ -97,9 +104,11 @@ Gate 失败后，先读取错误和当前产物，诊断失败原因，再选择
 修复后重新运行同一 Gate。失败状态要保留在 state，不能跳过 Gate 进入
 下一阶段。相同错误连续出现时应停止重试并报告阻塞原因。
 
-## Trace（可选、尽力而为）
+## Trace（默认 best-effort）
 
-需要交接或审计时，在完成一次候选选择和 Gate 后追加一条最小 trace：
+每一次 Adaptive Stage 的路线尝试都按
+`Define Gap → Discover → Select → Execute → Gate` 完成后追加一条最小
+trace。它是默认开启的 best-effort observability，不是额外 Gate：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/orchestration-trace.mjs <date-slug> \
@@ -108,19 +117,23 @@ bun run .agents/skills/wechat-article-write/scripts/orchestration-trace.mjs <dat
   --gate <gate> --result <pass|fail|blocked|rerouted>
 ```
 
+没有调用 Skill 时必须显式写 `--selected no-skill`，不要留空。每次路线尝试
+最多追加一条 JSONL；`result` 只能是 `pass`、`fail`、`blocked` 或 `rerouted`。
 它只写入现有 `posts/<date-slug>/orchestration-trace.jsonl` 运行时目录，记录
 阶段、缺口、候选、选择、简短理由和 Gate 结果。字段有长度和数量上限，接口
-不接受 prompt、完整 Skill 输出、凭据或隐藏推理。trace 写入失败只产生 warning，
-不改变 artifact、state 或 Gate 的成功条件。
+不接受 prompt、完整 Skill 输出、凭据、隐私正文或隐藏推理。trace 写盘失败
+只产生 warning，workflow 继续，不改变 artifact、state 或 Gate 的成功条件。
 
 ## 视觉专用规则
 
-视觉阶段先回答“读者需要看懂什么”，再决定使用何种视觉能力。意图可以
-是全文压缩、关系、流程、架构、概念对比、时间线、因果链、解释型插图，
-或复用原文已有图表。任何动态发现的视觉 Skill 都必须先阅读其完整说明，
-确认其 raster backend 能被项目级配置固定为 `baoyu-image-gen`；不能被
-官方配置固定时，它只能承担分析、构图或 prompt 设计，不能直接承担
-raster rendering。
+视觉阶段先回答“读者需要看懂什么”，再判断这个位置是否真的有视觉信息
+增益；没有增益就不创建正文 SLOT。需要视觉能力时运行 catalog，从 description
+筛选少量候选，再阅读入选 Skill 的完整说明。Agent 可以自己设计，也可以
+选择任意当前或未来视觉 Skill；workflow 不维护视觉 producer 路由。
+
+选中的 producer 只能负责概念设计、信息架构、layout、视觉隐喻或 rendering
+prompt。无论 producer 是谁，都必须把最终 prompt 保存到本管线的确定性路径，
+供后续 Gate 消费；producer 不修改仓库文件协议，也不直接完成最终 raster。
 
 本文章管线的 raster 成本边界不可改变：高层视觉能力必须收束到
 `baoyu-image-gen`，而 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的
@@ -130,8 +143,15 @@ raster rendering。
 Codex CLI 不可用、登录失效或生成失败时，当前图片阶段 BLOCKED；只允许在同一
 Codex 路径内诊断、修 prompt 或有限重试，禁止切换任何其它 raster provider。
 
+视觉操作协议：先判定是否需要图；需要时动态发现并选择 Agent 原生或一个/少量
+互补视觉能力；将选择和 intent 写入 `image-plan.json`；`prompt_source=adapter`
+时由当前兼容 adapter 生成 prompt，`prompt_source=external` 时先委托 producer
+生成 rendering prompt 并保存到预期路径；最后统一经
+`baoyu-image-gen → codex-cli` 逐张生成 raster，再按 SLOT/计划/prompt/image
+Gate 验证。external 的 `producer` 是运行期事实，不得据此增加 workflow 分支。
+
 ## 阶段完成记录
 
-Agent 不需要为每次选择维护新的 Router 文件。需要审计时使用上面的 trace
-命令即可；该记录是辅助信息，最终真相仍是 stage artifact、state 和确定性
-Gate。
+Agent 不需要维护新的 Router 或 Skill 注册表。每次路线尝试完成 Gate 后使用
+上面的 trace 命令即可；该记录是辅助信息，最终真相仍是 stage artifact、state
+和确定性 Gate。

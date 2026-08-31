@@ -120,6 +120,9 @@ describe("workflow stage contracts", () => {
     for (const skill of ["ljg-qa", "ljg-think", "ljg-writes", "aihot", "last30days"]) {
       expect(HARD_SKILLS).not.toContain(skill);
     }
+    for (const skill of ["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-infographic"]) {
+      expect(HARD_SKILLS).not.toContain(skill);
+    }
     expect(requiredSkillsFor("reader-response", "research")).toEqual([]);
     expect(requiredSkillsFor("reader-response", "draft")).toEqual([]);
     expect(requiredSkillsFor("reader-response", "refine")).toEqual([]);

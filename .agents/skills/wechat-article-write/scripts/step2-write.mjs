@@ -6,7 +6,7 @@
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
- *   - SLOT_IMG_00 信息图存在，且 SLOT_IMG_01+ 文内插图至少 3 张
+ *   - SLOT_IMG_00 信息图恰好存在一次，正文 SLOT 编号不重复
  *   - 文末互动存在
  *   - 正文无 H1
  *   - ## 参考资料 区块（默认必须，--allow-no-references 可跳过）
@@ -25,8 +25,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, MIN_BODY_ILLUSTRATIONS, countWords, countBodyIllustrationSlots, extractSlotNumbers, hasSlotPlaceholders } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
+import { collectDraftSlots } from "./visual-plan-lib.mjs";
 
 const args = process.argv.slice(2);
 const allowNoReferences = args.includes("--allow-no-references");
@@ -108,14 +109,15 @@ if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
 
-// 3a. SLOT_IMG placeholder check
-if (!hasSlotPlaceholders(body)) fail(4, "正文缺少 SLOT_IMG 占位符（至少需要 <!-- SLOT_IMG_00_INFOGRAPHIC -->）");
-const slotNumbers = extractSlotNumbers(body);
-if (!slotNumbers.includes(0)) fail(4, "正文缺少 SLOT_IMG_00 信息图占位符（SLOT 00 是必填视觉摘要）");
-const bodyIllustrationCount = countBodyIllustrationSlots(body);
-if (bodyIllustrationCount < MIN_BODY_ILLUSTRATIONS) {
-  fail(4, `正文至少需要 ${MIN_BODY_ILLUSTRATIONS} 张文内插图（不含封面图和 SLOT_IMG_00 头部信息图），当前 ${bodyIllustrationCount} 张`);
-}
+// 3a. SLOT_IMG placeholder check.  SLOT 00 is mandatory; body visual count
+// is an editorial/image-plan decision rather than a fixed quantity gate.
+const draftSlots = collectDraftSlots(body);
+if (draftSlots.length === 0) fail(4, "正文缺少 SLOT_IMG 占位符（必须包含 <!-- SLOT_IMG_00_INFOGRAPHIC -->）");
+const slotCounts = new Map();
+for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.slot) ?? 0) + 1);
+const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
+if (duplicateSlots.length > 0) fail(4, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}`);
+if ((slotCounts.get(0) ?? 0) !== 1) fail(4, "正文必须恰好包含一次 SLOT_IMG_00 信息图占位符（SLOT 00 是必填视觉摘要）");
 
 // 4. Interaction check
 // 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：

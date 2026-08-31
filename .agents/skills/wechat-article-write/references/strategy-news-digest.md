@@ -32,13 +32,15 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 简洁事实、来源和“为什么重要/影响谁”的作者判断；全文还要有综合判断、
 风险或后续观察点。不要复制任何资料工具的输出格式。
 
-正文仍遵守通用内容协议：金句式 `summary`、H2、SLOT 00 全文总览、至少三张
-服务于共同趋势/对比/时间线/影响路径的文内图、互动问题和
+正文仍遵守通用内容协议：金句式 `summary`、H2、SLOT 00 全文总览，以及只在
+能解释共同趋势/对比/时间线/影响路径时创建的文内图；文内图数量由
+image-plan 决定，可以为零。另有互动问题和
 `## 参考资料`。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
 把猜测伪装成事实。
 
 保存 `draft.md` 和由 Agent 根据共同趋势、对比或影响路径明确规划的
-`image-plan.json`（至少包含每个视觉节点的 intent 与合法 layout/style/type），
+`image-plan.json`（至少包含每个视觉节点的 intent 与合法 layout/style/type；正文
+视觉节点数量可以为零），
 再运行：
 
 ```bash

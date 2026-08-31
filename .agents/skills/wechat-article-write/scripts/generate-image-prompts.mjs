@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /**
- * Step 4 helper: generate image prompt files from draft.md using baoyu templates.
+ * Step 4 helper: materialize deterministic image prompt files from draft.md and
+ * an Agent-authored image-plan.json.
  *
  * Usage:
  *   bun run generate-image-prompts.mjs <date-slug> [--overwrite]
@@ -10,18 +11,25 @@
  *   - imgs/prompts/00-infographic-core-summary.md
  *   - imgs/prompts/{NN}-{desc}.md for SLOT_IMG_01+
  *
- * Boundary: image-plan.json is an Agent-authored visual plan. This adapter
- * does not discover or select Skills and does not call a visual Skill; it only
- * materializes the current repository SLOT/prompt protocol from that plan and
- * the official Baoyu template references. Raster rendering happens later via
- * the configured baoyu-image-gen backend.
+ * Boundary: this script does not discover, select, or call a visual Skill. It
+ * materializes the repository SLOT/prompt protocol. `prompt_source=adapter`
+ * uses the current compatibility templates; `prompt_source=external` preserves
+ * a prompt already produced by an Agent or another visual capability. Raster
+ * rendering happens later via the configured baoyu-image-gen backend.
  */
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { postDir, repoRoot } from "./path-resolver.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
-import { SLOT_EXTRACT_RE, resolveSlotImg } from "./validation-lib.mjs";
+import { normalizeSlotDesc } from "./validation-lib.mjs";
+import {
+  collectDraftSlots,
+  normalizePromptSource,
+  readImagePlan,
+  validateVisualPlanTopology,
+  visualPromptDescription,
+} from "./visual-plan-lib.mjs";
 
 const args = process.argv.slice(2);
 const overwrite = args.includes("--overwrite");
@@ -147,11 +155,15 @@ ZONES: each module has one icon, one Chinese label, and one short phrase.
 }
 
 function safeDesc(desc, fallback) {
-  const s = String(desc ?? fallback)
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return s || fallback;
+  return normalizeSlotDesc(desc ?? fallback) || fallback;
+}
+
+function promptSource(node, label) {
+  try {
+    return normalizePromptSource(node?.prompt_source);
+  } catch (error) {
+    fail(`${label}.${error.message}`);
+  }
 }
 
 function writePrompt(path, content) {
@@ -167,8 +179,8 @@ function writePrompt(path, content) {
 const IMAGE_TEMPLATE_MAP = JSON.parse(readRequired(resolve(repoRoot(), ".agents/skills/wechat-article-write/references/image-template-map.json")));
 // baoyu-infographic 的正交模型：21 layouts × 22 styles。
 // SLOT 00 信息图 prompt 同时读取两个文件并组合，而不是单一 hybrid 模板。
-const VALID_INFOGRAPHIC_LAYOUTS = new Set(IMAGE_TEMPLATE_MAP.infographic_layouts);
-const VALID_INFOGRAPHIC_STYLES = new Set(IMAGE_TEMPLATE_MAP.infographic_styles);
+const VALID_INFOGRAPHIC_LAYOUTS = new Set(IMAGE_TEMPLATE_MAP.infographic_layouts ?? []);
+const VALID_INFOGRAPHIC_STYLES = new Set(IMAGE_TEMPLATE_MAP.infographic_styles ?? []);
 const LEGACY_DEFAULTS = IMAGE_TEMPLATE_MAP.legacy_defaults ?? {
   style_families: IMAGE_TEMPLATE_MAP.style_families ?? {},
   article_type_defaults: IMAGE_TEMPLATE_MAP.article_type_defaults ?? {},
@@ -178,13 +190,34 @@ const LEGACY_ARTICLE_TYPE_DEFAULTS = LEGACY_DEFAULTS.article_type_defaults ?? {}
 const VALID_ARTICLE_TYPES = new Set(Object.keys(LEGACY_ARTICLE_TYPE_DEFAULTS));
 const VALID_ILLUSTRATION_TYPES = new Set(["comparison", "flowchart", "framework"]);
 
-// 动态定位 baoyu-infographic skill 目录。
-// 这是 baoyu 系列（`npx skills` 管理）的第三方技能，路径可能因 home 目录不同而异。
-const BAOYU_INFOGRAPHIC_DIR = skillDir("baoyu-infographic");
-const BAOYU_INFOGRAPHIC_LAYOUTS_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/layouts");
-const BAOYU_INFOGRAPHIC_STYLES_DIR = resolve(BAOYU_INFOGRAPHIC_DIR, "references/styles");
-const BAOYU_ILLUSTRATOR_DIR = skillDir("baoyu-article-illustrator");
-const BAOYU_ILLUSTRATOR_STYLES_DIR = resolve(BAOYU_ILLUSTRATOR_DIR, "references/styles");
+// Optional adapter template sources are resolved only when at least one asset
+// actually uses the adapter. External producers must not depend on them.
+let infographicTemplateDirs = null;
+let illustratorResources = null;
+let illustratorStyleNames = null;
+
+function getInfographicTemplateDirs() {
+  if (!infographicTemplateDirs) {
+    const dir = skillDir("baoyu-infographic");
+    infographicTemplateDirs = {
+      layouts: resolve(dir, "references/layouts"),
+      styles: resolve(dir, "references/styles"),
+    };
+  }
+  return infographicTemplateDirs;
+}
+
+function getIllustratorResources() {
+  if (!illustratorResources) {
+    const dir = skillDir("baoyu-article-illustrator");
+    illustratorResources = {
+      promptConstruction: readRequired(resolve(dir, "references/prompt-construction.md")),
+      vectorStyle: readRequired(resolve(dir, "references/styles/vector-illustration.md")),
+      stylesDir: resolve(dir, "references/styles"),
+    };
+  }
+  return illustratorResources;
+}
 
 function templateNames(dir) {
   if (!existsSync(dir)) return new Set();
@@ -195,16 +228,19 @@ function templateNames(dir) {
   );
 }
 
-const VALID_ILLUSTRATION_STYLES = templateNames(BAOYU_ILLUSTRATOR_STYLES_DIR);
+function validIllustrationStyles() {
+  if (!illustratorStyleNames) illustratorStyleNames = templateNames(getIllustratorResources().stylesDir);
+  return illustratorStyleNames;
+}
 
 function readBaoyuInfographicLayout(layoutName) {
-  const path = resolve(BAOYU_INFOGRAPHIC_LAYOUTS_DIR, `${layoutName}.md`);
+  const path = resolve(getInfographicTemplateDirs().layouts, `${layoutName}.md`);
   if (!existsSync(path)) fail(`baoyu-infographic layout not found: ${layoutName}.md`);
   return readFileSync(path, "utf8");
 }
 
 function readBaoyuInfographicStyle(styleName) {
-  const path = resolve(BAOYU_INFOGRAPHIC_STYLES_DIR, `${styleName}.md`);
+  const path = resolve(getInfographicTemplateDirs().styles, `${styleName}.md`);
   if (!existsSync(path)) fail(`baoyu-infographic style not found: ${styleName}.md`);
   return readFileSync(path, "utf8");
 }
@@ -277,10 +313,11 @@ function validateImagePlan(imagePlan) {
 
   const info = imagePlan.infographic;
   if (info) {
-    if (info.style && !VALID_INFOGRAPHIC_STYLES.has(info.style)) {
+    const source = promptSource(info, "image-plan.infographic");
+    if (source === "adapter" && info.style && !VALID_INFOGRAPHIC_STYLES.has(info.style)) {
       fail(`unknown infographic style "${info.style}" in image-plan.json (must be one of baoyu-infographic styles)`);
     }
-    if (info.layout && !VALID_INFOGRAPHIC_LAYOUTS.has(info.layout)) {
+    if (source === "adapter" && info.layout && !VALID_INFOGRAPHIC_LAYOUTS.has(info.layout)) {
       fail(`unknown infographic layout "${info.layout}" in image-plan.json (must be one of baoyu-infographic layouts)`);
     }
   }
@@ -292,10 +329,11 @@ function validateImagePlan(imagePlan) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
       fail("image-plan.illustrations entries must be objects");
     }
-    if (entry.type && !VALID_ILLUSTRATION_TYPES.has(entry.type)) {
+    const source = promptSource(entry, "image-plan.illustrations entry");
+    if (source === "adapter" && entry.type && !VALID_ILLUSTRATION_TYPES.has(entry.type)) {
       fail(`unknown illustration type "${entry.type}" in image-plan.json`);
     }
-    if (entry.style && !VALID_ILLUSTRATION_STYLES.has(entry.style)) {
+    if (source === "adapter" && entry.style && !validIllustrationStyles().has(entry.style)) {
       fail(`unknown illustration style "${entry.style}" in image-plan.json (must match baoyu-article-illustrator styles)`);
     }
   }
@@ -309,58 +347,40 @@ function requireText(value, path) {
   if (!hasText(value)) fail(`${path} is required in image-plan.json`);
 }
 
-function validateVisualPlan(imagePlan, slots) {
+function validateVisualPlan(imagePlan, body) {
   if (allowDefaultImagePlan) return;
   if (!imagePlan) {
     fail("image-plan.json is required; use --allow-default-image-plan only for legacy defaults");
   }
 
+  const topology = validateVisualPlanTopology(imagePlan, body);
+  if (!topology.ok) fail(topology.errors.join("; "));
+
   const cover = imagePlan.cover;
-  if (!cover || typeof cover !== "object" || Array.isArray(cover)) {
-    fail("image-plan.cover is required for the normal visual plan");
-  }
+  const coverSource = promptSource(cover, "image-plan.cover");
   requireText(cover.intent, "image-plan.cover.intent");
-  requireText(cover.type, "image-plan.cover.type");
-  if (!hasText(cover.style) && !(hasText(cover.palette) && hasText(cover.rendering))) {
-    fail("image-plan.cover.style or both image-plan.cover.palette and image-plan.cover.rendering are required");
+  if (coverSource === "adapter") {
+    requireText(cover.type, "image-plan.cover.type");
+    if (!hasText(cover.style) && !(hasText(cover.palette) && hasText(cover.rendering))) {
+      fail("image-plan.cover.style or both image-plan.cover.palette and image-plan.cover.rendering are required");
+    }
   }
 
   const infographic = imagePlan.infographic;
-  if (!infographic || typeof infographic !== "object" || Array.isArray(infographic)) {
-    fail("image-plan.infographic is required for the normal visual plan");
-  }
+  const infographicSource = promptSource(infographic, "image-plan.infographic");
   requireText(infographic.intent, "image-plan.infographic.intent");
-  requireText(infographic.layout, "image-plan.infographic.layout");
-  requireText(infographic.style, "image-plan.infographic.style");
-
-  const bodySlots = slots.filter((slot) => slot.slot > 0);
-  const illustrations = imagePlan.illustrations;
-  if (!Array.isArray(illustrations)) {
-    if (bodySlots.length > 0) fail("image-plan.illustrations is required for every body SLOT");
-    return;
+  if (infographicSource === "adapter") {
+    requireText(infographic.layout, "image-plan.infographic.layout");
+    requireText(infographic.style, "image-plan.infographic.style");
   }
 
-  const draftSlotNumbers = new Set(bodySlots.map((slot) => slot.slot));
-  const entriesBySlot = new Map();
-  for (const entry of illustrations) {
-    if (!Number.isInteger(entry?.slot) || entry.slot < 1) {
-      fail("image-plan.illustrations entries require a positive integer slot");
-    }
-    if (!draftSlotNumbers.has(entry.slot)) {
-      fail(`image-plan.illustrations slot ${entry.slot} has no matching body SLOT`);
-    }
-    if (entriesBySlot.has(entry.slot)) {
-      fail(`image-plan.illustrations contains duplicate slot ${entry.slot}`);
-    }
-    entriesBySlot.set(entry.slot, entry);
-  }
-
-  for (const slot of bodySlots) {
-    const entry = entriesBySlot.get(slot.slot);
-    if (!entry) fail(`image-plan.illustrations is missing a plan for SLOT_IMG_${String(slot.slot).padStart(2, "0")}`);
+  for (const slot of topology.bodySlots) {
+    const entry = topology.entriesBySlot.get(slot.slot);
     requireText(entry.intent, `image-plan.illustrations[slot=${slot.slot}].intent`);
-    requireText(entry.type, `image-plan.illustrations[slot=${slot.slot}].type`);
-    requireText(entry.style, `image-plan.illustrations[slot=${slot.slot}].style`);
+    if (promptSource(entry, `image-plan.illustrations[slot=${slot.slot}]`) === "adapter") {
+      requireText(entry.type, `image-plan.illustrations[slot=${slot.slot}].type`);
+      requireText(entry.style, `image-plan.illustrations[slot=${slot.slot}].style`);
+    }
   }
 }
 
@@ -384,13 +404,11 @@ if (!existsSync(draftPath)) fail(`draft.md missing: ${draftPath}`);
 // --- image-plan.json: content-aware template selection ---
 const imagePlanPath = resolve(dir, "image-plan.json");
 let imagePlan = null;
-if (existsSync(imagePlanPath)) {
-  try {
-    imagePlan = JSON.parse(readFileSync(imagePlanPath, "utf8"));
-  } catch (e) {
-    if (!allowDefaultImagePlan) fail(`invalid image-plan.json: ${e.message}`);
-    process.stderr.write(`generate-image-prompts: WARN - invalid image-plan.json, falling back to defaults: ${e.message}\n`);
-  }
+try {
+  imagePlan = readImagePlan(imagePlanPath);
+} catch (e) {
+  if (!allowDefaultImagePlan) fail(e.message);
+  process.stderr.write(`generate-image-prompts: WARN - invalid image-plan.json, falling back to defaults: ${e.message}\n`);
 }
 validateImagePlan(imagePlan);
 
@@ -400,20 +418,10 @@ if (!fm) fail("frontmatter missing in draft.md");
 const body = extractBody(raw);
 
 const promptsDir = resolve(dir, "imgs/prompts");
-const illustratorDir = skillDir("baoyu-article-illustrator");
-const coverDir = skillDir("baoyu-cover-image");
-
-const promptConstruction = readRequired(resolve(illustratorDir, "references/prompt-construction.md"));
-const vectorStyle = readRequired(resolve(illustratorDir, "references/styles/vector-illustration.md"));
-readRequired(resolve(coverDir, "references/workflow/prompt-template.md"));
-
-const slots = [...body.matchAll(SLOT_EXTRACT_RE)].map((m) => {
-  const parsed = resolveSlotImg(m[0]);
-  return { ...parsed, index: m.index, raw: m[0] };
-});
+const slots = collectDraftSlots(body);
 if (!slots.some((s) => s.slot === 0)) fail("SLOT_IMG_00 is required before generating prompts");
 
-validateVisualPlan(imagePlan, slots);
+validateVisualPlan(imagePlan, body);
 
 // Legacy article-type/direction defaults are available only when the caller
 // explicitly opts into compatibility mode.  The normal path consumes the
@@ -422,37 +430,85 @@ const defaults = allowDefaultImagePlan ? resolveLegacyDefaults(imagePlan) : null
 
 const labels = extractLabels(body, fm);
 
+function checkExternalPrompt(path, label, node) {
+  if (promptSource(node, label) !== "external") return;
+  if (!existsSync(path)) {
+    fail(`external visual prompt missing for ${label}
+producer=${node.producer}
+expected: ${path}
+Run/delegate the selected producer first, save its final rendering prompt to the expected path, then rerun generate-image-prompts.mjs.`);
+  }
+  if (readFileSync(path, "utf8").trim().length === 0) {
+    fail(`external visual prompt is empty for ${label}
+producer=${node.producer}
+expected: ${path}
+Replace it with the selected producer's final rendering prompt, then rerun generate-image-prompts.mjs.`);
+  }
+  process.stderr.write(`generate-image-prompts: preserve external prompt ${path} (producer=${node.producer})\n`);
+}
+
 const coverSlug = safeDesc(fm.blogSlug ?? slug, "article");
 const coverConfig = allowDefaultImagePlan
   ? { ...defaults.cover, ...(imagePlan?.cover ?? {}) }
   : imagePlan.cover;
-const coverIntent = coverConfig.intent ?? "用一个清晰隐喻表达文章中心张力（legacy fallback）";
-const coverType = coverConfig.type ?? "conceptual";
-const coverPalette = coverConfig.palette;
-const coverRendering = coverConfig.rendering;
-const coverStyle = coverConfig.style;
-const coverText = coverConfig.text ?? "none";
-const coverMood = coverConfig.mood ?? "bold";
-const coverHeader = [
-  "---",
-  "type: cover",
-  coverPalette ? `palette: ${coverPalette}` : null,
-  coverRendering ? `rendering: ${coverRendering}` : null,
-  "---",
-].filter(Boolean).join("\n");
-const coverVisualDesign = [
-  `Visual intent: ${coverIntent}`,
-  `Type: ${coverType}`,
-  coverStyle ? `Style: ${coverStyle}` : null,
-  coverPalette ? `Palette: ${coverPalette}` : null,
-  coverRendering ? `Rendering: ${coverRendering}` : null,
-  "Font: none",
-  `Text level: ${coverText}`,
-  `Mood: ${coverMood}`,
-  "Aspect ratio: 16:9",
-  "Language: Chinese",
-].filter(Boolean).join("\n");
-const coverPrompt = `${coverHeader}
+
+const infographicConfig = allowDefaultImagePlan
+  ? { ...defaults.infographic, ...(imagePlan?.infographic ?? {}) }
+  : imagePlan.infographic;
+const coverSource = promptSource(coverConfig, "image-plan.cover");
+const infographicSource = promptSource(infographicConfig, "image-plan.infographic");
+
+const bodySpecs = slots
+  .filter((slot) => slot.slot > 0)
+  .map((slot) => {
+    const entry = imagePlan?.illustrations?.find((candidate) => candidate.slot === slot.slot) ?? {};
+    return {
+      slot,
+      entry,
+      source: promptSource(entry, `image-plan.illustrations[slot=${slot.slot}]`),
+      desc: visualPromptDescription(entry, slot),
+    };
+  });
+
+const coverPromptPath = resolve(promptsDir, `00-cover-${coverSlug}.md`);
+const infographicPromptPath = resolve(promptsDir, "00-infographic-core-summary.md");
+checkExternalPrompt(coverPromptPath, "cover", coverConfig);
+checkExternalPrompt(infographicPromptPath, "SLOT_IMG_00", infographicConfig);
+for (const spec of bodySpecs) {
+  checkExternalPrompt(resolve(promptsDir, `${String(spec.slot.slot).padStart(2, "0")}-${spec.desc}.md`), `SLOT_IMG_${String(spec.slot.slot).padStart(2, "0")}`, spec.entry);
+}
+
+let coverPrompt = null;
+if (coverSource === "adapter") {
+  // This compatibility adapter is loaded only when the cover actually uses it.
+  readRequired(resolve(skillDir("baoyu-cover-image"), "references/workflow/prompt-template.md"));
+  const coverIntent = coverConfig.intent ?? "用一个清晰隐喻表达文章中心张力（legacy fallback）";
+  const coverType = coverConfig.type ?? "conceptual";
+  const coverPalette = coverConfig.palette;
+  const coverRendering = coverConfig.rendering;
+  const coverStyle = coverConfig.style;
+  const coverText = coverConfig.text ?? "none";
+  const coverMood = coverConfig.mood ?? "bold";
+  const coverHeader = [
+    "---",
+    "type: cover",
+    coverPalette ? `palette: ${coverPalette}` : null,
+    coverRendering ? `rendering: ${coverRendering}` : null,
+    "---",
+  ].filter(Boolean).join("\n");
+  const coverVisualDesign = [
+    `Visual intent: ${coverIntent}`,
+    `Type: ${coverType}`,
+    coverStyle ? `Style: ${coverStyle}` : null,
+    coverPalette ? `Palette: ${coverPalette}` : null,
+    coverRendering ? `Rendering: ${coverRendering}` : null,
+    "Font: none",
+    `Text level: ${coverText}`,
+    `Mood: ${coverMood}`,
+    "Aspect ratio: 16:9",
+    "Language: Chinese",
+  ].filter(Boolean).join("\n");
+  coverPrompt = `${coverHeader}
 
 # Content Context
 Article title: ${fm.title}
@@ -472,28 +528,25 @@ Visual composition: one strong symbolic metaphor derived from the article, cente
 Color constraint: Color values (#hex) and color names are rendering guidance only — do NOT display color names, hex codes, or palette labels as visible text in the image.
 ${coverRendering ? `Rendering notes: ${coverRendering}, clean outlines, bold contrast, no photorealism.` : "Rendering notes: clean outlines, bold contrast, no photorealism."}
 `;
+}
 
-const infographicConfig = allowDefaultImagePlan
-  ? { ...defaults.infographic, ...(imagePlan?.infographic ?? {}) }
-  : imagePlan.infographic;
-const infographicIntent = infographicConfig.intent ?? "压缩全文中心判断、论证路径和结论（legacy fallback）";
-const infoLayout = infographicConfig.layout ?? "bento-grid";
-const infoStyle = infographicConfig.style ?? "claymation";
-const infoAspect = infographicConfig.aspect ?? "16:9";
+let infographicPrompt = null;
+if (infographicSource === "adapter") {
+  const infographicIntent = infographicConfig.intent ?? "压缩全文中心判断、论证路径和结论（legacy fallback）";
+  const infoLayout = infographicConfig.layout ?? "bento-grid";
+  const infoStyle = infographicConfig.style ?? "claymation";
+  const infoAspect = infographicConfig.aspect ?? "16:9";
+  infographicPrompt = buildCompactInfographicPrompt({
+    fm,
+    body,
+    labels: compactLabels(body, fm),
+    intent: infographicIntent,
+    layout: infoLayout,
+    style: infoStyle,
+    aspect: infoAspect,
+  });
+}
 
-const infographicPrompt = buildCompactInfographicPrompt({
-  fm,
-  body,
-  labels: compactLabels(body, fm),
-  intent: infographicIntent,
-  layout: infoLayout,
-  style: infoStyle,
-  aspect: infoAspect,
-});
-
-const defaultComposition = extractSection(promptConstruction, "Default Composition Requirements");
-const textRequirements = extractSection(promptConstruction, "Text in Illustrations");
-const colorRules = extractSection(promptConstruction, "Color Specification Rules");
 const commonChineseRule = `## Chinese Text Rule
 
 Visible text should use Chinese labels and Chinese short phrases by default. Keep model names, product names, API/code identifiers, English abbreviations, and quoted source terminology in the original language only when translation would be inaccurate. Do not use English merely for visual style.`;
@@ -510,13 +563,15 @@ This image is an article illustration, not a CAD sheet, not a blueprint title pa
 `;
 
 const outputs = [];
-if (writePrompt(resolve(promptsDir, `00-cover-${coverSlug}.md`), coverPrompt)) outputs.push(`00-cover-${coverSlug}.md`);
-if (writePrompt(resolve(promptsDir, "00-infographic-core-summary.md"), infographicPrompt)) outputs.push("00-infographic-core-summary.md");
+if (coverPrompt !== null && writePrompt(coverPromptPath, coverPrompt)) outputs.push(`00-cover-${coverSlug}.md`);
+if (infographicPrompt !== null && writePrompt(infographicPromptPath, infographicPrompt)) outputs.push("00-infographic-core-summary.md");
 
-for (const slot of slots.filter((s) => s.slot > 0)) {
+for (const spec of bodySpecs) {
+  if (spec.source === "external") continue;
+
+  const { slot, entry: planEntry, desc } = spec;
   const context = sectionContext(body, slot.index);
 
-  const planEntry = imagePlan?.illustrations?.find((e) => e.slot === slot.slot);
   const type = planEntry?.type ?? (allowDefaultImagePlan ? inferIllustrationType(context, slot.desc) : null);
   const style = planEntry?.style ?? (allowDefaultImagePlan ? defaults.illustrationStyle : null);
   const intent = planEntry?.intent ?? (allowDefaultImagePlan ? "解释正文附近的关键论证节点" : null);
@@ -525,9 +580,12 @@ for (const slot of slots.filter((s) => s.slot > 0)) {
   }
 
   const nn = String(slot.slot).padStart(2, "0");
-  const desc = safeDesc(planEntry?.description ?? slot.desc, "illustration");
 
   const styleContent = resolveTemplateFile("baoyu-article-illustrator", `references/styles/${style}.md`);
+  const { promptConstruction, vectorStyle } = getIllustratorResources();
+  const defaultComposition = extractSection(promptConstruction, "Default Composition Requirements");
+  const textRequirements = extractSection(promptConstruction, "Text in Illustrations");
+  const colorRules = extractSection(promptConstruction, "Color Specification Rules");
 
   const prompt = `---
 illustration_id: ${nn}

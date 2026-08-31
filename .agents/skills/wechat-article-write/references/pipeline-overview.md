@@ -14,7 +14,7 @@ Agent 在开放阶段根据 `orchestration-policy.md` 自主选择方法；脚�
 | 1.8 | `understanding-brief.md` | Agent / 可选能力 | `validate-understanding.mjs` |
 | 2 | `draft.md`、`image-plan.json` | Agent / 可选能力 | `step2-write.mjs` |
 | 3 | 更新后的 `draft.md` | Agent / 确定性 lint | `step3-polish.mjs` |
-| 4 | `cover.png`、`imgs/*` | Agent + 视觉适配器 | `step4-images.mjs` |
+| 4 | `cover.png`、`imgs/*` | Agent + 可选视觉 producer + raster renderer | `step4-images.mjs` |
 | 5 | 三种双轨产物 | 脚本 + 微信排版适配器 | `step5-build.mjs` |
 | 6 | 博客提交、微信草稿 | 脚本 | publish Gates |
 
@@ -74,7 +74,8 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 专业写作能力，Agent 都必须负责仓库适配：frontmatter、`summary`、
 `sourceUrl`、H2 正文、参考资料、互动（策略允许时）、站内联动和 SLOT
 占位符都要完整。SLOT 不是章节打卡，而是放在确实需要视觉解释的论证节点；
-当前兼容规则要求 SLOT 00 和至少三张文内图。
+SLOT 00 必须存在，正文 SLOT 只在有明确视觉信息增益时创建，数量由
+`image-plan.json` 决定。
 
 教程适配还要保留 `targetPath` 和源文 canonical URL；具体例外见教程策略。
 写完运行 `step2-write.mjs`，失败时根据 Gate 错误修正产物，不要直接前进。
@@ -89,17 +90,24 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
 
-需要交接或复盘 Adaptive Stage 时，可按 policy 使用
-`scripts/orchestration-trace.mjs` 写入尽力而为的 JSONL 记录；它不属于
-Stage Contract，不会替代 artifact、state 或 Gate。
+每次 Adaptive Stage 路线尝试完成 Gate 后，按 policy 默认 best-effort 使用
+`scripts/orchestration-trace.mjs` 写入一条 JSONL 记录；它不属于 Stage
+Contract，不会替代 artifact、state 或 Gate。没有调用 Skill 时记录
+`selected=no-skill`，写盘失败只 warning。
 
 ## Step 4：视觉意图与图片资产
 
-先说明每个 SLOT 要让读者看懂什么，再从当前 catalog 选择分析、布局或插图
-能力。生成 prompt 后逐张审阅；图片必须与正文信息对应，文字、数字和命名
-契约必须复核。
+先判断是否需要视觉增益，再说明每个 SLOT 要让读者看懂什么；需要能力时从
+当前 catalog 动态选择 Agent 原生或一个/少量互补 producer。producer 只负责
+视觉方案和 rendering prompt，生成 prompt 后逐张审阅；图片必须与正文信息
+对应，文字、数字和命名契约必须复核。
 
-所有 raster rendering 的链路固定为：高层视觉能力 → `baoyu-image-gen` →
+图片拓扑必须满足：draft SLOT ↔ image-plan entry ↔ deterministic prompt ↔
+image。`prompt_source=adapter` 时按需读取兼容模板；`external` 时保留
+producer 写入的确定性 prompt。正文没有局部视觉节点时，`illustrations: []`
+仍然可以通过 Gate。
+
+所有 raster rendering 的链路固定为：visual producer → `baoyu-image-gen` →
 `codex-cli`。repository static 依赖检查不要求本机 runtime；真实生图前必须运行
 `bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime`。
 运行图片预检后，日常命令不传 provider 覆盖参数；Codex CLI

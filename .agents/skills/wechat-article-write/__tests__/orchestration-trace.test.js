@@ -9,6 +9,7 @@ import {
   TRACE_FILENAME,
   appendOrchestrationTrace,
   buildTraceRecord,
+  VALID_RESULTS,
 } from "../scripts/orchestration-trace.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/orchestration-trace.mjs");
@@ -57,6 +58,32 @@ describe("orchestration trace", () => {
     expect(record.output).toBeUndefined();
   });
 
+  test("records an explicit no-skill route", () => {
+    const root = fixtureRoot("orchestration-trace-no-skill");
+    cleanup.push(root);
+    const result = appendOrchestrationTrace("2026-08-31-no-skill", {
+      stage: "refine",
+      gap: "当前产物已满足合同，没有明确能力缺口",
+      candidates: [],
+      selected: "no-skill",
+      reason: "已有产物通过 Gate，无需额外能力",
+      gate: "step3-polish",
+      result: "pass",
+    }, { root });
+
+    expect(result.ok).toBe(true);
+    const record = JSON.parse(readFileSync(join(root, "2026-08-31-no-skill", TRACE_FILENAME), "utf8"));
+    expect(record.selected).toEqual(["no-skill"]);
+  });
+
+  test("accepts only the four route-attempt results", () => {
+    expect([...VALID_RESULTS]).toEqual(["pass", "fail", "blocked", "rerouted"]);
+    for (const result of VALID_RESULTS) {
+      expect(buildTraceRecord("trace-slug", { result }).result).toBe(result);
+    }
+    expect(() => buildTraceRecord("trace-slug", { result: "success" })).toThrow("result must be one of");
+  });
+
   test("redacts sensitive values and bounds free-form fields", () => {
     const record = buildTraceRecord("trace-slug", {
       stage: "draft",
@@ -102,6 +129,7 @@ describe("orchestration trace", () => {
       "run", SCRIPT, "2026-08-31-trace-cli-failure",
       "--stage", "draft",
       "--gap", "需要补足结构",
+      "--selected", "no-skill",
       "--gate", "step2-write",
       "--result", "blocked",
     ], {

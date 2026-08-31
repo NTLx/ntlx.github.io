@@ -41,6 +41,26 @@ function writePost(postsRoot, slug, body, imageNames) {
   for (const name of imageNames) {
     writeFileSync(join(imgsDir, name), PNG_BYTES);
   }
+  const slots = [...body.matchAll(/<!--\s*SLOT_IMG_(\d{2})(?:_[A-Za-z0-9_-]+)?\s*-->/g)]
+    .map((match) => ({ slot: Number(match[1]), desc: match[0].match(/SLOT_IMG_\d{2}(?:_([A-Za-z0-9_-]+))?/)[1] ?? null }))
+    .filter((slot) => slot.slot > 0);
+  const illustrations = slots.map((slot) => {
+    const image = imageNames.find((name) => name.startsWith(`${String(slot.slot).padStart(2, "0")}-`));
+    const description = image?.replace(/^\d{2}-/, "").replace(/\.(?:png|jpe?g|webp|gif)$/i, "") ?? slot.desc ?? "visual-node";
+    return { slot: slot.slot, intent: `解释 SLOT ${slot.slot}`, type: "framework", style: "minimal", description };
+  });
+  writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
+    cover: { intent: "表达文章中心", type: "conceptual", style: "editorial", prompt_source: "adapter" },
+    infographic: { intent: "压缩全文", layout: "bento-grid", style: "claymation", prompt_source: "adapter" },
+    illustrations,
+  }, null, 2));
+  const promptsDir = join(imgsDir, "prompts");
+  mkdirSync(promptsDir, { recursive: true });
+  writeFileSync(join(promptsDir, "00-cover-step-four-test.md"), "cover prompt\n");
+  writeFileSync(join(promptsDir, "00-infographic-core-summary.md"), "infographic prompt\n");
+  for (const entry of illustrations) {
+    writeFileSync(join(promptsDir, `${String(entry.slot).padStart(2, "0")}-${entry.description}.md`), "body prompt\n");
+  }
   return dir;
 }
 
@@ -52,7 +72,7 @@ function runStep4(slug, postsRoot) {
   });
 }
 
-describe("step4-images body illustration policy", () => {
+describe("step4-images visual-plan consistency", () => {
   let cleanup = [];
 
   afterEach(() => {
@@ -62,7 +82,7 @@ describe("step4-images body illustration policy", () => {
     cleanup = [];
   });
 
-  test("allows 3 body illustrations placed where the content needs them", () => {
+  test("allows body illustrations placed where the content needs them", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-flexible-image-placement";
@@ -113,16 +133,24 @@ describe("step4-images body illustration policy", () => {
     expect(state.last_complete_step).toBe(4);
   });
 
-  test("fails when body illustrations are fewer than 3", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-05-18-too-few-body-images";
-    const dir = writePost(fx.postsRoot, slug, `
+  test("allows 0, 1, 2, and 4 planned body illustrations", () => {
+    const bodies = [
+      [],
+      ["01-one"],
+      ["01-one", "02-two"],
+      ["01-one", "03-three", "07-seven", "09-nine"],
+    ];
+    for (const [index, descriptions] of bodies.entries()) {
+      const fx = makeFixture();
+      cleanup.push(fx.root);
+      const slug = `2026-05-18-body-count-${index}`;
+      const slots = descriptions.map((description) => `<!-- SLOT_IMG_${description.split("-")[0]}_${description.slice(3).toUpperCase()} -->`).join("\n\n");
+      const body = `
 <!-- SLOT_IMG_00_INFOGRAPHIC -->
 
 ## 正文
 
-<!-- SLOT_IMG_01_CORE_TENSION -->
+${slots}
 
 一些正文内容。
 
@@ -130,15 +158,12 @@ describe("step4-images body illustration policy", () => {
 
 > 来源
 > https://example.com/source
-`, [
-      "00-infographic-core-summary.png",
-      "01-core-tension.png",
-    ]);
-
-    const r = runStep4(slug, fx.postsRoot);
-    expect(r.status).toBe(4);
-    expect(r.stderr).toContain("3 张文内插图");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
+`;
+      const dir = writePost(fx.postsRoot, slug, body, ["00-infographic-core-summary.png", ...descriptions.map((description) => `${description}.png`)]);
+      const r = runStep4(slug, fx.postsRoot);
+      expect(r.status, `body illustration count ${descriptions.length}`).toBe(0);
+      expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
+    }
   });
 
   test("moves mistakenly generated imgs/00-cover.png to post root cover.png", () => {
@@ -231,21 +256,18 @@ describe("step4-images body illustration policy", () => {
 > 来源
 > https://example.com/source
 `, [
-      "00-infographic.png",
+      "00-infographic-core-summary.png",
       "01-core-tension.png",
       "02-stakeholder-map.png",
       "03-decision-flow.png",
     ]);
     const promptsDir = join(dir, "imgs", "prompts");
     mkdirSync(promptsDir, { recursive: true });
-    writeFileSync(join(promptsDir, "00-infographic-core-summary.md"), "infographic prompt\n");
-    writeFileSync(join(promptsDir, "01-core-tension.md"), "prompt\n");
-    writeFileSync(join(promptsDir, "02-stakeholder-map.md"), "prompt\n");
-    writeFileSync(join(promptsDir, "03-decision-flow.md"), "prompt\n");
+    writeFileSync(join(promptsDir, "01-other.md"), "extra prompt\n");
 
     const r = runStep4(slug, fx.postsRoot);
 
     expect(r.status).toBe(2);
-    expect(r.stderr).toContain("00-infographic-core-summary");
+    expect(r.stderr).toContain("01-other");
   });
 });
