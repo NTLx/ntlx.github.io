@@ -2,54 +2,26 @@
 /**
  * GitHub Image Hosting Upload Script
  *
- * Uploads images to NTLx/Pic repository using GitHub API and returns jsDelivr CDN URLs.
- *
- * Two invocation modes:
- *
- *   1) Single file:
- *      bun upload.ts <image-path> [--name <custom-name>] [--folder <folder>] [--repo <owner/name@branch:folder>]
- *
- *   2) Directory (batch):
- *      bun upload.ts <directory> --name-prefix <prefix> [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>]
- *      → traverses all images in <directory>, uploads with name = `${prefix}-${basename-no-ext}`
- *      → writes image-map.json: { "<original-filename>": "<cdn-url>", ... }
- *
- * Options:
- *   --name <name>          Custom filename (without extension). Single-file mode only.
- *   --name-prefix <prefix> Filename prefix for directory mode.
- *   --folder <path>        Target folder in repo (default: blog). Equivalent to `:folder` part of --repo.
- *   --repo <spec>          Spec format: `owner/name@branch:folder`. Overrides REPO_OWNER/REPO_NAME/folder.
- *   --output <path>        Directory mode only: write image-map.json to <path>.
- *   --dry-run              Show what would be uploaded without actually uploading.
- *
- * Notes:
- *   - The script automatically strips a trailing extension from --name / --name-prefix-derived names
- *     to avoid double-extension bugs (e.g. `01-foo.jpg.jpg`).
- *   - Repository defaults can be configured via .github-image-hosting.env files:
- *       Project-level: <git-root>/.github-image-hosting.env  (higher priority)
- *       User-level:    ~/.github-image-hosting.env            (fallback)
- *     CLI args (--repo / --folder) override env config.
- *     Env keys: GITHUB_IMAGE_REPO_OWNER, GITHUB_IMAGE_REPO_NAME,
- *               GITHUB_IMAGE_REPO_BRANCH, GITHUB_IMAGE_DEFAULT_FOLDER
+ * Uploads images to a configured GitHub repository and returns jsDelivr URLs.
+ * Single-file and directory mode share the same content-aware batch core.
  */
 
-import { execFileSync } from 'child_process';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
-let REPO_OWNER = 'NTLx';
-let REPO_NAME = 'Pic';
-let REPO_BRANCH = 'master';
-let DEFAULT_FOLDER = 'blog';
+let REPO_OWNER = "NTLx";
+let REPO_NAME = "Pic";
+let REPO_BRANCH = "master";
+let DEFAULT_FOLDER = "blog";
 
-// 是否通过 env 或 CLI 显式配置了图床仓库。
-// 未配置时应该 fail 而不是静默向默认仓库写图（通用 skill 不应默认写作者私人 repo）。
+// The built-in values are examples, not permission to write to a private repo.
 let CONFIGURED = false;
 
-const ENV_FILE_NAME = '.github-image-hosting.env';
-
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+const ENV_FILE_NAME = ".github-image-hosting.env";
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 const DEFAULT_API_TIMEOUT = 30000;
 const TREE_FETCH_TIMEOUT = 60000;
@@ -57,6 +29,8 @@ const POST_API_TIMEOUT = 300000;
 const PATCH_API_TIMEOUT = 60000;
 const NETWORK_RETRY_MAX = 2;
 const NETWORK_RETRY_BASE_MS = 2000;
+const REF_RETRY_MAX = 3;
+const REF_RETRY_BASE_MS = 1000;
 
 interface UploadOptions {
   imagePath: string;
@@ -67,34 +41,50 @@ interface UploadOptions {
   dryRun: boolean;
 }
 
-interface UploadResult {
-  success: boolean;
-  filename: string;
-  folder: string;
-  githubUrl: string;
-  cdnUrl: string;
-  error?: string;
+interface LocalAsset {
+  sourcePath: string;
+  originalFilename: string;
+  ext: string;
+  baseName: string;
+  bytes: Buffer;
+  localGitBlobSha: string;
 }
 
-/** Walk up from CWD to find git project root */
+interface PlannedAsset extends LocalAsset {
+  filename: string;
+  repoPath: string;
+  action: "uploaded" | "reused";
+}
+
+interface RemoteState {
+  head: string;
+  index: Map<string, string>;
+}
+
+interface BatchResult {
+  plan: PlannedAsset[];
+  map: Record<string, string>;
+}
+
+/** Walk up from CWD to find git project root. */
 function findProjectRoot(): string | null {
   let dir = process.cwd();
   while (dir !== path.dirname(dir)) {
-    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    if (fs.existsSync(path.join(dir, ".git"))) return dir;
     dir = path.dirname(dir);
   }
   return null;
 }
 
-/** Parse simple KEY=VALUE env file (skips comments and blank lines) */
+/** Parse simple KEY=VALUE env files (comments and blank lines are ignored). */
 function parseEnvFile(filePath: string): Record<string, string> {
   if (!fs.existsSync(filePath)) return {};
-  const content = fs.readFileSync(filePath, 'utf-8');
+  const content = fs.readFileSync(filePath, "utf8");
   const config: Record<string, string> = {};
-  for (const line of content.split('\n')) {
+  for (const line of content.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIdx = trimmed.indexOf('=');
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
     if (eqIdx < 0) continue;
     const key = trimmed.slice(0, eqIdx).trim();
     const value = trimmed.slice(eqIdx + 1).trim();
@@ -104,67 +94,49 @@ function parseEnvFile(filePath: string): Record<string, string> {
 }
 
 /**
- * Apply config from env files to global defaults.
- * Priority: project-level .github-image-hosting.env > user-level ~/.github-image-hosting.env > hardcoded defaults.
- * CLI args (--repo / --folder) override env config later in parseArgs.
+ * Apply project/user config. Repository configuration is considered present
+ * only when both owner and name are explicitly supplied by an env file.
  */
 function applyEnvConfig(): void {
-  const KEYS = [
-    ['GITHUB_IMAGE_REPO_OWNER', 'REPO_OWNER'],
-    ['GITHUB_IMAGE_REPO_NAME', 'REPO_NAME'],
-    ['GITHUB_IMAGE_REPO_BRANCH', 'REPO_BRANCH'],
-    ['GITHUB_IMAGE_DEFAULT_FOLDER', 'DEFAULT_FOLDER'],
-  ] as const;
-
-  // User-level config (~/.github-image-hosting.env) — lower priority
   const userConfig = parseEnvFile(path.join(os.homedir(), ENV_FILE_NAME));
-
-  // Project-level config (.github-image-hosting.env at git root) — higher priority
   const projectRoot = findProjectRoot();
   const projectConfig = projectRoot
     ? parseEnvFile(path.join(projectRoot, ENV_FILE_NAME))
     : {};
 
-  // Apply user config first, then project config overrides it
-  for (const [envKey, globalVar] of KEYS) {
-    if (userConfig[envKey] || projectConfig[envKey]) {
-      CONFIGURED = true;
-      const value = projectConfig[envKey] || userConfig[envKey];
-      switch (globalVar) {
-        case 'REPO_OWNER':    REPO_OWNER    = value; break;
-        case 'REPO_NAME':     REPO_NAME     = value; break;
-        case 'REPO_BRANCH':   REPO_BRANCH   = value; break;
-        case 'DEFAULT_FOLDER': DEFAULT_FOLDER = value; break;
-      }
-    }
-  }
+  const valueFor = (key: string): string | undefined =>
+    projectConfig[key] || userConfig[key];
+
+  const owner = valueFor("GITHUB_IMAGE_REPO_OWNER");
+  const name = valueFor("GITHUB_IMAGE_REPO_NAME");
+  const branch = valueFor("GITHUB_IMAGE_REPO_BRANCH");
+  const folder = valueFor("GITHUB_IMAGE_DEFAULT_FOLDER");
+
+  if (owner) REPO_OWNER = owner;
+  if (name) REPO_NAME = name;
+  if (branch) REPO_BRANCH = branch;
+  if (folder) DEFAULT_FOLDER = folder;
+  CONFIGURED = Boolean(owner && name);
 }
 
 function parseRepoSpec(spec: string, options: UploadOptions): void {
-  // owner/name@branch:folder
-  const m = spec.match(/^([^/]+)\/([^@:]+)(?:@([^:]+))?(?::(.+))?$/);
-  if (!m) {
-    throw new Error(`invalid --repo spec: ${spec}`);
-  }
-  REPO_OWNER = m[1];
-  REPO_NAME = m[2];
-  if (m[3]) REPO_BRANCH = m[3];
-  if (m[4]) options.folder = m[4];
-  CONFIGURED = true; // CLI 显式指定目标仓库即视为已配置
+  const match = spec.match(/^([^/]+)\/([^@:]+)(?:@([^:]+))?(?::(.+))?$/);
+  if (!match) throw new Error(`invalid --repo spec: ${spec}`);
+  REPO_OWNER = match[1];
+  REPO_NAME = match[2];
+  if (match[3]) REPO_BRANCH = match[3];
+  if (match[4]) options.folder = match[4];
+  CONFIGURED = true;
 }
 
-/**
- * 避免“未配置时静默上传到默认仓库”（默认值是通用 fallback，不是本项目约定）。
- * 只有项目/用户 env 或 CLI --repo 提供了仓库时才能写图；否则阻断并给明确指引。
- */
 function assertRepoConfigured(): void {
   if (!CONFIGURED) {
     console.error(
-      '[upload] FAIL: 未配置图片托管仓库。' +
-      '请在本仓库根目录创建 `.github-image-hosting.env`（推荐，会随仓库提交）或 `~/.github-image-hosting.env`，' +
-      '写入 GITHUB_IMAGE_REPO_OWNER / GITHUB_IMAGE_REPO_NAME / GITHUB_IMAGE_REPO_BRANCH / GITHUB_IMAGE_DEFAULT_FOLDER，' +
-      '或通过 `--repo owner/name@branch:folder` 显式指定。' +
-      '不要依赖脚本内置默认仓库静默上传。'
+      "[upload] FAIL: 未配置图片托管仓库。" +
+      "请在本仓库根目录创建 `.github-image-hosting.env`（推荐，会随仓库提交）或 `~/.github-image-hosting.env`，" +
+      "写入 GITHUB_IMAGE_REPO_OWNER / GITHUB_IMAGE_REPO_NAME / GITHUB_IMAGE_REPO_BRANCH / GITHUB_IMAGE_DEFAULT_FOLDER，" +
+      "或通过 `--repo owner/name@branch:folder` 显式指定。" +
+      "不要依赖脚本内置默认仓库静默上传。"
     );
     process.exit(1);
   }
@@ -172,341 +144,397 @@ function assertRepoConfigured(): void {
 
 function parseArgs(): UploadOptions {
   const args = process.argv.slice(2);
-  const options: UploadOptions = {
-    imagePath: '',
-    folder: DEFAULT_FOLDER,
-    dryRun: false,
-  };
+  const options: UploadOptions = { imagePath: "", folder: DEFAULT_FOLDER, dryRun: false };
 
-  for (let i = 0; i < args.length; i++) {
+  for (let i = 0; i < args.length; i += 1) {
     const arg = args[i];
-    if (arg === '--name' && args[i + 1]) {
-      options.customName = args[++i];
-    } else if (arg === '--name-prefix' && args[i + 1]) {
-      options.namePrefix = args[++i];
-    } else if (arg === '--folder' && args[i + 1]) {
-      options.folder = args[++i];
-    } else if (arg === '--repo' && args[i + 1]) {
-      parseRepoSpec(args[++i], options);
-    } else if (arg === '--output' && args[i + 1]) {
-      options.output = args[++i];
-    } else if (arg === '--dry-run') {
-      options.dryRun = true;
-    } else if (!arg.startsWith('-') && !options.imagePath) {
-      options.imagePath = arg;
-    }
+    if (arg === "--name" && args[i + 1]) options.customName = args[++i];
+    else if (arg === "--name-prefix" && args[i + 1]) options.namePrefix = args[++i];
+    else if (arg === "--folder" && args[i + 1]) options.folder = args[++i];
+    else if (arg === "--repo" && args[i + 1]) parseRepoSpec(args[++i], options);
+    else if (arg === "--output" && args[i + 1]) options.output = args[++i];
+    else if (arg === "--dry-run") options.dryRun = true;
+    else if (!arg.startsWith("-") && !options.imagePath) options.imagePath = arg;
   }
-
   return options;
 }
 
-/** Check if an error from execFileSync is a network-level timeout */
-function isNetworkTimeout(error: any): boolean {
-  const code = error?.code ?? '';
-  const msg = error?.message ?? '';
-  return code === 'ETIMEDOUT' || /ETIMEDOUT|ECONNRESET|ECONNREFUSED/.test(msg);
+function errorText(error: any): string {
+  return [error?.stderr, error?.stdout, error?.message, error]
+    .filter(Boolean)
+    .map(value => Buffer.isBuffer(value) ? value.toString("utf8") : String(value))
+    .join(" ");
 }
 
-/** Retry wrapper for execFileSync on network timeout errors */
+function isRetryableNetworkError(error: any): boolean {
+  const code = error?.code ?? "";
+  const message = errorText(error);
+  return code === "ETIMEDOUT" || /ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|timed out|\b502\b|\b503\b|\b504\b/i.test(message);
+}
+
+/** Retry network-level gh failures. Ownership stays inside this Skill. */
 function execWithNetworkRetry(args: string[], timeout: number, label: string): string {
-  for (let attempt = 0; attempt <= NETWORK_RETRY_MAX; attempt++) {
+  for (let attempt = 0; attempt <= NETWORK_RETRY_MAX; attempt += 1) {
     try {
-      return execFileSync('gh', args, {
-        encoding: 'utf-8',
+      return execFileSync("gh", args, {
+        encoding: "utf8",
         timeout,
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ["pipe", "pipe", "pipe"],
       }).trim();
     } catch (error: any) {
-      if (isNetworkTimeout(error) && attempt < NETWORK_RETRY_MAX) {
-        const delay = NETWORK_RETRY_BASE_MS * Math.pow(2, attempt);
-        console.warn(`[${label}] network timeout (attempt ${attempt + 1}/${NETWORK_RETRY_MAX + 1}), retrying in ${delay}ms...`);
+      if (isRetryableNetworkError(error) && attempt < NETWORK_RETRY_MAX) {
+        const delay = NETWORK_RETRY_BASE_MS * 2 ** attempt;
+        console.warn(`[${label}] transient GitHub failure (attempt ${attempt + 1}/${NETWORK_RETRY_MAX + 1}), retrying in ${delay}ms...`);
         const end = Date.now() + delay;
-        while (Date.now() < end) { /* blocking wait */ }
+        while (Date.now() < end) { /* synchronous CLI boundary */ }
         continue;
       }
       throw error;
     }
   }
-  return ''; // unreachable
+  throw new Error(`${label}: retry loop exhausted`);
 }
 
-function ghApiGet(endpoint: string): string {
-  return execWithNetworkRetry(
-    ['api', endpoint, '--jq', '.sha // .object.sha // empty'],
-    DEFAULT_API_TIMEOUT,
-    'ghApiGet'
-  );
+function ghApiJson(endpoint: string, timeout: number, label: string, inputFile?: string): any {
+  const args = ["api", endpoint];
+  if (inputFile) args.push("--input", inputFile);
+  const raw = execWithNetworkRetry(args, timeout, label);
+  try {
+    return JSON.parse(raw);
+  } catch (error: any) {
+    throw new Error(`${label}: GitHub returned invalid JSON (${error.message})`);
+  }
+}
+
+function withJsonPayload<T>(payload: object, fn: (filePath: string) => T): T {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "gh-api-payload-"));
+  const tempFile = path.join(tempDir, "payload.json");
+  fs.writeFileSync(tempFile, JSON.stringify(payload));
+  try {
+    return fn(tempFile);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 
 function ghApiPost(endpoint: string, payload: object): string {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-api-payload-'));
-  const tempFile = path.join(tempDir, 'payload.json');
-  fs.writeFileSync(tempFile, JSON.stringify(payload));
-  try {
-    return execWithNetworkRetry(
-      ['api', endpoint, '--input', tempFile, '--jq', '.sha // empty'],
-      POST_API_TIMEOUT,
-      'ghApiPost'
-    );
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+  const result = withJsonPayload(payload, filePath =>
+    ghApiJson(endpoint, POST_API_TIMEOUT, "ghApiPost", filePath));
+  if (!result || typeof result.sha !== "string" || !result.sha) {
+    throw new Error("ghApiPost: GitHub response did not contain a valid SHA");
   }
+  return result.sha;
 }
 
 function ghApiPatch(endpoint: string, payload: object): void {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gh-api-payload-'));
-  const tempFile = path.join(tempDir, 'payload.json');
-  fs.writeFileSync(tempFile, JSON.stringify(payload));
-  try {
+  withJsonPayload(payload, filePath => {
     execWithNetworkRetry(
-      ['api', endpoint, '--input', tempFile],
+      ["api", endpoint, "--method", "PATCH", "--input", filePath],
       PATCH_API_TIMEOUT,
-      'ghApiPatch'
+      "ghApiPatch"
     );
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
+  });
 }
 
-async function getExistingFiles(): Promise<Set<string>> {
-  try {
-    const result = execWithNetworkRetry(
-      ['api', `repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${REPO_BRANCH}?recursive=1`,
-       '--jq', '.tree[].path'],
-      TREE_FETCH_TIMEOUT,
-      'getExistingFiles'
-    );
-    return new Set(result.split('\n').filter(Boolean));
-  } catch (error: any) {
-    console.warn(`Warning: Could not fetch existing files (${error?.message ?? error}), proceeding without collision check`);
-    return new Set();
+function getRemoteState(): RemoteState {
+  const refEndpoint = `repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`;
+  const ref = ghApiJson(refEndpoint, DEFAULT_API_TIMEOUT, "getBranchHead");
+  const head = ref?.object?.sha;
+  if (typeof head !== "string" || !head) {
+    throw new Error("getBranchHead: branch HEAD is missing or invalid");
   }
+
+  const treeEndpoint = `repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${head}?recursive=1`;
+  const tree = ghApiJson(treeEndpoint, TREE_FETCH_TIMEOUT, "getRemoteIndex");
+  if (tree?.truncated === true) {
+    throw new Error("getRemoteIndex: GitHub tree response was truncated; refusing an incomplete index");
+  }
+  if (!Array.isArray(tree?.tree)) {
+    throw new Error("getRemoteIndex: GitHub tree response did not contain a tree array");
+  }
+
+  const index = new Map<string, string>();
+  for (const entry of tree.tree) {
+    if (entry?.type !== "blob") continue;
+    if (typeof entry.path !== "string" || !entry.path || typeof entry.sha !== "string" || !entry.sha) {
+      throw new Error("getRemoteIndex: blob entry is missing path or SHA; refusing an unreliable index");
+    }
+    index.set(entry.path, entry.sha);
+  }
+  return { head, index };
 }
 
-function generateUniqueFilename(baseName: string, ext: string, folder: string, existingFiles: Set<string>): string {
-  let filename = `${baseName}${ext}`;
-  let counter = 1;
+function gitBlobSha(bytes: Buffer): string {
+  return createHash("sha1")
+    .update(`blob ${bytes.length}\0`, "utf8")
+    .update(bytes)
+    .digest("hex");
+}
 
-  while (existingFiles.has(`${folder}/${filename}`)) {
-    filename = `${baseName}-${counter}${ext}`;
-    counter++;
-  }
-
-  return filename;
+function normalizeFolder(folder: string): string {
+  const normalized = folder.replace(/^\/+|\/+$/g, "");
+  if (!normalized) throw new Error("target folder must not be empty");
+  return normalized;
 }
 
 function sanitizeFilename(name: string): string {
   return name
-    .replace(/[^\w\u4e00-\u9fff.-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(/[^\w\u4e00-\u9fff.-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
     .toLowerCase();
 }
 
-// 防止双扩展名（baoyu-imagine 输出 + 流水线传 --name 时已带 .jpg → 拼接后变 .jpg.jpg）
 function stripTrailingExt(name: string, ext: string): string {
   const lower = name.toLowerCase();
-  const lext = ext.toLowerCase();
-  if (lext && lower.endsWith(lext)) {
-    return name.slice(0, name.length - ext.length);
-  }
-  // 同时去除常见图片扩展名（即便传入 ext 不是图片）
-  for (const e of IMAGE_EXTS) {
-    if (lower.endsWith(e)) return name.slice(0, name.length - e.length);
+  const lowerExt = ext.toLowerCase();
+  if (lowerExt && lower.endsWith(lowerExt)) return name.slice(0, name.length - ext.length);
+  for (const candidate of IMAGE_EXTS) {
+    if (lower.endsWith(candidate)) return name.slice(0, name.length - candidate.length);
   }
   return name;
 }
 
-async function uploadImage(options: UploadOptions, existingFiles?: Set<string>): Promise<UploadResult> {
-  const { imagePath, customName, folder, dryRun } = options;
-
-  if (!fs.existsSync(imagePath)) {
-    return {
-      success: false,
-      filename: '',
-      folder,
-      githubUrl: '',
-      cdnUrl: '',
-      error: `File not found: ${imagePath}`,
-    };
+function makeLocalAsset(sourcePath: string, customName?: string): LocalAsset {
+  if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+    throw new Error(`File not found: ${sourcePath}`);
   }
-
-  const ext = path.extname(imagePath);
-  const originalBasename = path.basename(imagePath, ext);
-  // 去掉 customName 末尾可能重复的扩展名，再 sanitize
+  const ext = path.extname(sourcePath);
+  if (!IMAGE_EXTS.has(ext.toLowerCase())) throw new Error(`unsupported image extension: ${sourcePath}`);
+  const originalBasename = path.basename(sourcePath, ext);
   const rawName = customName ? stripTrailingExt(customName, ext) : originalBasename;
   const baseName = sanitizeFilename(rawName);
-
-  // Reuse pre-fetched file set if provided (directory mode); fetch fresh otherwise (single-file mode)
-  const files = existingFiles ?? await getExistingFiles();
-  const filename = generateUniqueFilename(baseName, ext, folder, files);
-  const repoPath = `${folder}/${filename}`;
-
-  if (dryRun) {
-    return {
-      success: true,
-      filename,
-      folder,
-      githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
-      cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
-    };
-  }
-
-  // Read file and encode once (reused across retries)
-  const fileContent = fs.readFileSync(imagePath);
-  const base64Content = fileContent.toString('base64');
-
-  // Create blob once (immutable, reusable across retries)
-  const blobSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
-    encoding: 'base64',
-    content: base64Content
-  });
-
-  const MAX_RETRIES = 3;
-  const BASE_DELAY_MS = 1000;
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      // Re-read HEAD on every attempt (may have moved due to concurrent uploads)
-      const currentSha = ghApiGet(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`);
-
-      // Create tree against current HEAD
-      const treeSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/trees`, {
-        base_tree: currentSha,
-        tree: [{
-          path: repoPath,
-          mode: '100644',
-          type: 'blob',
-          sha: blobSha
-        }]
-      });
-
-      // Create commit
-      const commitSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/commits`, {
-        message: `Add: ${filename}`,
-        tree: treeSha,
-        parents: [currentSha]
-      });
-
-      // Update reference
-      ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`, { sha: commitSha });
-
-      return {
-        success: true,
-        filename,
-        folder,
-        githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
-        cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
-      };
-    } catch (error: any) {
-      const msg = error?.stderr ?? error?.message ?? String(error);
-      const isRefConflict = /422|409|non-fast-forward/i.test(msg);
-
-      if (isRefConflict && attempt < MAX_RETRIES - 1) {
-        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.warn(`[upload] ref conflict (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${delay}ms...`);
-        await new Promise(r => setTimeout(r, delay));
-        continue;
-      }
-
-      return {
-        success: false,
-        filename,
-        folder,
-        githubUrl: '',
-        cdnUrl: '',
-        error: `Upload failed after ${attempt + 1} attempt(s): ${msg}`,
-      };
-    }
-  }
-
-  // Should not reach here, but satisfy TypeScript
+  if (!baseName) throw new Error(`image name becomes empty after sanitization: ${sourcePath}`);
+  const bytes = fs.readFileSync(sourcePath);
   return {
-    success: false,
-    filename,
-    folder,
-    githubUrl: '',
-    cdnUrl: '',
-    error: 'Upload failed: max retries exceeded',
+    sourcePath,
+    originalFilename: path.basename(sourcePath),
+    ext,
+    baseName,
+    bytes,
+    localGitBlobSha: gitBlobSha(bytes),
   };
 }
 
 function listImagesInDir(dir: string): string[] {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
+    throw new Error(`directory not found: ${dir}`);
+  }
   return fs.readdirSync(dir)
-    .filter((f) => IMAGE_EXTS.has(path.extname(f).toLowerCase()))
+    .filter(file => IMAGE_EXTS.has(path.extname(file).toLowerCase()))
     .sort()
-    .map((f) => path.join(dir, f));
+    .map(file => path.join(dir, file));
 }
 
-async function uploadDirectory(options: UploadOptions): Promise<{ ok: boolean; map: Record<string, string>; results: UploadResult[] }> {
-  const dir = options.imagePath;
-  const files = listImagesInDir(dir);
-  if (files.length === 0) {
-    throw new Error(`no images found under directory: ${dir}`);
+function loadLocalAssets(options: UploadOptions): LocalAsset[] {
+  const stat = fs.existsSync(options.imagePath) ? fs.statSync(options.imagePath) : null;
+  if (!stat) throw new Error(`File not found: ${options.imagePath}`);
+  if (stat.isDirectory()) {
+    const files = listImagesInDir(options.imagePath);
+    if (files.length === 0) throw new Error(`no images found under directory: ${options.imagePath}`);
+    return files.map(file => {
+      const ext = path.extname(file);
+      const base = path.basename(file, ext);
+      const name = options.namePrefix ? `${options.namePrefix}-${base}` : base;
+      return makeLocalAsset(file, name);
+    });
+  }
+  return [makeLocalAsset(options.imagePath, options.customName)];
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Resolve a complete basename family before choosing a new suffix. */
+function resolveCandidate(asset: LocalAsset, folder: string, remoteIndex: Map<string, string>): { filename: string; repoPath: string; action: "uploaded" | "reused" } {
+  const family = new RegExp(
+    `^${escapeRegExp(folder)}/${escapeRegExp(asset.baseName)}(?:-(\\d+))?${escapeRegExp(asset.ext)}$`
+  );
+  const candidates: Array<{ suffix: number; filename: string; repoPath: string; sha: string }> = [];
+
+  for (const [repoPath, sha] of remoteIndex) {
+    const match = repoPath.match(family);
+    if (!match) continue;
+    const suffix = match[1] ? Number.parseInt(match[1], 10) : 0;
+    candidates.push({ suffix, filename: path.basename(repoPath), repoPath, sha });
+  }
+  candidates.sort((a, b) => a.suffix - b.suffix || a.repoPath.localeCompare(b.repoPath));
+
+  const identical = candidates.find(candidate => candidate.sha === asset.localGitBlobSha);
+  if (identical) {
+    return { filename: identical.filename, repoPath: identical.repoPath, action: "reused" };
   }
 
-  // Fetch existing files ONCE for the entire batch (avoids N redundant API calls)
-  const existingFiles = await getExistingFiles();
-  console.log(`[upload] fetched ${existingFiles.size} existing files for collision check`);
+  const usedSuffixes = new Set(candidates.map(candidate => candidate.suffix));
+  let suffix = 0;
+  while (usedSuffixes.has(suffix)) suffix += 1;
+  const filename = suffix === 0
+    ? `${asset.baseName}${asset.ext}`
+    : `${asset.baseName}-${suffix}${asset.ext}`;
+  return { filename, repoPath: `${folder}/${filename}`, action: "uploaded" };
+}
 
-  const map: Record<string, string> = {};
-  const results: UploadResult[] = [];
-  let ok = true;
-  for (const file of files) {
-    const ext = path.extname(file);
-    const base = path.basename(file, ext); // e.g. 01-spectrum-comparison
-    // name 由 prefix + base 拼接；upload 内部会再去掉重复 ext
-    const name = options.namePrefix ? `${options.namePrefix}-${base}` : base;
-    const r = await uploadImage({ ...options, imagePath: file, customName: name }, existingFiles);
-    results.push(r);
-    if (r.success) {
-      // image-map.json key 用本地原始文件名（含扩展名），与 apply-image-map.mjs 约定一致
-      map[`${base}${ext}`] = r.cdnUrl;
-      // Update the shared set so the next upload detects this file for collision avoidance
-      existingFiles.add(`${r.folder}/${r.filename}`);
-    } else {
-      ok = false;
-      console.error(`[upload] FAIL: ${file} → ${r.error}`);
+function planBatch(assets: LocalAsset[], folder: string, remoteIndex: Map<string, string>): PlannedAsset[] {
+  const workingIndex = new Map(remoteIndex);
+  return assets.map(asset => {
+    const candidate = resolveCandidate(asset, folder, workingIndex);
+    if (candidate.action === "uploaded") workingIndex.set(candidate.repoPath, asset.localGitBlobSha);
+    return { ...asset, ...candidate };
+  });
+}
+
+function buildCdnUrls(filename: string, folder: string): { githubUrl: string; cdnUrl: string } {
+  const repoPath = `${folder}/${filename}`;
+  return {
+    githubUrl: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${REPO_BRANCH}/${repoPath}`,
+    cdnUrl: `https://cdn.jsdelivr.net/gh/${REPO_OWNER}/${REPO_NAME}@${REPO_BRANCH}/${repoPath}`,
+  };
+}
+
+function isRefConflict(error: any): boolean {
+  return /422|409|non-fast-forward|reference update failed|branch has changed/i.test(errorText(error));
+}
+
+function waitForRetry(delayMs: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, delayMs));
+}
+
+function createBlob(local: LocalAsset): string {
+  const sha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
+    encoding: "base64",
+    content: local.bytes.toString("base64"),
+  });
+  if (sha !== local.localGitBlobSha) {
+    throw new Error(`createBlob: GitHub returned ${sha}, expected local blob SHA ${local.localGitBlobSha}`);
+  }
+  return sha;
+}
+
+async function executeBatch(options: UploadOptions, assets: LocalAsset[]): Promise<BatchResult> {
+  const folder = normalizeFolder(options.folder);
+  const blobCache = new Map<string, string>();
+
+  for (let attempt = 0; attempt < REF_RETRY_MAX; attempt += 1) {
+    // A ref conflict always starts a fresh read and fresh content-aware plan.
+    const remote = getRemoteState();
+    const plan = planBatch(assets, folder, remote.index);
+    const newAssets = plan.filter(asset => asset.action === "uploaded");
+
+    if (newAssets.length === 0) {
+      return { plan, map: Object.fromEntries(plan.map(asset => [asset.originalFilename, buildCdnUrls(asset.filename, folder).cdnUrl])) };
+    }
+
+    try {
+      const blobShas = new Map<string, string>();
+      for (const asset of newAssets) {
+        let blobSha = blobCache.get(asset.localGitBlobSha);
+        if (!blobSha) {
+          blobSha = createBlob(asset);
+          blobCache.set(asset.localGitBlobSha, blobSha);
+        }
+        blobShas.set(asset.localGitBlobSha, blobSha);
+      }
+
+      const treeSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/trees`, {
+        base_tree: remote.head,
+        tree: newAssets.map(asset => ({
+          path: asset.repoPath,
+          mode: "100644",
+          type: "blob",
+          sha: blobShas.get(asset.localGitBlobSha),
+        })),
+      });
+      const commitSha = ghApiPost(`repos/${REPO_OWNER}/${REPO_NAME}/git/commits`, {
+        message: `Add images: ${newAssets.map(asset => asset.filename).join(", ")}`,
+        tree: treeSha,
+        parents: [remote.head],
+      });
+      ghApiPatch(`repos/${REPO_OWNER}/${REPO_NAME}/git/refs/heads/${REPO_BRANCH}`, { sha: commitSha });
+
+      return { plan, map: Object.fromEntries(plan.map(asset => [asset.originalFilename, buildCdnUrls(asset.filename, folder).cdnUrl])) };
+    } catch (error: any) {
+      const retryable = isRefConflict(error) || isRetryableNetworkError(error);
+      if (retryable && attempt < REF_RETRY_MAX - 1) {
+        const delay = REF_RETRY_BASE_MS * 2 ** attempt;
+        console.warn(`[upload] remote transaction conflict/failure (attempt ${attempt + 1}/${REF_RETRY_MAX}), retrying in ${delay}ms...`);
+        await waitForRetry(delay);
+        continue;
+      }
+      throw new Error(`Upload transaction failed after ${attempt + 1} attempt(s): ${errorText(error)}`);
     }
   }
-  return { ok, map, results };
+
+  throw new Error("Upload transaction failed: retry limit exceeded");
 }
 
-// Main
-applyEnvConfig(); // Load env config before parsing CLI args (CLI args override env)
-const options = parseArgs();
-assertRepoConfigured(); // 无 env/无 --repo 时阻断，避免静默上传到默认仓库
+function writeAtomicJson(filePath: string, value: object): void {
+  const target = path.resolve(filePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  const temp = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${Date.now()}.tmp`);
+  try {
+    fs.writeFileSync(temp, JSON.stringify(value, null, 2) + "\n");
+    fs.renameSync(temp, target);
+  } catch (error) {
+    try { fs.rmSync(temp, { force: true }); } catch {}
+    throw error;
+  }
+}
 
-if (!options.imagePath) {
-  console.error('Usage: bun upload.ts <image-path-or-dir> [--name <name>|--name-prefix <prefix>] [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>]');
+function dryRunPlan(options: UploadOptions, assets: LocalAsset[]): PlannedAsset[] {
+  const folder = normalizeFolder(options.folder);
+  return assets.map(asset => {
+    const filename = `${asset.baseName}${asset.ext}`;
+    return { ...asset, filename, repoPath: `${folder}/${filename}`, action: "uploaded" };
+  });
+}
+
+async function main(): Promise<void> {
+  applyEnvConfig();
+  const options = parseArgs();
+  assertRepoConfigured();
+  if (!options.imagePath) {
+    throw new Error("usage: bun upload.ts <image-path-or-dir> [--name <name>|--name-prefix <prefix>] [--folder <folder>] [--repo <owner/name@branch:folder>] [--output <image-map.json>] [--dry-run]");
+  }
+
+  const assets = loadLocalAssets(options);
+  const isDirectory = fs.statSync(options.imagePath).isDirectory();
+
+  if (options.dryRun) {
+    const plan = dryRunPlan(options, assets);
+    if (isDirectory) {
+      console.log(JSON.stringify({ success: true, dry_run: true, uploaded: 0, reused: 0, total: plan.length }, null, 2));
+    } else {
+      const folder = normalizeFolder(options.folder);
+      const urls = buildCdnUrls(plan[0].filename, folder);
+      console.log(JSON.stringify({ success: true, action: "preview", filename: plan[0].filename, folder, ...urls }, null, 2));
+    }
+    return;
+  }
+
+  const result = await executeBatch(options, assets);
+  const uploaded = result.plan.filter(asset => asset.action === "uploaded").length;
+  const reused = result.plan.length - uploaded;
+
+  if (isDirectory) {
+    if (options.output) writeAtomicJson(options.output, result.map);
+    console.log(JSON.stringify({ success: true, uploaded, reused, total: result.plan.length }, null, 2));
+    return;
+  }
+
+  const asset = result.plan[0];
+  const folder = normalizeFolder(options.folder);
+  const urls = buildCdnUrls(asset.filename, folder);
+  console.log(JSON.stringify({
+    success: true,
+    action: asset.action,
+    filename: asset.filename,
+    folder,
+    ...urls,
+  }, null, 2));
+}
+
+main().catch(error => {
+  console.error(`[upload] error: ${error?.message ?? error}`);
   process.exit(1);
-}
-
-const stat = fs.existsSync(options.imagePath) ? fs.statSync(options.imagePath) : null;
-
-if (stat && stat.isDirectory()) {
-  // 目录模式
-  uploadDirectory(options).then(({ ok, map, results }) => {
-    if (options.output) {
-      fs.mkdirSync(path.dirname(options.output), { recursive: true });
-      fs.writeFileSync(options.output, JSON.stringify(map, null, 2) + '\n');
-      console.log(`written: ${options.output} (${Object.keys(map).length} entries)`);
-    } else {
-      console.log(JSON.stringify({ map, results }, null, 2));
-    }
-    if (!ok) process.exit(1);
-  }).catch((e) => {
-    console.error(`[upload] error: ${e?.message ?? e}`);
-    process.exit(1);
-  });
-} else {
-  // 单文件模式
-  uploadImage(options).then((r) => {
-    if (r.success) {
-      console.log(JSON.stringify(r, null, 2));
-    } else {
-      console.error(JSON.stringify(r, null, 2));
-      process.exit(1);
-    }
-  });
-}
+});

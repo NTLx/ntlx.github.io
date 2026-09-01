@@ -8,7 +8,8 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 行为：
 
-- 上传图片到 GitHub 图床，生成 CDN URL。
+- 在 prepare 阶段把 `imgs/*`、`--folder wechat-articles` 和稳定命名前缀交给
+  `github-image-hosting` 一次，由它生成幂等的 CDN `image-map.json`。
 - 生成博客轨 `article.md`。
 - 生成微信轨中间稿 `article-wechat-source.md`（本地图片路径 + 纯文本 URL 版）。
 - 若 `article-wechat.html` 已存在，运行 `gzh-design` 自带校验并 finalize Step 5；若不存在，则输出 `phase: prepared`，等待 Agent 调用 `gzh-design`。
@@ -22,10 +23,11 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 辅助参数：
 
-- `--dry-run`：只预检，不上传。
-- `--reuse-image-map`：复用已有 `image-map.json`。
+- `--dry-run`：只做本地预检，不访问图床，不写 map、文章产物或 state。
 - `--prepare-only`：只完成 `article.md` + `article-wechat-source.md`。
-- `--finalize-only`：只对现有 `article-wechat.html` 运行 `gzh-design` validator / preview wrapper 并落 Step 5 状态。
+- `--finalize-only`：只对现有 `article.md`、`article-wechat-source.md` 和
+  `article-wechat.html` 运行 `gzh-design` validator / structural parity / preview
+  wrapper 并落 Step 5 状态；不调用图床。
 
 Agent 排版阶段：
 

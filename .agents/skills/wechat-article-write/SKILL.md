@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.56.0"
+  version: "1.57.0"
 ---
 
 # 微信公众号文章写作
@@ -37,8 +37,10 @@ metadata:
   `article-wechat.html` 和本地图片。两条产物不能混用。
 - frontmatter、`summary`、`blogSlug`、`sourceUrl`、SLOT 占位符、图片命名、
   MDX 安全和链接双轨规则由确定性脚本校验。
-- Step 5 先产出 `article-wechat-source.md`，再由 `gzh-design` 排版，最后
-  运行 finalize；不得用 post 内自写渲染脚本替代它。
+- Step 5 的 prepare 先校验本地资产，再由 `github-image-hosting` 一次性发布
+  `imgs/*` 并产出 `image-map.json`；随后生成 `article.md` 和
+  `article-wechat-source.md`。最后由 `gzh-design` 排版并运行 finalize；不得用
+  post 内自写渲染脚本替代它。
 - 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
 - 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力；但
   `humanizer-zh` 是所有文章的 Mandatory Humanization Layer，不是开放式
@@ -64,7 +66,6 @@ metadata:
 6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
    重复，也不得绕过 Gate。trace 失败不影响 artifact、state 或 Gate。具体
 规则见 `orchestration-policy.md`。
-
 `illustrate` 是例外：它必须先经过 Baoyu Core Design Skills，`no-skill` 只表示
 没有额外 contributor。文章级规划使用 `baoyu-article-illustrator`；封面使用
 `baoyu-cover-image`；`SLOT_IMG_00` 使用 `baoyu-infographic`。涉及架构、流程、
@@ -105,10 +106,35 @@ refine；Step 4 先运行 Baoyu article-level visual design，并为每个 subst
 通过 structural parity；Step 6
 按顺序发布。
 
+## Step 5 阶段边界
+
+Step 5 只把文章资产集合、业务目录和稳定命名前缀交给
+`github-image-hosting`：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
+```
+prepare 会调用图床一次，使用 `--folder wechat-articles`、文章命名前缀和
+`--output posts/<date-slug>/image-map.json`；图床 Skill 自己解析仓库/分支配置、
+索引远端 blob、处理冲突、重试并生成真实 CDN URL。Step 5 不解析图床配置、不
+拼 CDN URL、不维护上传重试或复用状态。`image-map.json` 仍是
+“本地文件名 → CDN URL”的 flat map，旧的 `{ "files": ... }` 只作读取兼容。
+`--dry-run` 只做 draft、cover、imgs、SLOT/local reference、humanizer receipt
+的本地校验，并报告图片数量、SLOT 数量、命名前缀和目标目录；不访问图床、不写
+map、文章产物或 state。
+Agent 调用 `gzh-design` 生成 `article-wechat.html` 后，运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
+```
+finalize-only 只消费已经准备好的 `article.md`、`article-wechat-source.md` 和
+`article-wechat.html`，运行 gzh validator 与 structural parity；它绝不调用
+`github-image-hosting`，也不需要 GitHub 配置、CLI 或网络。prepare → Agent
+排版 → finalize 的协议可安全重复，重复 finalize 始终是零图床调用。
+
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all
 bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
 ```
-
 完成或修复任何阶段后，重新运行该阶段 Gate，再继续 `pipeline.mjs`。

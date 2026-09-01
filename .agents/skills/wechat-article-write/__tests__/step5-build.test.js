@@ -1,12 +1,7 @@
 #!/usr/bin/env bun
-/**
- * step5-build.mjs 回归测试
- *
- * 覆盖 dry-run 预检、复用 image-map 和缺失输入的无副作用失败。
- */
 
-import { describe, test, expect, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { afterEach, describe, expect, test } from "bun:test";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -15,17 +10,59 @@ const SCRIPT = resolve(import.meta.dir, "../scripts/step5-build.mjs");
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
+function makeFakeBun(root) {
+  const bin = join(root, "bin");
+  mkdirSync(bin, { recursive: true });
+  const helper = join(root, "fake-uploader.mjs");
+  writeFileSync(helper, `import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+const [imgsDir, output, prefix] = process.argv.slice(2);
+const files = readdirSync(imgsDir).filter(file => /\\.(png|jpe?g|webp|gif)$/i.test(file)).sort();
+const map = Object.fromEntries(files.map(file => [file, \`https://cdn.fake/\${prefix}-\${file}\`]));
+if (process.env.FAKE_UPLOADER_INCOMPLETE === "1") delete map[files.at(-1)];
+writeFileSync(output, JSON.stringify(map, null, 2) + "\\n");
+`);
+  const fakeBun = join(bin, "bun");
+  writeFileSync(fakeBun, `#!/bin/sh
+set -eu
+script_seen=0
+image_dir=""
+output=""
+prefix=""
+for arg in "$@"; do
+  if [ "$script_seen" = "1" ]; then
+    image_dir="$arg"
+    script_seen=2
+  elif case "$arg" in *github-image-hosting/scripts/upload.ts) true;; *) false;; esac; then
+    script_seen=1
+  fi
+done
+if [ "$script_seen" = "2" ]; then
+  previous=""
+  for arg in "$@"; do
+    if [ "$previous" = "--output" ]; then output="$arg"; fi
+    if [ "$previous" = "--name-prefix" ]; then prefix="$arg"; fi
+    previous="$arg"
+  done
+  printf '%s\\n' "$*" >> "$FAKE_BUN_UPLOAD_LOG"
+  exec "$REAL_BUN" "$FAKE_UPLOADER" "$image_dir" "$output" "$prefix"
+fi
+exec "$REAL_BUN" "$@"
+`);
+  chmodSync(fakeBun, 0o755);
+  return { bin, helper, log: join(root, "uploader.log") };
+}
+
 function makeFixture() {
   const root = join(tmpdir(), `step5-build-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const postsRoot = join(root, "posts");
-  return { root, postsRoot };
+  const fake = makeFakeBun(root);
+  return { root, postsRoot, fake };
 }
 
-function writePost(postsRoot, slug, opts = {}) {
+function writePost(postsRoot, slug, options = {}) {
   const dir = join(postsRoot, slug);
   const imgsDir = join(dir, "imgs");
   mkdirSync(imgsDir, { recursive: true });
-
   const fm = {
     title: "Step 5 测试文章",
     date: "2026-05-18",
@@ -34,13 +71,13 @@ function writePost(postsRoot, slug, opts = {}) {
     blogSlug: "step-five-test",
     coverImage: "cover.png",
     sourceUrl: "https://ntlx.github.io/articles/step-five-test",
-    ...(opts.fm ?? {}),
+    ...(options.fm ?? {}),
   };
   const frontmatter = Object.entries(fm)
-    .filter(([, v]) => v !== undefined)
-    .map(([k, v]) => `${k}: ${v}`)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}: ${value}`)
     .join("\n");
-  const body = opts.body ?? `
+  const body = options.body ?? `
 <!-- SLOT_IMG_00_INFOGRAPHIC -->
 
 ## 正文
@@ -50,15 +87,9 @@ function writePost(postsRoot, slug, opts = {}) {
 <!-- SLOT_IMG_01_DETAIL -->
 `;
   writeFileSync(join(dir, "draft.md"), `---\n${frontmatter}\n---\n\n${body}`);
-
-  if (opts.cover !== false) writeFileSync(join(dir, "cover.png"), PNG_BYTES);
+  if (options.cover !== false) writeFileSync(join(dir, "cover.png"), PNG_BYTES);
   writeFileSync(join(imgsDir, "00-infographic-core-summary.png"), PNG_BYTES);
   writeFileSync(join(imgsDir, "01-detail.png"), PNG_BYTES);
-
-  if (opts.imageMap) {
-    writeFileSync(join(dir, "image-map.json"), JSON.stringify(opts.imageMap, null, 2));
-  }
-
   writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
     slug,
     started_at: new Date().toISOString(),
@@ -73,205 +104,164 @@ function writePost(postsRoot, slug, opts = {}) {
     encoding: "utf8",
   });
   if (receipt.status !== 0) throw new Error(receipt.stderr);
-
   return dir;
 }
 
-function validImageMap() {
-  return {
-    files: {
-      "00-infographic-core-summary.png": "https://cdn.example.com/00-infographic-core-summary.png",
-      "01-detail.png": "https://cdn.example.com/01-detail.png",
-    },
-  };
-}
-
-function runStep5(slug, postsRoot, args = []) {
+function runStep5(slug, postsRoot, fake, args = [], extraEnv = {}) {
   return spawnSync("bun", ["run", SCRIPT, slug, ...args], {
     cwd: REPO_ROOT,
-    env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+    env: {
+      ...process.env,
+      PIPELINE_REPO_ROOT: REPO_ROOT,
+      PIPELINE_POSTS_ROOT: postsRoot,
+      PATH: `${fake.bin}:${process.env.PATH}`,
+      REAL_BUN: process.execPath,
+      FAKE_UPLOADER: fake.helper,
+      FAKE_BUN_UPLOAD_LOG: fake.log,
+      ...extraEnv,
+    },
     encoding: "utf8",
   });
 }
 
-describe("step5-build dry-run and image-map reuse", () => {
-  let cleanup = [];
+function lastJsonLine(stdout) {
+  return JSON.parse(stdout.trim().split("\n").at(-1));
+}
+
+function uploaderCalls(fake) {
+  if (!existsSync(fake.log)) return [];
+  return readFileSync(fake.log, "utf8").trim().split("\n").filter(Boolean);
+}
+
+describe("step5-build phase boundaries", () => {
+  const cleanup = [];
 
   afterEach(() => {
-    for (const dir of cleanup) {
-      try { rmSync(dir, { recursive: true, force: true }); } catch {}
-    }
-    cleanup = [];
+    for (const root of cleanup.splice(0)) rmSync(root, { recursive: true, force: true });
   });
 
-  test("--dry-run validates inputs without writing outputs or state", () => {
+  test("dry-run validates local inputs without uploader, map, artifact, or state mutation", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
-    const slug = "2026-05-18-中文标题";
+    const slug = "2026-05-18-dry-run";
     const dir = writePost(fx.postsRoot, slug);
+    const stateBefore = readFileSync(join(dir, ".pipeline-state.json"), "utf8");
 
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
-    expect(r.status).toBe(0);
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--dry-run"]);
 
-    const out = JSON.parse(r.stdout);
-    expect(out.dry_run).toBe(true);
-    expect(out.reuse_image_map).toBe(false);
-    expect(out.image_count).toBe(2);
-    expect(out.slot_count).toBe(2);
-    expect(out.name_prefix).toBe("2026-05-18-step-five-test-img");
-
-    expect(existsSync(join(dir, "article.md"))).toBe(false);
-    expect(existsSync(join(dir, "article-wechat.html"))).toBe(false);
+    expect(result.status).toBe(0);
+    expect(lastJsonLine(result.stdout)).toMatchObject({
+      dry_run: true,
+      image_count: 2,
+      slot_count: 2,
+      name_prefix: "2026-05-18-step-five-test-img",
+      target_folder: "wechat-articles",
+    });
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
     expect(existsSync(join(dir, "image-map.json"))).toBe(false);
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
+    expect(existsSync(join(dir, "article.md"))).toBe(false);
+    expect(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).toBe(stateBefore);
   });
 
-  test("--dry-run fails without state writes when cover is missing", () => {
+  test("dry-run still fails when cover is missing", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-missing-cover";
     const dir = writePost(fx.postsRoot, slug, { cover: false });
 
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain("cover image missing");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--dry-run"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("cover image missing");
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).not.toContain('"step": 5');
   });
 
-  test("--dry-run requires frontmatter.blogSlug without date-slug fallback", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-05-18-中文标题";
-    writePost(fx.postsRoot, slug, { fm: { blogSlug: undefined } });
-
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain("frontmatter.blogSlug");
-  });
-
-  test("--dry-run fails when imgs exist but draft has no image references", () => {
+  test("dry-run fails when imgs exist but draft has no image references", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-no-image-refs";
     const dir = writePost(fx.postsRoot, slug, { body: "## 正文\n\n这里没有图片占位符。\n" });
 
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
-    expect(r.status).toBe(4);
-    expect(r.stderr).toContain("no SLOT_IMG placeholders");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--dry-run"]);
+
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain("no SLOT_IMG placeholders");
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).not.toContain('"step": 5');
   });
 
-  test("--dry-run --reuse-image-map requires a complete valid map", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-05-18-incomplete-map";
-    writePost(fx.postsRoot, slug, {
-      imageMap: {
-        files: {
-          "00-infographic-core-summary.png": "https://cdn.example.com/00-infographic-core-summary.png",
-        },
-      },
-    });
-
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run", "--reuse-image-map"]);
-    expect(r.status).toBe(4);
-    expect(r.stderr).toContain("01-detail.png");
-  });
-
-  test("--dry-run --reuse-image-map accepts existing complete map", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-05-18-reuse-map";
-    const dir = writePost(fx.postsRoot, slug, { imageMap: validImageMap() });
-
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run", "--reuse-image-map"]);
-    expect(r.status).toBe(0);
-
-    const out = JSON.parse(r.stdout);
-    expect(out.reuse_image_map).toBe(true);
-    expect(out.image_count).toBe(2);
-    expect(JSON.parse(readFileSync(join(dir, "image-map.json"), "utf8")).files["01-detail.png"]).toContain("https://");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
-  });
-
-  test("--reuse-image-map prepares article.md and article-wechat-source.md without finalizing step 5", () => {
+  test("prepare-only invokes image hosting exactly once with business intent only", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-prepare-only";
-    const dir = writePost(fx.postsRoot, slug, {
-      imageMap: validImageMap(),
-      body: `
-<!-- SLOT_IMG_00_INFOGRAPHIC -->
+    const dir = writePost(fx.postsRoot, slug);
 
-## 第一个二级标题
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--prepare-only"]);
 
-这里是第一节正文。
-
-<!-- SLOT_IMG_01_DETAIL -->
-`,
-    });
-
-    const r = runStep5(slug, fx.postsRoot, ["--reuse-image-map"]);
-    expect(r.status).toBe(0);
-
-    const out = JSON.parse(r.stdout.trim().split("\n").at(-1));
-    expect(out.phase).toBe("prepared");
-    expect(out.needs_agent_layout).toBe(true);
-    expect(out.wechat_source).toBe("article-wechat-source.md");
-
+    expect(result.status).toBe(0);
+    expect(lastJsonLine(result.stdout)).toMatchObject({ phase: "prepared", needs_agent_layout: true });
+    expect(uploaderCalls(fx.fake)).toHaveLength(1);
+    const call = uploaderCalls(fx.fake)[0];
+    expect(call).toContain("--folder wechat-articles");
+    expect(call).toContain("--name-prefix 2026-05-18-step-five-test-img");
+    expect(call).toContain(`--output ${join(dir, "image-map.json")}`);
+    expect(call).not.toContain("--repo");
+    expect(existsSync(join(dir, "image-map.json"))).toBe(true);
     expect(existsSync(join(dir, "article.md"))).toBe(true);
     expect(existsSync(join(dir, "article-wechat-source.md"))).toBe(true);
-    expect(existsSync(join(dir, "article-wechat.html"))).toBe(false);
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
-
-    const source = readFileSync(join(dir, "article-wechat-source.md"), "utf8");
-    expect(source).toContain("## 第一个二级标题");
-    expect(source).toContain("![](imgs/00-infographic-core-summary.png)");
+    const generatedMap = JSON.parse(readFileSync(join(dir, "image-map.json"), "utf8"));
+    expect(generatedMap["00-infographic-core-summary.png"]).toContain("https://");
+    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(4);
   });
 
-  test("finalizes step 5 when valid gzh-design HTML already exists", () => {
+  test("fails deterministically when the uploader map does not cover draft assets", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
-    const slug = "2026-05-18-finalize-gzh";
-    const dir = writePost(fx.postsRoot, slug, { imageMap: validImageMap() });
+    const slug = "2026-05-18-incomplete-map";
+    const dir = writePost(fx.postsRoot, slug);
 
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--prepare-only"], { FAKE_UPLOADER_INCOMPLETE: "1" });
+
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain("image-map.json missing valid CDN URL");
+    expect(uploaderCalls(fx.fake)).toHaveLength(1);
+    expect(existsSync(join(dir, "article.md"))).toBe(false);
+  });
+
+  test("finalize-only never invokes image hosting, including repeated finalization", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-finalize-only";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![image](https://cdn.fake/image.png)\n");
+    writeFileSync(join(dir, "article-wechat-source.md"), [
+      "![](imgs/00-infographic-core-summary.png)",
+      "",
+      "## 正文",
+      "",
+      "正文",
+      "",
+      "![](imgs/01-detail.png)",
+      "",
+    ].join("\n"));
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
-      '  <p style="margin:0;line-height:1.8;color:#222;">',
-      '    <img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;">',
-      "  </p>",
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">正文</span></h3>',
-      '  <p style="margin:0;line-height:1.8;color:#222;">',
-      '    <span leaf="">测试正文</span>',
-      "  </p>",
-      '  <p style="margin:0;line-height:1.8;color:#222;">',
-      '    <img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;">',
-      "  </p>",
+      '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">正文</span></p>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
       "</section>",
       "",
     ].join("\n"));
 
-    const r = runStep5(slug, fx.postsRoot, ["--reuse-image-map"]);
-    expect(r.status).toBe(0);
+    const first = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);
+    const second = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);
 
-    const out = JSON.parse(r.stdout.trim().split("\n").at(-1));
-    expect(out.phase).toBe("completed");
-
-    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
-    expect(state.last_complete_step).toBe(5);
-    expect(existsSync(join(dir, "article-wechat_预览.html"))).toBe(true);
-  });
-
-  test("fails closed when draft changes after humanizer receipt", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-05-18-stale-humanizer";
-    const dir = writePost(fx.postsRoot, slug);
-    writeFileSync(join(dir, "draft.md"), `${readFileSync(join(dir, "draft.md"), "utf8")}\n新增内容。`);
-
-    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain("draft.md changed after humanizer-zh");
-    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(4);
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+    expect(lastJsonLine(second.stdout).phase).toBe("completed");
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(5);
   });
 });

@@ -20,7 +20,7 @@
 | 发现 `batch.json` | 本管线禁止 batch 模式。删除 post 根目录或 `imgs/` 下的 `batch.json`，按 `image-policy.md` 的逐张串行命令重跑 |
 | prompt/image basename mismatch | 生图输出名必须与 `imgs/prompts/NN-desc.md` 去掉 `.md` 后一致；例如 `00-infographic-core-summary.md` 对应 `imgs/00-infographic-core-summary.png`，不能写成 `00-infographic.png` |
 | prompt 模板缺失 | 先跑 `check-deps.mjs --stage images`，不要静默降级 |
-| 图床 ETIMEDOUT | Step 5 内置重试；若 `image-map.json` 完整，用 `--reuse-image-map` |
+| 图床 ETIMEDOUT | 由 `github-image-hosting` 在 Skill 内重试；不要在 Step 5 外层重复调用。若失败，先检查图床 Skill 的 fail-closed 报错和远端状态，再重跑 prepare |
 | Step 5 卡在 prepared | 这是正常状态，表示 `article.md` 和 `article-wechat-source.md` 已生成，但还没跑 `gzh-design`。先生成 `article-wechat.html`，再执行 `step5-build.mjs --finalize-only` |
 | gzh validator 失败 | 直接看 `.agents/skills/gzh-design/scripts/validate_gzh_html.py` 输出，修正 `article-wechat.html` 后重跑 `--finalize-only` |
 | `_预览.html` 缺失 | 检查 `gzh-design/scripts/wrap_preview.py` 是否存在，或确认 `wechat_layout_generate_preview` 是否被关闭 |

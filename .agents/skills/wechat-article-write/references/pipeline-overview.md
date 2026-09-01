@@ -152,16 +152,31 @@ renderer 固定按 cover、SLOT00、正文数字升序逐张执行；每张等�
 
 ## Step 5：确定性双轨构建
 
-先让脚本根据 `draft.md`、图片和 CDN 配置生成：
+先让脚本校验 `draft.md`、cover、`imgs/*` 和本地图片引用；随后由
+`github-image-hosting` 根据业务目录和命名前缀发布图片并生成真实 map：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-得到 `article.md` 和 `article-wechat-source.md` 后，由 Agent 调用
-`gzh-design` 生成 `article-wechat.html`。博客保留 Markdown 链接和 CDN 图；
-微信源文件将普通链接展开为纯文本 URL，HTML 最终不得有普通 `<a href>`。
-然后运行：
+prepare 只调用一次图床，参数等价于：
+
+```bash
+bun run .agents/skills/github-image-hosting/scripts/upload.ts \
+  posts/<date-slug>/imgs \
+  --folder wechat-articles \
+  --name-prefix <date>-<blogSlug>-img \
+  --output posts/<date-slug>/image-map.json
+```
+
+图床 Skill 独占仓库/分支配置、远端索引、blob 去重、命名冲突、重试、批量
+commit/ref 和 CDN URL 构造。Step 5 只校验 `image-map.json` 覆盖 draft 实际
+引用的图片，然后生成 `article.md` 和 `article-wechat-source.md`。博客保留
+Markdown 链接和 CDN 图；微信源文件将普通链接展开为纯文本 URL，HTML 最终不
+得有普通 `<a href>`。
+
+得到两个中间产物后，由 Agent 调用 `gzh-design` 生成
+`article-wechat.html`。然后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
@@ -170,7 +185,9 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 finalize（HTML finalize）会依次运行 gzh-design validator 和 structural parity
 validator，并在两者都通过后记录 Step 5 状态。parity 只比较 substantive heading
 顺序、图片数量/basename 顺序、图片所属 section 和 SLOT00 lead 归属，不限制主题
-wrapper、CSS 或其它视觉表现。不能用 post 内临时渲染脚本替代排版适配器。
+wrapper、CSS 或其它视觉表现。`--finalize-only` 只消费三个已准备的本地 artifact，
+不调用图床、不读取 GitHub 配置、不访问网络。不能用 post 内临时渲染脚本替代
+排版适配器。
 
 ## Step 6：发布
 

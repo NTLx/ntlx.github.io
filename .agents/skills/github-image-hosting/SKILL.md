@@ -1,75 +1,131 @@
 ---
 name: github-image-hosting
-description: Upload images to a GitHub repository for image hosting and return jsDelivr CDN URLs. Use when user wants to upload images for blog, WeChat articles, or needs CDN-accessible image URLs. Supports automatic filename collision detection, custom naming, and per-project repository configuration via .github-image-hosting.env files.
+description: Upload images to a configured GitHub repository for CDN-accessible URLs. Use when a user or an supervising repository workflow needs to publish image assets.
 license: MIT
 metadata:
   author: NTLx
-  version: "1.4.1"
+  version: "1.5.0"
 ---
 
 # GitHub Image Hosting
 
-Upload images to a GitHub repository and get jsDelivr CDN URLs for reliable access in China. Repository is configurable via `.github-image-hosting.env` files.
-
-## Agent Behavior Rules (Critical)
-
-These rules prevent non-deterministic behavior. Follow them exactly.
-
-1. **Never pass `--folder`** unless the user explicitly requests a different folder. The script reads the target folder from config files automatically. Passing `--folder` from agent intuition is the root cause of images scattering across inconsistent folders.
-
-2. **Always trust the script's `cdnUrl` output.** The JSON response contains the exact CDN URL. Copy it verbatim. Never construct URLs by guessing `owner/name@branch/folder/filename` — the script may have applied collision-avoidance suffixes (`-1`, `-2`) that your guess won't match.
-
-3. **Never run `gh api` directly** to upload images or query repository state. All GitHub operations are encapsulated in the upload script.
-
-4. **Typical invocation is just the image path:**
-   ```bash
-   bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/image.png
-   ```
-   That's it. The script handles repo, branch, folder, collision detection, and CDN URL generation from config.
+This Skill publishes image files to a configured GitHub repository and returns
+the real GitHub and jsDelivr URLs. GitHub's Git tree is the source of truth for
+remote state; no local registry or image manifest is required.
 
 ## Configuration
 
-The target repository is resolved from (highest to lowest priority):
+Configuration is resolved in this order:
 
-1. **CLI `--repo`** flag — one-off override for any invocation
-2. **Project-level** `<git-root>/.github-image-hosting.env` — per-project config, tracked in git
-3. **User-level** `~/.github-image-hosting.env` — personal default across all projects
+1. CLI `--repo owner/name@branch:folder` (one-off override)
+2. Project `<git-root>/.github-image-hosting.env`
+3. User `~/.github-image-hosting.env`
 
-**未配置任何仓库时，脚本会阻断失败**（不会静默上传到内置默认仓库）。请始终提供 env 文件或 `--repo`。
-
-### Env file format
-
-Create `.github-image-hosting.env` at the project git root (or `~/.github-image-hosting.env` for a user-level default):
+The repository must be explicitly configured. The script fails closed when no
+owner and repository name are supplied; it never silently writes to the
+built-in example values.
 
 ```bash
-# .github-image-hosting.env
-GITHUB_IMAGE_REPO_OWNER=NTLx        # GitHub repo owner (username or org)
-GITHUB_IMAGE_REPO_NAME=Pic          # GitHub repo name
-GITHUB_IMAGE_REPO_BRANCH=master     # Branch to push images to
-GITHUB_IMAGE_DEFAULT_FOLDER=blog    # Default folder path inside the repo
+GITHUB_IMAGE_REPO_OWNER=NTLx
+GITHUB_IMAGE_REPO_NAME=Pic
+GITHUB_IMAGE_REPO_BRANCH=master
+GITHUB_IMAGE_DEFAULT_FOLDER=blog
 ```
 
-All four keys are optional — only override the values you want to change. But at least one of project-level env, user-level env, or CLI `--repo` must provide the repository; otherwise the script fails with a clear message instead of silently uploading to a default repo.
+The default folder is suitable for ad-hoc use. A supervising deterministic
+workflow may pass its protocol folder explicitly, for example
+`--folder wechat-articles`. An ad-hoc caller should not guess a folder.
 
-## When to Use
-
-- Uploading images for blog posts, WeChat articles, or documentation
-- Need CDN-accessible image URLs that work in China
-- Hosting images for markdown documents or web content
-
-## Quick Start
+## Invocation
 
 ```bash
-bun .agents/skills/github-image-hosting/scripts/upload.ts <image-path>
+# Single file
+bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/image.png
+
+# Custom single-file name
+bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/image.png \
+  --name my-custom-name
+
+# Directory batch and canonical flat image map
+bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/imgs \
+  --folder wechat-articles \
+  --name-prefix 2026-09-01-example-img \
+  --output /path/to/image-map.json
+
+# One-off repository override
+bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/image.png \
+  --repo AnotherUser/Images@main:blog
+
+# Local preview; no GitHub mutation
+bun .agents/skills/github-image-hosting/scripts/upload.ts /path/to/image.png --dry-run
 ```
 
-The script reads all config (repo, branch, folder) from `.github-image-hosting.env` files and outputs a JSON object with `cdnUrl`. Use that URL directly in your markdown/HTML.
+Supported options remain `--name`, `--name-prefix`, `--folder`, `--repo`,
+`--output`, and `--dry-run`. `--name` is for single-file mode;
+`--name-prefix` is for directory mode.
 
-**Output** (deterministic — copy `cdnUrl` verbatim):
+## Idempotency and collision semantics
+
+Idempotency is the default behavior; there is no idempotency flag. For every
+local file the script computes the Git blob SHA:
+
+```text
+SHA1("blob " + byteLength + "\0" + fileBytes)
+```
+
+The remote recursive Git tree is indexed as `repoPath → blob SHA`, considering
+only `type === "blob"`. The complete basename family is scanned before a
+decision is made:
+
+- `foo.png` with the same blob SHA → reuse `foo.png`.
+- `foo.png` with different bytes → choose the smallest free suffix,
+  `foo-1.png`.
+- `foo-1.png` already contains the local bytes → reuse `foo-1.png`, even when
+  `foo.png` differs.
+- Gaps are preserved while searching for an existing identical suffix.
+
+An existing path is never overwritten. Human-readable names remain stable;
+suffixes are introduced only when the logical name's bytes actually change.
+This also preserves jsDelivr cache correctness.
+
+Retrying the exact same file or directory is safe. If every asset is already
+present with the same bytes, the result is a real CDN map and the run creates
+zero blobs, trees, commits, or ref updates.
+
+## Directory transaction
+
+Directory mode performs one planning pass:
+
+1. Read all local bytes and calculate their local Git blob SHAs.
+2. Read the current branch HEAD and one complete recursive tree index.
+3. Resolve every asset with content-aware collision rules.
+4. Create each distinct new blob at most once for this batch.
+5. Create one tree, one commit, and one branch ref update for all new paths.
+
+If a ref changes concurrently, the Skill rereads HEAD and the complete remote
+index and replans every path. It never retries a stale path plan. A concurrent
+writer that won the race with identical content therefore becomes a reuse;
+different content receives a new suffix.
+
+## Fail-closed and retry rules
+
+Failure to read branch HEAD, failure to parse a GitHub response, a malformed
+tree, or `truncated: true` always fails the operation before any mutation. An
+incomplete remote index is never treated as an empty repository, so an output
+map is not replaced after a failed transaction.
+
+GitHub network/transient failures and ref conflicts are retried inside this
+Skill. Callers must not add their own upload retry loop or rerun the directory
+uploader after an indeterminate result.
+
+## Output contract
+
+Single-file stdout retains the URL fields and adds `action`:
 
 ```json
 {
   "success": true,
+  "action": "uploaded",
   "filename": "image.png",
   "folder": "blog",
   "githubUrl": "https://github.com/NTLx/Pic/blob/master/blog/image.png",
@@ -77,96 +133,24 @@ The script reads all config (repo, branch, folder) from `.github-image-hosting.e
 }
 ```
 
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `--name <name>` | Custom filename (without extension) |
-| `--folder <path>` | Target folder (default from config or `blog`) |
-| `--repo <spec>` | Override repository: `owner/name@branch:folder` |
-| `--dry-run` | Preview upload without actually uploading |
-
-## Workflow
-
-### Step 1: Prepare Image Path
-
-Get the absolute or relative path to the image file.
-
-### Step 2: Upload
-
-```bash
-# Basic upload (repo and folder from config)
-bun skills/github-image-hosting/scripts/upload.ts /path/to/image.png
-
-# Custom filename
-bun skills/github-image-hosting/scripts/upload.ts /path/to/image.png --name my-custom-name
-
-# Custom folder (overrides config default)
-bun skills/github-image-hosting/scripts/upload.ts /path/to/image.png --folder screenshots
-
-# One-off different repository
-bun skills/github-image-hosting/scripts/upload.ts /path/to/image.png --repo AnotherUser/Images@main:blog
-
-# Preview without uploading
-bun skills/github-image-hosting/scripts/upload.ts /path/to/image.png --dry-run
-```
-
-### Step 3: Use CDN URL
-
-The script returns:
+Directory `--output` is written atomically only after the remote transaction
+succeeds, using the canonical flat map consumed by article pipelines:
 
 ```json
 {
-  "success": true,
-  "filename": "image.png",
-  "folder": "blog",
-  "githubUrl": "https://github.com/NTLx/Pic/blob/master/blog/image.png",
-  "cdnUrl": "https://cdn.jsdelivr.net/gh/NTLx/Pic@master/blog/image.png"
+  "00-infographic.png": "https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/00-infographic.png"
 }
 ```
 
-Use `cdnUrl` for reliable access in China.
-
-## Features
-
-### Filename Collision Detection
-
-Automatically checks for existing files and appends `-1`, `-2`, etc. if needed.
-
-**Example**:
-- `image.png` exists → uploads as `image-1.png`
-- `image-1.png` exists → uploads as `image-2.png`
-
-### Sanitization
-
-Filenames are automatically sanitized:
-- Chinese characters preserved
-- Special characters replaced with hyphens
-- Lowercase conversion for consistency
-
-### Default Folder
-
-Folder defaults to `GITHUB_IMAGE_DEFAULT_FOLDER` from config (or `blog` if unset). Use `--folder` to override per invocation.
-
-### Directory Mode Optimization
-
-When uploading a directory of images (batch mode), the script fetches the repository file tree **once** and shares it across all uploads in the batch. This avoids N redundant API calls for N images, significantly reducing the chance of `ETIMEDOUT` errors on large repositories.
-
-### Network Timeout Retry
-
-All GitHub API calls (`gh api`) have built-in retry logic for network-level failures (`ETIMEDOUT`, `ECONNRESET`, `ECONNREFUSED`):
-- File tree fetch: 60s timeout (accommodates large repos with 1000+ files)
-- POST uploads: 300s timeout
-- PATCH ref updates: 60s timeout
-- Other API calls: 30s timeout
-- Up to 2 automatic retries with exponential backoff (2s → 4s) on network timeouts
-- Git reference conflicts (422/409) are retried up to 3 times with exponential backoff
-
-This means transient network issues should not require manual intervention from the caller.
+Directory stdout is a diagnostic summary with `success`, `uploaded`,
+`reused`, and `total`; callers should consume `--output`, not parse diagnostics.
 
 ## Requirements
 
-- **`gh` CLI** authenticated with GitHub (the script uses `gh api` for all GitHub operations — no tokens in code)
-- **`bun`** runtime
-- **Write access** to the configured GitHub repository
-- **`.github-image-hosting.env`** at project root (recommended, tracks repo config in git; if absent, `~/.github-image-hosting.env` or CLI `--repo` is required — script fails otherwise)
+- `gh` authenticated with write access to the configured repository
+- `bun` runtime
+- Project or user `.github-image-hosting.env`, or an explicit `--repo`
+
+Never invoke `gh api` directly for image operations. All GitHub API calls,
+remote indexing, collision resolution, transaction handling, URL construction,
+and retry behavior belong to this Skill.

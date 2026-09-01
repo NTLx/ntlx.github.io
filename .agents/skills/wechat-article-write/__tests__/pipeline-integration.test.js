@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -20,21 +20,71 @@ const JPEG_BYTES = Buffer.from([
 
 function makeFixture() {
   const root = join(tmpdir(), `wechat-pipeline-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  return { root, postsRoot: join(root, "posts") };
+  const bin = join(root, "bin");
+  const uploader = join(root, "fake-uploader.mjs");
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(uploader, `import { readdirSync, writeFileSync } from "node:fs";
+const [imgsDir, output] = process.argv.slice(2);
+const files = readdirSync(imgsDir).filter(file => /\\.(png|jpe?g|webp|gif)$/i.test(file)).sort();
+const map = Object.fromEntries(files.map(file => [file, \`https://cdn.example.com/\${file}\`]));
+writeFileSync(output, JSON.stringify(map, null, 2) + "\\n");
+`);
+  const fakeBun = join(bin, "bun");
+  writeFileSync(fakeBun, `#!/bin/sh
+set -eu
+script_seen=0
+image_dir=""
+output=""
+for arg in "$@"; do
+  if [ "$script_seen" = "1" ]; then
+    image_dir="$arg"
+    script_seen=2
+  elif case "$arg" in *github-image-hosting/scripts/upload.ts) true;; *) false;; esac; then
+    script_seen=1
+  fi
+done
+if [ "$script_seen" = "2" ]; then
+  previous=""
+  for arg in "$@"; do
+    if [ "$previous" = "--output" ]; then output="$arg"; fi
+    previous="$arg"
+  done
+  exec "$REAL_BUN" "$FAKE_UPLOADER" "$image_dir" "$output"
+fi
+exec "$REAL_BUN" "$@"
+`);
+  chmodSync(fakeBun, 0o755);
+  return { root, postsRoot: join(root, "posts"), bin, uploader };
 }
 
 function runScript(name, slug, postsRoot, args = []) {
+  const fixtureRoot = resolve(postsRoot, "..");
   return spawnSync("bun", ["run", resolve(SCRIPTS, name), slug, ...args], {
     cwd: REPO_ROOT,
-    env: { ...process.env, PIPELINE_REPO_ROOT: REPO_ROOT, PIPELINE_POSTS_ROOT: postsRoot },
+    env: {
+      ...process.env,
+      PIPELINE_REPO_ROOT: REPO_ROOT,
+      PIPELINE_POSTS_ROOT: postsRoot,
+      PATH: `${join(fixtureRoot, "bin")}:${process.env.PATH}`,
+      REAL_BUN: process.execPath,
+      FAKE_UPLOADER: join(fixtureRoot, "fake-uploader.mjs"),
+    },
     encoding: "utf8",
   });
 }
 
 function runState(args, postsRoot) {
+  const fixtureRoot = resolve(postsRoot, "..");
   return spawnSync("bun", ["run", resolve(SCRIPTS, "state.mjs"), ...args], {
     cwd: REPO_ROOT,
-    env: { ...process.env, PIPELINE_REPO_ROOT: REPO_ROOT, PIPELINE_POSTS_ROOT: postsRoot },
+    env: {
+      ...process.env,
+      PIPELINE_REPO_ROOT: REPO_ROOT,
+      PIPELINE_POSTS_ROOT: postsRoot,
+      PATH: `${join(fixtureRoot, "bin")}:${process.env.PATH}`,
+      REAL_BUN: process.execPath,
+      FAKE_UPLOADER: join(fixtureRoot, "fake-uploader.mjs"),
+    },
     encoding: "utf8",
   });
 }
@@ -218,11 +268,7 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
     expect(promptFiles.length).toBe(4);
     expectSuccess(runScript("step4-images.mjs", slug, fx.postsRoot));
 
-    const imageFiles = readdirSync(imgsDir).filter((file) => /\.png$/u.test(file));
-    writeFileSync(join(dir, "image-map.json"), JSON.stringify({
-      files: Object.fromEntries(imageFiles.map((file) => [file, `https://cdn.example.com/${file}`])),
-    }, null, 2) + "\n");
-    expectSuccess(runScript("step5-build.mjs", slug, fx.postsRoot, ["--reuse-image-map"]));
+    expectSuccess(runScript("step5-build.mjs", slug, fx.postsRoot, ["--prepare-only"]));
 
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
@@ -240,7 +286,7 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
       "</section>",
       "",
     ].join("\n"));
-    expectSuccess(runScript("step5-build.mjs", slug, fx.postsRoot, ["--reuse-image-map"]));
+    expectSuccess(runScript("step5-build.mjs", slug, fx.postsRoot, ["--finalize-only"]));
 
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
     const article = readFileSync(join(dir, "article.md"), "utf8");
