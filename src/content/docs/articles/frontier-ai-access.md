@@ -7,11 +7,11 @@ category: ai-industry
 tags: [frontier AI, AI access, model lock-in, open weights, enterprise AI]
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-01-frontier-ai-access-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-01-frontier-ai-access-img-00-infographic-core-summary-2.png)
 
-读完 Tomasz Tunguz 的[《The Price of Entry to the Frontier》](https://tomtunguz.com/the-great-segmentation)，我认同他最有力的判断：前沿 AI 的新稀缺性不是价格，而是访问权。但我觉得“访问”这个词还可以再拆开一点。真正决定一家企业能不能把 AI 当成基础设施的，不只是今天能不能调用，而是明天能不能继续用、能不能换、能不能解释，以及规则改变后谁来承担后果。
+读完 Tomasz Tunguz 的[《The Price of Entry to the Frontier》](https://tomtunguz.com/the-great-segmentation)，我认同他最有力的判断：前沿 AI 的新稀缺性不是价格，而是访问权。但读到这里，我脑子里马上冒出一个问题：所谓“访问”，究竟包括什么？真正决定一家企业能不能把 AI 当成基础设施的，不只是今天能不能调用，而是明天能不能继续用、能不能换、能不能解释，以及规则改变后谁来承担后果。
 
-这比“哪家模型最强”不那么刺激，却更接近企业真正会遇到的麻烦。模型能力可以在排行榜上比较，访问权却藏在合同、区域、配额、数据边界和产品默认设置里。它通常要等到系统已经上线，才会显出价格。
+这比“哪家模型最强”不那么刺激，却更接近企业真正会遇到的麻烦。模型能力可以在排行榜上比较，访问权却藏在合同、区域、配额、数据边界和产品默认设置里。很多时候，等系统上线，账单才真正出现。
 
 ## 访问不是一个按钮
 
@@ -23,19 +23,23 @@ tags: [frontier AI, AI access, model lock-in, open weights, enterprise AI]
 
 所以我不太愿意把“访问权”理解成一个开关。它更像一张权限表：谁可以用、在哪儿用、用到什么规模、带着什么数据用，以及能不能在不重做整个系统的情况下离开。
 
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-01-frontier-ai-access-img-01-access-layers.png)
+
 ## 默认模型是一笔交易
 
-Salesforce 和 Anthropic 的合作很能说明问题。Salesforce 的[官方新闻稿](https://www.salesforce.com/news/press-releases/2026/08/26/salesforce-and-anthropic-announce-claudeforce/)确认，Claudeforce 首个落地是 Salesforce in Claude，包含 37 个预置销售技能；新闻稿同时称 Claude 默认服务于 Slack AI、Agentforce 等场景，Salesforce in Claude 当时处于试点阶段。
+Salesforce 和 Anthropic 的合作，把这件事摆到了台面上。Salesforce 的[官方新闻稿](https://www.salesforce.com/news/press-releases/2026/08/26/salesforce-and-anthropic-announce-claudeforce/)确认，Claudeforce 首个落地是 Salesforce in Claude，包含 37 个预置销售技能；新闻稿同时称 Claude 默认服务于 Slack AI、Agentforce 等场景，Salesforce in Claude 当时处于试点阶段。
 
 这不只是“在产品里接了一个模型”。Salesforce 把自己的数据、业务规则和工作流交给 Claude 去调用，Anthropic 则获得了更深的企业入口。对客户来说，收益也是真实的：少做一层集成，少维护一套权限映射，还可能得到更明确的安全边界。
 
 代价是，默认模型很容易从“最方便的选择”变成“唯一可行的选择”。我的站内文章[《模型选型只是虚晃一枪：读 OpenRouter 的大模型供应商性能评估与动态路由指南》](https://ntlx.github.io/articles/evaluating-llm-provider-performance-routing)讨论过动态路由的价值，但读完这篇新材料后，我更确定一件事：**只有模型可以切换，还不算真正的可替换。** 数据格式、工具调用、评估集、权限和失败回退也能一起迁移，路由才是杠杆；否则只是把供应商选择藏到了更深的配置里。
 
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-01-frontier-ai-access-img-02-switching-cost.png)
+
 这也是为什么我不把供应商绑定简单骂成锁定。深度绑定换来了产品整合和责任集中，有时正是受监管企业愿意购买的东西。问题在于，这笔交换应该被明确写出来，而不是被包装成一个无须讨论的默认选项。
 
 ## 开放权重只拆掉了一扇门
 
-原文对开放权重的判断也值得保留，但需要防止一个常见误读：权重可以获得，不等于整个能力链条都开放。
+原文对开放权重的判断，我基本同意；只是这里很容易滑进一个误读：权重可以获得，不等于整个能力链条都开放。
 
 以原文引用的 Z.ai 为例，[Digital Applied 对 GLM-5.3 权重与许可证的讨论](https://www.digitalapplied.com/blog/glm-5-3-weights-bespoke-license-not-mit)提醒读者，模型权重的发布方式和许可证条款并不是一回事。即使文件可以下载，企业仍然要回答几个问题：能否商业使用，能否让云服务商托管，能否在目标地区运行，出了安全问题谁负责？
 
@@ -57,7 +61,7 @@ Salesforce 和 Anthropic 的合作很能说明问题。Salesforce 的[官方新�
 
 ## 给模型采购做一张访问卡
 
-如果今天要为一个重要工作选择模型，我不会只做一张价格和效果对比表，还会给每个候选供应商附一张“访问卡”：
+真要为一个重要工作选择模型，我不会只做一张价格和效果对比表，还会给每个候选供应商附一张“访问卡”：
 
 1. **谁能用**：是否需要特定伙伴资格、企业等级或人工审批？
 2. **在哪里用**：地区、国籍、数据驻留和出口规则会不会改变可用性？
@@ -68,7 +72,7 @@ Salesforce 和 Anthropic 的合作很能说明问题。Salesforce 的[官方新�
 
 这六问不会阻止企业使用封闭生态，反而能帮助企业更诚实地计算它买到的东西：你买到的可能不只是模型调用，也包括整合深度、数据边界和责任承诺；同时，你也可能交出了迁移自由。
 
-我的一个小预测是，接下来企业的模型评估表里，“效果”和“单价”仍然会在最上面，但“区域可用性、撤销条件、审计能力和退出时间”会逐渐从法务附录移动到采购主表。因为当模型成为工作流的一部分，真正的基础设施能力不再只是把事情做出来，而是规则改变时仍然能把事情接着做下去。
+我猜，接下来企业的模型评估表里，“效果”和“单价”仍然会在最上面，但“区域可用性、撤销条件、审计能力和退出时间”会逐渐从法务附录移动到采购主表。因为当模型成为工作流的一部分，真正的基础设施能力不再只是把事情做出来，而是规则改变时仍然能把事情接着做下去。
 
 读完这篇文章后，我最后留下的不是“要不要选开放模型”，而是一个更实际的问题：**如果明天最强的模型不再向你开放，你的系统还能运行多久？**
 
@@ -86,4 +90,3 @@ Salesforce 和 Anthropic 的合作很能说明问题。Salesforce 的[官方新�
 
 - [模型选型只是虚晃一枪：读 OpenRouter 的大模型供应商性能评估与动态路由指南](https://ntlx.github.io/articles/evaluating-llm-provider-performance-routing)
 - [Not the Model, You're the Harness](https://ntlx.github.io/articles/not-the-model-youre-the-harness)
-
