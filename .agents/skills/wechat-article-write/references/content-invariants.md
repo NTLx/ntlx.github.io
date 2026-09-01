@@ -56,6 +56,11 @@ receipt，之后才可通过 Step 3。允许零改动，但 receipt 必须绑定
 `draft.md` 和 humanizer Skill SHA256。humanizer 不得改变事实、引用、URL、代码、
 数字、技术结论、H2/SLOT topology，也不得凭空编造作者经历、态度或情绪。
 
+在调用 humanizer 前，先运行 `pre-humanizer-normalize.mjs`，完成图片 MIME/扩展名、
+嵌套 cover 归位和 `coverImage` frontmatter 的确定性规范化。receipt 写入后，直到
+Step 5 finalize 完成，`draft.md` 视为 immutable；Step 3/4/5 只能校验，不能自动
+修正它。发现未完成规范化时必须回到 humanizer 前处理并重新生成 receipt。
+
 示例：
 
 ```markdown

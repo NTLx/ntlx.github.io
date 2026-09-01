@@ -129,14 +129,16 @@ function printStageContract(slug, strategy, stage, nextStep = null) {
   const isTutorialHumanizationGate = strategy === "tutorial" && stage === "adapt" && String(nextStep) === "3";
   if (stage === "refine" || isTutorialHumanizationGate) {
     process.stdout.write("\n  Mandatory Humanization:\n");
-    process.stdout.write("    1. 先读取 .agents/skills/humanizer-zh/SKILL.md。\n");
-    process.stdout.write("    2. 将 humanizer-zh 应用于当前 draft.md，去除 AI 写作痕迹，同时保留作者原有声音。\n");
-    process.stdout.write("    3. 保留事实、URLs、代码、引用、H2 顺序和 SLOT topology；不得凭空编造作者经历、态度或情绪。\n");
-    process.stdout.write("    4. 快速审阅 diff，确认没有 semantic drift。\n");
-    process.stdout.write(`    5. 运行: bun run ${resolve(scriptsDir, "mark-humanized.mjs")} ${slug}\n`);
-    process.stdout.write(`    6. 运行: bun run ${resolve(scriptsDir, "step3-polish.mjs")} ${slug}\n`);
-    process.stdout.write(`    7. Step3 PASS 后记录 trace: bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage refine --gap "remove AI-writing patterns while preserving author voice" --candidates "humanizer-zh" --selected "humanizer-zh" --reason "mandatory final humanization layer" --gate step3-polish --result pass\n`);
-    process.stdout.write("    humanizer-zh cannot be skipped；没有 no-skill 路线。\n");
+    process.stdout.write(`    1. 先运行: bun run ${resolve(scriptsDir, "pre-humanizer-normalize.mjs")} ${slug}\n`);
+    process.stdout.write("       这一步处理图片 MIME/扩展名、嵌套 cover 归位和 coverImage；receipt 产生后 draft.md 冻结。\n");
+    process.stdout.write("    2. 读取 .agents/skills/humanizer-zh/SKILL.md。\n");
+    process.stdout.write("    3. 将 humanizer-zh 应用于当前 draft.md，去除 AI 写作痕迹，同时保留作者原有声音。\n");
+    process.stdout.write("    4. 保留事实、URLs、代码、引用、H2 顺序和 SLOT topology；不得凭空编造作者经历、态度或情绪。\n");
+    process.stdout.write("    5. 快速审阅 diff，确认没有 semantic drift。\n");
+    process.stdout.write(`    6. 运行: bun run ${resolve(scriptsDir, "mark-humanized.mjs")} ${slug}\n`);
+    process.stdout.write(`    7. 运行: bun run ${resolve(scriptsDir, "step3-polish.mjs")} ${slug}\n`);
+    process.stdout.write(`    8. Step3 PASS 后记录 trace: bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage refine --gap "remove AI-writing patterns while preserving author voice" --candidates "humanizer-zh" --selected "humanizer-zh" --reason "mandatory final humanization layer" --gate step3-polish --result pass\n`);
+    process.stdout.write("    humanizer-zh cannot be skipped；没有 no-skill 路线。Step3/4/5 期间不得再写 draft.md。\n");
   }
   if (stage === "illustrate") {
     process.stdout.write("\n  Visual design requirements:\n");

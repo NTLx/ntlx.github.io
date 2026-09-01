@@ -10,6 +10,11 @@ import { sha256File } from "../scripts/humanizer-lib.mjs";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const SCRIPT = resolve(import.meta.dir, "../scripts/mark-humanized.mjs");
+const JPEG_BYTES = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+  0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+]);
 
 function fixture(lastCompleteStep) {
   const root = join(tmpdir(), `humanizer-receipt-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -67,5 +72,17 @@ describe("mark-humanized", () => {
     const result = run(fx);
     expect(result.status).toBe(2);
     expect(result.stderr).toContain("Step 2 has not passed");
+  });
+
+  test("requires deterministic image normalization before recording the receipt", () => {
+    const fx = fixture(2);
+    cleanup.push(fx.root);
+    writeFileSync(join(fx.dir, "cover.png"), JPEG_BYTES);
+
+    const result = run(fx);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("deterministic normalization is not complete");
+    expect(JSON.parse(readFileSync(join(fx.dir, ".pipeline-state.json"), "utf8")).humanizer.status).toBe("pending");
   });
 });

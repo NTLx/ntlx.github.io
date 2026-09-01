@@ -98,9 +98,15 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 在运行 Step 3 前，必须先读取并应用 `humanizer-zh`，审阅 semantic drift，再运行：
 
 ```bash
+bun run .agents/skills/wechat-article-write/scripts/pre-humanizer-normalize.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/mark-humanized.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
+
+`pre-humanizer-normalize.mjs` 负责所有可能改写 `draft.md` 的确定性图片/cover
+规范化，必须发生在 humanizer receipt 之前。receipt 产生后至 Step 5 finalize
+完成，`draft.md` 是 immutable；Step 4 若发现 MIME、路径或 `coverImage` 不一致，
+直接失败并要求回到该预处理、重新 humanize，不得自行修正正文。
 
 每次 Adaptive Stage 路线尝试完成 Gate 后，按 policy 默认 best-effort 使用
 `scripts/orchestration-trace.mjs` 写入一条 JSONL 记录；它不属于 Stage

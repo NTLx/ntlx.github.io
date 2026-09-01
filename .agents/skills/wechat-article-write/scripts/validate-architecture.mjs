@@ -382,6 +382,21 @@ function checkQualityProtocolBoundaries(errors, warnings) {
     }
   }
 
+  const preHumanizer = resolve(SKILL_DIR, "scripts/pre-humanizer-normalize.mjs");
+  if (!existsSync(preHumanizer)) {
+    state.errors.push("mandatory humanization boundary missing pre-humanizer-normalize.mjs");
+  }
+  const step4Source = readFileSync(resolve(SKILL_DIR, "scripts/step4-images.mjs"), "utf8");
+  for (const token of ["normalize-image-formats.mjs", "set-frontmatter.mjs", "renameSync", "writeFileSync"]) {
+    if (step4Source.includes(token)) {
+      state.errors.push(`Step4 must keep draft.md immutable; mutation helper remains: ${token}`);
+    }
+  }
+  const pipelineSource = readFileSync(resolve(SKILL_DIR, "scripts/pipeline.mjs"), "utf8");
+  if (!pipelineSource.includes("pre-humanizer-normalize.mjs") || !pipelineSource.includes("draft.md 冻结")) {
+    state.errors.push("pipeline must instruct pre-humanizer normalization and draft freeze");
+  }
+
   const schema = readFileSync(resolve(SKILL_DIR, "references/image-plan.schema.json"), "utf8");
   for (const token of ["coverage_review", "source_image_review"]) {
     if (!schema.includes(token)) state.errors.push(`image-plan schema missing ${token} contract`);

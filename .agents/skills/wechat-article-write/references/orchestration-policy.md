@@ -79,9 +79,11 @@ Skill 的返回值只是候选材料。主 Agent 必须判断它是否真正解�
 ### Mandatory Humanization Layer
 
 进入 refine（tutorial 的最终 adapt 润色也适用）时，主 Agent 必须先读取并应用
+`pre-humanizer-normalize.mjs` 完成确定性图片/cover 预处理，再读取并应用
 `.agents/skills/humanizer-zh/SKILL.md`，然后审阅 diff，最后运行
 `mark-humanized.mjs` 写入当前 draft 的 freshness receipt，再运行 Step 3 Gate。
-允许零改动，但不允许不调用。humanizer 之后不得凭空增加作者经历、态度或情绪。
+允许零改动，但不允许不调用。receipt 产生后直到 Step 5 finalize，`draft.md` 不得
+再由流水线脚本改写；humanizer 之后不得凭空增加作者经历、态度或情绪。
 
 委托合同追加以下边界：
 

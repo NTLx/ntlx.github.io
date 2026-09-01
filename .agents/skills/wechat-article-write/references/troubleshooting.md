@@ -15,7 +15,7 @@
 | `sourceUrl` 缺失 | 按 blogSlug 写博客公网 URL；tutorial 用已有博文 URL |
 | 视觉计划不一致 | 对照 draft SLOT、image-plan、prompt 和 image；没有信息增益的正文节点不必创建 SLOT |
 | step4 报 Missing images 但 imgs/ 有图 | 生图落盘成随机名，命名断裂。多模态识别后跑 `align-image-names.mjs` 归位，勿重生 |
-| step4 只输出 normalize 后报 cover missing | 封面必须在 post 根目录 `cover.png` / `cover.jpg`。若生成到 `imgs/00-cover.png` 或 `imgs/cover.png`，重跑 `step4-images.mjs` 会自动归位；若根目录已有封面，重复封面会移入 `imgs/_discard/` |
+| step4 报 cover missing 或 coverImage 未规范化 | 在 humanizer 前运行 `pre-humanizer-normalize.mjs <date-slug>`，它会处理 `imgs/00-cover.*` / `imgs/cover.*` 归位、MIME/扩展名和 `coverImage`；receipt 产生后 Step 4 不再自动修改 `draft.md`。若 cover 是之后由 renderer 生成的，必须直接写到 post 根目录并匹配 frozen 的 `coverImage` |
 | Codex CLI `lock_busy` | 若报 `Failed to acquire lock` 且指向 `/home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock`，先确认没有 `codex exec` / `baoyu-image-gen` 进程仍在跑，再 `rm -f /home/lx/.cache/baoyu-codex-imagegen/codex-exec.lock` 并串行重试 |
 | 发现 `batch.json` | 本管线禁止 batch 模式。删除 post 根目录或 `imgs/` 下的 `batch.json`，按 `image-policy.md` 的逐张串行命令重跑 |
 | prompt/image basename mismatch | 生图输出名必须与 `imgs/prompts/NN-desc.md` 去掉 `.md` 后一致；例如 `00-infographic-core-summary.md` 对应 `imgs/00-infographic-core-summary.png`，不能写成 `00-infographic.png` |

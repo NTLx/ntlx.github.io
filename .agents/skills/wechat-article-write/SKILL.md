@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.55.0"
+  version: "1.56.0"
 ---
 
 # 微信公众号文章写作
@@ -42,7 +42,9 @@ metadata:
 - 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
 - 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力；但
   `humanizer-zh` 是所有文章的 Mandatory Humanization Layer，不是开放式
-  writing Router，必须在 Step 2 Gate 后、Step 3 Gate 前实际调用并登记 receipt。
+  writing Router，必须在 Step 2 Gate 后、Step 3 Gate 前实际调用并登记 receipt；
+  receipt 前先运行 `pre-humanizer-normalize.mjs`，receipt 后 `draft.md` 冻结到
+  Step 5 finalize。
 - `humanizer-zh` 只能去除 AI 写作痕迹、保留作者已有声音和技术准确性；不得凭空
   编造作者经历、态度或情绪，不得改事实、引用、URL、代码、H2 顺序或 SLOT topology。
 
@@ -95,7 +97,7 @@ bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <da
 ## 最小流程
 
 Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
-按策略完成理解或适配/写作；Step 3 先执行 mandatory humanizer-zh，再针对实际问题
+按策略完成理解或适配/写作；Step 3 先完成 pre-humanizer-normalize，再执行 mandatory humanizer-zh，随后针对实际问题
 refine；Step 4 先运行 Baoyu article-level visual design，并为每个 substantive H2
 完成 `coverage_review`（正文 SLOT 仍可为 0..N），再分别完成 cover、SLOT_IMG_00
 和正文的 Baoyu 设计合同。SLOT_IMG_00 必须恰好一次、位于首个 substantive H2 前

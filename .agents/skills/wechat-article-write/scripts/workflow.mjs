@@ -89,6 +89,7 @@ export const STAGE_CONTRACTS = {
       "正文结构、SLOT 语义和视觉计划服务于读者理解",
       "教程特有的 sourceUrl/targetPath 规则已明确",
       "最终适配稿经过 mandatory humanizer-zh，且当前 draft 与 receipt 一致",
+      "humanizer receipt 生成前已完成确定性图片/cover 规范化，receipt 后 draft 保持 immutable",
     ],
     gates: [
       {
@@ -123,6 +124,7 @@ export const STAGE_CONTRACTS = {
       "第一人称判断、疑问和读后感式表达仍然可见",
       "正文协议、SLOT 和 frontmatter 仍通过门控",
       "humanizer-zh 已应用于当前 draft，draft hash 与 humanizer receipt 一致",
+      "humanizer receipt 生成前已完成确定性图片/cover 规范化，Step 3 后 draft 保持 immutable",
       "humanization 没有损失事实、引用、技术语义或 H2/SLOT topology",
     ],
     gate: { script: "step3-polish.mjs" },

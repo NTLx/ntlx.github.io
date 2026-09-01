@@ -12,8 +12,15 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/step4-images.mjs");
+const PRE_NORMALIZE_SCRIPT = resolve(import.meta.dir, "../scripts/pre-humanizer-normalize.mjs");
+const MARK_HUMANIZED_SCRIPT = resolve(import.meta.dir, "../scripts/mark-humanized.mjs");
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const JPEG_BYTES = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+  0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+]);
 
 function makeFixture() {
   const root = join(tmpdir(), `step4-images-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -21,7 +28,7 @@ function makeFixture() {
   return { root, postsRoot };
 }
 
-function writePost(postsRoot, slug, body, imageNames) {
+function writePost(postsRoot, slug, body, imageNames, options = {}) {
   const dir = join(postsRoot, slug);
   const imgsDir = join(dir, "imgs");
   mkdirSync(imgsDir, { recursive: true });
@@ -87,12 +94,14 @@ function writePost(postsRoot, slug, body, imageNames) {
     failed_step: null,
     humanizer: { status: "pending" },
   }, null, 2));
-  const receipt = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/mark-humanized.mjs"), slug], {
-    cwd: REPO_ROOT,
-    env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
-    encoding: "utf8",
-  });
-  if (receipt.status !== 0) throw new Error(receipt.stderr);
+  if (!options.skipReceipt) {
+    const receipt = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/mark-humanized.mjs"), slug], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+      encoding: "utf8",
+    });
+    if (receipt.status !== 0) throw new Error(receipt.stderr);
+  }
   return dir;
 }
 
@@ -157,9 +166,11 @@ describe("step4-images visual-plan consistency", () => {
       "02-stakeholder-map.png",
       "03-decision-flow.png",
     ]);
+    const before = readFileSync(join(dir, "draft.md"), "utf8");
 
     const r = runStep4(slug, fx.postsRoot);
     expect(r.status).toBe(0);
+    expect(readFileSync(join(dir, "draft.md"), "utf8")).toBe(before);
 
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
     expect(state.last_complete_step).toBe(4);
@@ -198,7 +209,7 @@ ${slots}
     }
   });
 
-  test("moves mistakenly generated imgs/00-cover.png to post root cover.png", () => {
+  test("pre-humanizer normalization moves nested cover to post root", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-nested-zero-cover";
@@ -227,15 +238,78 @@ ${slots}
       "01-core-tension.png",
       "02-stakeholder-map.png",
       "03-decision-flow.png",
-    ]);
+    ], { skipReceipt: true });
     rmSync(join(dir, "cover.png"), { force: true });
+
+    const pre = spawnSync("bun", ["run", PRE_NORMALIZE_SCRIPT, slug], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.postsRoot },
+      encoding: "utf8",
+    });
+    expect(pre.status, pre.stderr || pre.stdout).toBe(0);
+    const receipt = spawnSync("bun", ["run", MARK_HUMANIZED_SCRIPT, slug], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.postsRoot },
+      encoding: "utf8",
+    });
+    expect(receipt.status, receipt.stderr || receipt.stdout).toBe(0);
 
     const r = runStep4(slug, fx.postsRoot);
 
     expect(r.status).toBe(0);
-    expect(r.stderr).toContain("moved imgs/00-cover.png");
+    expect(pre.stdout).toContain("moved imgs/00-cover.png");
     expect(existsSync(join(dir, "cover.png"))).toBe(true);
     expect(existsSync(join(dir, "imgs", "00-cover.png"))).toBe(false);
+  });
+
+  test("does not modify draft.md after the humanizer receipt", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-step4-draft-freeze";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+正文内容。
+
+## 参考资料
+
+> 来源
+> https://example.com/source
+`, ["00-infographic-core-summary.png"]);
+    const before = readFileSync(join(dir, "draft.md"), "utf8");
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(0);
+    expect(readFileSync(join(dir, "draft.md"), "utf8")).toBe(before);
+  });
+
+  test("fails instead of repairing an image format after the humanizer receipt", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-step4-format-freeze";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+正文内容。
+
+## 参考资料
+
+> 来源
+> https://example.com/source
+`, ["00-infographic-core-summary.png"]);
+    writeFileSync(join(dir, "cover.png"), JPEG_BYTES);
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("deterministic normalization is not complete");
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(false);
   });
 
   test("fails when batch.json exists because Step 4 must be serial", () => {

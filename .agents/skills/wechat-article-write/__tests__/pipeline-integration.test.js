@@ -12,6 +12,11 @@ const PNG_BYTES = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
 );
+const JPEG_BYTES = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+  0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+]);
 
 function makeFixture() {
   const root = join(tmpdir(), `wechat-pipeline-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -192,12 +197,18 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
       source_image_review: [],
     }, null, 2) + "\n");
 
+    // Exercise the pre-humanizer normalization boundary: the cover has JPEG
+    // bytes under a .png name, so normalization must happen before receipt.
+    writeFileSync(join(dir, "cover.png"), JPEG_BYTES);
+
     expectSuccess(runScript("step2-write.mjs", slug, fx.postsRoot, ["--allow-no-related"]));
+    expectSuccess(runScript("pre-humanizer-normalize.mjs", slug, fx.postsRoot));
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(true);
+    expect(readFileSync(join(dir, "draft.md"), "utf8")).toContain("coverImage: cover.jpg");
     expectSuccess(runScript("mark-humanized.mjs", slug, fx.postsRoot));
     expectSuccess(runScript("step3-polish.mjs", slug, fx.postsRoot));
     expectSuccess(runScript("generate-image-prompts.mjs", slug, fx.postsRoot));
 
-    writeFileSync(join(dir, "cover.png"), PNG_BYTES);
     const promptFiles = readdirSync(join(imgsDir, "prompts"))
       .filter((file) => /^\d{2}-.+\.md$/u.test(file))
       .filter((file) => !file.startsWith("00-cover-"));

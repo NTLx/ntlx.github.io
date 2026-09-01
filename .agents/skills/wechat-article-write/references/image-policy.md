@@ -102,6 +102,11 @@ SLOT 00 的 prompt 必须综合全文的核心信息、论证路径、关键关�
    只检查存在且非空、保留原文；然后统一由 `baoyu-image-gen → codex-cli`
    逐张生成 raster，最后运行 Step 4 Gate。
 
+图片阶段开始前，如果已有图片或 cover 可能存在 MIME/扩展名、嵌套路径或
+`coverImage` 不一致，先运行 `pre-humanizer-normalize.mjs`。该预处理必须在
+humanizer receipt 前完成；receipt 生成后 `draft.md` 冻结，Step 4 只校验这些
+条件，不能再改写 draft。
+
 ## 图片成本边界
 
 后端顺序、配置层级、失败语义和命令规则统一见
