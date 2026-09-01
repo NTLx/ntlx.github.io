@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { repoRoot } from "./path-resolver.mjs";
 import { normalizeLinksForWechat, stripWechatAnchors } from "./wechat-link-normalizer.mjs";
 import { SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
+import { assertWechatStructuralParity } from "./wechat-structure-lib.mjs";
 
 export function buildWechatSourceMarkdown(draft, imgs) {
   let localMd = replaceSlotPlaceholders(draft, match => {
@@ -26,7 +27,10 @@ export function validateBlogArtifact(articleContent) {
   }
 }
 
-export function finalizeStep5Artifacts({ slug, wechatHtmlPath, generatePreview, markDone }) {
+export function finalizeStep5Artifacts({ slug, wechatSourcePath, wechatHtmlPath, generatePreview, markDone }) {
+  if (!existsSync(wechatSourcePath)) {
+    throw new Error("article-wechat-source.md missing; cannot validate structural parity");
+  }
   if (!existsSync(wechatHtmlPath)) {
     throw new Error("article-wechat.html missing; cannot finalize Step 5");
   }
@@ -49,6 +53,15 @@ export function finalizeStep5Artifacts({ slug, wechatHtmlPath, generatePreview, 
   const validate = spawnSync("python3", [validateScript, wechatHtmlPath], { stdio: "inherit", encoding: "utf8" });
   if (validate.status !== 0) {
     throw new Error(`gzh validator failed (exit ${validate.status})`);
+  }
+
+  try {
+    assertWechatStructuralParity(
+      readFileSync(wechatSourcePath, "utf8"),
+      readFileSync(wechatHtmlPath, "utf8"),
+    );
+  } catch (error) {
+    throw new Error(`WeChat structural parity validator failed: ${error.message}`);
   }
 
   let previewPath = null;

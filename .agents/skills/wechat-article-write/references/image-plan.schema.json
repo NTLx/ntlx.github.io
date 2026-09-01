@@ -3,7 +3,7 @@
   "title": "wechat-article-write image-plan",
   "type": "object",
   "additionalProperties": false,
-  "required": ["article_visual_design", "cover", "infographic", "illustrations"],
+  "required": ["article_visual_design", "cover", "infographic", "illustrations", "source_image_review"],
   "properties": {
     "article_type": {
       "type": "string",
@@ -20,10 +20,36 @@
     "article_visual_design": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["skill"],
+      "required": ["skill", "coverage_review"],
       "properties": {
         "skill": { "const": "baoyu-article-illustrator" },
-        "strategy": { "type": "string", "minLength": 1 }
+        "strategy": { "type": "string", "minLength": 1 },
+        "coverage_review": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["section_index", "heading", "decision", "reason"],
+            "properties": {
+              "section_index": { "type": "integer", "minimum": 1 },
+              "heading": { "type": "string", "minLength": 1 },
+              "decision": { "type": "string", "enum": ["illustrate", "reuse-source", "text-only"] },
+              "slot": { "type": "integer", "minimum": 1 },
+              "source": { "type": "string", "minLength": 1 },
+              "reason": { "type": "string", "minLength": 1 }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "decision": { "const": "illustrate" } }, "required": ["decision"] },
+                "then": { "required": ["slot"] }
+              },
+              {
+                "if": { "properties": { "decision": { "const": "reuse-source" } }, "required": ["decision"] },
+                "then": { "required": ["source"] }
+              }
+            ]
+          }
+        }
       }
     },
     "cover": {
@@ -128,6 +154,19 @@
             "then": { "required": ["producer"] }
           }
         ]
+      }
+    },
+    "source_image_review": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "decision", "reason"],
+        "properties": {
+          "source": { "type": "string", "minLength": 1 },
+          "decision": { "type": "string", "enum": ["cover-only", "body", "both", "discard"] },
+          "reason": { "type": "string", "minLength": 1 }
+        }
       }
     }
   }

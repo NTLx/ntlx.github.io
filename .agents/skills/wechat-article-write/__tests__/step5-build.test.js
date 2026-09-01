@@ -59,6 +59,21 @@ function writePost(postsRoot, slug, opts = {}) {
     writeFileSync(join(dir, "image-map.json"), JSON.stringify(opts.imageMap, null, 2));
   }
 
+  writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
+    slug,
+    started_at: new Date().toISOString(),
+    last_complete_step: 4,
+    publish: { blog: "pending", wechat: "pending" },
+    failed_step: null,
+    humanizer: { status: "pending" },
+  }, null, 2));
+  const receipt = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/mark-humanized.mjs"), slug], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+    encoding: "utf8",
+  });
+  if (receipt.status !== 0) throw new Error(receipt.stderr);
+
   return dir;
 }
 
@@ -108,7 +123,7 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(existsSync(join(dir, "article.md"))).toBe(false);
     expect(existsSync(join(dir, "article-wechat.html"))).toBe(false);
     expect(existsSync(join(dir, "image-map.json"))).toBe(false);
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
   });
 
   test("--dry-run fails without state writes when cover is missing", () => {
@@ -120,7 +135,7 @@ describe("step5-build dry-run and image-map reuse", () => {
     const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("cover image missing");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
   });
 
   test("--dry-run requires frontmatter.blogSlug without date-slug fallback", () => {
@@ -143,7 +158,7 @@ describe("step5-build dry-run and image-map reuse", () => {
     const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
     expect(r.status).toBe(4);
     expect(r.stderr).toContain("no SLOT_IMG placeholders");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
   });
 
   test("--dry-run --reuse-image-map requires a complete valid map", () => {
@@ -176,7 +191,7 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(out.reuse_image_map).toBe(true);
     expect(out.image_count).toBe(2);
     expect(JSON.parse(readFileSync(join(dir, "image-map.json"), "utf8")).files["01-detail.png"]).toContain("https://");
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
   });
 
   test("--reuse-image-map prepares article.md and article-wechat-source.md without finalizing step 5", () => {
@@ -207,7 +222,7 @@ describe("step5-build dry-run and image-map reuse", () => {
     expect(existsSync(join(dir, "article.md"))).toBe(true);
     expect(existsSync(join(dir, "article-wechat-source.md"))).toBe(true);
     expect(existsSync(join(dir, "article-wechat.html"))).toBe(false);
-    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(false);
+    expect(existsSync(join(dir, ".pipeline-state.json"))).toBe(true);
 
     const source = readFileSync(join(dir, "article-wechat-source.md"), "utf8");
     expect(source).toContain("## 第一个二级标题");
@@ -223,7 +238,14 @@ describe("step5-build dry-run and image-map reuse", () => {
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
       '  <p style="margin:0;line-height:1.8;color:#222;">',
+      '    <img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;">',
+      "  </p>",
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">正文</span></h3>',
+      '  <p style="margin:0;line-height:1.8;color:#222;">',
       '    <span leaf="">测试正文</span>',
+      "  </p>",
+      '  <p style="margin:0;line-height:1.8;color:#222;">',
+      '    <img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;">',
       "  </p>",
       "</section>",
       "",
@@ -238,5 +260,18 @@ describe("step5-build dry-run and image-map reuse", () => {
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
     expect(state.last_complete_step).toBe(5);
     expect(existsSync(join(dir, "article-wechat_预览.html"))).toBe(true);
+  });
+
+  test("fails closed when draft changes after humanizer receipt", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-stale-humanizer";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "draft.md"), `${readFileSync(join(dir, "draft.md"), "utf8")}\n新增内容。`);
+
+    const r = runStep5(slug, fx.postsRoot, ["--dry-run"]);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("draft.md changed after humanizer-zh");
+    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(4);
   });
 });

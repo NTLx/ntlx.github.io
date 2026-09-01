@@ -74,19 +74,31 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 专业写作能力，Agent 都必须负责仓库适配：frontmatter、`summary`、
 `sourceUrl`、H2 正文、参考资料、互动（策略允许时）、站内联动和 SLOT
 占位符都要完整。SLOT 不是章节打卡，而是放在确实需要视觉解释的论证节点；
-SLOT 00 必须存在，正文 SLOT 只在有明确视觉信息增益时创建，数量由
-`image-plan.json` 决定。
+同时必须由 `baoyu-article-illustrator` 完成全文视觉价值审阅，并在
+`article_visual_design.coverage_review` 为每个 substantive H2 写出
+`illustrate`/`reuse-source`/`text-only` 决定。正文 SLOT 只在有明确视觉信息增益时
+创建，数量仍由 `image-plan.json` 决定，可以为 0..N；SLOT00 必须恰好一次、位于
+首个 substantive H2 前并作为正文第一张视觉。原始图片还必须有
+`source_image_review` 处置决定。
 
 教程适配还要保留 `targetPath` 和源文 canonical URL；具体例外见教程策略。
 写完运行 `step2-write.mjs`，失败时根据 Gate 错误修正产物，不要直接前进。
 
 ## Step 3：按问题 refine
 
-先诊断文本实际问题，再决定是否调用格式、语言或结构能力。可以不调用
-任何 Skill；已好的段落不为“润色”而重写。保住作者第一人称判断和自然
-毛边，不把全文统一成模板腔。确定性格式检查和最终内容协议由：
+先诊断文本实际问题，再调用 mandatory `humanizer-zh` 清理 AI 写作痕迹；再决定
+是否调用其它格式、语言或结构能力。humanizer 可零改动，但不能跳过。保住作者
+已有的第一人称判断和自然毛边，不把全文统一成模板腔；不得凭空编造作者经历、
+态度或情绪。确定性格式检查和最终内容协议由：
 
 ```bash
+bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
+```
+
+在运行 Step 3 前，必须先读取并应用 `humanizer-zh`，审阅 semantic drift，再运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/mark-humanized.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
 
@@ -149,8 +161,10 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-finalize（HTML finalize）会运行 HTML validator 并记录 Step 5 状态。不能用 post 内临时
-渲染脚本替代排版适配器。
+finalize（HTML finalize）会依次运行 gzh-design validator 和 structural parity
+validator，并在两者都通过后记录 Step 5 状态。parity 只比较 substantive heading
+顺序、图片数量/basename 顺序、图片所属 section 和 SLOT00 lead 归属，不限制主题
+wrapper、CSS 或其它视觉表现。不能用 post 内临时渲染脚本替代排版适配器。
 
 ## Step 6：发布
 

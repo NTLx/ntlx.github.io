@@ -23,6 +23,246 @@ export const BAOYU_DESIGN_AUTHORITIES = Object.freeze({
   body: "baoyu-article-illustrator",
 });
 
+const NON_SUBSTANTIVE_HEADINGS = new Set(["参考资料", "延伸阅读"]);
+const COVERAGE_DECISIONS = new Set(["illustrate", "reuse-source", "text-only"]);
+const SOURCE_IMAGE_DECISIONS = new Set(["cover-only", "body", "both", "discard"]);
+
+function normalizedHeading(value) {
+  return String(value ?? "")
+    .replace(/\s+#+\s*$/u, "")
+    .trim()
+    .replace(/\s+/gu, " ");
+}
+
+/** Extract substantive H2 sections, ignoring fenced code and fixed tail blocks. */
+export function collectSubstantiveSections(body) {
+  const sections = [];
+  const text = String(body ?? "");
+  let offset = 0;
+  let inFence = false;
+  for (const line of text.match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
+    const fence = /^\s*```/u.test(line);
+    if (fence) {
+      inFence = !inFence;
+      offset += line.length;
+      continue;
+    }
+    if (!inFence) {
+      const match = line.match(/^\s*##(?!#)\s+(.+?)\s*$/u);
+      if (match) {
+        const heading = normalizedHeading(match[1]);
+        if (heading && !NON_SUBSTANTIVE_HEADINGS.has(heading)) {
+          sections.push({
+            section_index: sections.length + 1,
+            heading,
+            start: offset,
+          });
+        }
+      }
+    }
+    offset += line.length;
+    if (line.length === 0) break;
+  }
+  return sections;
+}
+
+/** Extract Markdown image references, excluding fenced code blocks. */
+export function collectMarkdownImages(body) {
+  const images = [];
+  const text = String(body ?? "");
+  let offset = 0;
+  let inFence = false;
+  for (const line of text.match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
+    if (/^\s*```/u.test(line)) {
+      inFence = !inFence;
+      offset += line.length;
+      continue;
+    }
+    if (!inFence) {
+      const imageRe = /!\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)/gu;
+      let match;
+      while ((match = imageRe.exec(line)) !== null) {
+        images.push({ src: match[1], index: offset + match.index });
+      }
+    }
+    offset += line.length;
+    if (line.length === 0) break;
+  }
+  return images;
+}
+
+function sectionIndexAtPosition(position, sections) {
+  let sectionIndex = 0;
+  for (const section of sections) {
+    if (section.start > position) break;
+    sectionIndex = section.section_index;
+  }
+  return sectionIndex;
+}
+
+function sourceImageBasename(value) {
+  let text = String(value ?? "").trim();
+  try { text = decodeURIComponent(text); } catch {}
+  text = text.split(/[?#]/u, 1)[0];
+  return text.split("/").at(-1)?.toLowerCase() ?? "";
+}
+
+function sameSourceImage(left, right) {
+  return sourceImageBasename(left) !== "" && sourceImageBasename(left) === sourceImageBasename(right);
+}
+
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+/** Enforce SLOT00's lead position and first-body-visual invariant. */
+export function validateSlotHeadInvariant(draftBody) {
+  const errors = [];
+  const slots = collectDraftSlots(draftBody);
+  const slot00 = slots.filter((slot) => slot.slot === 0);
+  if (slot00.length !== 1) return errors;
+
+  const sections = collectSubstantiveSections(draftBody);
+  const firstSection = sections[0];
+  if (firstSection && slot00[0].index >= firstSection.start) {
+    errors.push("SLOT_IMG_00_INFOGRAPHIC must appear before the first substantive H2 in the lead area");
+  }
+
+  const visuals = [
+    ...slots.map((slot) => ({ index: slot.index, kind: `SLOT_IMG_${String(slot.slot).padStart(2, "0")}` })),
+    ...collectMarkdownImages(draftBody).map((image) => ({ index: image.index, kind: "source-image" })),
+  ].sort((left, right) => left.index - right.index);
+  if (visuals[0]?.kind !== "SLOT_IMG_00") {
+    errors.push("SLOT_IMG_00_INFOGRAPHIC must be the first body visual image");
+  }
+  return errors;
+}
+
+function validateSourceImageReview(imagePlan, draftBody, errors) {
+  const review = imagePlan?.source_image_review;
+  if (!Array.isArray(review)) {
+    errors.push("image-plan.source_image_review must be an array (use [] when no original source images were supplied)");
+    return [];
+  }
+
+  const images = collectMarkdownImages(draftBody);
+  const seen = new Set();
+  for (const [index, entry] of review.entries()) {
+    const label = `image-plan.source_image_review[${index}]`;
+    if (!isObject(entry)) {
+      errors.push(`${label} must be an object`);
+      continue;
+    }
+    if (!nonEmptyString(entry.source)) errors.push(`${label}.source must be a non-empty string`);
+    if (!SOURCE_IMAGE_DECISIONS.has(entry.decision)) errors.push(`${label}.decision must be one of cover-only, body, both, discard`);
+    if (!nonEmptyString(entry.reason)) errors.push(`${label}.reason must be a non-empty string`);
+    const sourceKey = sourceImageBasename(entry.source);
+    if (sourceKey && seen.has(sourceKey)) errors.push(`${label}.source is duplicated`);
+    if (sourceKey) seen.add(sourceKey);
+    const refs = images.filter((image) => sameSourceImage(image.src, entry.source));
+    if (["body", "both"].includes(entry.decision) && refs.length === 0) {
+      errors.push(`${label} decision=${entry.decision} requires the source image to be referenced in draft.md`);
+    }
+    if (entry.decision === "cover-only" && refs.length > 0) {
+      errors.push(`${label} decision=cover-only cannot be used as a body image; mark it body/both or remove the body reference`);
+    }
+  }
+  return review;
+}
+
+/**
+ * Validate that every substantive section received an explicit visual decision.
+ * This is a completeness contract, not a recommendation about how many images
+ * an article should contain.
+ */
+export function validateVisualCoverage(imagePlan, draftBody) {
+  const errors = [];
+  const sections = collectSubstantiveSections(draftBody);
+  const coverage = imagePlan?.article_visual_design?.coverage_review;
+  const sourceReview = validateSourceImageReview(imagePlan, draftBody, errors);
+  const sourceReviewByBasename = new Map(
+    sourceReview
+      .filter((entry) => isObject(entry))
+      .map((entry) => [sourceImageBasename(entry.source), entry]),
+  );
+
+  if (!Array.isArray(coverage)) {
+    errors.push("image-plan.article_visual_design.coverage_review must be an array with one entry per substantive H2");
+  } else {
+    if (coverage.length !== sections.length) {
+      errors.push(`coverage_review must contain exactly one entry per substantive H2 (expected ${sections.length}, found ${coverage.length})`);
+    }
+    const byIndex = new Map();
+    for (const [index, entry] of coverage.entries()) {
+      const label = `image-plan.article_visual_design.coverage_review[${index}]`;
+      if (!isObject(entry)) {
+        errors.push(`${label} must be an object`);
+        continue;
+      }
+      if (!Number.isInteger(entry.section_index) || entry.section_index < 1) {
+        errors.push(`${label}.section_index must be a positive integer`);
+        continue;
+      }
+      if (byIndex.has(entry.section_index)) errors.push(`coverage_review contains duplicate section_index ${entry.section_index}`);
+      byIndex.set(entry.section_index, entry);
+      if (!nonEmptyString(entry.heading)) errors.push(`${label}.heading must be a non-empty string`);
+      if (!COVERAGE_DECISIONS.has(entry.decision)) errors.push(`${label}.decision must be one of illustrate, reuse-source, text-only`);
+      if (!nonEmptyString(entry.reason)) errors.push(`${label}.reason must be a non-empty string`);
+    }
+
+    const slots = collectDraftSlots(draftBody).filter((slot) => slot.slot > 0);
+    const plannedSlots = new Set((imagePlan?.illustrations ?? []).map((entry) => entry?.slot).filter((slot) => Number.isInteger(slot)));
+    const usedCoverageSlots = new Set();
+    for (const section of sections) {
+      const entry = byIndex.get(section.section_index);
+      if (!entry) {
+        errors.push(`coverage_review is missing section_index ${section.section_index} (${section.heading})`);
+        continue;
+      }
+      const nextSection = sections[section.section_index] ?? null;
+      const inSection = (position) => position >= section.start && (!nextSection || position < nextSection.start);
+      const sectionSlots = slots.filter((slot) => inSection(slot.index));
+      const sectionImages = collectMarkdownImages(draftBody).filter((image) => inSection(image.index));
+
+      if (entry.decision === "illustrate") {
+        if (!Number.isInteger(entry.slot) || entry.slot < 1) {
+          errors.push(`coverage section_index ${section.section_index} decision=illustrate requires slot >= 1`);
+        } else {
+          const slot = slots.find((candidate) => candidate.slot === entry.slot);
+          if (!slot) {
+            errors.push(`coverage section_index ${section.section_index} references missing SLOT_IMG_${String(entry.slot).padStart(2, "0")}`);
+          } else if (!inSection(slot.index)) {
+            errors.push(`coverage section_index ${section.section_index} SLOT_IMG_${String(entry.slot).padStart(2, "0")} belongs to section_index ${sectionIndexAtPosition(slot.index, sections)}`);
+          }
+          if (!plannedSlots.has(entry.slot)) errors.push(`coverage section_index ${section.section_index} SLOT_IMG_${String(entry.slot).padStart(2, "0")} has no image-plan.illustrations entry`);
+          if (usedCoverageSlots.has(entry.slot)) errors.push(`coverage_review reuses SLOT_IMG_${String(entry.slot).padStart(2, "0")} more than once`);
+          usedCoverageSlots.add(entry.slot);
+        }
+        if (sectionSlots.length === 0) {
+          errors.push(`coverage section_index ${section.section_index} decision=illustrate must account for a body SLOT in that section`);
+        }
+        if (sectionImages.length > 0) errors.push(`coverage section_index ${section.section_index} cannot be illustrate while also containing a source image reference`);
+      } else if (entry.decision === "reuse-source") {
+        if (!nonEmptyString(entry.source)) errors.push(`coverage section_index ${section.section_index} decision=reuse-source requires source`);
+        const sourceRefs = sectionImages.filter((image) => sameSourceImage(image.src, entry.source));
+        if (sourceRefs.length === 0) errors.push(`coverage section_index ${section.section_index} source image ${entry.source ?? "(missing)"} is not referenced in that section`);
+        const disposition = sourceReviewByBasename.get(sourceImageBasename(entry.source));
+        if (!disposition || !["body", "both"].includes(disposition.decision)) {
+          errors.push(`coverage section_index ${section.section_index} source ${entry.source ?? "(missing)"} needs source_image_review decision=body or both`);
+        }
+        if (sectionSlots.length > 0) errors.push(`coverage section_index ${section.section_index} cannot be reuse-source while containing a generated SLOT`);
+      } else if (entry.decision === "text-only") {
+        if (sectionSlots.length > 0 || sectionImages.length > 0) {
+          errors.push(`coverage section_index ${section.section_index} decision=text-only conflicts with a body visual reference`);
+        }
+      }
+    }
+  }
+
+  errors.push(...validateSlotHeadInvariant(draftBody));
+  return { ok: errors.length === 0, errors, sections };
+}
+
 /** 缺失的旧字段按当前兼容规则解释为 adapter。 */
 export function normalizePromptSource(value) {
   if (value === undefined || value === null || String(value).trim() === "") return "adapter";

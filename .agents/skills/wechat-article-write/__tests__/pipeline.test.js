@@ -75,4 +75,23 @@ describe("pipeline", () => {
     expect(r.stdout).toContain("selected=no-skill");
     expect(r.stdout).toContain("orchestration-trace.mjs");
   });
+
+  test("tutorial Step 3 status prints the mandatory humanization instructions", () => {
+    const root = join(tmpdir(), `pipeline-tutorial-humanizer-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const postsRoot = join(root, "posts");
+    cleanup.push(root);
+    const slug = "2026-05-17-pipeline-tutorial-humanizer";
+    makeState(postsRoot, slug, 2, "tutorial");
+
+    const r = spawnSync("bun", ["run", SCRIPT, slug], {
+      cwd: resolve(import.meta.dir, "../../../.."),
+      env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+      encoding: "utf8",
+    });
+
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain("Mandatory Humanization");
+    expect(r.stdout).toContain("humanizer-zh cannot be skipped");
+    expect(r.stdout).toContain("mark-humanized.mjs");
+  });
 });

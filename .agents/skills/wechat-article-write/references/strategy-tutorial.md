@@ -57,8 +57,9 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
 
 ## refine 阶段
 
-教程默认保留技术文档语气。只有发现具体的错误、歧义、重复或格式问题时
-才修改；可以不调用任何语言 Skill。完成后运行：
+教程默认保留技术文档语气。先读取并应用 `humanizer-zh`，清理 AI 写作痕迹但
+不编造作者经历或改动技术事实；humanizer 可以零改动。只有发现具体的错误、
+歧义、重复或格式问题时才做其它修改。完成后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>

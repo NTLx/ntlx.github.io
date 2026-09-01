@@ -22,6 +22,7 @@ import { getWechatArticleWriteConfig } from "./config-lib.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
+import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
 const args = process.argv.slice(2);
 const wechatCfg = getWechatArticleWriteConfig();
 let slug = null, dryRun = false, reuseImageMap = false, prepareOnly = false, finalizeOnly = false;
@@ -59,6 +60,11 @@ function fail(code, msg) {
 }
 
 if (!existsSync(draftPath)) fail(2, "draft.md missing");
+try {
+  assertCurrentDraftHumanized(slug, { draftPath });
+} catch (error) {
+  fail(2, error.message);
+}
 if (!existsSync(imgsDir)) fail(2, "imgs/ directory missing");
 if (!existsSync(coverPng) && !existsSync(coverJpg)) fail(2, "cover image missing (cover.png/cover.jpg)");
 
@@ -282,6 +288,7 @@ let previewPath = null;
 try {
   previewPath = finalizeStep5Artifacts({
     slug,
+    wechatSourcePath,
     wechatHtmlPath,
     generatePreview: wechatCfg.wechatLayoutGeneratePreview,
     markDone: () => markStepDone(slug, 5, {

@@ -12,11 +12,12 @@
  *   - ## 参考资料 区块（默认必须，--allow-no-references 可跳过）
  *   - 参考资料区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
+ *   - image-plan 的全文视觉覆盖审阅与 SLOT00 head invariant
  *
  * 字数属于内容策略和 Agent 的编辑判断，本脚本仅记录字数不设门控。
  *
  * 用法:
- *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--no-humanizer]
+ *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction]
  *
  * 退出码: 0 通过；2 frontmatter 缺失；4 互动/参考资料缺失
  */
@@ -27,21 +28,31 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
-import { collectDraftSlots } from "./visual-plan-lib.mjs";
+import {
+  collectDraftSlots,
+  readImagePlan,
+  validateVisualCoverage,
+  validateVisualPlanTopology,
+} from "./visual-plan-lib.mjs";
 
 const args = process.argv.slice(2);
+const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction", "--allow-no-related"]);
+const unknownFlag = args.find((arg) => arg.startsWith("--") && !allowedFlags.has(arg));
+if (unknownFlag) {
+  process.stderr.write(`step2: FAIL - unknown flag ${unknownFlag}\n`);
+  process.exit(1);
+}
 const allowNoReferences = args.includes("--allow-no-references");
 const allowNoInteraction = args.includes("--allow-no-interaction");
 const allowNoRelated = args.includes("--allow-no-related");
-const noHumanizer = args.includes("--no-humanizer");
-// Slug is the positional argument — find args that aren't flags
-let slug = null;
-for (let i = 0; i < args.length; i++) {
-  if (args[i].startsWith("--")) continue;
-  slug = args[i];
-  break;
+// Exactly one positional slug is accepted; do not silently ignore extra args.
+const positional = args.filter((arg) => !arg.startsWith("--"));
+if (positional.length > 1) {
+  process.stderr.write(`step2: FAIL - unexpected argument ${positional[1]}\n`);
+  process.exit(1);
 }
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--allow-no-related] [--no-humanizer]\n"); process.exit(1); }
+const slug = positional[0] ?? null;
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--allow-no-related]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -118,6 +129,21 @@ for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.sl
 const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
 if (duplicateSlots.length > 0) fail(4, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}`);
 if ((slotCounts.get(0) ?? 0) !== 1) fail(4, "正文必须恰好包含一次 SLOT_IMG_00 信息图占位符（SLOT 00 是必填视觉摘要）");
+
+// 3b. The draft must carry a complete, section-by-section visual review before
+// humanization. This proves that zero body images is an editorial decision.
+const imagePlanPath = resolve(postsRoot(), slug, "image-plan.json");
+let imagePlan;
+try {
+  imagePlan = readImagePlan(imagePlanPath);
+} catch (error) {
+  fail(4, error.message);
+}
+if (!imagePlan) fail(4, `image-plan.json missing: ${imagePlanPath}`);
+const visualTopology = validateVisualPlanTopology(imagePlan, body);
+if (!visualTopology.ok) fail(4, `visual plan topology invalid: ${visualTopology.errors.join("; ")}`);
+const visualCoverage = validateVisualCoverage(imagePlan, body);
+if (!visualCoverage.ok) fail(4, `visual coverage review invalid: ${visualCoverage.errors.join("; ")}`);
 
 // 4. Interaction check
 // 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：
@@ -203,7 +229,7 @@ const stateExtra = {
   allow_no_related: allowNoRelated,
   blog_memory_candidates: blogMemoryCandidates,
   blog_memory_used: blogMemoryUsed,
+  humanizer: { status: "pending" },
 };
-if (noHumanizer) stateExtra.humanizer = "skip";
 markStepDone(slug, 2, stateExtra);
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount, humanizer: noHumanizer ? "skip" : undefined }) + "\n");
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount, humanizer: "pending" }) + "\n");

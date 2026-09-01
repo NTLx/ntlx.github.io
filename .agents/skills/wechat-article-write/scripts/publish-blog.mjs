@@ -104,7 +104,7 @@ function printHelp() {
 
 function buildBlogFm(fm) {
   // 管线专用字段不写入博客文章：coverImage（微信轨专用）、sourceUrl（微信轨引用）、blogSlug（发布定位）、targetPath（自定义路径）。
-  const excluded = ["infographicPosition", "coverImage", "sourceUrl", "blogSlug", "targetPath"];
+  const excluded = ["coverImage", "sourceUrl", "blogSlug", "targetPath"];
   for (const k of excluded) delete fm[k];
 
   // 字段顺序：$schema -> title -> description -> date -> category -> tags?

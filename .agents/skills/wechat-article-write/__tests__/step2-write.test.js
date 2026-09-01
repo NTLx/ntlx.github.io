@@ -55,6 +55,33 @@ function writeDraft(slug, fmOverrides = {}, body = VALID_BODY) {
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}: ${v}`);
   writeFileSync(join(dir, "draft.md"), `---\n${lines.join("\n")}\n---\n${body}`);
+  writeImagePlan(dir, body);
+}
+
+function writeImagePlan(dir, body) {
+  const headings = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
+    .map((match) => match[1].trim())
+    .filter((heading) => !["参考资料", "延伸阅读"].includes(heading));
+  const slots = [...body.matchAll(/<!--\s*SLOT_IMG_(\d{2})(?:_([A-Za-z0-9_-]+))?\s*-->/g)]
+    .map((match) => ({ slot: Number(match[1]), index: match.index }))
+    .filter(({ slot }) => slot > 0);
+  const coverageReview = headings.map((heading, index) => {
+    const start = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
+      .filter((match) => !["参考资料", "延伸阅读"].includes(match[1].trim()))[index]?.index ?? 0;
+    const next = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
+      .filter((match) => !["参考资料", "延伸阅读"].includes(match[1].trim()))[index + 1]?.index ?? body.length;
+    const slot = slots.find((candidate) => candidate.index >= start && candidate.index < next);
+    return slot
+      ? { section_index: index + 1, heading, decision: "illustrate", slot: slot.slot, reason: "测试章节包含需要说明的视觉节点" }
+      : { section_index: index + 1, heading, decision: "text-only", reason: "测试章节文字已经足够清楚" };
+  });
+  writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
+    article_visual_design: { skill: "baoyu-article-illustrator", coverage_review: coverageReview },
+    cover: { intent: "测试封面" },
+    infographic: { intent: "测试摘要" },
+    illustrations: slots.map(({ slot }) => ({ slot, intent: `测试 SLOT ${slot}` })),
+    source_image_review: [],
+  }, null, 2));
 }
 
 function bodyWithBodySlots(slots) {
@@ -232,5 +259,22 @@ describe("step2-write blogSlug/sourceUrl gates", () => {
 
     const state = JSON.parse(readFileSync(join(TMP_ROOT, slug, ".pipeline-state.json"), "utf8"));
     expect(state.allow_no_related).toBe(true);
+  });
+
+  test("rejects the removed --no-humanizer flag instead of ignoring it", () => {
+    const slug = "2026-05-17-no-humanizer-flag";
+    writeDraft(slug);
+    const r = runStep2WithArgs(slug, ["--no-humanizer"]);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("unknown flag --no-humanizer");
+  });
+
+  test("records a pending humanizer state after Step 2 passes", () => {
+    const slug = "2026-05-17-humanizer-pending";
+    writeDraft(slug);
+    const r = runStep2(slug);
+    expect(r.status).toBe(0);
+    const state = JSON.parse(readFileSync(join(TMP_ROOT, slug, ".pipeline-state.json"), "utf8"));
+    expect(state.humanizer).toEqual({ status: "pending" });
   });
 });

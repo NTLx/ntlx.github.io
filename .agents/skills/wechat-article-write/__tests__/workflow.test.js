@@ -104,6 +104,11 @@ describe("workflow stage contracts", () => {
     expect(stagesForStep("news-digest", 1, 2)).toEqual(["draft"]);
   });
 
+  test("tutorial keeps the Step 3 humanization gate inside adapt", () => {
+    expect(stagesForStep("tutorial", 1, 2)).toEqual(["adapt"]);
+    expect(stagesForStep("tutorial", 2, 3)).toEqual(["adapt"]);
+  });
+
   test("partial publish and unknown strategy remain safe", () => {
     expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "pending" })).toBe("publish");
     expect(nextStageFromStep("reader-response", 6, { blog: "done", wechat: "done" })).toBe("done");
@@ -129,7 +134,9 @@ describe("workflow stage contracts", () => {
     ]));
     expect(requiredSkillsFor("reader-response", "research")).toEqual([]);
     expect(requiredSkillsFor("reader-response", "draft")).toEqual([]);
-    expect(requiredSkillsFor("reader-response", "refine")).toEqual([]);
+    expect(requiredSkillsFor("reader-response", "refine")).toEqual(["humanizer-zh"]);
+    expect(requiredSkillsFor("tutorial", "adapt")).toEqual(["humanizer-zh"]);
+    expect(requiredSkillsForStage("adapt")).toEqual(["humanizer-zh"]);
     expect(requiredSkillsForStage("research")).toEqual([]);
     expect(optionalSkillsFor("reader-response", "research")).toEqual([]);
   });

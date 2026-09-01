@@ -72,12 +72,22 @@ function getNextStage(slug, nextStep) {
   const publish = state.publish ?? { blog: "pending", wechat: "pending" };
   if (!strategy) return { stage: "unknown", strategy: null, refs: [], stages: [] };
 
-  const stage = nextStageFromStep(strategy, last, publish);
+  // Tutorial keeps the Step 2/3 writing gates inside one adaptive `adapt`
+  // stage. Preserve that stage when the next numeric gate has the same
+  // mapping; otherwise use the normal transition to the next stage.
+  const currentStage = strategy.stepToStage?.[last];
+  const nextMappedStage = strategy.stepToStage?.[Number(nextStep)];
+  const stage = currentStage && currentStage === nextMappedStage
+    ? currentStage
+    : nextStageFromStep(strategy, last, publish);
+  const stages = currentStage && currentStage === nextMappedStage
+    ? [currentStage]
+    : stagesForStep(strategy, last, nextStep, publish);
   return {
     stage,
     strategy,
     refs: stageReadRefs(strategy, stage),
-    stages: stagesForStep(strategy, last, nextStep, publish),
+    stages,
   };
 }
 
@@ -91,7 +101,7 @@ function gateCommand(gate, slug) {
   return `bun run ${resolve(scriptsDir, gate.script)} ${args}`;
 }
 
-function printStageContract(slug, strategy, stage) {
+function printStageContract(slug, strategy, stage, nextStep = null) {
   const contract = stageContractFor(stage);
   if (!contract) return;
 
@@ -115,6 +125,18 @@ function printStageContract(slug, strategy, stage) {
     process.stdout.write("  Trace: 每次路线尝试完成 Gate 后 best-effort 追加 orchestration trace；no-skill 时 selected=no-skill；trace 失败不阻塞流程。\n");
     process.stdout.write("  Trace command template:\n");
     process.stdout.write(`    bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage <stage> --gap \"<当前缺口>\" --candidates \"<候选>\" --selected \"<skill-or-no-skill>\" --reason \"<简短理由>\" --gate <gate> --result <pass|fail|blocked|rerouted>\n`);
+  }
+  const isTutorialHumanizationGate = strategy === "tutorial" && stage === "adapt" && String(nextStep) === "3";
+  if (stage === "refine" || isTutorialHumanizationGate) {
+    process.stdout.write("\n  Mandatory Humanization:\n");
+    process.stdout.write("    1. 先读取 .agents/skills/humanizer-zh/SKILL.md。\n");
+    process.stdout.write("    2. 将 humanizer-zh 应用于当前 draft.md，去除 AI 写作痕迹，同时保留作者原有声音。\n");
+    process.stdout.write("    3. 保留事实、URLs、代码、引用、H2 顺序和 SLOT topology；不得凭空编造作者经历、态度或情绪。\n");
+    process.stdout.write("    4. 快速审阅 diff，确认没有 semantic drift。\n");
+    process.stdout.write(`    5. 运行: bun run ${resolve(scriptsDir, "mark-humanized.mjs")} ${slug}\n`);
+    process.stdout.write(`    6. 运行: bun run ${resolve(scriptsDir, "step3-polish.mjs")} ${slug}\n`);
+    process.stdout.write(`    7. Step3 PASS 后记录 trace: bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage refine --gap "remove AI-writing patterns while preserving author voice" --candidates "humanizer-zh" --selected "humanizer-zh" --reason "mandatory final humanization layer" --gate step3-polish --result pass\n`);
+    process.stdout.write("    humanizer-zh cannot be skipped；没有 no-skill 路线。\n");
   }
   if (stage === "illustrate") {
     process.stdout.write("\n  Visual design requirements:\n");
@@ -174,7 +196,7 @@ function printNext(slug) {
   } else {
     process.stdout.write(`\n下一步: Step ${step}（阶段: ${info.stage}）\n`);
     for (const stage of info.stages.length > 0 ? info.stages : [info.stage]) {
-      printStageContract(slug, info.strategy, stage);
+      printStageContract(slug, info.strategy, stage, step);
     }
   }
 

@@ -27,13 +27,34 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 
 ## SLOT 图片占位符
 
-- `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 必须存在，放在 frontmatter 后、正文第一个段落前。
+- `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 必须恰好存在一次，位于第一个 substantive
+  H2 之前的 lead 区域，并且是正文第一张视觉图片；它是真正的头部信息图。
 - 文内 `SLOT_IMG_01+` 只在能显著降低理解成本的节点创建，数量可以为零，
   由正文和 `image-plan.json` 共同决定。
 - 文内图按内容节点放置，可在 H2 后、关键段落后或小结前；不要按章节打卡。
 - `draft SLOT ↔ image-plan entry ↔ prompt ↔ image` 必须一一对应；每个 draft
   SLOT 编号唯一，SLOT 00 恰好出现一次。
 - 占位符描述必须具体反映附近正文核心内容，禁止 `chart`、`diagram`、`illustration` 这类泛化描述。
+
+## 视觉覆盖审阅
+
+`image-plan.json` 的 `article_visual_design.coverage_review` 必须对每个 substantive
+H2 恰好记录一条决定：`illustrate`、`reuse-source` 或 `text-only`。这是全文视觉
+价值审阅合同，不是最低配图数量；正文图片仍然允许 0..N。`text-only` 必须有
+理由，`illustrate` 必须对应真实且位于该章节的 SLOT，`reuse-source` 必须对应
+该章节实际引用的原图。
+
+`source_image_review` 必须为每个已声明的原始素材记录 `cover-only`、`body`、
+`both` 或 `discard` 及理由。`cover-only` 不算正文视觉复用；`body`/`both` 必须
+在正文实际引用，`discard` 必须有理由。
+
+## Mandatory Humanization Layer
+
+Step 2 Gate 通过后，所有文章都必须实际读取并应用
+`.agents/skills/humanizer-zh/SKILL.md`，再运行 `mark-humanized.mjs` 写入
+receipt，之后才可通过 Step 3。允许零改动，但 receipt 必须绑定当前
+`draft.md` 和 humanizer Skill SHA256。humanizer 不得改变事实、引用、URL、代码、
+数字、技术结论、H2/SLOT topology，也不得凭空编造作者经历、态度或情绪。
 
 示例：
 
@@ -67,6 +88,10 @@ sourceUrl: https://ntlx.github.io/articles/{blogSlug}
 - 禁止 reference-style 链接定义：`[id]: https://example.com`。
 - 博客轨保留 Markdown 链接。
 - 微信轨由 Step 5 `wechat-link-normalizer.mjs` 自动转换为纯文本：正文行内链接变为”文本（链接：URL）”，`## 参考资料` 和 `## 延伸阅读` 中的独立列表链接展开为”标题 + 换行 + URL”。转换后的 `article-wechat-source.md` 不得含 Markdown 链接语法 `[text](url)`。调用 `gzh-design` 时须显式告知：参考资料和延伸阅读区域必须渲染为纯文本标题 + 纯文本 URL，禁止 `<a href>`。`article-wechat.html` 不得含普通 `<a href>`；Step 5 finalize 阶段会执行 `stripWechatAnchors` 防护剥离残留锚点。
+- `article-wechat.html` 通过 gzh-design validator 后，还必须与
+  `article-wechat-source.md` 保持 substantive H2 顺序、正文图片数量、图片 basename
+  顺序和图片 section affiliation；SLOT00 必须仍属于 lead 区域。CSS、主题 wrapper
+  和其它视觉表现不属于 parity 比较范围。
 - 图片 Markdown 和 `SLOT_IMG` 占位符不是正文链接，不参与纯文本链接转换。
 
 ## 质量门控

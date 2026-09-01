@@ -88,6 +88,7 @@ export const STAGE_CONTRACTS = {
       "知识内容准确保留，仓库 frontmatter 和链接协议完整",
       "正文结构、SLOT 语义和视觉计划服务于读者理解",
       "教程特有的 sourceUrl/targetPath 规则已明确",
+      "最终适配稿经过 mandatory humanizer-zh，且当前 draft 与 receipt 一致",
     ],
     gates: [
       {
@@ -106,20 +107,23 @@ export const STAGE_CONTRACTS = {
     acceptance: [
       "正文回答写作契约中的问题并保留作者判断",
       "frontmatter、summary、sourceUrl、参考资料和互动区块满足内容不变量",
-      "SLOT_IMG_00 必须存在；正文视觉节点只在能降低理解成本时创建，数量由 image-plan 决定",
+      "每个 substantive H2 都完成视觉覆盖审阅；SLOT_IMG_00 位于 lead 区域且是正文第一张视觉",
+      "正文 SLOT 只在能降低理解成本时创建，数量由 image-plan 决定；正文图片数量仍可为 0..N",
     ],
     gate: { script: "step2-write.mjs" },
     references: ["references/orchestration-policy.md", "references/content-invariants.md"],
   },
   refine: {
     mode: "adaptive",
-    goal: "只修复实际存在的表达、结构或格式问题，保住作者声音。",
+    goal: "诊断实际表达问题，并强制经过 humanizer-zh 做最终 AI 痕迹清理，同时保持作者声音和事实完整。",
     inputs: ["draft.md", "当前 strategy", "source_provenance", "前一步 Gate 结果"],
     outputs: ["draft.md"],
     acceptance: [
       "修改解决已诊断的问题而非套用固定润色链",
       "第一人称判断、疑问和读后感式表达仍然可见",
       "正文协议、SLOT 和 frontmatter 仍通过门控",
+      "humanizer-zh 已应用于当前 draft，draft hash 与 humanizer receipt 一致",
+      "humanization 没有损失事实、引用、技术语义或 H2/SLOT topology",
     ],
     gate: { script: "step3-polish.mjs" },
     references: ["references/orchestration-policy.md", "references/content-invariants.md"],
@@ -152,7 +156,8 @@ export const STAGE_CONTRACTS = {
     acceptance: [
       "博客轨使用 CDN 图片和 Markdown 链接",
       "微信轨使用本地图片、纯文本 URL 且没有普通 href 锚点",
-      "gzh-design validator 通过，双轨内容没有交叉污染",
+      "gzh-design validator 和 WeChat structural parity validator 都通过，双轨内容没有交叉污染",
+      "微信 substantive heading 顺序、图片顺序、数量和章节归属与 article-wechat-source.md 一致，SLOT00 仍在 lead 区域",
     ],
     gate: { script: "step5-build.mjs" },
     references: ["references/pipeline-overview.md", "references/publishing.md"],
@@ -181,6 +186,8 @@ export const STAGE_CONTRACTS = {
  * specialized capability 和最终 raster renderer。
  */
 export const HARD_DEPENDENCIES = {
+  adapt: ["humanizer-zh"],
+  refine: ["humanizer-zh"],
   illustrate: [
     "baoyu-article-illustrator",
     "baoyu-cover-image",
@@ -236,7 +243,7 @@ export const STRATEGIES = {
     objective: "准确保留原知识，同时提高解释性、可读性和可执行性。",
     stages: ["prepare", "adapt", "illustrate", "build", "publish"],
     stepToStage: {
-      0: "prepare", 1: "adapt", 2: "adapt", 4: "illustrate",
+      0: "prepare", 1: "adapt", 2: "adapt", 3: "adapt", 4: "illustrate",
       5: "build", 6: "publish",
     },
   },
@@ -299,6 +306,9 @@ export function nextStageFromStep(strategy, lastCompleteStep, publish = {}) {
 export function stagesForStep(strategy, lastCompleteStep, nextStep, publish = {}) {
   const s = strategyFor(strategy);
   if (!s) return [];
+  const currentStage = s.stepToStage[lastCompleteStep];
+  const targetStage = s.stepToStage[Number(nextStep)];
+  if (currentStage && currentStage === targetStage) return [currentStage];
   const start = nextStageFromStep(strategy, lastCompleteStep, publish);
   if (start === "unknown" || start === "done") return [];
 

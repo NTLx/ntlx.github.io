@@ -17,17 +17,19 @@ import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { normalizeSlotDesc } from "./validation-lib.mjs";
-import { extractBody, parseFrontmatter } from "./frontmatter-lib.mjs";
+import { extractBody, parseFrontmatter, readFmValue } from "./frontmatter-lib.mjs";
 import {
   activeImageBasenames,
   activePromptBasenames,
   collectActiveAssets,
   normalizePromptSource,
   readImagePlan,
+  validateVisualCoverage,
   validateBaoyuDesign,
   validateVisualPlanTopology,
   visualPromptDescription,
 } from "./visual-plan-lib.mjs";
+import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
 
 const allowDefaultImagePlan = process.argv.includes("--allow-default-image-plan");
 const slug = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
@@ -41,6 +43,17 @@ const draftPath = resolve(base, "draft.md");
 // 0. Pre-validation: draft.md must exist
 if (!existsSync(draftPath)) {
   markStepFailed(slug, 4, "draft.md missing");
+  process.exit(2);
+}
+
+// Step 4 must operate on the exact draft accepted by the mandatory
+// humanization layer. This catches edits made after Step 3.
+try {
+  assertCurrentDraftHumanized(slug, { draftPath });
+} catch (error) {
+  const msg = error.message;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
   process.exit(2);
 }
 
@@ -104,7 +117,10 @@ if (!existsSync(coverPng) && !existsSync(coverJpg)) {
 }
 
 const setFmScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/set-frontmatter.mjs");
-spawnSync("bun", ["run", setFmScript, draftPath, "set", "coverImage", `cover.${coverExt}`], { stdio: "pipe" });
+const currentDraft = readFileSync(draftPath, "utf8");
+if (readFmValue(currentDraft, "coverImage") !== `cover.${coverExt}`) {
+  spawnSync("bun", ["run", setFmScript, draftPath, "set", "coverImage", `cover.${coverExt}`], { stdio: "pipe" });
+}
 
 // 3. Read draft.md (already validated to exist)
 const draft = readFileSync(draftPath, "utf8");
@@ -134,6 +150,15 @@ if (!topology.ok) {
   process.stderr.write(`step4: FAIL - ${msg}\n`);
   markStepFailed(slug, 4, msg);
   process.exit(2);
+}
+if (!allowDefaultImagePlan) {
+  const coverageErrors = validateVisualCoverage(imagePlan, body).errors;
+  if (coverageErrors.length > 0) {
+    const msg = `visual coverage review invalid: ${coverageErrors.join("; ")}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
+    process.exit(2);
+  }
 }
 if (!allowDefaultImagePlan) {
   const designErrors = validateBaoyuDesign(imagePlan);
@@ -246,15 +271,6 @@ if (existsSync(promptsDir)) {
   const stalePrompts = promptFiles.filter((file) => !activePromptNames.has(file.replace(/\.md$/i, "")));
   if (stalePrompts.length > 0) {
     process.stderr.write(`step4: WARNING stale/unplanned prompts in imgs/prompts/: ${stalePrompts.join(", ")}\n`);
-  }
-}
-
-// 7. SLOT_IMG_00_INFOGRAPHIC position constraint (non-blocking warning)
-const slot00Match = body.match(/SLOT_IMG_00_INFOGRAPHIC/i);
-if (slot00Match) {
-  const slotPos = body.indexOf(slot00Match[0]);
-  if (slotPos > 200) {
-    process.stderr.write("step4: WARNING SLOT_IMG_00_INFOGRAPHIC is not near the top of the article body (>200 chars after frontmatter)\n");
   }
 }
 

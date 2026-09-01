@@ -346,6 +346,65 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
 }
 
 /**
+ * 2e. Mandatory humanization, visual coverage, and WeChat parity boundaries.
+ * These are protocol invariants, not dynamic Skill routing rules.
+ */
+function checkQualityProtocolBoundaries(errors, warnings) {
+  const state = { errors, warnings };
+  for (const stage of ["adapt", "refine"]) {
+    if (!(HARD_DEPENDENCIES[stage] ?? []).includes("humanizer-zh")) {
+      state.errors.push(`hard dependency ${stage} must include humanizer-zh`);
+    }
+  }
+
+  const productionFiles = [
+    "scripts/step2-write.mjs",
+    "scripts/step3-polish.mjs",
+    "scripts/step4-images.mjs",
+    "scripts/step5-build.mjs",
+    "scripts/step5-lib.mjs",
+    "scripts/pipeline.mjs",
+  ];
+  const forbiddenHumanizerTokens = [
+    "--no-humanizer",
+    "humanizer=skip",
+    "humanizer: \"skip\"",
+    "humanizer === \"skip\"",
+    "allowHumanizerSkip",
+    "skipHumanizer",
+  ];
+  for (const rel of productionFiles) {
+    const path = resolve(SKILL_DIR, rel);
+    if (!existsSync(path)) continue;
+    const source = readFileSync(path, "utf8");
+    for (const token of forbiddenHumanizerTokens) {
+      if (source.includes(token)) state.errors.push(`legacy humanizer skip semantic remains in ${rel}: ${token}`);
+    }
+  }
+
+  const schema = readFileSync(resolve(SKILL_DIR, "references/image-plan.schema.json"), "utf8");
+  for (const token of ["coverage_review", "source_image_review"]) {
+    if (!schema.includes(token)) state.errors.push(`image-plan schema missing ${token} contract`);
+  }
+  const visualPlan = readFileSync(resolve(SKILL_DIR, "scripts/visual-plan-lib.mjs"), "utf8");
+  if (!visualPlan.includes("validateVisualCoverage") || !visualPlan.includes("validateSlotHeadInvariant")) {
+    state.errors.push("visual plan library must enforce coverage_review and SLOT00 head invariant");
+  }
+
+  const step5Lib = readFileSync(resolve(SKILL_DIR, "scripts/step5-lib.mjs"), "utf8");
+  const step5 = readFileSync(resolve(SKILL_DIR, "scripts/step5-build.mjs"), "utf8");
+  if (!step5Lib.includes("assertWechatStructuralParity") || !step5.includes("wechatSourcePath")) {
+    state.errors.push("Step5 finalize must call structural parity with source Markdown and HTML");
+  }
+
+  const contentConfig = resolve(REPO_ROOT, "src/content.config.ts");
+  if (existsSync(contentConfig) && readFileSync(contentConfig, "utf8").includes("infographicPosition")) {
+    state.errors.push("retired infographicPosition remains in src/content.config.ts");
+  }
+  return state;
+}
+
+/**
  * 2c. 图片成本边界的静态配置合同。CLI 登录状态属于显式
  * check-image-backend --runtime preflight，不在此处执行。
  */
@@ -490,6 +549,7 @@ export function runArchitectureChecks() {
   checkWorkflowContracts(errors, warnings);
   checkWorkflowArtifacts(errors, warnings);
   checkAdaptiveVisualBoundaries(errors, warnings);
+  checkQualityProtocolBoundaries(errors, warnings);
   checkHardSkills(errors, warnings);
   checkImageBackendContract(errors, warnings);
   checkDanglingSkillReferences(errors, warnings);

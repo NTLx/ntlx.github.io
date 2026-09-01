@@ -40,7 +40,8 @@ describe("wechat-article-write documentation consistency", () => {
       expect(text).toContain("catalog");
       expect(text).toContain("可以为零");
       expect(text).toContain("SLOT 00");
-      expect(text).not.toMatch(/必须调用|禁止调用|固定调用|ljg-|renwei-writing|humanizer-zh/);
+      expect(text).not.toMatch(/禁止调用|固定调用|ljg-|renwei-writing/);
+      expect(text).toContain("humanizer-zh");
     }
   });
 
@@ -75,9 +76,10 @@ describe("wechat-article-write documentation consistency", () => {
     for (const name of ["baoyu-image-gen", "github-image-hosting", "gzh-design", "baoyu-post-to-wechat"]) {
       expect(manifest).toContain(name);
     }
-    for (const name of ["ljg-qa", "ljg-think", "ljg-writes", "renwei-writing", "humanizer-zh"]) {
+    for (const name of ["ljg-qa", "ljg-think", "ljg-writes", "renwei-writing"]) {
       expect(manifest).not.toContain(name);
     }
+    expect(manifest).toContain("humanizer-zh");
     expect(manifest).toContain("动态发现");
     expect(manifest).toContain(".agents/skills/<skill>");
     expect(manifest).toContain(".baoyu-skills/.env");

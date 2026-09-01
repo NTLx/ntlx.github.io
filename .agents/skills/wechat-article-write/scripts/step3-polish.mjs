@@ -8,7 +8,9 @@
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
  *   - SLOT_IMG_00 信息图保留且正文 SLOT 编号不重复
+ *   - 全文视觉覆盖审阅、SLOT 归属和 SLOT00 head invariant 保留
  *   - 参考资料 区块未丢失（若原文存在）
+ *   - mandatory humanizer-zh receipt 存在且绑定当前 draft
  *
  * 字数属于当前 strategy 的编辑判断，本脚本仅记录字数不设门控。
  *
@@ -24,7 +26,13 @@ import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
-import { collectDraftSlots } from "./visual-plan-lib.mjs";
+import {
+  collectDraftSlots,
+  readImagePlan,
+  validateVisualCoverage,
+  validateVisualPlanTopology,
+} from "./visual-plan-lib.mjs";
+import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
@@ -52,9 +60,13 @@ const content = readFileSync(draftPath, "utf8");
 const fm = parseFrontmatter(content);
 const body = extractBody(content);
 
-// Load pipeline state to check for humanizer skip flag
+// Mandatory humanization is a freshness gate, not an optional writing route.
 const state = loadState(slug);
-const humanizerSkip = state?.humanizer === "skip";
+try {
+  assertCurrentDraftHumanized(slug, { state, draftPath });
+} catch (error) {
+  fail(2, error.message);
+}
 const allowNoInteraction = state?.allow_no_interaction === true;
 const allowNoReferences = state?.allow_no_references === true;
 const hasTargetPath = !!fm.targetPath;
@@ -99,6 +111,21 @@ if ((slotCounts.get(0) ?? 0) !== 1) {
   fail(2, "正文必须保留恰好一次 SLOT_IMG_00 信息图占位符（polish 可能清除或复制）");
 }
 
+// Re-check the visual contract after humanization. section_index is the
+// identity; heading text is diagnostic and may receive a small wording edit.
+const imagePlanPath = resolve(postsRoot(), slug, "image-plan.json");
+let imagePlan;
+try {
+  imagePlan = readImagePlan(imagePlanPath);
+} catch (error) {
+  fail(2, error.message);
+}
+if (!imagePlan) fail(2, `image-plan.json missing: ${imagePlanPath}`);
+const visualTopology = validateVisualPlanTopology(imagePlan, body);
+if (!visualTopology.ok) fail(2, `visual plan topology invalid after humanizer: ${visualTopology.errors.join("; ")}`);
+const visualCoverage = validateVisualCoverage(imagePlan, body);
+if (!visualCoverage.ok) fail(2, `visual coverage review invalid after humanizer: ${visualCoverage.errors.join("; ")}`);
+
 // 4. Word count (informational only — the active strategy owns this decision)
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
@@ -110,12 +137,11 @@ if (!allowNoInteraction && !hasInteractionQuestion) {
   fail(2, "缺少文末互动问题（polish 可能删除；正文末尾附近需含至少一个中/英文问号；如确无互动，使用 Step 2 的 --allow-no-interaction 跳过）");
 }
 
-// 6. 参考资料 preserved unless Step 2 explicitly allowed skipping it
-//    Keep humanizerSkip as a backward-compatible exemption for older tutorial states.
-const referencesRequired = !allowNoReferences && !humanizerSkip;
+// 6. 参考资料 preserved unless Step 2 explicitly allowed skipping it.
+const referencesRequired = !allowNoReferences;
 if (referencesRequired && !/^## 参考资料/m.test(body)) {
   fail(2, "缺少 ## 参考资料 区块（polish 可能删除）");
 }
 
-markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined });
-process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, humanizer: humanizerSkip ? "skip" : undefined }) + "\n");
+markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl });
+process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, humanizer: "applied" }) + "\n");

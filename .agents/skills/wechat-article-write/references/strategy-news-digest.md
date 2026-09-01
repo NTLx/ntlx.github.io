@@ -49,8 +49,9 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 
 ## Step 3：按问题 refine
 
-只处理实际发现的事实表达、结构、可读性或格式问题。可以不调用任何
-语言 Skill；已经清楚的条目不要为了统一风格而全文重写。修改后运行：
+只处理实际发现的事实表达、结构、可读性或格式问题；所有文章都必须先应用
+`humanizer-zh`，已经清楚的条目可以零改动，不要为了统一风格而全文重写或
+编造作者经历。修改后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>

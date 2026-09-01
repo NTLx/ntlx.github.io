@@ -77,9 +77,10 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 
 ## Step 3：按实际问题 refine
 
-检查正文是否出现事实跳跃、论证缺口、机械表达或格式问题，再决定是否采用
-某个语言/格式能力。可以不调用任何 Skill。不要抹掉第一人称判断，不要
-全文套用“去 AI”模板。完成后运行：
+检查正文是否出现事实跳跃、论证缺口、机械表达或格式问题；所有文章都必须先
+读取并应用 `humanizer-zh`，再决定是否采用其它语言/格式能力。humanizer 可以
+零改动，但不得抹掉已有第一人称判断、编造作者经历或把全文套成“去 AI”模板。
+完成后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>

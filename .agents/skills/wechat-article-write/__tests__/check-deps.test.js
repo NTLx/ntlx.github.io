@@ -22,6 +22,26 @@ function run(stage, env = {}) {
 }
 
 describe("check-deps", () => {
+  test("writing stage requires the mandatory humanizer skill", () => {
+    const root = join(tmpdir(), `check-deps-writing-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const skillPath = join(root, ".agents", "skills", "humanizer-zh", "SKILL.md");
+    try {
+      mkdirSync(join(root, ".agents", "skills", "humanizer-zh"), { recursive: true });
+      writeFileSync(skillPath, "---\nname: humanizer-zh\n---\n");
+
+      const present = run("writing", { PIPELINE_REPO_ROOT: root });
+      expect(present.status).toBe(0);
+      expect(JSON.parse(present.stdout).ok).toBe(true);
+
+      rmSync(skillPath);
+      const missing = run("writing", { PIPELINE_REPO_ROOT: root });
+      expect(missing.status).toBe(2);
+      expect(JSON.parse(missing.stdout).errors.join("\n")).toContain("humanizer-zh");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test("passes image repository preflight without Codex CLI runtime", () => {
     const r = run("images", { PATH: "/nonexistent" });
     expect(r.status).toBe(0);

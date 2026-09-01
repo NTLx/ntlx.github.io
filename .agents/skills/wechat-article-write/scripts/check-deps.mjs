@@ -124,9 +124,14 @@ function checkResearchDeps() {
   return;
 }
 
-// --stage writing：只检查确定性 typography adapter；认知/写作 Skill 不阻断。
+// --stage writing：adapt + refine 的 mandatory writing protocol 去重并集。
 function checkWritingDeps() {
-  checkSkillDirs(hardDependenciesForStage("refine"));
+  checkSkillDirs([
+    ...new Set([
+      ...hardDependenciesForStage("adapt"),
+      ...hardDependenciesForStage("refine"),
+    ]),
+  ]);
 }
 
 checkSharedProjectEnv();

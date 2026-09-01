@@ -87,7 +87,45 @@ function writeDraft(postsRoot, slug, opts = {}) {
     .map(([k, v]) => `${k}: ${v}`)
     .join("\n");
   writeFileSync(join(dir, "draft.md"), `---\n${frontmatter}\n---\n${opts.body ?? BODY}`);
+  writeImagePlan(dir, opts.body ?? BODY);
+  writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
+    slug,
+    started_at: new Date().toISOString(),
+    last_complete_step: 2,
+    publish: { blog: "pending", wechat: "pending" },
+    failed_step: null,
+    humanizer: { status: "pending" },
+  }, null, 2));
+  const receipt = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/mark-humanized.mjs"), slug], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+    encoding: "utf8",
+  });
+  if (receipt.status !== 0) throw new Error(receipt.stderr);
   return dir;
+}
+
+function writeImagePlan(dir, body) {
+  const headings = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
+    .filter((match) => !["参考资料", "延伸阅读"].includes(match[1].trim()));
+  const slots = [...body.matchAll(/<!--\s*SLOT_IMG_(\d{2})/g)]
+    .map((match) => ({ slot: Number(match[1]), index: match.index }))
+    .filter(({ slot }) => slot > 0);
+  const coverageReview = headings.map((match, index) => {
+    const start = match.index;
+    const next = headings[index + 1]?.index ?? body.length;
+    const slot = slots.find((candidate) => candidate.index >= start && candidate.index < next);
+    return slot
+      ? { section_index: index + 1, heading: match[1].trim(), decision: "illustrate", slot: slot.slot, reason: "测试章节包含视觉节点" }
+      : { section_index: index + 1, heading: match[1].trim(), decision: "text-only", reason: "测试章节无需额外视觉" };
+  });
+  writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
+    article_visual_design: { skill: "baoyu-article-illustrator", coverage_review: coverageReview },
+    cover: { intent: "封面" },
+    infographic: { intent: "摘要" },
+    illustrations: slots.map(({ slot }) => ({ slot, intent: `SLOT ${slot}` })),
+    source_image_review: [],
+  }, null, 2));
 }
 
 function runStep3(slug, postsRoot) {
@@ -113,6 +151,7 @@ describe("step3-polish gates", () => {
     cleanup.push(fx.root);
     const slug = "2026-05-18-valid-step3";
     const dir = writeDraft(fx.postsRoot, slug);
+    const draftBefore = readFileSync(join(dir, "draft.md"), "utf8");
 
     const r = runStep3(slug, fx.postsRoot);
     expect(r.status).toBe(0);
@@ -120,6 +159,11 @@ describe("step3-polish gates", () => {
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
     expect(state.last_complete_step).toBe(3);
     expect(state.blog_slug).toBe("step-three-test");
+    expect(state.humanizer.status).toBe("applied");
+    expect(state.humanizer.skill).toBe("humanizer-zh");
+    expect(state.humanizer.draft_sha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(state.humanizer.skill_sha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(readFileSync(join(dir, "draft.md"), "utf8")).toBe(draftBefore);
   });
 
   test("plain question near the end counts as interaction", () => {
@@ -170,5 +214,45 @@ describe("step3-polish gates", () => {
     const r = runStep3(slug, fx.postsRoot);
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("SLOT_IMG");
+  });
+
+  test("fails closed without a humanizer receipt", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-no-humanizer-receipt";
+    const dir = writeDraft(fx.postsRoot, slug);
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    state.humanizer = { status: "pending" };
+    writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify(state, null, 2));
+
+    const r = runStep3(slug, fx.postsRoot);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("mandatory humanizer-zh");
+  });
+
+  test("rejects the legacy humanizer skip state", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-legacy-humanizer-skip";
+    const dir = writeDraft(fx.postsRoot, slug);
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    state.humanizer = "skip";
+    writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify(state, null, 2));
+
+    const r = runStep3(slug, fx.postsRoot);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("legacy humanizer skip is no longer supported");
+  });
+
+  test("fails when the draft changes after humanization", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-stale-humanizer-draft";
+    const dir = writeDraft(fx.postsRoot, slug);
+    writeFileSync(join(dir, "draft.md"), readFileSync(join(dir, "draft.md"), "utf8") + "\n新增字符");
+
+    const r = runStep3(slug, fx.postsRoot);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("draft.md changed after humanizer-zh");
   });
 });

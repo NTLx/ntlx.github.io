@@ -34,6 +34,9 @@ posts/<date-slug>/article-wechat-source.md
 - 工具盘点、清单、轻量方法论优先考虑 `摸鱼绿`（`moyu-green`）
 - 若文章明显更适合其他 `gzh-design` 内置主题，允许 Agent 自主切换
 - 保留文章信息完整性，不删结论、不缩减事实材料
+- 可以自由选择主题、section wrapper、颜色、强调组件和留白；但不得改变
+  `article-wechat-source.md` 的 substantive H2 顺序或正文图片拓扑。不得删除、重复、
+  重排图片，不得把图片移动到其它章节，也不得把 SLOT00 从 lead 移入正文。
 - 使用 `gzh-design` 自带组件与流程，不手写裸 HTML
 - **作者签名**：gzh-design 的签名区默认使用 `{{作者名}}` / `{{简介}}` 占位符。本项目的固定作者信息：
   - 作者名：`NTLx`
@@ -95,8 +98,9 @@ Step 3 调 `baoyu-format-markdown` 时，只做**结构化最小格式化**（�
 
 ## 判定标准
 
-- 以 `.agents/skills/gzh-design/scripts/validate_gzh_html.py` 的退出码为准
-- validator 通过后才允许 `markStepDone(5)`
+- 先以 `.agents/skills/gzh-design/scripts/validate_gzh_html.py` 的退出码为准，
+  再由 wechat-article-write 对 source/HTML 做 structural parity 校验；两个 validator
+  都通过后才允许 `markStepDone(5)`
 - 若开启预览，finalize 会生成 `article-wechat_预览.html`
 
 ## 禁止事项

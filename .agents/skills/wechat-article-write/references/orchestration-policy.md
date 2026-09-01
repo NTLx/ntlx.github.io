@@ -23,7 +23,12 @@ Agent 如何在合同允许的范围内选择方法。它不是 Skill 注册表�
 概念边界不清、中心判断太弱、反方没有验证、结构无法解释、语言出现
 机械模式，或视觉节点没有说清楚要表达的关系。
 
-如果没有可识别的缺口，`no-skill` 是完整且优先考虑的路线。
+如果没有可识别的缺口，普通 adaptive 方法的 `no-skill` 是完整且优先考虑的路线。
+
+这是 Mandatory protocol layers 的明确例外：`humanizer-zh`、Mandatory Baoyu
+Visual Design 和 `gzh-design` 不能跳过。`humanizer-zh` 是所有文章的
+Mandatory Humanization Layer，不是文章写作 Router；它必须在 Step 2 Gate 后、
+Step 3 Gate 前实际执行。其它 refine 方法仍可由 Agent 按实际缺口选择。
 
 ## Discover
 
@@ -70,6 +75,24 @@ bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json
 Skill 的返回值只是候选材料。主 Agent 必须判断它是否真正解决了缺口，
 再把有用部分压缩进阶段产物；不得原样堆叠报告或把 Skill 名称写成文章
 论据。
+
+### Mandatory Humanization Layer
+
+进入 refine（tutorial 的最终 adapt 润色也适用）时，主 Agent 必须先读取并应用
+`.agents/skills/humanizer-zh/SKILL.md`，然后审阅 diff，最后运行
+`mark-humanized.mjs` 写入当前 draft 的 freshness receipt，再运行 Step 3 Gate。
+允许零改动，但不允许不调用。humanizer 之后不得凭空增加作者经历、态度或情绪。
+
+委托合同追加以下边界：
+
+```text
+目标：识别并修复 draft.md 中的 AI 写作痕迹，使文章更自然，同时保留作者原有判断和技术准确性。
+可以：删除填充短语、打破公式化结构、减少机械排比和 AI 高频抽象词、调整句长和节奏、去掉宣传式/夸张式语言、修复模糊归因、去掉伪金句，并保留或强化已有作者声音。
+不得：发明事实、作者经历、作者感受；修改技术结论、数字、版本、模型名、引用来源、URL、代码、直接引语、SLOT 编号、H2 顺序、frontmatter 或 image-plan；删除/移动 SLOT、参考资料或延伸阅读；修改第三方 Skill 或发布文章。
+```
+
+humanizer 完成后主 Agent 必须检查事实、来源、数字、术语、第一人称、SLOT
+位置和 H2 顺序；这是输出验收，不是另一个 Skill。
 
 视觉委托在上述合同后追加：
 

@@ -35,7 +35,7 @@ function runState(args, postsRoot) {
 }
 
 function expectSuccess(result) {
-  expect(result.status).toBe(0);
+  expect(result.status, result.stderr || result.stdout).toBe(0);
 }
 
 describe("wechat-article-write full dual-track smoke test", () => {
@@ -155,6 +155,12 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
       article_visual_design: {
         skill: "baoyu-article-illustrator",
         strategy: "先判断视觉增益，再决定正文 SLOT 数量",
+        coverage_review: [
+          { section_index: 1, heading: "先分清谁负责什么", decision: "illustrate", slot: 1, reason: "比较确定性内核与 Agent 层的职责" },
+          { section_index: 2, heading: "为什么不能把 Skill 链写死", decision: "illustrate", slot: 2, reason: "表达 Gate 失败后的改道路径" },
+          { section_index: 3, heading: "Gate 让改道变得可见", decision: "illustrate", slot: 3, reason: "展示失败、诊断和重规划的关系" },
+          { section_index: 4, heading: "成本边界不能自适应突破", decision: "text-only", reason: "这一节主要是边界判断，额外图片不会增加足够信息" },
+        ],
       },
       cover: {
         intent: "表达确定性协议与自适应方法之间的边界",
@@ -183,9 +189,11 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
         { slot: 2, intent: "解释 Gate 失败后的改道路径", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "minimal" }, contributors: ["baoyu-diagram"], description: "gate-reroute", prompt_source: "adapter" },
         { slot: 3, intent: "呈现图片成本边界的分层结构", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "scientific" }, contributors: [], description: "cost-boundary", prompt_source: "adapter" },
       ],
+      source_image_review: [],
     }, null, 2) + "\n");
 
     expectSuccess(runScript("step2-write.mjs", slug, fx.postsRoot, ["--allow-no-related"]));
+    expectSuccess(runScript("mark-humanized.mjs", slug, fx.postsRoot));
     expectSuccess(runScript("step3-polish.mjs", slug, fx.postsRoot));
     expectSuccess(runScript("generate-image-prompts.mjs", slug, fx.postsRoot));
 
@@ -207,6 +215,14 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
 
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">先分清谁负责什么</span></h3>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-core-boundary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">为什么不能把 Skill 链写死</span></h3>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/02-gate-reroute.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">Gate 让改道变得可见</span></h3>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/03-cost-boundary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">成本边界不能自适应突破</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;">',
       "    <span leaf=\"\">Smoke test 正文</span>",
       "  </p>",

@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.54.0"
+  version: "1.55.0"
 ---
 
 # 微信公众号文章写作
@@ -40,8 +40,11 @@ metadata:
 - Step 5 先产出 `article-wechat-source.md`，再由 `gzh-design` 排版，最后
   运行 finalize；不得用 post 内自写渲染脚本替代它。
 - 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
-- 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力，不把认知/写作
-  Skill 登记成固定流程依赖。
+- 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力；但
+  `humanizer-zh` 是所有文章的 Mandatory Humanization Layer，不是开放式
+  writing Router，必须在 Step 2 Gate 后、Step 3 Gate 前实际调用并登记 receipt。
+- `humanizer-zh` 只能去除 AI 写作痕迹、保留作者已有声音和技术准确性；不得凭空
+  编造作者经历、态度或情绪，不得改事实、引用、URL、代码、H2 顺序或 SLOT topology。
 
 ## Adaptive Stage 规则
 
@@ -51,9 +54,9 @@ metadata:
    `bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json`。
 3. 不要根据 Skill 名称猜用途；先读 catalog description，只有入选少量候选
    后才读取完整 `SKILL.md` 及直接引用的配置。
-4. 选择最小充分路线：Agent 原生、单 Skill 或少量互补 Skill；no-skill 是
-   合法路线。一个 Skill 已经能完成任务时，不再叠加其它 Skill，调用次数
-   不是质量指标。
+4. 选择最小充分路线：普通 adaptive 方法可由 Agent 原生、单 Skill 或少量互补
+   Skill 完成；no-skill 是合法路线。Mandatory protocol layers
+   `humanizer-zh`、Mandatory Baoyu Visual Design 和 `gzh-design` 不能跳过。
 5. Delegate 后把结果适配成 contract 要求的 artifact，运行对应 Gate；每次
    路线尝试完成 Gate 后都 best-effort 追加 orchestration trace。
 6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
@@ -92,10 +95,12 @@ bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <da
 ## 最小流程
 
 Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
-按策略完成理解或适配/写作；Step 3 针对实际问题 refine；Step 4 先定
-先运行 Baoyu article-level visual design，再分别完成 cover、SLOT_IMG_00 和正文
-的 Baoyu 设计合同，最后生成 prompt 与图片；正文 SLOT 可以为零张，但
-SLOT_IMG_00 必须存在且与 image-plan 一致；Step 5 构建并校验双轨产物；Step 6
+按策略完成理解或适配/写作；Step 3 先执行 mandatory humanizer-zh，再针对实际问题
+refine；Step 4 先运行 Baoyu article-level visual design，并为每个 substantive H2
+完成 `coverage_review`（正文 SLOT 仍可为 0..N），再分别完成 cover、SLOT_IMG_00
+和正文的 Baoyu 设计合同。SLOT_IMG_00 必须恰好一次、位于首个 substantive H2 前
+并作为正文第一张视觉；Step 5 构建并校验双轨产物，gzh-design 可自由排版但必须
+通过 structural parity；Step 6
 按顺序发布。
 
 ```bash

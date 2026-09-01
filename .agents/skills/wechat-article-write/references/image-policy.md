@@ -71,7 +71,9 @@ bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs <
 `references/image-template-catalog.md`。旧文章若只有 article-type/direction
 默认信息，必须显式传 `--allow-default-image-plan` 才能兼容运行。
 
-视觉计划只表达意图和协议值，不得绕过图片后端 policy。文内 prompt 要包含
+视觉计划只表达意图和协议值，不得绕过图片后端 policy。`article_visual_design`
+还必须记录对每个 substantive H2 的 `coverage_review`；原始素材必须在
+`source_image_review` 中记录 `cover-only`/`body`/`both`/`discard` 处置。文内 prompt 要包含
 附近正文上下文、中文可见文字规则和文章解释图 guardrail；除非用户明确要求，
 不加入日期、版本号、图号、标题栏、尺寸线、坐标标记或工程边框。
 
@@ -133,7 +135,7 @@ renderer 对每个 asset 使用 single-image invocation，显式传入
 - SLOT 01+：`imgs/NN-<desc>.<ext>`，且与 prompt basename 字符级一致；
 - 封面：post 根目录 `cover.png` 或脚本支持的等价扩展名；
 - draft SLOT、image-plan entry、prompt 和 image 必须一一对应；正文可以没有
-  SLOT 01+，但 SLOT 00 必须存在；
+  SLOT 01+，但 SLOT 00 必须恰好一次、在首个 substantive H2 前且是第一张正文视觉；
 - 不依赖 provider 随机文件名；已有原图先核对信息价值再复用；
 - 生图后逐张查看，核对可见中文、数字、模型名和正文关系；文字错漏时
   改 prompt 或去掉非必要文字后沿同一 Codex 路径重试。

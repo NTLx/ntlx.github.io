@@ -42,7 +42,7 @@ function writePost(postsRoot, slug, body, imageNames) {
     writeFileSync(join(imgsDir, name), PNG_BYTES);
   }
   const slots = [...body.matchAll(/<!--\s*SLOT_IMG_(\d{2})(?:_[A-Za-z0-9_-]+)?\s*-->/g)]
-    .map((match) => ({ slot: Number(match[1]), desc: match[0].match(/SLOT_IMG_\d{2}(?:_([A-Za-z0-9_-]+))?/)[1] ?? null }))
+    .map((match) => ({ slot: Number(match[1]), index: match.index, desc: match[0].match(/SLOT_IMG_\d{2}(?:_([A-Za-z0-9_-]+))?/)[1] ?? null }))
     .filter((slot) => slot.slot > 0);
   const illustrations = slots.map((slot) => {
     const image = imageNames.find((name) => name.startsWith(`${String(slot.slot).padStart(2, "0")}-`));
@@ -56,11 +56,21 @@ function writePost(postsRoot, slug, body, imageNames) {
       prompt_source: "adapter",
     };
   });
+  const sectionMatches = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
+    .filter((match) => !["参考资料", "延伸阅读"].includes(match[1].trim()));
+  const coverageReview = sectionMatches.map((match, index) => {
+    const next = sectionMatches[index + 1]?.index ?? body.length;
+    const slot = slots.find((candidate) => candidate.index >= match.index && candidate.index < next);
+    return slot
+      ? { section_index: index + 1, heading: match[1].trim(), decision: "illustrate", slot: slot.slot, reason: "测试章节包含视觉节点" }
+      : { section_index: index + 1, heading: match[1].trim(), decision: "text-only", reason: "测试章节无需额外视觉" };
+  });
   writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
-    article_visual_design: { skill: "baoyu-article-illustrator", strategy: "只在视觉能降低理解成本的位置创建图片" },
+    article_visual_design: { skill: "baoyu-article-illustrator", strategy: "只在视觉能降低理解成本的位置创建图片", coverage_review: coverageReview },
     cover: { intent: "表达文章中心", baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", style: "editorial" }, contributors: [], prompt_source: "adapter" },
     infographic: { intent: "压缩全文", baoyu_design: { skill: "baoyu-infographic", layout: "bento-grid", style: "claymation" }, contributors: [], prompt_source: "adapter" },
     illustrations,
+    source_image_review: [],
   }, null, 2));
   const promptsDir = join(imgsDir, "prompts");
   mkdirSync(promptsDir, { recursive: true });
@@ -69,6 +79,20 @@ function writePost(postsRoot, slug, body, imageNames) {
   for (const entry of illustrations) {
     writeFileSync(join(promptsDir, `${String(entry.slot).padStart(2, "0")}-${entry.description}.md`), "body prompt\n");
   }
+  writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
+    slug,
+    started_at: new Date().toISOString(),
+    last_complete_step: 3,
+    publish: { blog: "pending", wechat: "pending" },
+    failed_step: null,
+    humanizer: { status: "pending" },
+  }, null, 2));
+  const receipt = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/mark-humanized.mjs"), slug], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, PIPELINE_POSTS_ROOT: postsRoot },
+    encoding: "utf8",
+  });
+  if (receipt.status !== 0) throw new Error(receipt.stderr);
   return dir;
 }
 
@@ -304,5 +328,28 @@ ${slots}
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("SLOT_IMG_01");
     expect(r.stderr).toContain("Missing images");
+  });
+
+  test("fails closed when Step 3's humanizer receipt is stale", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-stale-humanizer-step4";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+正文内容。
+
+## 参考资料
+
+> 来源
+> https://example.com/source
+`, ["00-infographic-core-summary.png"]);
+    writeFileSync(join(dir, "draft.md"), readFileSync(join(dir, "draft.md"), "utf8") + "\n改动");
+
+    const r = runStep4(slug, fx.postsRoot);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("draft.md changed after humanizer-zh");
   });
 });

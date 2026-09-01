@@ -8,6 +8,7 @@
 
 | 依赖 | 类型 | 用途 |
 |---|---|---|
+| `humanizer-zh` | Mandatory Humanization Layer | Step 2 Gate 后清理 AI 写作痕迹；receipt 绑定当前 draft freshness |
 | `baoyu-article-illustrator` | Baoyu Core Design Skill | 全文视觉规划和正文设计 authority；正文可判定为 0 张 |
 | `baoyu-cover-image` | Baoyu Core Design Skill | 封面设计 authority |
 | `baoyu-infographic` | Baoyu Core Design Skill | `SLOT_IMG_00` 摘要信息图 authority |
@@ -18,7 +19,7 @@
 | `gzh-design` | 确定性适配器 | 微信 HTML 排版、validator 和预览包装 |
 | `baoyu-post-to-wechat` | 确定性适配器 | 微信草稿发布 |
 
-上述 illustrate 依赖由 `scripts/workflow.mjs` 的 `HARD_DEPENDENCIES` 单一声明，
+上述依赖由 `scripts/workflow.mjs` 的 `HARD_DEPENDENCIES` 单一声明，
 `check-deps.mjs` 和 `validate-architecture.mjs` 只检查它们。缺少任何
 认知、写作或 optional contributor Skill 不应因此阻断流程；
 `baoyu-diagram` 必须安装但不必每篇文章调用。
@@ -28,7 +29,7 @@
 开放式能力（包括内容、写作和 optional visual contributor）由
 `skill-catalog.mjs` 动态发现，Agent 按当前 Stage Contract 和 gap 选择；
 这里不列举完整清单，也不维护 Skill→场景映射。除 illustrate 的 mandatory
-Baoyu Core Design Layer 外，no-skill 仍是合法路线。
+Baoyu Core Design Layer 和 writing 的 mandatory humanizer-zh 外，no-skill 仍是合法路线。
 
 ## Conditional adapter template sources
 
