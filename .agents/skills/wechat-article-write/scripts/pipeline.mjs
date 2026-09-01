@@ -107,7 +107,9 @@ function printStageContract(slug, strategy, stage) {
 
   if (contract.mode.startsWith("adaptive")) {
     process.stdout.write(`  Discover capabilities: bun run ${resolve(scriptsDir, "skill-catalog.mjs")} --json\n`);
-    process.stdout.write("  Select route: Agent 原生完成、单个专业 Skill，或少量互补 Skill；no-skill 是合法路线。\n");
+    if (stage !== "illustrate") {
+      process.stdout.write("  Select route: Agent 原生完成、单个专业 Skill，或少量互补 Skill；no-skill 是合法路线。\n");
+    }
     process.stdout.write("  Verify: Skill 输出不是成功定义，必须以本 Stage Contract 和 Gate 为准。\n");
     process.stdout.write("  Adapt on failure: 诊断缺口后修正输入、重试、换 Skill 或改由 Agent 补足，再重新运行 Gate。\n");
     process.stdout.write("  Trace: 每次路线尝试完成 Gate 后 best-effort 追加 orchestration trace；no-skill 时 selected=no-skill；trace 失败不阻塞流程。\n");
@@ -115,8 +117,18 @@ function printStageContract(slug, strategy, stage) {
     process.stdout.write(`    bun run ${resolve(scriptsDir, "orchestration-trace.mjs")} ${slug} --stage <stage> --gap \"<当前缺口>\" --candidates \"<候选>\" --selected \"<skill-or-no-skill>\" --reason \"<简短理由>\" --gate <gate> --result <pass|fail|blocked|rerouted>\n`);
   }
   if (stage === "illustrate") {
+    process.stdout.write("\n  Visual design requirements:\n");
+    process.stdout.write("    1. 先运行 Baoyu article-level visual design；即使正文图片为 0 张，也要记录 baoyu-article-illustrator 的判断。\n");
+    process.stdout.write("    2. 使用 baoyu-cover-image 设计 cover。\n");
+    process.stdout.write("    3. 使用 baoyu-infographic 设计 SLOT_IMG_00。\n");
+    process.stdout.write("    4. 从 catalog 检查专项 Baoyu 能力；涉及结构、流程、状态、时序或架构关系时，可由 Agent 选择 baoyu-diagram 作为 contributor。\n");
+    process.stdout.write("    5. Optional contributors 只能增强设计；最终 raster prompt authority 必须留在对应 Baoyu 核心设计层。\n");
+    process.stdout.write("    6. 先物化全部 canonical prompts，再开始渲染。\n");
+    process.stdout.write(`    7. 只运行串行 renderer: bun run ${resolve(scriptsDir, "render-images-serial.mjs")} ${slug}\n`);
+    process.stdout.write("    8. Raster backend: baoyu-image-gen → codex-cli only。\n");
+    process.stdout.write("    9. 不使用 batch 或并行生图；Image N 完成后才能启动 Image N+1。\n");
     process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")} --runtime\n`);
-    process.stdout.write("  Raster policy: 由项目配置解析到 baoyu-image-gen → codex-cli；不可用时 fail closed。\n");
+    process.stdout.write("  Raster policy: 由串行 renderer 显式执行 baoyu-image-gen → codex-cli；不可用时 fail closed。\n");
   }
 
   const gates = gateSpecs(contract);

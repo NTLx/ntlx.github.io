@@ -126,14 +126,15 @@ export const STAGE_CONTRACTS = {
   },
   illustrate: {
     mode: "adaptive-with-hard-backend-policy",
-    goal: "先确定每个视觉节点要表达的内容，再选择匹配能力并生成可审阅的图片资产。",
+    goal: "先经过 Baoyu 核心视觉设计层确定每个视觉节点，再按需吸收专项能力并生成可审阅的图片资产。",
     inputs: ["draft.md", "image-plan.json", "图片 prompt", "当前 Skill catalog"],
     outputs: ["cover.png", "imgs/*"],
     acceptance: [
       "视觉资产解释正文中的信息、关系或结论，而非只满足数量",
       "draft SLOT、image-plan、prompt 和最终 image 一一对应，所有可见文字已复核",
-      "视觉 producer 由 Agent 在运行时动态选择，不由 workflow 固定",
-      "所有 raster rendering 都经过 baoyu-image-gen 的 codex-cli 默认 provider",
+      "baoyu-article-illustrator 完成文章级视觉规划；cover、SLOT 00 和正文分别由对应 Baoyu 核心设计能力负责",
+      "baoyu-diagram 只作为按需的结构语法 contributor，不成为最终文章图片 renderer",
+      "所有 raster rendering 都经过 baoyu-image-gen 且显式使用 codex-cli，按单图串行执行",
       "Codex CLI 不可用或失败时保留可诊断的阻塞状态",
     ],
     gate: { script: "step4-images.mjs" },
@@ -175,11 +176,18 @@ export const STAGE_CONTRACTS = {
 };
 
 /**
- * 确定性工程依赖。这里不登记内容/写作/视觉路由，也不登记条件式视觉
- * adapter 模板；只登记协议适配器和最终 raster renderer。
+ * 确定性工程依赖。这里不登记基于文章内容的内容/写作/视觉路由，也不登记
+ * 条件式视觉 adapter 模板；illustrate 还登记 mandatory Baoyu design layer、
+ * specialized capability 和最终 raster renderer。
  */
 export const HARD_DEPENDENCIES = {
-  illustrate: ["baoyu-image-gen"],
+  illustrate: [
+    "baoyu-article-illustrator",
+    "baoyu-cover-image",
+    "baoyu-infographic",
+    "baoyu-diagram",
+    "baoyu-image-gen",
+  ],
   build: ["github-image-hosting", "gzh-design"],
   publish: ["baoyu-post-to-wechat"],
 };

@@ -7,6 +7,7 @@ import { describe, test, expect } from "bun:test";
 import { resolveSlotImageFile } from "../scripts/validation-lib.mjs";
 import {
   normalizePromptSource,
+  validateBaoyuDesign,
   validateVisualPlanTopology,
 } from "../scripts/visual-plan-lib.mjs";
 
@@ -118,5 +119,69 @@ describe("validateVisualPlanTopology", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toContain("image-plan.infographic.producer is required");
+  });
+});
+
+function completeBaoyuPlan(body = []) {
+  return {
+    article_visual_design: { skill: "baoyu-article-illustrator" },
+    cover: {
+      intent: "封面中心",
+      baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", palette: "cool", rendering: "flat-vector" },
+      contributors: [],
+      prompt_source: "adapter",
+    },
+    infographic: {
+      intent: "全文摘要",
+      baoyu_design: { skill: "baoyu-infographic", layout: "bento-grid", style: "craft-handmade" },
+      contributors: [],
+      prompt_source: "adapter",
+    },
+    illustrations: body.map((slot) => ({
+      slot,
+      intent: `解释 ${slot}`,
+      baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "minimal" },
+      contributors: [],
+      prompt_source: "adapter",
+    })),
+  };
+}
+
+describe("Baoyu visual design authority", () => {
+  test("accepts SLOT00-only plans and records article-level design", () => {
+    const plan = completeBaoyuPlan();
+    expect(validateBaoyuDesign(plan)).toEqual([]);
+    expect(validateVisualPlanTopology(plan, "<!-- SLOT_IMG_00_INFOGRAPHIC -->").ok).toBe(true);
+  });
+
+  test("requires the fixed core authority for cover, infographic, and body", () => {
+    const cases = [
+      ["cover", "baoyu-cover-image"],
+      ["infographic", "baoyu-infographic"],
+      ["body", "baoyu-article-illustrator"],
+    ];
+    for (const [asset, expected] of cases) {
+      const plan = completeBaoyuPlan(asset === "body" ? [1] : []);
+      const node = asset === "body" ? plan.illustrations[0] : plan[asset];
+      node.baoyu_design.skill = "random-skill";
+      const errors = validateBaoyuDesign(plan).join("\n");
+      expect(errors).toContain(`must be ${expected}`);
+    }
+  });
+
+  test("accepts baoyu-diagram and future skills as contributors without routing", () => {
+    const plan = completeBaoyuPlan([1]);
+    plan.infographic.contributors = ["baoyu-diagram", "future-specialized-skill"];
+    plan.illustrations[0].contributors = ["future-skill"];
+    expect(validateBaoyuDesign(plan)).toEqual([]);
+  });
+
+  test("keeps diagram structure from becoming final body prompt authority", () => {
+    const plan = completeBaoyuPlan([1]);
+    plan.illustrations[0].prompt_source = "external";
+    plan.illustrations[0].producer = "baoyu-diagram";
+    const errors = validateBaoyuDesign(plan).join("\n");
+    expect(errors).toContain("baoyu-diagram may contribute diagram structure");
+    expect(errors).toContain("final body raster prompt authority must remain baoyu-article-illustrator");
   });
 });

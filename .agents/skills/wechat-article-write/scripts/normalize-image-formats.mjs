@@ -2,7 +2,7 @@
 /**
  * normalize-image-formats.mjs — MIME 检测 + 扩展名修正 + 引用更新
  *
- * 问题：Gemini 等图片生成后端返回 JPEG 内容但保存为 .png 扩展名，
+ * 问题：图片生成后端可能返回 JPEG 内容但保存为 .png 扩展名，
  *       导致后续流程（CDN 上传、微信 HTML）可能因格式不匹配出错。
  *
  * 行为：

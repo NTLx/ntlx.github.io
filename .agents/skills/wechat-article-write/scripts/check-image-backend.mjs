@@ -102,6 +102,12 @@ function checkLocalRuntime(root, errors, warnings, details, checkEnv) {
     errors.push("BAOYU_IMAGE_GEN_CODEX_CLI_CONCURRENCY must be 1 for this article workflow");
   }
 
+  const maxWorkersRaw = effective("BAOYU_IMAGE_GEN_MAX_WORKERS");
+  const maxWorkers = parsePositiveInt(maxWorkersRaw);
+  if (maxWorkersRaw != null && (maxWorkers === null || maxWorkers !== 1)) {
+    errors.push("BAOYU_IMAGE_GEN_MAX_WORKERS must be 1 for this article workflow when set");
+  }
+
   const intervalRaw = effective("BAOYU_IMAGE_GEN_CODEX_CLI_START_INTERVAL_MS");
   const interval = parsePositiveInt(intervalRaw);
   if (intervalRaw == null) {

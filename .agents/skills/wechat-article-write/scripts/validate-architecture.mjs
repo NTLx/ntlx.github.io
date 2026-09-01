@@ -253,13 +253,20 @@ function checkWorkflowArtifacts(errors, warnings) {
 
 /**
  * 2d. 自适应/视觉边界防回归：正文图片没有固定数量阈值，视觉 producer
- * 不通过名称 dispatch，illustrate 只硬依赖最终 raster renderer。
+ * 不通过名称 dispatch，illustrate 的 Baoyu design layer 与 renderer 边界稳定。
  */
 function checkAdaptiveVisualBoundaries(errors, warnings) {
   const state = { errors, warnings };
   const illustrateDeps = HARD_DEPENDENCIES.illustrate ?? [];
-  if (illustrateDeps.length !== 1 || illustrateDeps[0] !== "baoyu-image-gen") {
-    state.errors.push("illustrate hard dependencies must contain only baoyu-image-gen");
+  const expectedIllustrateDeps = [
+    "baoyu-article-illustrator",
+    "baoyu-cover-image",
+    "baoyu-infographic",
+    "baoyu-diagram",
+    "baoyu-image-gen",
+  ];
+  if (JSON.stringify(illustrateDeps) !== JSON.stringify(expectedIllustrateDeps)) {
+    state.errors.push(`illustrate hard dependencies must be ${expectedIllustrateDeps.join(", ")}`);
   }
 
   const protocolFiles = [
@@ -293,6 +300,47 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
   const backend = readFileSync(resolve(SKILL_DIR, "scripts/check-image-backend.mjs"), "utf8");
   if (/HIGH_LEVEL_RASTER_SKILLS|checkHighLevelConfigs/.test(backend)) {
     state.errors.push("image backend check must not keep a high-level visual Skill registry");
+  }
+
+  const rendererPath = resolve(SKILL_DIR, "scripts/render-images-serial.mjs");
+  if (!existsSync(rendererPath)) {
+    state.errors.push("serial image renderer missing: scripts/render-images-serial.mjs");
+  } else {
+    const renderer = readFileSync(rendererPath, "utf8");
+    for (const token of ["--batchfile", "--jobs", "Promise.all(", "Promise.allSettled(", "worker_threads", "p-map"]) {
+      if (renderer.includes(token)) state.errors.push(`serial renderer must not contain ${token}`);
+    }
+    if (!renderer.includes('"--provider", "codex-cli"')) {
+      state.errors.push("serial renderer must explicitly invoke provider=codex-cli");
+    }
+    if (!renderer.includes("BAOYU_IMAGE_GEN_MAX_WORKERS: \"1\"") ||
+        !renderer.includes("BAOYU_IMAGE_GEN_CODEX_CLI_CONCURRENCY: \"1\"")) {
+      state.errors.push("serial renderer must cap child image workers at 1");
+    }
+  }
+
+  const productionFiles = [
+    resolve(SKILL_DIR, "scripts/pipeline.mjs"),
+    resolve(SKILL_DIR, "scripts/visual-plan-lib.mjs"),
+    resolve(SKILL_DIR, "scripts/generate-image-prompts.mjs"),
+    rendererPath,
+  ];
+  const forbiddenRouterIdentifiers = [
+    "requiredSkills",
+    "optionalSkills",
+    "preferredSkills",
+    "skillRoutes",
+    "ARTICLE_SKILL_MAP",
+    "VISUAL_SKILL_MAP",
+    "STYLE_SKILL_MAP",
+    "ARTICLE_STYLE_MAP",
+  ];
+  for (const path of productionFiles) {
+    if (!existsSync(path)) continue;
+    const source = readFileSync(path, "utf8");
+    for (const identifier of forbiddenRouterIdentifiers) {
+      if (source.includes(identifier)) state.errors.push(`static Skill router identifier remains in ${basename(path)}: ${identifier}`);
+    }
   }
   return state;
 }

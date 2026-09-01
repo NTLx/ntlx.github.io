@@ -14,7 +14,7 @@ Agent 在开放阶段根据 `orchestration-policy.md` 自主选择方法；脚�
 | 1.8 | `understanding-brief.md` | Agent / 可选能力 | `validate-understanding.mjs` |
 | 2 | `draft.md`、`image-plan.json` | Agent / 可选能力 | `step2-write.mjs` |
 | 3 | 更新后的 `draft.md` | Agent / 确定性 lint | `step3-polish.mjs` |
-| 4 | `cover.png`、`imgs/*` | Agent + 可选视觉 producer + raster renderer | `step4-images.mjs` |
+| 4 | `cover.png`、`imgs/*` | Baoyu Core Design + 可选 contributor + serial raster renderer | `step4-images.mjs` |
 | 5 | 三种双轨产物 | 脚本 + 微信排版适配器 | `step5-build.mjs` |
 | 6 | 博客提交、微信草稿 | 脚本 | publish Gates |
 
@@ -95,23 +95,41 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 Contract，不会替代 artifact、state 或 Gate。没有调用 Skill 时记录
 `selected=no-skill`，写盘失败只 warning。
 
-## Step 4：视觉意图与图片资产
+## Step 4：Baoyu 视觉设计与图片资产
 
-先判断是否需要视觉增益，再说明每个 SLOT 要让读者看懂什么；需要能力时从
-当前 catalog 动态选择 Agent 原生或一个/少量互补 producer。producer 只负责
-视觉方案和 rendering prompt，生成 prompt 后逐张审阅；图片必须与正文信息
-对应，文字、数字和命名契约必须复核。
+先运行 `baoyu-article-illustrator` 完成全文视觉规划：判断哪些位置真正有
+视觉增益、正文密度和整体 controlled variation；即使正文插图为 0 张，也要
+记录 `article_visual_design.skill=baoyu-article-illustrator`。随后使用
+`baoyu-cover-image` 设计 cover，使用 `baoyu-infographic` 设计
+`SLOT_IMG_00`。这三项是每篇文章的 Baoyu Core Design Layer。
 
-图片拓扑必须满足：draft SLOT ↔ image-plan entry ↔ deterministic prompt ↔
-image。`prompt_source=adapter` 时按需读取兼容模板；`external` 时保留
-producer 写入的确定性 prompt。正文没有局部视觉节点时，`illustrations: []`
-仍然可以通过 Gate。
+再运行 metadata-only catalog，按当前结构需求渐进式读取专项能力。涉及组件
+关系、架构、流程、时序、数据流、层级或状态转换时，Agent 可以选择
+`baoyu-diagram`；它只贡献 diagram structure/topology，不生成 SVG/PNG，不做
+SVG→PNG，也不成为最终 prompt authority。其它 Baoyu 或第三方能力也只能作为
+Optional Contributor。所有设计委托都处于 DESIGN-ONLY MODE，不调用任何 raster
+backend。
 
-所有 raster rendering 的链路固定为：visual producer → `baoyu-image-gen` →
-`codex-cli`。repository static 依赖检查不要求本机 runtime；真实生图前必须运行
-`bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime`。
-运行图片预检后，日常命令不传 provider 覆盖参数；Codex CLI
-不可用或失败时当前 stage BLOCKED，不得切换其它后端。完整规则见
+image-plan 使用一个现有文件，且每个最终 asset 必须有对应的 `baoyu_design`：
+cover 为 `baoyu-cover-image`，SLOT00 为 `baoyu-infographic`，正文为
+`baoyu-article-illustrator`；正文 `illustrations` 允许为空。Agent 自主组合
+Type、Layout、Style、Palette、Rendering、Mood、Font，不由 `article_type`、
+`direction`、关键词或代码路由决定。动态 adapter 直接验证当前 Baoyu 的稳定
+reference 文件；旧 map 只供显式 `--allow-default-image-plan` 兼容模式。
+
+图片拓扑必须满足：draft SLOT ↔ image-plan entry ↔ active canonical prompt ↔
+image。生成全部 active prompt 后，先运行 prompt preflight，再运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <date-slug>
+```
+
+renderer 固定按 cover、SLOT00、正文数字升序逐张执行；每张等待并验证完成后
+才启动下一张，失败即停，默认跳过已有且有效的当前 asset。唯一 raster 链路
+是 `baoyu-image-gen → codex-cli`，禁止 batch、`--jobs`、并行 tool call、后台
+任务和其它 provider。stale prompt/image 只 warning；active 缺失仍 FAIL。完整
+规则见 `references/orchestration-policy.md`、`references/image-policy.md` 和
 `references/image-backends.md`。
 
 ## Step 5：确定性双轨构建

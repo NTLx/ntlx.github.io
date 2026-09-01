@@ -12,6 +12,11 @@ import { resolve } from "node:path";
 import { postsRoot } from "./path-resolver.mjs";
 
 export const TRACE_FILENAME = "orchestration-trace.jsonl";
+const ILLUSTRATE_CORE_DESIGN = [
+  "baoyu-article-illustrator",
+  "baoyu-cover-image",
+  "baoyu-infographic",
+];
 const MAX_TEXT_LENGTH = 360;
 const MAX_LIST_ITEMS = 8;
 const MAX_ITEM_LENGTH = 120;
@@ -43,17 +48,22 @@ function listOrEmpty(value) {
 
 /** Build the allow-listed, bounded record written to the trace. */
 export function buildTraceRecord(slug, input = {}, timestamp = new Date().toISOString()) {
+  const stage = textOrUndefined(input.stage, MAX_ITEM_LENGTH);
   const result = textOrUndefined(input.result, MAX_ITEM_LENGTH);
   if (result !== undefined && !VALID_RESULTS.has(result)) {
     throw new Error(`result must be one of: ${[...VALID_RESULTS].join(", ")}`);
   }
+  const selected = listOrEmpty(input.selected);
+  const traceSelected = stage === "illustrate"
+    ? [...ILLUSTRATE_CORE_DESIGN, ...selected.filter((item) => item !== "no-skill" && !ILLUSTRATE_CORE_DESIGN.includes(item))]
+    : selected;
   return {
     timestamp,
     slug: textOrUndefined(slug, MAX_ITEM_LENGTH),
-    stage: textOrUndefined(input.stage, MAX_ITEM_LENGTH),
+    stage,
     gap: textOrUndefined(input.gap),
     candidates: listOrEmpty(input.candidates),
-    selected: listOrEmpty(input.selected),
+    selected: traceSelected,
     reason: textOrUndefined(input.reason),
     gate: textOrUndefined(input.gate, MAX_ITEM_LENGTH),
     result,

@@ -2,7 +2,7 @@
 
 此文件只保存本技能自己的运行偏好。阶段合同、Gate 和自适应编排规则
 分别由 `scripts/workflow.mjs` 与 `references/orchestration-policy.md`
-维护；这里不登记内容或写作 Skill 路由。
+维护；这里不登记内容、写作或视觉 Skill 路由。
 
 ## 配置项
 
@@ -55,14 +55,21 @@ wechat_layout_generate_preview: true
 
 | 适配器 | 配置或来源 | 作用 |
 |---|---|---|
+| `baoyu-article-illustrator` | `.agents/skills/baoyu-article-illustrator/` | Baoyu Core：全文视觉规划和正文设计 |
+| `baoyu-cover-image` | `.agents/skills/baoyu-cover-image/` | Baoyu Core：封面设计 |
+| `baoyu-infographic` | `.agents/skills/baoyu-infographic/` | Baoyu Core：`SLOT_IMG_00` 设计 |
+| `baoyu-diagram` | `.agents/skills/baoyu-diagram/` | Baoyu Specialized：按需贡献结构语法，不渲染图片 |
 | `baoyu-image-gen` | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | raster backend；`default_provider` 必须为 `codex-cli` |
-| 条件式视觉 adapter 模板 | `.agents/skills/{skill}/` | 仅在 image-plan 选择 `adapter` 时按需读取；不属于全局 hard dependency |
+| `render-images-serial.mjs` | `.agents/skills/wechat-article-write/scripts/` | 唯一 single-image serial raster execution boundary |
 | `gzh-design` | `.agents/skills/gzh-design/` | 微信 HTML 排版、校验和预览 |
 | `github-image-hosting` | `.agents/skills/github-image-hosting/` | 博客图片 CDN 适配 |
 | `baoyu-post-to-wechat` | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信草稿适配 |
 
 `generate-image-prompts.mjs` 仅在实际资产选择 `adapter` 时读取兼容模板；
-`external` producer 路径不读取这些模板，也不复制第三方生成算法。
+`external` producer 路径不读取这些模板，也不复制第三方生成算法。图片阶段
+的四层术语固定为：Baoyu Core Design Skills、Baoyu Specialized Design Skills、
+Optional Contributors、Raster Renderer。前三层只完成设计；唯一 Raster Renderer
+是 `baoyu-image-gen`，唯一 provider 是 `codex-cli`。
 
 ## 本地环境
 
@@ -86,7 +93,9 @@ BAOYU_IMAGE_GEN_CODEX_CLI_START_INTERVAL_MS=2000
 
 `BAOYU_CODEX_IMAGEGEN_RETRIES` 若已存在则按上游支持的值使用；没有必要
 为了显式化默认值而新增。`check-image-backend.mjs` 只报告键名和配置问题，
-不会输出值。
+不会输出值。真实生图由 `render-images-serial.mjs` 集中执行，显式传
+`--provider codex-cli`，并在 child process 中将两个 worker/concurrency 键覆盖
+为 `1`；不使用 batch 或并行调用，也不修改本文件或全局环境。
 
 修改 provider policy 前运行：
 
@@ -95,4 +104,6 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --js
 ```
 
 任何 raster 任务不能用 CLI 参数把 provider 改成其它值；Codex CLI 不可用
-或生成失败时，图片阶段阻塞，不自动切换后端。
+或生成失败时，图片阶段阻塞，不自动切换后端。`baoyu-diagram` 只可作为
+结构/拓扑 contributor，不能输出文章最终 SVG/PNG 或成为最终 raster prompt
+authority。

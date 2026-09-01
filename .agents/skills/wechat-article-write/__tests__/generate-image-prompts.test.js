@@ -75,25 +75,74 @@ function writeImagePlan(postDir, content) {
   writeFileSync(join(postDir, "image-plan.json"), JSON.stringify(content, null, 2));
 }
 
+function writeIsolatedAdapterSkills(root) {
+  const source = (rel) => readFileSync(resolve(REPO_ROOT, rel), "utf8");
+  const write = (rel, content) => {
+    const path = join(root, rel);
+    mkdirSync(resolve(path, ".."), { recursive: true });
+    writeFileSync(path, content);
+  };
+
+  write(
+    ".agents/skills/baoyu-cover-image/references/workflow/prompt-template.md",
+    source(".agents/skills/baoyu-cover-image/references/workflow/prompt-template.md"),
+  );
+  write(
+    ".agents/skills/baoyu-infographic/references/layouts/future-layout.md",
+    "# Future layout\nUse three clearly separated zones with a central conclusion.\n",
+  );
+  write(
+    ".agents/skills/baoyu-infographic/references/styles/future-style.md",
+    "# Future infographic style\nUse a bright editorial palette and clear hierarchy.\n",
+  );
+  write(
+    ".agents/skills/baoyu-article-illustrator/references/prompt-construction.md",
+    source(".agents/skills/baoyu-article-illustrator/references/prompt-construction.md"),
+  );
+  write(
+    ".agents/skills/baoyu-article-illustrator/references/styles/vector-illustration.md",
+    source(".agents/skills/baoyu-article-illustrator/references/styles/vector-illustration.md"),
+  );
+  write(
+    ".agents/skills/baoyu-article-illustrator/references/styles/future-style.md",
+    "# Future illustration style\nUse a restrained editorial visual language.\n",
+  );
+}
+
 function completeImagePlan(overrides = {}) {
   return {
-    article_type: "deep-analysis",
+    article_type: "future-architecture-analysis",
+    direction: "future-style-language",
+    article_visual_design: {
+      skill: "baoyu-article-illustrator",
+      strategy: "只在视觉能降低理解成本的位置创建正文 SLOT",
+    },
     cover: {
       intent: "表达工具变化背后的判断权迁移",
-      type: "conceptual",
-      style: "technical editorial",
-      palette: "cool",
-      rendering: "flat-vector",
+      baoyu_design: {
+        skill: "baoyu-cover-image",
+        type: "conceptual",
+        style: "technical editorial",
+        palette: "cool",
+        rendering: "flat-vector",
+      },
+      contributors: [],
+      prompt_source: "adapter",
     },
     infographic: {
       intent: "压缩全文的判断权、组织摩擦和行动路径",
-      layout: "bento-grid",
-      style: "technical-schematic",
+      baoyu_design: {
+        skill: "baoyu-infographic",
+        layout: "bento-grid",
+        style: "technical-schematic",
+      },
+      contributors: [],
+      prompt_source: "adapter",
     },
     illustrations: [
-      { slot: 1, intent: "比较工具接管与判断权迁移", type: "comparison", style: "minimal", description: "agent-workflow" },
-      { slot: 2, intent: "解释判断权重新分配的结构", type: "framework", style: "editorial", description: "decision-rights" },
-      { slot: 3, intent: "呈现组织摩擦如何形成闭环", type: "flowchart", style: "warm", description: "review-loop" },
+      { slot: 1, intent: "比较工具接管与判断权迁移", baoyu_design: { skill: "baoyu-article-illustrator", type: "comparison", style: "minimal" }, contributors: [], description: "agent-workflow", prompt_source: "adapter" },
+      { slot: 2, intent: "解释判断权重新分配的结构", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "editorial" }, contributors: [], description: "decision-rights", prompt_source: "adapter" },
+      { slot: 3, intent: "呈现组织摩擦如何形成闭环", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "warm" }, contributors: [], description: "review-loop", prompt_source: "adapter" },
     ],
     ...overrides,
   };
@@ -103,22 +152,22 @@ function futureProducerImagePlan() {
   return completeImagePlan({
     cover: {
       intent: "测试未知视觉 producer 的封面方案",
-      type: "future-cover-type",
-      style: "future-cover-style",
+      baoyu_design: { skill: "baoyu-cover-image", type: "future-cover-type", style: "future-cover-style" },
+      contributors: ["future-specialized-skill"],
       prompt_source: "external",
-      producer: "future-visual-skill",
+      producer: "baoyu-cover-image",
     },
     infographic: {
       intent: "测试未知视觉 producer 的全文摘要方案",
-      layout: "future-layout",
-      style: "future-infographic-style",
+      baoyu_design: { skill: "baoyu-infographic", layout: "future-layout", style: "future-infographic-style" },
+      contributors: ["future-specialized-skill"],
       prompt_source: "external",
-      producer: "future-visual-skill",
+      producer: "baoyu-infographic",
     },
     illustrations: [
-      { slot: 1, intent: "测试未知正文视觉能力", type: "future-type", style: "future-style", prompt_source: "external", producer: "future-visual-skill", description: "agent-workflow" },
-      { slot: 2, intent: "测试第二个未知正文视觉能力", type: "future-type", style: "future-style", prompt_source: "external", producer: "future-visual-skill", description: "decision-rights" },
-      { slot: 3, intent: "测试第三个未知正文视觉能力", type: "future-type", style: "future-style", prompt_source: "external", producer: "future-visual-skill", description: "review-loop" },
+      { slot: 1, intent: "测试未知正文视觉能力", baoyu_design: { skill: "baoyu-article-illustrator", type: "future-type", style: "future-style" }, contributors: ["baoyu-diagram"], prompt_source: "external", producer: "baoyu-article-illustrator", description: "agent-workflow" },
+      { slot: 2, intent: "测试第二个未知正文视觉能力", baoyu_design: { skill: "baoyu-article-illustrator", type: "future-type", style: "future-style" }, contributors: ["future-specialized-skill"], prompt_source: "external", producer: "baoyu-article-illustrator", description: "decision-rights" },
+      { slot: 3, intent: "测试第三个未知正文视觉能力", baoyu_design: { skill: "baoyu-article-illustrator", type: "future-type", style: "future-style" }, contributors: [], prompt_source: "external", producer: "baoyu-article-illustrator", description: "review-loop" },
     ],
   });
 }
@@ -191,16 +240,20 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(prompt).toContain("Do not merely visualize one nearby section");
   });
 
-  test("fails on unknown image-plan article_type instead of silently falling back", () => {
+  test("accepts future article_type and direction as context metadata", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-invalid-plan";
     const dir = writeDraft(fx.postsRoot, slug);
-    writeImagePlan(dir, { article_type: "technical-deepdive" });
+    writeImagePlan(dir, completeImagePlan({
+      article_type: "future-architecture-analysis",
+      direction: "future-style-language",
+    }));
 
     const r = runGenerator(slug, fx.postsRoot);
-    expect(r.status).not.toBe(0);
-    expect(r.stderr).toContain('unknown article_type "technical-deepdive"');
+    expect(r.status).toBe(0);
+    expect(r.stderr).not.toContain("unknown article_type");
+    expect(r.stderr).not.toContain("unknown direction");
   });
 
   test("uses the explicit head infographic style instead of direction defaults", () => {
@@ -212,8 +265,13 @@ describe("generate-image-prompts head infographic prompt", () => {
       direction: "tech",
       infographic: {
         intent: "把判断权变化压缩成技术编辑式结构",
-        layout: "structural-breakdown",
-        style: "technical-schematic",
+        baoyu_design: {
+          skill: "baoyu-infographic",
+          layout: "structural-breakdown",
+          style: "technical-schematic",
+        },
+        contributors: [],
+        prompt_source: "adapter",
       },
     }));
 
@@ -274,18 +332,23 @@ describe("generate-image-prompts head infographic prompt", () => {
       writeImagePlan(dir, completeImagePlan({
         infographic: {
           intent: "测试非法视觉协议值",
-          layout: field === "layout" ? value : "bento-grid",
-          style: field === "style" ? value : "technical-schematic",
+          baoyu_design: {
+            skill: "baoyu-infographic",
+            layout: field === "layout" ? value : "bento-grid",
+            style: field === "style" ? value : "technical-schematic",
+          },
+          contributors: [],
+          prompt_source: "adapter",
         },
       }));
 
       const r = runGenerator(slug, fx.postsRoot);
       expect(r.status).not.toBe(0);
-      expect(r.stderr).toContain(`unknown infographic ${field}`);
+      expect(r.stderr).toContain(`baoyu-infographic ${field} not found`);
     }
   });
 
-  test("accepts an unknown external producer without a workflow route or adapter enum", () => {
+  test("accepts core external prompt authorities and unknown contributors", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-future-visual-producer";
@@ -324,7 +387,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(r.stderr).not.toContain("skill not found");
   });
 
-  test("fails with producer, expected path, and recovery action when an external prompt is missing", () => {
+  test("fails with core producer, expected path, and recovery action when an external prompt is missing", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-06-15-missing-external-prompt";
@@ -335,7 +398,7 @@ describe("generate-image-prompts head infographic prompt", () => {
     const r = runGenerator(slug, fx.postsRoot);
 
     expect(r.status).not.toBe(0);
-    expect(r.stderr).toContain("producer=future-visual-skill");
+    expect(r.stderr).toContain("producer=baoyu-article-illustrator");
     expect(r.stderr).toContain(join(dir, "imgs/prompts/02-decision-rights.md"));
     expect(r.stderr).toContain("Run/delegate the selected producer first");
   });
@@ -356,27 +419,41 @@ describe("generate-image-prompts head infographic prompt", () => {
     expect(readFileSync(promptPath, "utf8")).toBe(before);
   });
 
-  // §3.5 pinned compatibility: generate-image-prompts 把 baoyu-infographic
-  // 的内部目录（references/layouts、references/styles）当模板源。
-  // 升级 baoyu-* 前先跑本测试：任一 layout/style 消失或结构损坏都会亮红。
-  test("infographic compatibility: every referenced layout/style exists in baoyu-infographic", () => {
-    const mapPath = resolve(REPO_ROOT, ".agents/skills/wechat-article-write/references/image-template-map.json");
-    const templateMap = JSON.parse(readFileSync(mapPath, "utf8"));
+  test("uses the selected Baoyu templates directly instead of a local enum", () => {
+    const layout = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/layouts/circular-flow.md");
+    const style = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/styles/technical-schematic.md");
+    expect(existsSync(layout)).toBe(true);
+    expect(readFileSync(layout, "utf8").trim().length).toBeGreaterThan(0);
+    expect(existsSync(style)).toBe(true);
+    expect(readFileSync(style, "utf8").trim().length).toBeGreaterThan(0);
+  });
 
-    const layoutsDir = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/layouts");
-    const stylesDir = resolve(REPO_ROOT, ".agents/skills/baoyu-infographic/references/styles");
+  test("accepts a newly installed stable Baoyu template without changing this skill", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-06-15-future-template";
+    const dir = writeDraft(fx.postsRoot, slug);
+    const isolatedRepo = join(fx.root, "repo-with-future-template");
+    writeIsolatedAdapterSkills(isolatedRepo);
+    writeImagePlan(dir, completeImagePlan({
+      infographic: {
+        intent: "使用新模板压缩全文",
+        baoyu_design: { skill: "baoyu-infographic", layout: "future-layout", style: "future-style" },
+        contributors: [],
+        prompt_source: "adapter",
+      },
+      illustrations: [
+        { slot: 1, intent: "使用新模板解释流程", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "future-style" }, contributors: [], description: "agent-workflow", prompt_source: "adapter" },
+        { slot: 2, intent: "使用新模板解释结构", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "future-style" }, contributors: [], description: "decision-rights", prompt_source: "adapter" },
+        { slot: 3, intent: "使用新模板解释闭环", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "future-style" }, contributors: [], description: "review-loop", prompt_source: "adapter" },
+      ],
+    }));
 
-    for (const layout of templateMap.infographic_layouts) {
-      const p = resolve(layoutsDir, `${layout}.md`);
-      expect(existsSync(p), `layout ${layout}.md missing in baoyu-infographic`).toBe(true);
-      const content = readFileSync(p, "utf8").trim();
-      expect(content.length, `layout ${layout}.md is empty`).toBeGreaterThan(0);
-    }
-    for (const style of templateMap.infographic_styles) {
-      const p = resolve(stylesDir, `${style}.md`);
-      expect(existsSync(p), `style ${style}.md missing in baoyu-infographic`).toBe(true);
-      const content = readFileSync(p, "utf8").trim();
-      expect(content.length, `style ${style}.md is empty`).toBeGreaterThan(0);
-    }
+    const r = runGenerator(slug, fx.postsRoot, [], isolatedRepo);
+    expect(r.status).toBe(0);
+    expect(readFileSync(join(dir, "imgs/prompts/00-infographic-core-summary.md"), "utf8"))
+      .toContain("Style specification");
+    expect(readFileSync(join(dir, "imgs/prompts/01-agent-workflow.md"), "utf8"))
+      .toContain("Future illustration style");
   });
 });

@@ -10,6 +10,18 @@ import { existsSync, readFileSync } from "node:fs";
 import { SLOT_EXTRACT_RE, normalizeSlotDesc, resolveSlotImg } from "./validation-lib.mjs";
 
 export const VALID_PROMPT_SOURCES = new Set(["adapter", "external"]);
+export const BAOYU_CORE_DESIGN_SKILLS = Object.freeze([
+  "baoyu-article-illustrator",
+  "baoyu-cover-image",
+  "baoyu-infographic",
+]);
+
+export const BAOYU_DESIGN_AUTHORITIES = Object.freeze({
+  article: "baoyu-article-illustrator",
+  cover: "baoyu-cover-image",
+  infographic: "baoyu-infographic",
+  body: "baoyu-article-illustrator",
+});
 
 /** 缺失的旧字段按当前兼容规则解释为 adapter。 */
 export function normalizePromptSource(value) {
@@ -59,6 +71,60 @@ function checkPromptSource(node, label, errors) {
   } catch (error) {
     errors.push(`${label}.${error.message}`);
   }
+}
+
+function checkContributors(node, label, errors) {
+  if (!isObject(node) || node.contributors === undefined) return;
+  if (!Array.isArray(node.contributors) || node.contributors.some((item) => typeof item !== "string" || item.trim() === "")) {
+    errors.push(`${label}.contributors must be an array of non-empty strings`);
+  }
+}
+
+function checkDesignAuthority(node, label, authority, errors) {
+  if (!isObject(node)) return;
+  const design = node.baoyu_design;
+  if (!isObject(design)) {
+    errors.push(`${label}.baoyu_design is required`);
+  } else if (design.skill !== authority) {
+    errors.push(`${label}.baoyu_design.skill must be ${authority}`);
+  }
+  checkContributors(node, label, errors);
+
+  try {
+    if (normalizePromptSource(node.prompt_source) === "external" &&
+        node.producer !== undefined && node.producer !== authority) {
+      const detail = authority === BAOYU_DESIGN_AUTHORITIES.body
+        ? "baoyu-diagram may contribute diagram structure, but final body raster prompt authority must remain baoyu-article-illustrator."
+        : `final ${label.replace(/^image-plan\./, "")} raster prompt authority must remain ${authority}.`;
+      errors.push(`${label}.producer must be ${authority}; ${detail}`);
+    }
+  } catch {
+    // checkPromptSource reports the invalid source and missing producer separately.
+  }
+}
+
+/**
+ * Validate the mandatory Baoyu design layer without selecting a Skill.
+ * `allowLegacy` is reserved for explicitly requested old-plan compatibility.
+ */
+export function validateBaoyuDesign(imagePlan, { allowLegacy = false } = {}) {
+  const errors = [];
+  if (allowLegacy) return errors;
+  if (!isObject(imagePlan)) return ["image-plan.json must contain an object"];
+
+  const articleDesign = imagePlan.article_visual_design;
+  if (!isObject(articleDesign)) {
+    errors.push("image-plan.article_visual_design is required");
+  } else if (articleDesign.skill !== BAOYU_DESIGN_AUTHORITIES.article) {
+    errors.push(`image-plan.article_visual_design.skill must be ${BAOYU_DESIGN_AUTHORITIES.article}`);
+  }
+
+  checkDesignAuthority(imagePlan.cover, "image-plan.cover", BAOYU_DESIGN_AUTHORITIES.cover, errors);
+  checkDesignAuthority(imagePlan.infographic, "image-plan.infographic", BAOYU_DESIGN_AUTHORITIES.infographic, errors);
+  for (const [index, entry] of (imagePlan.illustrations ?? []).entries()) {
+    checkDesignAuthority(entry, `image-plan.illustrations[${index}]`, BAOYU_DESIGN_AUTHORITIES.body, errors);
+  }
+  return errors;
 }
 
 /**
@@ -132,4 +198,52 @@ export function validateVisualPlanTopology(imagePlan, draftBody) {
 /** 与 prompt 生成器一致的正文 prompt/image basename。 */
 export function visualPromptDescription(entry, draftSlot) {
   return normalizeSlotDesc(entry?.description ?? draftSlot?.desc) || "illustration";
+}
+
+/** Return only assets selected by the current draft/image-plan topology. */
+export function collectActiveAssets(imagePlan, draftBody, { blogSlug, slug } = {}) {
+  const topology = validateVisualPlanTopology(imagePlan, draftBody);
+  const coverSlug = normalizeSlotDesc(blogSlug ?? slug) || "article";
+  const assets = [
+    {
+      key: "cover",
+      label: "cover",
+      promptBasename: `00-cover-${coverSlug}`,
+      outputBasename: "cover",
+      outputCandidates: ["cover.png", "cover.jpg"],
+      design: imagePlan?.cover?.baoyu_design ?? {},
+    },
+    {
+      key: "SLOT_IMG_00",
+      label: "SLOT_IMG_00",
+      promptBasename: "00-infographic-core-summary",
+      outputBasename: "00-infographic-core-summary",
+      outputCandidates: ["00-infographic-core-summary.png", "00-infographic-core-summary.jpg", "00-infographic-core-summary.jpeg", "00-infographic-core-summary.webp", "00-infographic-core-summary.gif"],
+      design: imagePlan?.infographic?.baoyu_design ?? {},
+    },
+  ];
+
+  for (const slot of [...topology.bodySlots].sort((a, b) => a.slot - b.slot)) {
+    const entry = topology.entriesBySlot.get(slot.slot) ?? {};
+    const desc = visualPromptDescription(entry, slot);
+    const nn = String(slot.slot).padStart(2, "0");
+    assets.push({
+      key: `SLOT_IMG_${nn}`,
+      label: `SLOT_IMG_${nn}`,
+      promptBasename: `${nn}-${desc}`,
+      outputBasename: `${nn}-${desc}`,
+      outputCandidates: [`${nn}-${desc}.png`, `${nn}-${desc}.jpg`, `${nn}-${desc}.jpeg`, `${nn}-${desc}.webp`, `${nn}-${desc}.gif`],
+      design: entry.baoyu_design ?? {},
+      slot: slot.slot,
+    });
+  }
+  return assets;
+}
+
+export function activePromptBasenames(assets) {
+  return new Set(assets.map((asset) => asset.promptBasename));
+}
+
+export function activeImageBasenames(assets) {
+  return new Set(assets.flatMap((asset) => asset.outputCandidates.map((name) => name.replace(/\.(?:png|jpe?g|webp|gif)$/i, ""))));
 }

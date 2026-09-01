@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { buildSkillCatalog, parseSkillFrontmatter } from "../scripts/skill-catalog.mjs";
 
@@ -55,5 +55,12 @@ metadata:
     expect(fm.description).toBe("first line second line");
     expect(fm.metadata.version).toBe("1.2.3");
     expect(fm.metadata.user_invocable).toBe(false);
+  });
+
+  test("exposes baoyu-diagram as a discovered specialized capability", () => {
+    const catalog = buildSkillCatalog(resolve(import.meta.dir, "..", ".."));
+    const diagram = catalog.find((skill) => skill.name === "baoyu-diagram");
+    expect(diagram).toBeDefined();
+    expect(diagram.description).toContain("diagram");
   });
 });

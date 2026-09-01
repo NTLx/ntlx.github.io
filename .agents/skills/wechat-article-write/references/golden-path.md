@@ -77,19 +77,36 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 ```json
 {
-  "article_type": "deep-analysis",
+  "article_type": "future-article-context",
+  "direction": "future-visual-language",
+  "article_visual_design": {
+    "skill": "baoyu-article-illustrator",
+    "strategy": "只在视觉明显降低理解成本的位置创建正文 SLOT"
+  },
   "cover": {
     "intent": "表达文章中心张力",
-    "type": "conceptual",
-    "style": "editorial",
-    "palette": "warm",
-    "rendering": "flat-vector",
+    "baoyu_design": {
+      "skill": "baoyu-cover-image",
+      "type": "conceptual",
+      "palette": "warm",
+      "rendering": "flat-vector",
+      "text": "title-only",
+      "mood": "balanced",
+      "font": "clean",
+      "aspect": "16:9"
+    },
+    "contributors": [],
     "prompt_source": "adapter"
   },
   "infographic": {
     "intent": "压缩全文判断、论证路径和结论",
-    "layout": "hub-spoke",
-    "style": "morandi-journal",
+    "baoyu_design": {
+      "skill": "baoyu-infographic",
+      "layout": "hub-spoke",
+      "style": "morandi-journal",
+      "aspect": "16:9"
+    },
+    "contributors": [],
     "prompt_source": "adapter"
   },
   "illustrations": []
@@ -98,8 +115,9 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 
 这个最小例子只保留文章级摘要图；正文没有明确视觉增益时，
 `illustrations: []` 是合法计划。需要局部解释时，再为对应正文 SLOT 增加
-entry；也可以把该 entry 标成 `prompt_source: "external"` 并填写任意当前
-catalog producer，不需要修改 workflow。
+entry，并在其 `baoyu_design.skill` 写 `baoyu-article-illustrator`。若使用
+`prompt_source: "external"`，`producer` 仍必须是该资产对应的 Baoyu Core
+Skill；`baoyu-diagram` 只能作为 contributor。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs 2026-06-16-example-article
@@ -114,35 +132,27 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs 2026-06-16-
 bun run .agents/skills/wechat-article-write/scripts/generate-image-prompts.mjs 2026-06-16-example-article
 ```
 
-先运行图片后端 runtime 预检：
+先物化全部 prompt 并进行 dry-run：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs \
+  2026-06-16-example-article --dry-run
+```
+
+图片层的 producer 只负责 Baoyu 设计和 rendering prompt；不得调用 native
+imagegen 或输出最终 SVG/PNG。确认 prompt 全部存在后，执行 runtime 检查和
+集中式串行 renderer：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs \
+  2026-06-16-example-article
 ```
 
-图片层的 producer 只负责设计和 rendering prompt；日常命令不传 `--provider`，让
-`.baoyu-skills/baoyu-image-gen/EXTEND.md` 中的 `default_provider: codex-cli`
-生效；不要使用 batch.json。Codex CLI 失败时停止当前图片任务，不能切换
-其它 provider：
-
-```bash
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-cover-example-article.md \
-  --image posts/2026-06-16-example-article/cover.png \
-  --ar 16:9
-
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --promptfiles posts/2026-06-16-example-article/imgs/prompts/00-infographic-core-summary.md \
-  --image posts/2026-06-16-example-article/imgs/00-infographic-core-summary.png \
-  --ar 16:9
-
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --promptfiles posts/2026-06-16-example-article/imgs/prompts/01-decision_flow.md \
-  --image posts/2026-06-16-example-article/imgs/01-decision_flow.png \
-  --ar 16:9
-```
-
-按 image-plan 逐张串行生成已计划的图片后：
+执行顺序固定为 cover → SLOT00 → 正文 SLOT 数字升序；Image N 完成并验证后
+才启动 Image N+1，任一失败立即停止。默认跳过已存在且有效的当前 asset；唯一
+raster 后端是 `baoyu-image-gen`，provider 是 `codex-cli`，不使用 batchfile、
+`--jobs` 或并行调用。按 image-plan 逐张串行生成已计划的图片后：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs 2026-06-16-example-article

@@ -74,18 +74,12 @@ runtime 预检必须确认配置 provider 为 `codex-cli`、`codex --version` �
 并在 CLI 暴露该命令时确认登录态。Codex CLI 不可用或未登录即阻塞。图片
 阶段不以 warning 放行。
 
-常规调用让 `EXTEND.md` 解析默认 provider，**不要传 `--provider`**：
+生产调用统一经过集中式串行 renderer；renderer 对每次 single-image invocation
+显式传入 `--provider codex-cli`，不接受 batch 或并发参数：
 
 ```bash
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --promptfiles posts/<date-slug>/imgs/prompts/00-cover-<desc>.md \
-  --image posts/<date-slug>/cover.png \
-  --ar 16:9
-
-bun run .agents/skills/baoyu-image-gen/scripts/main.ts \
-  --promptfiles posts/<date-slug>/imgs/prompts/01-<desc>.md \
-  --image posts/<date-slug>/imgs/01-<desc>.png \
-  --ar 16:9
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs \
+  <date-slug>
 ```
 
 测试或诊断时若必须显式指定 provider，也只能写
@@ -111,9 +105,9 @@ provider 可追溯为 `codex-cli`。只看到“Switch model”提示不是失�
 
 ## 串行、命名和质量
 
-- 主 Agent 逐张串行执行；禁止 batch 模式，不使用 `batch.json`、
-  `--batchfile`、并发任务、`Promise.all`、`xargs -P`、后台任务或多个
-  subagent；底层 `codex-exec.lock` 也必须保持单写者；
+- `render-images-serial.mjs` 逐张串行执行；禁止 batch 模式，不使用
+  `batch.json`、`--batchfile`、`--jobs`、并发任务、`Promise.all`、`xargs -P`、
+  后台任务或多个 subagent；底层 `codex-exec.lock` 也必须保持单写者；
 - 封面写到 post 根目录 `cover.png`；SLOT 图写到
   `imgs/NN-<desc>.png`，并与 prompt basename 一致；
 - 运行 `step4-images.mjs` 前逐张查看图片，复核可见文字、数字和正文关系；

@@ -86,10 +86,13 @@ function checkPublishConfig() {
 
 function checkImageTemplates() {
   checkSkillDirs(hardDependenciesForStage("illustrate"));
-  // Optional visual producers and adapter template sources are loaded only by
-  // generate-image-prompts when the current image-plan selects them.
+  // The three core Baoyu design Skills and baoyu-diagram are installed
+  // capabilities, while the Agent still decides which specialized contributor
+  // is useful for a particular article.
   requirePath(".agents/skills/wechat-article-write/references/image-template-map.json", "image template map");
   requirePath(".agents/skills/wechat-article-write/references/image-plan.schema.json", "image-plan schema");
+  requirePath(".agents/skills/wechat-article-write/scripts/visual-plan-lib.mjs", "visual plan library");
+  requirePath(".agents/skills/wechat-article-write/scripts/render-images-serial.mjs", "serial image renderer");
 }
 
 function checkBuildDeps() {

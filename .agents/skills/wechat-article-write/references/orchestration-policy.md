@@ -127,28 +127,81 @@ bun run .agents/skills/wechat-article-write/scripts/orchestration-trace.mjs <dat
 ## 视觉专用规则
 
 视觉阶段先回答“读者需要看懂什么”，再判断这个位置是否真的有视觉信息
-增益；没有增益就不创建正文 SLOT。需要视觉能力时运行 catalog，从 description
-筛选少量候选，再阅读入选 Skill 的完整说明。Agent 可以自己设计，也可以
-选择任意当前或未来视觉 Skill；workflow 不维护视觉 producer 路由。
+增益；没有增益就不创建正文 SLOT。即使正文 SLOT 为零，也必须完成
+`baoyu-article-illustrator` 的文章级视觉规划，并在 `image-plan.json` 记录
+`article_visual_design.skill`。
 
-选中的 producer 只能负责概念设计、信息架构、layout、视觉隐喻或 rendering
-prompt。无论 producer 是谁，都必须把最终 prompt 保存到本管线的确定性路径，
-供后续 Gate 消费；producer 不修改仓库文件协议，也不直接完成最终 raster。
+illustrate 的四层合同如下：
 
-本文章管线的 raster 成本边界不可改变：高层视觉能力必须收束到
-`baoyu-image-gen`，而 `.baoyu-skills/baoyu-image-gen/EXTEND.md` 的
-`default_provider` 必须是 `codex-cli`。日常命令不传冲突的 `--provider`；
-依赖配置和 Codex 登录态由 `check-image-backend.mjs` 预检。进入真实生图前必须运行
-`bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime`。
-Codex CLI 不可用、登录失效或生成失败时，当前图片阶段 BLOCKED；只允许在同一
-Codex 路径内诊断、修 prompt 或有限重试，禁止切换任何其它 raster provider。
+1. **Baoyu Core Design Skills**：`baoyu-article-illustrator` 规划全文并负责正文
+   authority；`baoyu-cover-image` 负责 cover；`baoyu-infographic` 负责
+   `SLOT_IMG_00`。每个最终 raster asset 都必须有匹配的 `baoyu_design.skill`。
+2. **Baoyu Specialized Design Skills**：当前至少有 `baoyu-diagram`。只有当
+   结构、架构、流程、时序、数据流、层级或状态转换确实需要专项语法时，Agent
+   才从 catalog 选择它。它提供 nodes、edges、方向、分组和拓扑，不是全局 style
+   authority。
+3. **Optional Contributors**：其它当前或未来 Baoyu Skill、第三方 Skill 或
+   Agent-native reasoning 只能补充设计。`contributors` 是运行期事实，未知值
+   也不需要 workflow 分支；它不是 Skill Router。
+4. **Raster Renderer**：唯一出口是 `baoyu-image-gen`，唯一 provider 是
+   `codex-cli`（配置字段 `default_provider`），唯一执行模式是集中式
+   single-image serial renderer。
 
-视觉操作协议：先判定是否需要图；需要时动态发现并选择 Agent 原生或一个/少量
-互补视觉能力；将选择和 intent 写入 `image-plan.json`；`prompt_source=adapter`
-时由当前兼容 adapter 生成 prompt，`prompt_source=external` 时先委托 producer
-生成 rendering prompt 并保存到预期路径；最后统一经
-`baoyu-image-gen → codex-cli` 逐张生成 raster，再按 SLOT/计划/prompt/image
-Gate 验证。external 的 `producer` 是运行期事实，不得据此增加 workflow 分支。
+进入 illustrate 后按以下顺序：
+
+```text
+OBSERVE ARTICLE → DEFINE VISUAL NEEDS
+→ baoyu-article-illustrator（文章级规划）
+→ baoyu-cover-image（cover）
+→ baoyu-infographic（SLOT_IMG_00）
+→ 检查 catalog，按需选择 baoyu-diagram / 其它 contributor
+→ 写 image-plan → 物化全部 canonical prompts
+→ prompt preflight → runtime Codex preflight
+→ render-images-serial.mjs → Step 4 Gate → trace
+```
+
+委托任何 Baoyu 设计能力时追加 DESIGN-ONLY MODE：
+
+```text
+你正在作为 wechat-article-write 的 Baoyu 专项视觉设计能力参与。
+只返回视觉设计、layout、信息架构、结构拓扑或 canonical-prompt contribution。
+Do not render final images.
+Do not invoke native imagegen, GenerateImage, image_generate, API image providers,
+or baoyu-image-gen.
+Do not use SVG/Canvas/HTML as the final article image.
+不要修改文章 SLOT、state、发布协议或发布文章。
+```
+
+`baoyu-diagram` 的 delegate contract 只允许它判断 diagram type、nodes/components、
+edges/relationships、flow direction、grouping、hierarchy、sequence、state
+transition、label placement 和 layout constraints；它不得生成 SVG/PNG、执行
+SVG→PNG、调用任何图片 backend 或成为最终 raster prompt authority。其结构结果
+被核心 Baoyu 设计层吸收进现有 `intent`、`design_notes`、`baoyu_design` 和
+canonical prompt，不新增 diagram artifact 或第二套图片产物链。
+
+正常模式不根据 `article_type`、`direction`、关键词或 Skill 名称决定 layout/style。
+Agent 自主组合 Type、Layout、Style、Palette、Rendering、Mood、Font；adapter
+只验证并读取所选的当前 Baoyu reference。若上游存在稳定的
+`references/layouts/<name>.md`、`references/styles/<name>.md`，运行时直接检查
+文件存在；没有稳定 reference 时只要求非空，不复制上游枚举。旧
+`image-template-map.json` 仅由 `--allow-default-image-plan` 读取。
+
+`prompt_source=adapter` 由 deterministic adapter 读取 Agent 已完成的 Baoyu
+设计决策并生成 canonical prompt；`external` 只允许对应 Baoyu Core Skill 作为
+`producer`，不能由 `baoyu-diagram` 或任意其它 contributor 直接接管最终 prompt。
+所有 prompt 在第一张图前完成 preflight；真实生图前运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <date-slug>
+```
+
+renderer 固定顺序为 cover、`SLOT_IMG_00`、正文 SLOT 数字升序；每次只调用一张
+single-image `baoyu-image-gen --provider codex-cli`，等待并验证输出后才启动下一张。
+已存在且通过完整性检查的当前 asset 默认 skip；任一 asset 失败立即停止。不得
+使用 batchfile、`--jobs`、parallel tool calls、后台任务、worker pool 或
+`Promise.all`。Codex CLI 不可用、未登录或生成失败时当前图片阶段 BLOCKED，禁止
+fallback。
 
 ## 阶段完成记录
 

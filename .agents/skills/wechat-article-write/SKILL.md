@@ -8,13 +8,13 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.53.0"
+  version: "1.54.0"
 ---
 
 # 微信公众号文章写作
 
 本技能是博客 + 微信双轨管线的监督层。它固定文件协议、状态、Gate 和
-发布顺序；内容理解、写作和视觉方法在每个开放阶段按当前任务动态选择。
+发布顺序；内容理解、写作方法和专项视觉 contributor 按当前任务动态选择。
 
 ## 先读路由
 
@@ -40,8 +40,8 @@ metadata:
 - Step 5 先产出 `article-wechat-source.md`，再由 `gzh-design` 排版，最后
   运行 finalize；不得用 post 内自写渲染脚本替代它。
 - 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
-- 第三方 Skill 源码只读。运行时动态 catalog 发现能力，不把认知/写作 Skill
-  登记成固定流程依赖。
+- 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力，不把认知/写作
+  Skill 登记成固定流程依赖。
 
 ## Adaptive Stage 规则
 
@@ -58,15 +58,21 @@ metadata:
    路线尝试完成 Gate 后都 best-effort 追加 orchestration trace。
 6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
    重复，也不得绕过 Gate。trace 失败不影响 artifact、state 或 Gate。具体
-   规则见 `orchestration-policy.md`。
+规则见 `orchestration-policy.md`。
 
-## 图片成本硬约束
+`illustrate` 是例外：它必须先经过 Baoyu Core Design Skills，`no-skill` 只表示
+没有额外 contributor。文章级规划使用 `baoyu-article-illustrator`；封面使用
+`baoyu-cover-image`；`SLOT_IMG_00` 使用 `baoyu-infographic`。涉及架构、流程、
+时序、数据流或状态关系时，Agent 可从 catalog 选择 `baoyu-diagram`，但它只
+贡献结构语法，不生成 SVG/PNG，也不成为最终 prompt authority。
 
-视觉 producer（Agent 或动态选择的视觉 Skill）只负责视觉设计、layout 和
-rendering prompt；所有 raster rendering 必须统一经 `baoyu-image-gen` →
-`codex-cli`。项目默认 provider 在
-`.baoyu-skills/baoyu-image-gen/EXTEND.md` 的 `default_provider` 中固定；
-日常命令不传冲突的 `--provider`。先运行：
+## 图片视觉与成本硬约束
+
+Baoyu Core Design Skills 负责视觉判断与 canonical prompt；可选 contributor 只
+补充结构或设计意见。高层设计委托统一使用 DESIGN-ONLY MODE：不得调用 native
+imagegen、GenerateImage、image_generate、API image provider、`baoyu-image-gen`
+或输出最终 SVG/PNG。唯一 raster 链路是 `baoyu-image-gen` → `codex-cli`，唯一
+执行器是集中式串行脚本。先运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
@@ -76,13 +82,21 @@ Codex CLI 不可用、未登录或生成失败时，图片阶段必须 fail clos
 同一路径内诊断、修改 prompt 和有限重试；禁止切换其它 provider，也不能
 使用运行时原生 image generation 绕过配置。
 
+不得由 Agent 并行调用生图、使用 batchfile、`--jobs` 或 `Promise.all`；必须先
+物化全部 active canonical prompt，再执行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <date-slug>
+```
+
 ## 最小流程
 
 Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
 按策略完成理解或适配/写作；Step 3 针对实际问题 refine；Step 4 先定
-视觉增益和 image-plan，再生成 prompt 与图片；正文 SLOT 可以为零张，
-但 SLOT_IMG_00 必须存在且与 image-plan 一致；Step 5 构建并校验双轨产物；
-Step 6 按顺序发布。
+先运行 Baoyu article-level visual design，再分别完成 cover、SLOT_IMG_00 和正文
+的 Baoyu 设计合同，最后生成 prompt 与图片；正文 SLOT 可以为零张，但
+SLOT_IMG_00 必须存在且与 image-plan 一致；Step 5 构建并校验双轨产物；Step 6
+按顺序发布。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all

@@ -47,11 +47,19 @@ function writePost(postsRoot, slug, body, imageNames) {
   const illustrations = slots.map((slot) => {
     const image = imageNames.find((name) => name.startsWith(`${String(slot.slot).padStart(2, "0")}-`));
     const description = image?.replace(/^\d{2}-/, "").replace(/\.(?:png|jpe?g|webp|gif)$/i, "") ?? slot.desc ?? "visual-node";
-    return { slot: slot.slot, intent: `解释 SLOT ${slot.slot}`, type: "framework", style: "minimal", description };
+    return {
+      slot: slot.slot,
+      intent: `解释 SLOT ${slot.slot}`,
+      baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "minimal" },
+      contributors: [],
+      description,
+      prompt_source: "adapter",
+    };
   });
   writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
-    cover: { intent: "表达文章中心", type: "conceptual", style: "editorial", prompt_source: "adapter" },
-    infographic: { intent: "压缩全文", layout: "bento-grid", style: "claymation", prompt_source: "adapter" },
+    article_visual_design: { skill: "baoyu-article-illustrator", strategy: "只在视觉能降低理解成本的位置创建图片" },
+    cover: { intent: "表达文章中心", baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", style: "editorial" }, contributors: [], prompt_source: "adapter" },
+    infographic: { intent: "压缩全文", baoyu_design: { skill: "baoyu-infographic", layout: "bento-grid", style: "claymation" }, contributors: [], prompt_source: "adapter" },
     illustrations,
   }, null, 2));
   const promptsDir = join(imgsDir, "prompts");
@@ -238,7 +246,7 @@ ${slots}
     expect(r.stderr).toContain("串行");
   });
 
-  test("fails when generated image does not match prompt basename", () => {
+  test("warns about stale prompt without gating the current plan", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-18-prompt-image-mismatch";
@@ -264,10 +272,37 @@ ${slots}
     const promptsDir = join(dir, "imgs", "prompts");
     mkdirSync(promptsDir, { recursive: true });
     writeFileSync(join(promptsDir, "01-other.md"), "extra prompt\n");
+    writeFileSync(join(dir, "imgs", "01-other.png"), PNG_BYTES);
 
     const r = runStep4(slug, fx.postsRoot);
 
-    expect(r.status).toBe(2);
+    expect(r.status).toBe(0);
+    expect(r.stderr).toContain("stale/unplanned prompts");
     expect(r.stderr).toContain("01-other");
+    expect(r.stderr).toContain("stale/unplanned images");
+  });
+
+  test("fails when an active prompt or image is missing", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-active-asset-missing";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+<!-- SLOT_IMG_01_CORE_TENSION -->
+
+## 参考资料
+
+> 来源
+> https://example.com/source
+`, ["00-infographic-core-summary.png", "01-core-tension.png"]);
+    rmSync(join(dir, "imgs", "01-core-tension.png"));
+
+    const r = runStep4(slug, fx.postsRoot);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("SLOT_IMG_01");
+    expect(r.stderr).toContain("Missing images");
   });
 });

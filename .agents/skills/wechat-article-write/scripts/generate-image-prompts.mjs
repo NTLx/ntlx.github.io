@@ -27,6 +27,7 @@ import {
   collectDraftSlots,
   normalizePromptSource,
   readImagePlan,
+  validateBaoyuDesign,
   validateVisualPlanTopology,
   visualPromptDescription,
 } from "./visual-plan-lib.mjs";
@@ -176,19 +177,18 @@ function writePrompt(path, content) {
   return true;
 }
 
-const IMAGE_TEMPLATE_MAP = JSON.parse(readRequired(resolve(repoRoot(), ".agents/skills/wechat-article-write/references/image-template-map.json")));
-// baoyu-infographic 的正交模型：21 layouts × 22 styles。
-// SLOT 00 信息图 prompt 同时读取两个文件并组合，而不是单一 hybrid 模板。
-const VALID_INFOGRAPHIC_LAYOUTS = new Set(IMAGE_TEMPLATE_MAP.infographic_layouts ?? []);
-const VALID_INFOGRAPHIC_STYLES = new Set(IMAGE_TEMPLATE_MAP.infographic_styles ?? []);
+// The static map is a compatibility source only. Normal plans validate the
+// selected Baoyu reference files directly so upstream additions work without
+// changing this skill.
+const IMAGE_TEMPLATE_MAP = allowDefaultImagePlan
+  ? JSON.parse(readRequired(resolve(repoRoot(), ".agents/skills/wechat-article-write/references/image-template-map.json")))
+  : {};
 const LEGACY_DEFAULTS = IMAGE_TEMPLATE_MAP.legacy_defaults ?? {
   style_families: IMAGE_TEMPLATE_MAP.style_families ?? {},
   article_type_defaults: IMAGE_TEMPLATE_MAP.article_type_defaults ?? {},
 };
 const LEGACY_STYLE_FAMILIES = LEGACY_DEFAULTS.style_families ?? {};
 const LEGACY_ARTICLE_TYPE_DEFAULTS = LEGACY_DEFAULTS.article_type_defaults ?? {};
-const VALID_ARTICLE_TYPES = new Set(Object.keys(LEGACY_ARTICLE_TYPE_DEFAULTS));
-const VALID_ILLUSTRATION_TYPES = new Set(["comparison", "flowchart", "framework"]);
 
 // Optional adapter template sources are resolved only when at least one asset
 // actually uses the adapter. External producers must not depend on them.
@@ -245,7 +245,7 @@ function readBaoyuInfographicStyle(styleName) {
   return readFileSync(path, "utf8");
 }
 
-function buildCompactInfographicPrompt({ fm, body, labels, intent, layout, style, aspect }) {
+function buildCompactInfographicPrompt({ fm, body, labels, intent, layout, style, aspect, designNotes }) {
   const labelText = labels.map((label) => `"${label}"`).join(", ");
   const layoutDoc = readBaoyuInfographicLayout(layout);
   const styleDoc = readBaoyuInfographicStyle(style);
@@ -259,6 +259,7 @@ function buildCompactInfographicPrompt({ fm, body, labels, intent, layout, style
     "Required information architecture: central thesis; argument path with 3-5 major supporting points; key contrast, cause-effect link, or decision fork; final takeaway or action cue.",
     "Do not merely visualize one nearby section. Synthesize the full article into a readable map of the author's reasoning.",
     `Agent visual intent: ${intent}`,
+    designNotes ? `Design notes from Baoyu contributors: ${designNotes}` : null,
     "Scene/background: bright, sunny, clean neutral editorial canvas with high-contrast background",
     "Color/Atmosphere: sunny, bright, vibrant, high saturation, clear distinction between background and content for maximum readability and legibility",
     `Subject: ${subject}`,
@@ -304,21 +305,16 @@ function validateImagePlan(imagePlan) {
   if (typeof imagePlan !== "object" || Array.isArray(imagePlan)) {
     fail("image-plan.json must contain a JSON object");
   }
-  if (imagePlan.article_type && !VALID_ARTICLE_TYPES.has(imagePlan.article_type) && !allowDefaultImagePlan) {
-    fail(`unknown article_type "${imagePlan.article_type}" in image-plan.json`);
-  }
-  if (imagePlan.direction && !LEGACY_STYLE_FAMILIES[imagePlan.direction] && !allowDefaultImagePlan) {
-    fail(`unknown direction "${imagePlan.direction}" in image-plan.json`);
-  }
+  // article_type and direction are context metadata in normal mode. They are
+  // consulted only by resolveLegacyDefaults after explicit compatibility opt-in.
 
   const info = imagePlan.infographic;
   if (info) {
     const source = promptSource(info, "image-plan.infographic");
-    if (source === "adapter" && info.style && !VALID_INFOGRAPHIC_STYLES.has(info.style)) {
-      fail(`unknown infographic style "${info.style}" in image-plan.json (must be one of baoyu-infographic styles)`);
-    }
-    if (source === "adapter" && info.layout && !VALID_INFOGRAPHIC_LAYOUTS.has(info.layout)) {
-      fail(`unknown infographic layout "${info.layout}" in image-plan.json (must be one of baoyu-infographic layouts)`);
+    if (source === "adapter" && info.baoyu_design &&
+        (typeof info.baoyu_design.layout !== "string" || !info.baoyu_design.layout.trim() ||
+         typeof info.baoyu_design.style !== "string" || !info.baoyu_design.style.trim())) {
+      fail("image-plan.infographic.baoyu_design.layout and style are required for adapter prompts");
     }
   }
 
@@ -330,11 +326,9 @@ function validateImagePlan(imagePlan) {
       fail("image-plan.illustrations entries must be objects");
     }
     const source = promptSource(entry, "image-plan.illustrations entry");
-    if (source === "adapter" && entry.type && !VALID_ILLUSTRATION_TYPES.has(entry.type)) {
-      fail(`unknown illustration type "${entry.type}" in image-plan.json`);
-    }
-    if (source === "adapter" && entry.style && !validIllustrationStyles().has(entry.style)) {
-      fail(`unknown illustration style "${entry.style}" in image-plan.json (must match baoyu-article-illustrator styles)`);
+    const design = entry.baoyu_design ?? (allowDefaultImagePlan ? entry : null);
+    if (source === "adapter" && design?.style && !validIllustrationStyles().has(design.style)) {
+      fail(`unknown illustration style "${design.style}" in image-plan.json (must match baoyu-article-illustrator styles)`);
     }
   }
 }
@@ -356,13 +350,17 @@ function validateVisualPlan(imagePlan, body) {
   const topology = validateVisualPlanTopology(imagePlan, body);
   if (!topology.ok) fail(topology.errors.join("; "));
 
+  const designErrors = validateBaoyuDesign(imagePlan);
+  if (designErrors.length > 0) fail(designErrors.join("; "));
+
   const cover = imagePlan.cover;
   const coverSource = promptSource(cover, "image-plan.cover");
   requireText(cover.intent, "image-plan.cover.intent");
   if (coverSource === "adapter") {
-    requireText(cover.type, "image-plan.cover.type");
-    if (!hasText(cover.style) && !(hasText(cover.palette) && hasText(cover.rendering))) {
-      fail("image-plan.cover.style or both image-plan.cover.palette and image-plan.cover.rendering are required");
+    const design = cover.baoyu_design;
+    requireText(design.type, "image-plan.cover.baoyu_design.type");
+    if (!hasText(design.style) && !(hasText(design.palette) && hasText(design.rendering))) {
+      fail("image-plan.cover.baoyu_design.style or both image-plan.cover.baoyu_design.palette and image-plan.cover.baoyu_design.rendering are required");
     }
   }
 
@@ -370,16 +368,16 @@ function validateVisualPlan(imagePlan, body) {
   const infographicSource = promptSource(infographic, "image-plan.infographic");
   requireText(infographic.intent, "image-plan.infographic.intent");
   if (infographicSource === "adapter") {
-    requireText(infographic.layout, "image-plan.infographic.layout");
-    requireText(infographic.style, "image-plan.infographic.style");
+    requireText(infographic.baoyu_design.layout, "image-plan.infographic.baoyu_design.layout");
+    requireText(infographic.baoyu_design.style, "image-plan.infographic.baoyu_design.style");
   }
 
   for (const slot of topology.bodySlots) {
     const entry = topology.entriesBySlot.get(slot.slot);
     requireText(entry.intent, `image-plan.illustrations[slot=${slot.slot}].intent`);
     if (promptSource(entry, `image-plan.illustrations[slot=${slot.slot}]`) === "adapter") {
-      requireText(entry.type, `image-plan.illustrations[slot=${slot.slot}].type`);
-      requireText(entry.style, `image-plan.illustrations[slot=${slot.slot}].style`);
+      requireText(entry.baoyu_design.type, `image-plan.illustrations[slot=${slot.slot}].baoyu_design.type`);
+      requireText(entry.baoyu_design.style, `image-plan.illustrations[slot=${slot.slot}].baoyu_design.style`);
     }
   }
 }
@@ -458,6 +456,10 @@ const infographicConfig = allowDefaultImagePlan
 const coverSource = promptSource(coverConfig, "image-plan.cover");
 const infographicSource = promptSource(infographicConfig, "image-plan.infographic");
 
+function designConfig(node, fallback = {}) {
+  return node?.baoyu_design ?? fallback;
+}
+
 const bodySpecs = slots
   .filter((slot) => slot.slot > 0)
   .map((slot) => {
@@ -483,12 +485,13 @@ if (coverSource === "adapter") {
   // This compatibility adapter is loaded only when the cover actually uses it.
   readRequired(resolve(skillDir("baoyu-cover-image"), "references/workflow/prompt-template.md"));
   const coverIntent = coverConfig.intent ?? "用一个清晰隐喻表达文章中心张力（legacy fallback）";
-  const coverType = coverConfig.type ?? "conceptual";
-  const coverPalette = coverConfig.palette;
-  const coverRendering = coverConfig.rendering;
-  const coverStyle = coverConfig.style;
-  const coverText = coverConfig.text ?? "none";
-  const coverMood = coverConfig.mood ?? "bold";
+  const coverDesign = designConfig(coverConfig, allowDefaultImagePlan ? coverConfig : {});
+  const coverType = coverDesign.type ?? "conceptual";
+  const coverPalette = coverDesign.palette;
+  const coverRendering = coverDesign.rendering;
+  const coverStyle = coverDesign.style;
+  const coverText = coverDesign.text ?? "none";
+  const coverMood = coverDesign.mood ?? "bold";
   const coverHeader = [
     "---",
     "type: cover",
@@ -502,6 +505,7 @@ if (coverSource === "adapter") {
     coverStyle ? `Style: ${coverStyle}` : null,
     coverPalette ? `Palette: ${coverPalette}` : null,
     coverRendering ? `Rendering: ${coverRendering}` : null,
+    coverConfig.design_notes ? `Design notes from Baoyu contributors: ${coverConfig.design_notes}` : null,
     "Font: none",
     `Text level: ${coverText}`,
     `Mood: ${coverMood}`,
@@ -533,9 +537,10 @@ ${coverRendering ? `Rendering notes: ${coverRendering}, clean outlines, bold con
 let infographicPrompt = null;
 if (infographicSource === "adapter") {
   const infographicIntent = infographicConfig.intent ?? "压缩全文中心判断、论证路径和结论（legacy fallback）";
-  const infoLayout = infographicConfig.layout ?? "bento-grid";
-  const infoStyle = infographicConfig.style ?? "claymation";
-  const infoAspect = infographicConfig.aspect ?? "16:9";
+  const infographicDesign = designConfig(infographicConfig, allowDefaultImagePlan ? infographicConfig : {});
+  const infoLayout = infographicDesign.layout ?? "bento-grid";
+  const infoStyle = infographicDesign.style ?? "claymation";
+  const infoAspect = infographicDesign.aspect ?? "16:9";
   infographicPrompt = buildCompactInfographicPrompt({
     fm,
     body,
@@ -544,6 +549,7 @@ if (infographicSource === "adapter") {
     layout: infoLayout,
     style: infoStyle,
     aspect: infoAspect,
+    designNotes: infographicConfig.design_notes,
   });
 }
 
@@ -572,8 +578,10 @@ for (const spec of bodySpecs) {
   const { slot, entry: planEntry, desc } = spec;
   const context = sectionContext(body, slot.index);
 
-  const type = planEntry?.type ?? (allowDefaultImagePlan ? inferIllustrationType(context, slot.desc) : null);
-  const style = planEntry?.style ?? (allowDefaultImagePlan ? defaults.illustrationStyle : null);
+  const planDesign = designConfig(planEntry, allowDefaultImagePlan ? planEntry : {});
+  const type = planDesign.type ?? (allowDefaultImagePlan ? inferIllustrationType(context, slot.desc) : null);
+  const style = planDesign.style ?? (allowDefaultImagePlan ? defaults.illustrationStyle : null);
+  const palette = planDesign.palette;
   const intent = planEntry?.intent ?? (allowDefaultImagePlan ? "解释正文附近的关键论证节点" : null);
   if (!type || !style || !intent) {
     fail(`visual plan is incomplete for SLOT_IMG_${String(slot.slot).padStart(2, "0")}`);
@@ -591,7 +599,7 @@ for (const spec of bodySpecs) {
 illustration_id: ${nn}
 type: ${type}
 style: ${style}
----
+${palette ? `palette: ${palette}\n` : ""}---
 
 # Article Illustration Prompt
 
@@ -599,6 +607,7 @@ Article title: ${fm.title}
 Slot: SLOT_IMG_${nn}${slot.desc ? `_${slot.desc}` : ""}
 Purpose: ${intent}
 Visual intent: ${intent}
+${planEntry.design_notes ? `Design notes from Baoyu contributors: ${planEntry.design_notes}\n` : ""}
 
 ${typeTemplate(type)}
 
@@ -622,7 +631,7 @@ ${(styleContent ?? vectorStyle).trim()}
 
 ## Final Rendering Instructions
 
-Clean composition with generous white space. Text should be large, prominent, and readable. Color values (#hex) and color names are rendering guidance only — do NOT display color names, hex codes, or palette labels as visible text in the image. Aspect ratio: 16:9.
+Clean composition with generous white space. Text should be large, prominent, and readable. Color values (#hex) and color names are rendering guidance only — do NOT display color names, hex codes, or palette labels as visible text in the image. ${palette ? `Palette family: ${palette}. ` : ""}Aspect ratio: ${planDesign.aspect ?? "16:9"}.
 `;
   const name = `${nn}-${desc}.md`;
   if (writePrompt(resolve(promptsDir, name), prompt)) outputs.push(name);

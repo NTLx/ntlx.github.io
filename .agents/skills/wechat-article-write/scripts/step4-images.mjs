@@ -18,9 +18,19 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { normalizeSlotDesc } from "./validation-lib.mjs";
 import { extractBody, parseFrontmatter } from "./frontmatter-lib.mjs";
-import { normalizePromptSource, readImagePlan, validateVisualPlanTopology, visualPromptDescription } from "./visual-plan-lib.mjs";
+import {
+  activeImageBasenames,
+  activePromptBasenames,
+  collectActiveAssets,
+  normalizePromptSource,
+  readImagePlan,
+  validateBaoyuDesign,
+  validateVisualPlanTopology,
+  visualPromptDescription,
+} from "./visual-plan-lib.mjs";
 
-const slug = process.argv[2];
+const allowDefaultImagePlan = process.argv.includes("--allow-default-image-plan");
+const slug = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
 if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); process.exit(1); }
 
 const base = resolve(postsRoot(), slug);
@@ -81,7 +91,7 @@ const coverJpg = resolve(base, "cover.jpg");
 let coverExt = "png";
 if (!existsSync(coverPng) && existsSync(coverJpg)) coverExt = "jpg";
 else if (existsSync(coverJpg)) {
-  // Both exist — prefer jpg (Gemini actually returns JPEG)
+  // Both exist — prefer jpg for compatibility with JPEG-producing backends.
   coverExt = "jpg";
 }
 
@@ -125,6 +135,15 @@ if (!topology.ok) {
   markStepFailed(slug, 4, msg);
   process.exit(2);
 }
+if (!allowDefaultImagePlan) {
+  const designErrors = validateBaoyuDesign(imagePlan);
+  if (designErrors.length > 0) {
+    const msg = `Baoyu visual design contract invalid: ${designErrors.join("; ")}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
+    process.exit(2);
+  }
+}
 
 // 4. SLOT-only enforcement: no local imgs/ Markdown references allowed
 const localImgRefs = [...draft.matchAll(/!\[[^\]]*\]\([^)]*imgs\//g)];
@@ -138,6 +157,7 @@ if (localImgRefs.length > 0) {
 const imgs = existsSync(imgsDir)
   ? readdirSync(imgsDir).filter((f) => /\.(png|jpe?g|webp|gif)$/i.test(f))
   : [];
+const activeAssets = collectActiveAssets(imagePlan, body, { blogSlug: fm?.blogSlug, slug });
 
 function promptSource(node) {
   try {
@@ -198,18 +218,19 @@ if (missingAssets.length > 0) {
   process.exit(2);
 }
 
-// Keep the existing warning for image files that have no draft SLOT reference.
-const referencedSlots = new Set(topology.slots.map((slot) => String(slot.slot).padStart(2, "0")));
-const unreferencedImgs = imgs.filter((file) => {
-  if (file.startsWith("00-")) return false;
-  return !referencedSlots.has(file.split("-")[0]);
+// Only active assets are gates. Files left by an earlier plan remain visible
+// as warnings and are never deleted automatically.
+const activeImageNames = activeImageBasenames(activeAssets);
+const staleImages = imgs.filter((file) => {
+  const stem = file.replace(/\.(png|jpe?g|webp|gif)$/i, "");
+  return !activeImageNames.has(stem);
 });
-if (unreferencedImgs.length > 0) {
-  process.stderr.write(`step4: WARNING ${unreferencedImgs.length} images in imgs/ not referenced by any SLOT_IMG placeholder\n`);
+if (staleImages.length > 0) {
+  process.stderr.write(`step4: WARNING stale/unplanned images in imgs/: ${staleImages.join(", ")}\n`);
 }
 
 // 6. Infographic validation
-const infoFiles = imgs.filter((f) => f.startsWith("00-infographic"));
+const infoFiles = imgs.filter((f) => f.replace(/\.(png|jpe?g|webp|gif)$/i, "") === "00-infographic-core-summary");
 if (infoFiles.length > 0) {
   const hasInfoRef = /infographic|SLOT_IMG_00/i.test(body);
   if (!hasInfoRef) {
@@ -217,22 +238,14 @@ if (infoFiles.length > 0) {
   }
 }
 
-// 6b. Prompt/image basename contract: generated images must match prompt files.
-//     This prevents ad-hoc batch payloads from writing 00-infographic.png for
-//     00-infographic-core-summary.md, which breaks deterministic SLOT mapping.
+// 6b. Prompt/image basename contract for active assets. Stale prompts are
+//     reported but do not become a gate for the current plan.
 if (existsSync(promptsDir)) {
-  const missingPromptOutputs = [];
-  for (const promptFile of readdirSync(promptsDir).filter(f => /^\d{2}-.+\.md$/i.test(f))) {
-    const baseName = promptFile.replace(/\.md$/i, "");
-    if (baseName.startsWith("00-cover-")) continue;
-    const hasImage = imgs.some((img) => img.replace(/\.(png|jpe?g|webp|gif)$/i, "") === baseName);
-    if (!hasImage) missingPromptOutputs.push(baseName);
-  }
-  if (missingPromptOutputs.length > 0) {
-    const msg = `prompt/image basename mismatch: missing image outputs for ${missingPromptOutputs.join(", ")}. 生图输出文件名必须与 imgs/prompts/NN-desc.md 去掉 .md 后一致。`;
-    process.stderr.write(`step4: FAIL - ${msg}\n`);
-    markStepFailed(slug, 4, msg);
-    process.exit(2);
+  const activePromptNames = activePromptBasenames(activeAssets);
+  const promptFiles = readdirSync(promptsDir).filter((file) => file.endsWith(".md"));
+  const stalePrompts = promptFiles.filter((file) => !activePromptNames.has(file.replace(/\.md$/i, "")));
+  if (stalePrompts.length > 0) {
+    process.stderr.write(`step4: WARNING stale/unplanned prompts in imgs/prompts/: ${stalePrompts.join(", ")}\n`);
   }
 }
 

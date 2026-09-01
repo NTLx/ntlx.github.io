@@ -150,23 +150,38 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
 - [官方资料](https://example.com/agentic-orchestration)
 `);
     writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
-      article_type: "deep-analysis",
+      article_type: "future-architecture-analysis",
+      direction: "future-style-language",
+      article_visual_design: {
+        skill: "baoyu-article-illustrator",
+        strategy: "先判断视觉增益，再决定正文 SLOT 数量",
+      },
       cover: {
         intent: "表达确定性协议与自适应方法之间的边界",
-        type: "conceptual",
-        style: "technical editorial",
-        palette: "cool",
-        rendering: "flat-vector",
+        baoyu_design: {
+          skill: "baoyu-cover-image",
+          type: "conceptual",
+          style: "technical editorial",
+          palette: "cool",
+          rendering: "flat-vector",
+        },
+        contributors: [],
+        prompt_source: "adapter",
       },
       infographic: {
         intent: "压缩缺口、选择、产物和 Gate 的闭环",
-        layout: "circular-flow",
-        style: "technical-schematic",
+        baoyu_design: {
+          skill: "baoyu-infographic",
+          layout: "circular-flow",
+          style: "technical-schematic",
+        },
+        contributors: ["baoyu-diagram"],
+        prompt_source: "adapter",
       },
       illustrations: [
-        { slot: 1, intent: "比较确定性内核与 Agent 自适应层", type: "comparison", style: "editorial", description: "core-boundary" },
-        { slot: 2, intent: "解释 Gate 失败后的改道路径", type: "flowchart", style: "minimal", description: "gate-reroute" },
-        { slot: 3, intent: "呈现图片成本边界的分层结构", type: "framework", style: "scientific", description: "cost-boundary" },
+        { slot: 1, intent: "比较确定性内核与 Agent 自适应层", baoyu_design: { skill: "baoyu-article-illustrator", type: "comparison", style: "editorial" }, contributors: [], description: "core-boundary", prompt_source: "adapter" },
+        { slot: 2, intent: "解释 Gate 失败后的改道路径", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "minimal" }, contributors: ["baoyu-diagram"], description: "gate-reroute", prompt_source: "adapter" },
+        { slot: 3, intent: "呈现图片成本边界的分层结构", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "scientific" }, contributors: [], description: "cost-boundary", prompt_source: "adapter" },
       ],
     }, null, 2) + "\n");
 

@@ -8,20 +8,27 @@
 
 | 依赖 | 类型 | 用途 |
 |---|---|---|
-| `baoyu-image-gen` | raster 适配器 | 图片实际生成入口；默认 provider 必须是 `codex-cli` |
+| `baoyu-article-illustrator` | Baoyu Core Design Skill | 全文视觉规划和正文设计 authority；正文可判定为 0 张 |
+| `baoyu-cover-image` | Baoyu Core Design Skill | 封面设计 authority |
+| `baoyu-infographic` | Baoyu Core Design Skill | `SLOT_IMG_00` 摘要信息图 authority |
+| `baoyu-diagram` | Baoyu Specialized Design Skill | 按需提供架构、流程、时序、状态和关系结构；不渲染最终图片 |
+| `baoyu-image-gen` | raster renderer | 唯一最终图片生成入口；provider 必须是 `codex-cli` |
+| `render-images-serial.mjs` | 确定性执行器 | 全 prompt preflight 后单图串行调用 renderer |
 | `github-image-hosting` | 确定性适配器 | 博客图片上传和 CDN URL |
 | `gzh-design` | 确定性适配器 | 微信 HTML 排版、validator 和预览包装 |
 | `baoyu-post-to-wechat` | 确定性适配器 | 微信草稿发布 |
 
-上述依赖由 `scripts/workflow.mjs` 的 `HARD_DEPENDENCIES` 单一声明，
+上述 illustrate 依赖由 `scripts/workflow.mjs` 的 `HARD_DEPENDENCIES` 单一声明，
 `check-deps.mjs` 和 `validate-architecture.mjs` 只检查它们。缺少任何
-认知、写作或可选视觉 Skill 不应因此阻断流程。
+认知、写作或 optional contributor Skill 不应因此阻断流程；
+`baoyu-diagram` 必须安装但不必每篇文章调用。
 
 ## Runtime adaptive capabilities
 
-开放式能力（包括内容、写作和视觉 producer）由
+开放式能力（包括内容、写作和 optional visual contributor）由
 `skill-catalog.mjs` 动态发现，Agent 按当前 Stage Contract 和 gap 选择；
-这里不列举完整清单，也不维护 Skill→场景映射。no-skill 始终是合法路线。
+这里不列举完整清单，也不维护 Skill→场景映射。除 illustrate 的 mandatory
+Baoyu Core Design Layer 外，no-skill 仍是合法路线。
 
 ## Conditional adapter template sources
 
@@ -59,14 +66,15 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --ru
 | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信作者和发布偏好 |
 | `.baoyu-skills/.env` | 本地 Secret 和运行时参数；被 Git 忽略，不打印不提交 |
 
-视觉 producer 只能产出视觉方案或 rendering prompt；最终图片始终由
-`baoyu-image-gen → codex-cli` 生成。
+Baoyu Core 和 Specialized Skill 只能产出视觉方案、结构或 rendering prompt；
+最终图片始终由 `baoyu-image-gen → codex-cli` 生成。
 
 ## Provider policy
 
 `baoyu-image-gen` 的默认 provider 由 `EXTEND.md` 的
-`default_provider` 固定为 `codex-cli`。日常调用不传与之冲突的
-`--provider`；`.env` 中即使存在其它 API key，也不改变这条默认路径。
+`default_provider` 固定为 `codex-cli`。唯一的生产执行器会对每次 single-image
+调用显式传入 `--provider codex-cli`；`.env` 中即使存在其它 API key，也不改变
+这条默认路径。
 
 Codex CLI 不可执行、登录失效、超时或生成失败时，图片阶段停止并报告
 BLOCKED。允许在同一路径内修复锁、缩短 prompt、重新生成或使用上游已经

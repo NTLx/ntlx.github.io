@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -30,20 +30,47 @@ describe("check-deps", () => {
     expect(payload.stage).toBe("images");
   });
 
-  test("does not require optional visual Skills for the image protocol", () => {
+  test("requires every core, specialized, and raster Baoyu image capability", () => {
     const root = join(tmpdir(), `check-deps-optional-visual-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     try {
       mkdirSync(join(root, ".baoyu-skills", "baoyu-image-gen"), { recursive: true });
-      mkdirSync(join(root, ".agents", "skills", "baoyu-image-gen"), { recursive: true });
+      for (const name of [
+        "baoyu-article-illustrator",
+        "baoyu-cover-image",
+        "baoyu-infographic",
+        "baoyu-diagram",
+        "baoyu-image-gen",
+      ]) {
+        mkdirSync(join(root, ".agents", "skills", name), { recursive: true });
+        writeFileSync(join(root, ".agents", "skills", name, "SKILL.md"), `---\nname: ${name}\n---\n`);
+      }
       mkdirSync(join(root, ".agents", "skills", "wechat-article-write", "references"), { recursive: true });
       writeFileSync(join(root, ".baoyu-skills", "baoyu-image-gen", "EXTEND.md"), "---\nversion: 1\ndefault_provider: codex-cli\n---\n");
-      writeFileSync(join(root, ".agents", "skills", "baoyu-image-gen", "SKILL.md"), "---\nname: baoyu-image-gen\n---\n");
       writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "references", "image-template-map.json"), "{}\n");
       writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "references", "image-plan.schema.json"), "{}\n");
+      mkdirSync(join(root, ".agents", "skills", "wechat-article-write", "scripts"), { recursive: true });
+      writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "scripts", "visual-plan-lib.mjs"), "\n");
+      writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "scripts", "render-images-serial.mjs"), "\n");
 
       const r = run("images", { PIPELINE_REPO_ROOT: root, PATH: "/nonexistent" });
       expect(r.status).toBe(0);
       expect(JSON.parse(r.stdout).ok).toBe(true);
+
+      for (const missingName of [
+        "baoyu-article-illustrator",
+        "baoyu-cover-image",
+        "baoyu-infographic",
+        "baoyu-diagram",
+        "baoyu-image-gen",
+      ]) {
+        const skillPath = join(root, ".agents", "skills", missingName, "SKILL.md");
+        const backup = readFileSync(skillPath, "utf8");
+        rmSync(skillPath);
+        const missing = run("images", { PIPELINE_REPO_ROOT: root, PATH: "/nonexistent" });
+        expect(missing.status).toBe(2);
+        expect(JSON.parse(missing.stdout).errors.join("\n")).toContain(missingName);
+        writeFileSync(skillPath, backup);
+      }
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -3,29 +3,54 @@
   "title": "wechat-article-write image-plan",
   "type": "object",
   "additionalProperties": false,
+  "required": ["article_visual_design", "cover", "infographic", "illustrations"],
   "properties": {
     "article_type": {
       "type": "string",
-      "enum": ["deep-analysis", "opinion-essay", "technical-deep-dive", "tutorial", "news-digest", "listicle", "data-story"]
+      "minLength": 1
     },
     "direction": {
       "type": "string",
-      "enum": ["journal", "tech", "editorial", "bold", "minimal", "retro", "elegant"]
+      "minLength": 1
+    },
+    "visual_language": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "article_visual_design": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["skill"],
+      "properties": {
+        "skill": { "const": "baoyu-article-illustrator" },
+        "strategy": { "type": "string", "minLength": 1 }
+      }
     },
     "cover": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "intent": { "type": "string" },
-        "type": { "type": "string" },
-        "style": { "type": "string" },
-        "palette": { "type": "string" },
-        "rendering": { "type": "string" },
-        "text": { "type": "string" },
-        "mood": { "type": "string" },
+        "intent": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "style": { "type": "string", "minLength": 1 },
+        "palette": { "type": "string", "minLength": 1 },
+        "rendering": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 },
+        "mood": { "type": "string", "minLength": 1 },
+        "baoyu_design": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["skill"],
+          "properties": { "skill": { "const": "baoyu-cover-image" } }
+        },
+        "contributors": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
         "producer": { "type": "string", "minLength": 1 }
       },
+      "required": ["baoyu_design"],
       "allOf": [
         {
           "if": {
@@ -40,13 +65,25 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "intent": { "type": "string" },
-        "layout": { "type": "string" },
-        "style": { "type": "string" },
-        "aspect": { "type": "string" },
+        "intent": { "type": "string", "minLength": 1 },
+        "layout": { "type": "string", "minLength": 1 },
+        "style": { "type": "string", "minLength": 1 },
+        "aspect": { "type": "string", "minLength": 1 },
+        "design_notes": { "type": "string", "minLength": 1 },
+        "baoyu_design": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["skill"],
+          "properties": { "skill": { "const": "baoyu-infographic" } }
+        },
+        "contributors": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
         "producer": { "type": "string", "minLength": 1 }
       },
+      "required": ["baoyu_design"],
       "allOf": [
         {
           "if": {
@@ -54,27 +91,6 @@
             "required": ["prompt_source"]
           },
           "then": { "required": ["producer"] }
-        },
-        {
-          "if": {
-            "anyOf": [
-              { "not": { "required": ["prompt_source"] } },
-              {
-                "properties": { "prompt_source": { "const": "adapter" } },
-                "required": ["prompt_source"]
-              }
-            ]
-          },
-          "then": {
-            "properties": {
-              "layout": {
-                "enum": ["bento-grid", "binary-comparison", "bridge", "circular-flow", "comic-strip", "comparison-matrix", "dashboard", "dense-modules", "funnel", "hierarchical-layers", "hub-spoke", "iceberg", "isometric-map", "jigsaw", "linear-progression", "periodic-table", "story-mountain", "structural-breakdown", "tree-branching", "venn-diagram", "winding-roadmap"]
-              },
-              "style": {
-                "enum": ["aged-academia", "bold-graphic", "chalkboard", "claymation", "corporate-memphis", "craft-handmade", "cyberpunk-neon", "hand-drawn-edu", "ikea-manual", "kawaii", "knolling", "lego-brick", "morandi-journal", "origami", "pixel-art", "pop-laboratory", "retro-pop-grid", "retro-popup-pop", "storybook-watercolor", "subway-map", "technical-schematic", "ui-wireframe"]
-              }
-            }
-          }
         }
       ]
     },
@@ -86,10 +102,20 @@
         "required": ["slot"],
         "properties": {
           "slot": { "type": "integer", "minimum": 1 },
-          "intent": { "type": "string" },
-          "type": { "type": "string" },
-          "style": { "type": "string" },
-          "description": { "type": "string" },
+          "intent": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "minLength": 1 },
+          "style": { "type": "string", "minLength": 1 },
+          "description": { "type": "string", "minLength": 1 },
+          "baoyu_design": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["skill"],
+            "properties": { "skill": { "const": "baoyu-article-illustrator" } }
+          },
+          "contributors": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
           "prompt_source": { "type": "string", "enum": ["adapter", "external"] },
           "producer": { "type": "string", "minLength": 1 }
         },
@@ -100,22 +126,6 @@
               "required": ["prompt_source"]
             },
             "then": { "required": ["producer"] }
-          },
-          {
-            "if": {
-              "anyOf": [
-                { "not": { "required": ["prompt_source"] } },
-                {
-                  "properties": { "prompt_source": { "const": "adapter" } },
-                  "required": ["prompt_source"]
-                }
-              ]
-            },
-            "then": {
-              "properties": {
-                "type": { "enum": ["comparison", "flowchart", "framework"] }
-              }
-            }
           }
         ]
       }

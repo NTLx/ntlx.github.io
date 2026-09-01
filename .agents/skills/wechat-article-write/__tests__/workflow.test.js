@@ -110,7 +110,7 @@ describe("workflow stage contracts", () => {
     expect(nextStageFromStep("unknown", 0)).toBe("unknown");
   });
 
-  test("only protocol adapters are hard dependencies", () => {
+  test("illustrate hard dependencies include the Baoyu design layer and raster renderer", () => {
     expect(HARD_SKILLS).toEqual(expect.arrayContaining([
       "baoyu-image-gen",
       "gzh-design",
@@ -120,9 +120,13 @@ describe("workflow stage contracts", () => {
     for (const skill of ["ljg-qa", "ljg-think", "ljg-writes", "aihot", "last30days"]) {
       expect(HARD_SKILLS).not.toContain(skill);
     }
-    for (const skill of ["baoyu-cover-image", "baoyu-article-illustrator", "baoyu-infographic"]) {
-      expect(HARD_SKILLS).not.toContain(skill);
-    }
+    expect(HARD_SKILLS).toEqual(expect.arrayContaining([
+      "baoyu-article-illustrator",
+      "baoyu-cover-image",
+      "baoyu-infographic",
+      "baoyu-diagram",
+      "baoyu-image-gen",
+    ]));
     expect(requiredSkillsFor("reader-response", "research")).toEqual([]);
     expect(requiredSkillsFor("reader-response", "draft")).toEqual([]);
     expect(requiredSkillsFor("reader-response", "refine")).toEqual([]);

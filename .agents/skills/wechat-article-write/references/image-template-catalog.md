@@ -1,8 +1,9 @@
 # 图片模板注册表
 
-本文件说明视觉计划的协议字段和合法模板值。机器可读权威来源是
-`references/image-template-map.json`；它的顶层 `infographic_layouts` 和
-`infographic_styles` 是 allowed-values registry，不是文章类型到模板的路由表。
+本文件说明 `image-plan.json` 的协议边界。正常流程不复制或冻结 Baoyu 的
+完整模板库；Agent 先读取动态 catalog，再按当前选择渐进式读取对应 Skill
+和 reference。`image-template-map.json` 仅保留旧文章显式兼容模式所需的
+`legacy_defaults`，不是正常流程的 template source of truth。
 
 ## 计划优先级
 
@@ -13,109 +14,138 @@ Step 2 的 Agent 或被选中的视觉能力先回答“读者在这个节点需
 
 正常模式至少需要：
 
-- `cover.intent` 和 `infographic.intent`；
+- `article_visual_design.skill` 必须是 `baoyu-article-illustrator`，即使正文
+  `illustrations` 为空；
+- `cover.intent` 和 `infographic.intent`；cover、infographic、body 的
+  `baoyu_design.skill` 分别必须是 `baoyu-cover-image`、`baoyu-infographic`、
+  `baoyu-article-illustrator`；
 - 每个资产显式填写 `prompt_source`（旧计划缺失时按 `adapter` 兼容）；
-- `prompt_source: adapter` 时，cover 继续填写 `type` 以及 `style` 或完整的
-  `palette` + `rendering`，infographic 填写合法 `layout` 和 `style`，每个
-  正文 entry 填写 `intent`、合法 `type` 和 `style`；
-- `prompt_source: external` 时，每个资产填写 `producer`，不校验上述
-  Baoyu-specific 类型/风格枚举；
-- draft 中每个 `SLOT_IMG_01+` 恰好对应一条 `illustrations` entry；没有正文
-  视觉节点时使用 `illustrations: []`。
+- `adapter` 资产填写 Agent 选定的非空 `type`、`layout`、`style`、`palette`、
+  `rendering` 等字段；运行时只在对应 Baoyu reference 文件存在时通过；
+- `external` 资产填写 Core authority 作为 `producer`，并提供已物化的非空
+  canonical prompt；
+- draft 中每个 `SLOT_IMG_01+` 恰好对应一条 `illustrations` entry；正文视觉
+  节点可以是零个，SLOT 00 仍必须存在。
+
+`article_type` 和 `direction` 可以保留为任意非空内容语境，但正常模式不把它们
+当作枚举、路由输入或模板决策来源。只有显式传
+`--allow-default-image-plan` 才允许旧的 article-type/direction 默认值和插图
+关键词推断继续工作。
 
 计划可以使用以下结构（字段值由 Agent 根据文章选择）：
 
 ```json
 {
-  "article_type": "technical-deep-dive",
+  "article_type": "future-architecture-analysis",
+  "direction": "future-style-language",
+  "visual_language": {
+    "intent": "保持清晰结构和统一冷色系，但不同图片允许受控变化",
+    "consistency": "controlled-variation"
+  },
+  "article_visual_design": {
+    "skill": "baoyu-article-illustrator",
+    "strategy": "只在视觉能明显降低理解成本的位置创建正文 SLOT"
+  },
   "cover": {
     "intent": "表达整篇文章的中心张力",
-    "type": "conceptual",
-    "style": "technical editorial",
-    "palette": "cool",
-    "rendering": "flat-vector",
+    "baoyu_design": {
+      "skill": "baoyu-cover-image",
+      "type": "conceptual",
+      "palette": "cool",
+      "rendering": "flat-vector",
+      "text": "title-only",
+      "mood": "balanced",
+      "font": "clean"
+    },
     "prompt_source": "adapter"
   },
   "infographic": {
     "intent": "压缩全文判断、论证路径和结论",
-    "layout": "structural-breakdown",
-    "style": "technical-schematic",
+    "baoyu_design": {
+      "skill": "baoyu-infographic",
+      "layout": "structural-breakdown",
+      "style": "technical-schematic",
+      "aspect": "16:9"
+    },
+    "contributors": ["baoyu-diagram"],
     "prompt_source": "adapter"
   },
   "illustrations": [
     {
       "slot": 1,
-      "intent": "比较两个方案在责任边界上的差异",
-      "type": "comparison",
-      "style": "editorial",
-      "description": "responsibility-comparison",
+      "intent": "展示 Agent running → needs-human-decision → resumed 的状态转换",
+      "baoyu_design": {
+        "skill": "baoyu-article-illustrator",
+        "type": "flowchart",
+        "style": "editorial",
+        "palette": "cool"
+      },
+      "contributors": ["baoyu-diagram"],
+      "design_notes": "采用 diagram 的 state-machine 结构语法，但沿用文章的 editorial visual language。",
+      "description": "agent-escalation-state",
       "prompt_source": "adapter"
     }
   ]
 }
 ```
 
-`article_type` 可以保留为内容语境，`direction` 可以保留为旧计划字段；二者
-在正常模式都不替代上述视觉决策。缺少关键字段时正常模式失败；只有显式传
-`--allow-default-image-plan` 才允许旧的 article-type/direction 默认值和
-插图关键词推断继续工作。
-
-外部 producer 示例：
+外部 producer 示例（仍需是该资产的 Core authority）：
 
 ```json
 {
   "slot": 1,
   "intent": "解释 Agent escalation 状态变化",
   "prompt_source": "external",
-  "producer": "future-visual-skill",
+  "producer": "baoyu-article-illustrator",
   "description": "agent-escalation-state"
 }
 ```
 
-## 模板来源
+## 模板 reference 的动态校验
 
-- adapter 模式的信息图 layout/style：`baoyu-infographic/references/layouts/*.md` 和
-  `references/styles/*.md`；脚本把 Agent 指定的两个文件原样拼入 SLOT 00
-  prompt。
-- adapter 模式的文内插图 style：`baoyu-article-illustrator/references/styles/*.md`；脚本
-  校验名称后读取对应模板。
-- adapter 模式的封面：`baoyu-cover-image` 的协议字段由 Agent 明确写入 plan，
-  脚本保留当前封面 prompt 适配格式。external 模式不读取这些模板。
+- infographic adapter：按 Agent 选择检查
+  `baoyu-infographic/references/layouts/<layout>.md` 和
+  `references/styles/<style>.md`；
+- body illustrator adapter：按 Agent 选择检查
+  `baoyu-article-illustrator/references/styles/<style>.md`；
+- cover adapter：使用 `baoyu-cover-image` 的 design fields，不冻结上游的
+  template enum；
+- diagram：Agent 读取 `baoyu-diagram/SKILL.md` 后，仅按需要读取对应 type
+  reference，结构结果写进现有 `design_notes`、`intent` 和 canonical prompt。
 
-## 信息图 layouts
+文件存在即允许新模板；不存在即失败并输出预期路径。没有稳定 reference
+目录的维度只要求 plan 值非空，不为上游 Markdown table 编写脆弱解析器。
+因此更新第三方 Baoyu Skill 后，新增加的稳定 template 无需修改本技能的
+JSON Schema enum 或 Router。
 
-合法值来自 `image-template-map.json`：
+`type`、`layout`、`style`、`palette`、`rendering`、`mood`、`font` 等是由
+Agent 从当前 Baoyu Skill 语义中选择的非空 design fields，不是本技能复制的
+完整上游枚举。允许受控变化：cover、SLOT 00 和正文可以有不同组合，但应共享
+文章要求的视觉气质、色彩家族、信息密度和读者感知。
+
+## 设计能力边界
+
+`baoyu-article-illustrator`、`baoyu-cover-image`、`baoyu-infographic` 和
+`baoyu-diagram` 都以 DESIGN-ONLY MODE 参与：
 
 ```text
-bento-grid, binary-comparison, bridge, circular-flow, comic-strip,
-comparison-matrix, dashboard, dense-modules, funnel, hierarchical-layers,
-hub-spoke, iceberg, isometric-map, jigsaw, linear-progression, periodic-table,
-story-mountain, structural-breakdown, tree-branching, venn-diagram,
-winding-roadmap
+Do not render final images.
+Do not invoke native imagegen.
+Do not invoke GenerateImage.
+Do not invoke image_generate.
+Do not invoke API image providers.
+Do not invoke baoyu-image-gen.
+Do not use SVG/Canvas/HTML as final article image.
+Return only the visual design / layout / structure / canonical-prompt contribution requested by the parent workflow.
 ```
 
-## 信息图 styles
+`baoyu-diagram` 只贡献 diagram type、nodes、edges、方向、分组、层级、sequence
+或 state transition 等结构语法；它不产生 SVG/PNG artifact，不执行 SVG→PNG，
+也不能成为最终 article raster prompt authority。其它 Baoyu/第三方 Skill 和
+Agent-native reasoning 同样只能作为 `contributors` 增强设计。
 
-合法值来自 `image-template-map.json`：
-
-```text
-aged-academia, bold-graphic, chalkboard, claymation, corporate-memphis,
-craft-handmade, cyberpunk-neon, hand-drawn-edu, ikea-manual, kawaii, knolling,
-lego-brick, morandi-journal, origami, pixel-art, pop-laboratory, retro-pop-grid,
-retro-popup-pop, storybook-watercolor, subway-map, technical-schematic,
-ui-wireframe
-```
-
-## 文内插图 type/style
-
-当前协议支持的 `type` 是 `comparison`、`flowchart` 和 `framework`。它们是
-prompt 的确定性表达模板，不是 Skill 路由；Agent 可以先用自然语言意图描述
-更丰富的关系，再选择最接近的协议类型。
-
-`style` 必须对应当前已安装的 `baoyu-article-illustrator/references/styles`
-文件，例如 `editorial`、`minimal`、`scientific`、`warm`、`retro` 或
-`vector-illustration`。新安装的模板可被读取和校验，不需要修改本技能的
-Skill catalog 或路由表。
+最终 raster 的唯一出口是 `baoyu-image-gen → codex-cli`，唯一执行模式是
+single-image serial。
 
 ## 图纸语法禁区
 
@@ -136,6 +166,11 @@ Skill catalog 或路由表。
 来源，也不应被扩展成新的中央 Skill Router。正常 prompt 中的 layout、style、
 type 和 intent 必须来自当前 Agent-authored plan。
 
+允许的 `external.producer` authority 是：cover 使用
+`baoyu-cover-image`，SLOT 00 使用 `baoyu-infographic`，body 使用
+`baoyu-article-illustrator`。未知 contributor 是运行期事实，不因中央脚本
+暂时不认识而失败。
+
 ## 适配器边界
 
 `generate-image-prompts.mjs` 可以：
@@ -152,8 +187,9 @@ type 和 intent 必须来自当前 Agent-authored plan。
 - 静默覆盖 plan 已经给出的 intent、layout、style 或 type；
 - 选择或绑定某个视觉 Skill，或绕过 `baoyu-image-gen → codex-cli`。
 
-完成 prompt 物化后仍须逐张审阅，并运行：
+完成 prompt 物化后先运行串行 renderer，再逐张审阅并运行 Step 4 Gate：
 
 ```bash
+bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
