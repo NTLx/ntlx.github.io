@@ -26,9 +26,13 @@ category: ai-agents
 
 这也是为什么“我们已经有 eval 了”不能算结论。每次运行都要付 token，错误的测试还会把噪音一起写进指标。最先该问的不是 test case 有多少，而是：这个数字到底在测什么？
 
+![原文配图：不同刻度的测量工具](https://dev-to-uploads.s3.us-east-2.amazonaws.com/uploads/articles/2ya5hqnsnkh2tl5jp2vy.png)
+
 ## 五条规则，其实是五个证伪阀门
 
 我把原文的五条规则看成五道门。每一扇门都不是为了把分数抬高，而是为了挡住一种不可靠的信号。
+
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-02-ai-evals-you-can-trust-img-01-framework-five-gates.png)
 
 - **环境门**先问实验能不能重复。沙箱能否稳定读到代码输出？任务要访问真实凭证时，能否改用隔离资源或 mock？如果执行本身很难隔离，就退一步，评估 agent 的计划，不要假装自己测到了真实执行。
 - **难度门**防止题目太简单。底层模型不借助工具也能答对，工具自然没有发挥空间。题目需要把 baseline 压到会失败，评估结果才可能说明工具带来了什么。
@@ -48,6 +52,8 @@ category: ai-agents
 
 还要留住那些曾经影响过生产决策的坏样本。模型或 prompt 变更后，把它们重新跑一遍，看看旧问题是否复发。
 
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-02-ai-evals-you-can-trust-img-02-rejection-tests-triptych.png)
+
 这三样东西各自看不同的位置：baseline 准入检查题目，known-bad twin 检查评分器，回归集检查系统有没有忘记过去的错误。缺了它们，评估报告里的绿色很难区分“表现稳定”和“根本没在工作”。
 
 ## 当评分者也在进化，评估必须自带锚点
@@ -55,6 +61,8 @@ category: ai-agents
 还有一个容易被忽略的变化：被评估的 agent 会变，评分器也会变。
 
 底层模型升级后，原本需要工具的题目可能已经能直接答出。评分器如果同样由 LLM 驱动，判定口径也可能随着 prompt 的微调慢慢变松。题目和评分器一起漂移，旧套件就会在不知不觉中失去参照物。
+
+![原文配图：不同测量工具的刻度](https://images.unsplash.com/photo-1550985543-49bee3167284)
 
 我在自己的博客和微信双轨管线里遇到过一个小得多、但结构相似的问题。两套产物不能混用，所以管线上有确定性的检查：Step 脚本检查文件和图片，freshness receipt 检查 draft 是否被改过，structural parity 检查两轨的标题和图片数量是否一致。Step 5 如果失败，流程就停在那里；博客已经生成、微信还没有完成时，状态也不会替我们报一个“全部完成”。
 
