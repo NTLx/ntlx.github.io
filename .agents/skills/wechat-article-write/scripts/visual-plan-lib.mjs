@@ -66,9 +66,17 @@ function visualContractText(profile, { role, aspect, textDensity }) {
         ? "- Use short labels only; do not copy prose, paragraphs, dates, version numbers, or figure numbers."
         : "- Keep any text concise and information-bearing; do not use long copy, dates, version numbers, or figure numbers.",
     "- Do not add dimension lines, engineering borders, title blocks, or meaningless decorative English text.",
-    "- Avoid dark dominant backgrounds, muddy or desaturated colors, low contrast, dirty or over-complicated backgrounds, cold oppressive mood, and unclear visual hierarchy.",
+    // Style-neutral quality floor: holds for any visual direction, including an
+    // explicit user override.
+    "- Keep contrast and visual hierarchy clear; avoid dirty or over-complicated backgrounds.",
+    // Palette and mood constraints belong to the project default profile only. Under a
+    // custom override they would contradict the recorded user direction (for example an
+    // explicitly requested dark cyberpunk look).
     ...(profile.id === "bright-vivid-warm"
-      ? ["- Unless the user explicitly overrides the project profile, preserve the bright, vivid, high-contrast, clean, crisp, warm-positive result."]
+      ? [
+        "- Avoid dark dominant backgrounds, muddy or desaturated colors, and cold oppressive mood.",
+        "- Unless the user explicitly overrides the project profile, preserve the bright, vivid, high-contrast, clean, crisp, warm-positive result.",
+      ]
       : []),
     VISUAL_CONTRACT_END,
   );
@@ -590,6 +598,7 @@ export function collectActiveAssets(imagePlan, draftBody, { blogSlug, slug } = {
       outputBasename: "cover",
       outputCandidates: ["cover.png", "cover.jpg"],
       design: imagePlan?.cover?.baoyu_design ?? {},
+      textDensity: "none",
     },
     {
       key: "SLOT_IMG_00",
@@ -598,6 +607,7 @@ export function collectActiveAssets(imagePlan, draftBody, { blogSlug, slug } = {
       outputBasename: "00-infographic-core-summary",
       outputCandidates: ["00-infographic-core-summary.png", "00-infographic-core-summary.jpg", "00-infographic-core-summary.jpeg", "00-infographic-core-summary.webp", "00-infographic-core-summary.gif"],
       design: imagePlan?.infographic?.baoyu_design ?? {},
+      textDensity: "low",
     },
   ];
 
@@ -612,6 +622,9 @@ export function collectActiveAssets(imagePlan, draftBody, { blogSlug, slug } = {
       outputBasename: `${nn}-${desc}`,
       outputCandidates: [`${nn}-${desc}.png`, `${nn}-${desc}.jpg`, `${nn}-${desc}.jpeg`, `${nn}-${desc}.webp`, `${nn}-${desc}.gif`],
       design: entry.baoyu_design ?? {},
+      // text_density 位于 illustration entry 根层，不在 baoyu_design 内；显式带出，
+      // 使 renderer 能在消耗生图资源之前完成 text-density 契约校验。
+      textDensity: entry.text_density ?? null,
       slot: slot.slot,
     });
   }

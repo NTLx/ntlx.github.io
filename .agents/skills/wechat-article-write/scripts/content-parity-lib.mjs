@@ -1,6 +1,8 @@
 import { extractBody } from "./frontmatter-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections, normalizeSourceImageKey } from "./visual-plan-lib.mjs";
 
+const IMAGE_RENDERED_FENCES = new Set(["mermaid", "plantuml"]);
+
 function normalizeText(value) {
   return String(value ?? "")
     .replace(/<!--[^]*?-->/gu, "")
@@ -17,46 +19,101 @@ export function normalizeVisibleText(value) {
   return normalizeText(value).replace(/\s+/gu, "");
 }
 
-/** Extract paragraphs and list items; headings and image-only blocks are not text protection targets. */
-export function extractSubstantiveMarkdownBlocks(markdown) {
+/** Clause boundaries used for section-window coverage; commas are too fine-grained. */
+const FRAGMENT_SPLIT_RE = /[。！？；：!?;:]/u;
+const MIN_FRAGMENT_LENGTH = 4;
+
+/**
+ * Split a normalized block into clause fragments. gzh-design may hoist one clause
+ * out of a paragraph into a callout card, so the HTML track can hold a block's
+ * content in several non-adjacent pieces within the same section.
+ */
+export function splitBlockFragments(block) {
+  const text = String(block ?? "");
+  const parts = text
+    .split(FRAGMENT_SPLIT_RE)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= MIN_FRAGMENT_LENGTH);
+  if (parts.length > 0) return parts;
+  return text ? [text] : [];
+}
+
+/**
+ * Extract paragraphs, list items and code lines together with the substantive
+ * section each belongs to. Section indices follow collectSubstantiveSections,
+ * so 0 is the lead area before the first substantive H2.
+ */
+export function extractSubstantiveMarkdownBlockEntries(markdown) {
   const body = extractBody(markdown);
-  const blocks = [];
+  const sections = collectSubstantiveSections(body);
+  const sectionIndexAt = (offset) => sections.filter((section) => section.start <= offset).length;
+  const entries = [];
   let paragraph = [];
-  let inFence = false;
+  let paragraphStart = 0;
+  let fence = null;
+  let offset = 0;
   const flush = () => {
     const text = normalizeVisibleText(paragraph.join("\n"));
-    if (text) blocks.push(text);
+    if (text) entries.push({ text, section_index: sectionIndexAt(paragraphStart) });
     paragraph = [];
   };
-  for (const rawLine of body.split(/\r?\n/u)) {
-    if (/^\s*```/u.test(rawLine)) {
+  for (const rawLine of body.match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
+    const lineStart = offset;
+    offset += rawLine.length;
+    const current = rawLine.replace(/\r?\n$/u, "");
+    const fenceMatch = /^\s*```(.*)$/u.exec(current);
+    if (fenceMatch) {
       flush();
-      inFence = !inFence;
+      if (fence) {
+        fence = null;
+      } else {
+        const lang = fenceMatch[1].trim().toLowerCase();
+        // Mermaid/PlantUML are rendered to images downstream, so their fence body
+        // legitimately has no text counterpart in the HTML track.
+        fence = { protect: !IMAGE_RENDERED_FENCES.has(lang) };
+      }
       continue;
     }
-    if (inFence) continue;
-    const line = rawLine.trim();
+    if (fence) {
+      if (!fence.protect) continue;
+      // Code lines keep their literal characters: only whitespace is folded, so
+      // `Array<int>` is not mistaken for an HTML tag the way prose normalization
+      // would strip it.
+      const code = current.replace(/\s+/gu, "");
+      if (code) entries.push({ text: code, section_index: sectionIndexAt(lineStart) });
+      continue;
+    }
+    const line = current.trim();
     if (!line) { flush(); continue; }
     if (/^#{1,6}\s+/u.test(line)) { flush(); continue; }
     if (/^[-*+]\s+/u.test(line) || /^\d+[.)]\s+/u.test(line)) {
       flush();
       const item = normalizeVisibleText(line.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/u, ""));
-      if (item) blocks.push(item);
+      if (item) entries.push({ text: item, section_index: sectionIndexAt(lineStart) });
       continue;
     }
+    if (paragraph.length === 0) paragraphStart = lineStart;
     paragraph.push(line);
   }
   flush();
-  return blocks;
+  return entries;
 }
 
-// WeChat link normalization intentionally renders a Markdown link as two
-// visible lines (label, then URL). Treat that pair as the same substantive
-// block as the original inline Markdown link, while keeping all other block
-// order and content checks strict.
+/** Extract paragraphs and list items; headings and image-only blocks are not text protection targets. */
+export function extractSubstantiveMarkdownBlocks(markdown) {
+  return extractSubstantiveMarkdownBlockEntries(markdown).map((entry) => entry.text);
+}
+
+// wechat-link-normalizer rewrites `[label](url)` as inline `label（链接：url）`;
+// older artifacts also split it into two adjacent visible lines (label, then URL).
+// Both forms must canonicalize to the blog track's `label url`, otherwise any
+// article carrying an external link mismatches at block 1.
+// Markdown↔Markdown parity only: the Markdown→HTML gate compares source against
+// HTML rendered from that same source, so both sides already carry the wrapper.
 function canonicalizeSubstantiveBlocks(markdown) {
   const blocks = [];
-  for (const block of extractSubstantiveMarkdownBlocks(markdown)) {
+  for (const raw of extractSubstantiveMarkdownBlocks(markdown)) {
+    const block = raw.replace(/（链接：([^）]*)）/gu, "$1");
     if (/^https?:\/\//iu.test(block) && blocks.length > 0) {
       blocks[blocks.length - 1] += block;
     } else {

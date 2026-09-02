@@ -33,6 +33,15 @@ const RESERVED_STATE_KEYS = new Set([
 function applyExtra(state, extra = {}) {
   for (const [key, value] of Object.entries(extra ?? {})) {
     if (RESERVED_STATE_KEYS.has(key)) continue;
+    // blog 与 wechat 各自写自己的详细发布状态；整体覆盖会让先完成的一轨丢失。
+    if (key === "publish_result" && value !== null && typeof value === "object" && !Array.isArray(value)) {
+      const previous = state.publish_result;
+      state.publish_result = {
+        ...(previous !== null && typeof previous === "object" && !Array.isArray(previous) ? previous : {}),
+        ...value,
+      };
+      continue;
+    }
     state[key] = value;
   }
 }

@@ -108,6 +108,10 @@ export function validateImageReview({ postDir, imagePlan, draftBody, receipt, re
       for (const key of DEFAULT_STYLE_FIELDS) {
         if (entry.style_review[key] !== true) errors.push(`${assetLabel} image-review.style_review.${key} must be true for bright-vivid-warm`);
       }
+    } else if (entry.style_review.visual_override_match !== true) {
+      // A custom profile has no default style fields to check, so at minimum the
+      // receipt must confirm the render matches the user's explicit direction.
+      errors.push(`${assetLabel} image-review.style_review.visual_override_match must be true for ${expectedProfile}`);
     }
     if (typeof entry.reviewer_note !== "string" || entry.reviewer_note.trim() === "") errors.push(`${assetLabel} image-review.reviewer_note is required`);
   }

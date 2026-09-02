@@ -186,8 +186,8 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 
 finalize（HTML finalize）会先在本地确认 `draft.md` 与 humanizer receipt 一致，再依次
 运行 gzh-design validator 和 structural parity validator，并在两者都通过后记录
-Step 5 状态。parity 只比较 substantive heading 顺序、图片数量/basename 顺序、图片
-所属 section 和 SLOT00 lead 归属，不限制主题 wrapper、CSS 或其它视觉表现。
+Step 5 状态。parity 只比较 substantive heading 顺序、正文段落/列表项/代码行是否保留、
+图片数量/basename 顺序、图片所属 section 和 SLOT00 lead 归属，不限制主题 wrapper、CSS 或其它视觉表现。
 `--finalize-only` 只消费三个已准备的本地 artifact 加上 draft freshness gate，不调用
 图床、不读取 GitHub 配置、不访问网络。封面 MIME/扩展名和唯一 root cover 必须在 receipt 前完成规范化；
 Step 5 发现不一致时 fail closed，不自动改名。不能用 post 内临时渲染脚本替代排版

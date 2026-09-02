@@ -97,4 +97,115 @@ describe("validateWechatStructuralParity", () => {
     expect(result.ok).toBe(true);
     expect(result.html.headings).toEqual(["A", "B"]);
   });
+
+  test("protects fenced code content that the HTML track drops", () => {
+    const codeSource = `---
+title: 代码测试
+---
+
+## A
+
+安装依赖：
+
+\`\`\`bash
+npm install demo
+node build.mjs
+\`\`\`
+
+## B
+
+收尾说明。
+`;
+    const rendered = '<section><p><span leaf="">A</span></p><p>安装依赖：</p>'
+      + "<section><p>npm install demo</p><p>node build.mjs</p></section>"
+      + '<p><span leaf="">B</span></p><p>收尾说明。</p></section>';
+    expect(validateWechatStructuralParity(codeSource, rendered).ok).toBe(true);
+
+    const droppedLine = rendered.replace("<p>node build.mjs</p>", "");
+    const result = validateWechatStructuralParity(codeSource, droppedLine);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("substantive block");
+  });
+
+  test("skips fences that downstream renderers turn into images", () => {
+    const diagram = (lang) => `---
+title: 图测试
+---
+
+## A
+
+\`\`\`${lang}
+graph TD; Alpha-->Beta;
+\`\`\`
+`;
+    const rendered = '<section><p><span leaf="">A</span></p></section>';
+    // mermaid/plantuml have no text counterpart in HTML, so they must not be required.
+    expect(validateWechatStructuralParity(diagram("mermaid"), rendered).ok).toBe(true);
+    // The same body under a text-bearing fence is still protected.
+    expect(validateWechatStructuralParity(diagram("text"), rendered).ok).toBe(false);
+  });
+
+  test("tolerates a clause the theme hoists into a callout inside the same section", () => {
+    const calloutSource = `---
+title: 卡片测试
+---
+
+## A
+
+这当然不是评估。它只是说明了一件事：检查系统也要有失败测试。对 scorer 来说是一枚锚。
+`;
+    // gzh-design lifts one clause into a preceding callout card and keeps the rest
+    // of the paragraph, so the block is split and re-ordered within section A.
+    const rendered = '<section><p><span leaf="">A</span></p>'
+      + '<section style="border-left:4px solid #DC2626;"><p>检查系统也要有失败测试。</p></section>'
+      + "<p>这当然不是评估。它只是说明了一件事：对 scorer 来说是一枚锚。</p></section>";
+    expect(validateWechatStructuralParity(calloutSource, rendered).ok).toBe(true);
+
+    // Dropping the hoisted clause entirely is still content loss.
+    const lost = rendered.replace("<section style=\"border-left:4px solid #DC2626;\"><p>检查系统也要有失败测试。</p></section>", "");
+    expect(validateWechatStructuralParity(calloutSource, lost).errors.join("\n")).toContain("substantive block");
+  });
+
+  test("rejects body text relocated into another section", () => {
+    const movedSource = `---
+title: 搬移测试
+---
+
+## A
+
+第一段属于 A 章节。
+
+## B
+
+第二段属于 B 章节。
+`;
+    const swapped = '<section><p><span leaf="">A</span></p><p>第二段属于 B 章节。</p>'
+      + '<p><span leaf="">B</span></p><p>第一段属于 A 章节。</p></section>';
+    const result = validateWechatStructuralParity(movedSource, swapped);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("moved outside");
+
+    const inPlace = '<section><p><span leaf="">A</span></p><p>第一段属于 A 章节。</p>'
+      + '<p><span leaf="">B</span></p><p>第二段属于 B 章节。</p></section>';
+    expect(validateWechatStructuralParity(movedSource, inPlace).ok).toBe(true);
+  });
+
+  test("treats a URL relocated to bottom citations as document-scoped", () => {
+    const linkSource = `---
+title: 引用测试
+---
+
+## A
+
+我读完指南（链接：https://example.com/guide）后记住了第一条。
+`;
+    // The WeChat track may move the URL out of the paragraph into a tail reference list.
+    const cited = '<section><p><span leaf="">A</span></p><p>我读完指南后记住了第一条。</p>'
+      + "<p>参考链接</p><p>https://example.com/guide</p></section>";
+    expect(validateWechatStructuralParity(linkSource, cited).ok).toBe(true);
+
+    // Losing the URL altogether is still a failure.
+    const lost = cited.replace("<p>https://example.com/guide</p>", "");
+    expect(validateWechatStructuralParity(linkSource, lost).errors.join("\n")).toContain("substantive block");
+  });
 });

@@ -7,9 +7,12 @@
 
 import { extractBody } from "./frontmatter-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections } from "./visual-plan-lib.mjs";
-import { extractSubstantiveMarkdownBlocks, normalizeVisibleText } from "./content-parity-lib.mjs";
+import { extractSubstantiveMarkdownBlockEntries, normalizeVisibleText, splitBlockFragments } from "./content-parity-lib.mjs";
 
 const LEAD_INFOGRAPHIC = "00-infographic-core-summary";
+/** wechat-link-normalizer 的内联包裹形态，以及裸 URL。 */
+const LINK_WRAPPER_RE = /（链接：[^）]*）/gu;
+const URL_RE = /https?:\/\/[^\s）)]+/giu;
 
 function decodeHtmlEntities(value) {
   return String(value ?? "")
@@ -145,6 +148,13 @@ function formatSection(sectionIndex) {
   return sectionIndex === 0 ? "lead section" : `section ${sectionIndex}`;
 }
 
+/** Turn HTML heading positions into per-section text windows; index 0 is the lead area. */
+function sectionWindows(totalLength, headingPositions) {
+  if (!headingPositions) return null;
+  const bounds = [...headingPositions, totalLength];
+  return bounds.map((end, index) => ({ start: index === 0 ? 0 : bounds[index - 1], end }));
+}
+
 /**
  * Return a diagnostic result instead of throwing so Step 5 can report all
  * content-topology differences before marking the step complete.
@@ -156,11 +166,41 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   const htmlSubstantiveHeadings = substantiveHtmlHeadings(htmlHeadingTags, source.headings);
   const errors = [];
 
-  for (const [index, block] of extractSubstantiveMarkdownBlocks(sourceMarkdown).entries()) {
-    const needle = normalizeVisibleText(block);
-    if (needle && !flattened.normalized.includes(needle)) {
-      errors.push(`substantive block ${index + 1} missing from HTML`);
-    }
+  // Heading positions are needed both to window body text and to place images, so
+  // resolve them once up front.
+  const headingsForPositions = htmlSubstantiveHeadings.length > 0 ? htmlSubstantiveHeadings : source.headings;
+  const actualHeadingPositions = fallbackHeadingPositions(flattened.normalized, headingsForPositions);
+  // Only window body text when the heading sequences agree. Otherwise the windows are
+  // misaligned and would cascade into spurious block errors on top of the
+  // heading-sequence error reported below.
+  const headingSequencesAgree = htmlHeadingTags.length === 0
+    || JSON.stringify(source.headings.map(normalizeHeadingForCompare))
+      === JSON.stringify(htmlSubstantiveHeadings.map(normalizeHeadingForCompare));
+  const windows = headingSequencesAgree ? sectionWindows(flattened.normalized.length, actualHeadingPositions) : null;
+
+  // Body text must survive into the HTML inside its own section. gzh-design legitimately
+  // re-orders clauses within a section (for example hoisting one into a callout card),
+  // so coverage is checked per clause fragment instead of as one contiguous needle.
+  for (const [index, entry] of extractSubstantiveMarkdownBlockEntries(sourceMarkdown).entries()) {
+    const needle = normalizeVisibleText(entry.text);
+    if (!needle) continue;
+    const scope = windows?.[entry.section_index];
+    const scopeText = scope ? flattened.normalized.slice(scope.start, scope.end) : flattened.normalized;
+    if (scopeText.includes(needle)) continue;
+    // Bottom citations legitimately relocate a URL to the document tail, so URLs are
+    // document-scoped; prose stays confined to the section it was written in.
+    const urls = needle.match(URL_RE) ?? [];
+    const prose = needle.replace(LINK_WRAPPER_RE, "").replace(URL_RE, "");
+    const missing = [
+      ...splitBlockFragments(prose).filter((fragment) => !scopeText.includes(fragment)),
+      ...urls.filter((url) => !flattened.normalized.includes(url)),
+    ];
+    if (missing.length === 0) continue;
+    const label = `substantive block ${index + 1}`;
+    // Separate "lost" from "moved into another section" so the failure is actionable.
+    const moved = scope ? missing.filter((fragment) => flattened.normalized.includes(fragment)) : [];
+    if (moved.length > 0) errors.push(`${label} moved outside ${formatSection(entry.section_index)}: ${moved[0].slice(0, 40)}`);
+    else errors.push(`${label} missing from HTML`);
   }
 
   if (source.images.length !== flattened.images.length) {
@@ -220,8 +260,6 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   // positions, even when event matching stopped early. This catches a single
   // lead infographic moved after all headings: image count and order alone
   // would otherwise look unchanged.
-  const headingsForPositions = htmlSubstantiveHeadings.length > 0 ? htmlSubstantiveHeadings : source.headings;
-  const actualHeadingPositions = fallbackHeadingPositions(flattened.normalized, headingsForPositions);
   let imageSections = matchedImageSections;
   if (actualHeadingPositions) {
     imageSections = flattened.images.map((image) => ({

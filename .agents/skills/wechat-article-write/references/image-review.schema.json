@@ -69,6 +69,28 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": { "visual_profile": { "const": "custom" } },
+        "required": ["visual_profile"]
+      },
+      "then": {
+        "properties": {
+          "assets": {
+            "items": {
+              "properties": {
+                "style_review": {
+                  "required": ["visual_override_match"],
+                  "properties": {
+                    "visual_override_match": { "const": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

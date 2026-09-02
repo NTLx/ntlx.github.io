@@ -24,10 +24,12 @@ import {
   replaceKnownAuthorPlaceholders,
 } from "../scripts/author-profile-lib.mjs";
 import {
+  collectActiveAssets,
   finalizeCanonicalPrompt,
   validateCanonicalPrompt,
   validateBaoyuDesign,
 } from "../scripts/visual-plan-lib.mjs";
+import { loadState, markBlogDone, markWechatDone } from "../scripts/state-lib.mjs";
 
 function plan(body = []) {
   return {
@@ -124,6 +126,85 @@ describe("project-owned visual and author contracts", () => {
       textDensity: "low",
     });
     expect(validateCanonicalPrompt(customPrompt, { profile: customProfile, role: "body-illustration", textDensity: "low" })).toEqual([]);
+    // The default profile's palette and mood bans must not leak into an explicit
+    // override: a dark cyberpunk request cannot coexist with "avoid dark backgrounds".
+    expect(customPrompt).toContain("Explicit user visual override: 用户明确要求黑暗赛博朋克风格.");
+    expect(customPrompt).not.toContain("Avoid dark dominant backgrounds");
+    // Style-neutral quality floor still applies to every profile.
+    expect(customPrompt).toContain("Keep contrast and visual hierarchy clear");
+    expect(first).toContain("Avoid dark dominant backgrounds");
+  });
+
+  test("carries text density on active assets so the renderer can preflight before generating", () => {
+    const imagePlan = plan([1]);
+    imagePlan.illustrations[0].text_density = "medium";
+    const body = "<!-- SLOT_IMG_00_INFOGRAPHIC -->\n\n## A\n\n正文。\n\n<!-- SLOT_IMG_01_DETAIL -->\n";
+    const assets = collectActiveAssets(imagePlan, body);
+    expect(assets.map((asset) => [asset.key, asset.textDensity])).toEqual([
+      ["cover", "none"],
+      ["SLOT_IMG_00", "low"],
+      ["SLOT_IMG_01", "medium"],
+    ]);
+  });
+
+  test("requires an override-match receipt for a custom visual profile", () => {
+    const root = join(tmpdir(), `image-review-custom-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(join(root, "imgs"), { recursive: true });
+    const cover = Buffer.alloc(24);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(cover);
+    cover.writeUInt32BE(235, 16);
+    cover.writeUInt32BE(100, 20);
+    const info = Buffer.from(cover);
+    writeFileSync(join(root, "cover.png"), cover);
+    writeFileSync(join(root, "imgs", "00-infographic-core-summary.png"), info);
+    const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
+    const customPlan = plan();
+    customPlan.visual_profile = "custom";
+    customPlan.visual_override_reason = "用户明确要求黑暗赛博朋克风格";
+    const receipt = (style) => ({
+      version: 1,
+      visual_profile: "custom",
+      assets: [
+        { asset: "cover.png", role: "cover", sha256: sha(cover), approved: true, semantic_match: true, legibility: true, visible_text_ok: true, text_density: "none", has_long_copy: false, style_review: style, reviewer_note: "符合用户指定的暗色方向" },
+        { asset: "00-infographic-core-summary.png", role: "header", sha256: sha(info), approved: true, semantic_match: true, legibility: true, visible_text_ok: true, text_density: "low", has_long_copy: false, style_review: style, reviewer_note: "符合用户指定的暗色方向" },
+      ],
+    });
+    const options = { postDir: root, imagePlan: customPlan, draftBody: "<!-- SLOT_IMG_00_INFOGRAPHIC -->" };
+    // An empty style_review object must not pass as a custom-profile QA receipt.
+    expect(validateImageReview({ ...options, receipt: receipt({}) }).join("\n")).toContain("visual_override_match must be true");
+    expect(validateImageReview({ ...options, receipt: receipt({ visual_override_match: true }) })).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test("treats the WeChat inline link rewrite as the same substantive block", () => {
+    const article = `---\ntitle: 测试\n---\n\n## A\n\n我读完[评估指南](https://dev.to/guide)后，记住了第一条。\n`;
+    const source = `---\ntitle: 测试\n---\n\n## A\n\n我读完评估指南（链接：https://dev.to/guide）后，记住了第一条。\n`;
+    expect(validateMarkdownParity(article, source, {}).ok).toBe(true);
+    // A genuinely rewritten paragraph is still rejected.
+    expect(validateMarkdownParity(article, source.replace("记住了第一条", "记住了第二条"), {}).errors.join("\n")).toContain("substantive block");
+  });
+
+  test("keeps both tracks' detailed publish results in pipeline state", () => {
+    const root = join(tmpdir(), `state-publish-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(root, { recursive: true });
+    const previous = process.env.PIPELINE_POSTS_ROOT;
+    process.env.PIPELINE_POSTS_ROOT = root;
+    try {
+      markBlogDone("slug", {
+        pushed: true,
+        extra: { publish_result: { blog: { build_passed: true, commit_created: true, remote_pushed: true, site_deployed: null } } },
+      });
+      markWechatDone("slug", { publish_result: { wechat: { draft_created: true } } });
+      const state = loadState("slug");
+      expect(state.publish).toEqual({ blog: "done", wechat: "done" });
+      // The WeChat write must not erase the blog track's detail.
+      expect(state.publish_result.blog).toEqual({ build_passed: true, commit_created: true, remote_pushed: true, site_deployed: null });
+      expect(state.publish_result.wechat).toEqual({ draft_created: true });
+    } finally {
+      if (previous === undefined) delete process.env.PIPELINE_POSTS_ROOT;
+      else process.env.PIPELINE_POSTS_ROOT = previous;
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   test("requires a fresh approved receipt for every active generated asset", () => {

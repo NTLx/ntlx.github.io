@@ -139,7 +139,7 @@ function preflightPrompts(baseDir, assets, profile) {
       profile,
       role: asset.key === "cover" ? "cover" : asset.key === "SLOT_IMG_00" ? "header-infographic" : "body-illustration",
       aspect: asset.key === "cover" ? "2.35:1" : undefined,
-      textDensity: asset.key === "cover" ? "none" : asset.key === "SLOT_IMG_00" ? "low" : asset.design?.text_density,
+      textDensity: asset.textDensity,
     });
     if (promptErrors.length > 0) throw new Error(`${asset.label} canonical prompt contract invalid: ${promptErrors.join("; ")}`);
   }
