@@ -44,6 +44,10 @@ export function finalizeStep5Artifacts({ slug, wechatSourcePath, wechatHtmlPath,
   // may still produce <a href> tags. This pass ensures the WeChat HTML
   // never contains clickable anchors (platform rule).
   const rawHtml = readFileSync(wechatHtmlPath, "utf8");
+  const authorPlaceholder = /\{\{\s*(?:作者名|一句话简介|简介)[^}]*\}\}/u;
+  if (authorPlaceholder.test(rawHtml)) {
+    throw new Error("article-wechat.html contains an unresolved author signature placeholder; use the project author NTLx and replace the introduction with ‘热衷于分享 AI 观察与干货’");
+  }
   const strippedHtml = stripWechatAnchors(rawHtml);
   if (strippedHtml !== rawHtml) {
     writeFileSync(wechatHtmlPath, strippedHtml, "utf8");

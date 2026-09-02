@@ -43,11 +43,14 @@ function seedPublishDeps(repoRoot) {
   }
 }
 
-function writePost(postsRoot, slug, { sourceUrl = "https://ntlx.github.io/articles/wechat-utm-test" } = {}) {
+function writePost(postsRoot, slug, {
+  sourceUrl = "https://ntlx.github.io/articles/wechat-utm-test",
+  html = "<section>微信正文</section>\n",
+} = {}) {
   const dir = join(postsRoot, slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "cover.png"), "");
-  writeFileSync(join(dir, "article-wechat.html"), "<section>微信正文</section>\n");
+  writeFileSync(join(dir, "article-wechat.html"), html);
   writeFileSync(join(dir, "article.md"), `---
 title: 测试微信发布
 summary: 用于测试微信发布摘要。
@@ -125,5 +128,19 @@ describe("publish-wechat", () => {
 
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("multiple root cover images");
+  });
+
+  test("fails closed when the author signature placeholder remains", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-07-05-wechat-author-placeholder";
+    writePost(fx.postsRoot, slug, {
+      html: "<section>我是 {{作者名}}，{{一句话简介}}。</section>\n",
+    });
+
+    const r = runPublish([slug, "--dry-run"], fx);
+
+    expect(r.status).toBe(5);
+    expect(r.stderr).toContain("unresolved author signature placeholder");
   });
 });

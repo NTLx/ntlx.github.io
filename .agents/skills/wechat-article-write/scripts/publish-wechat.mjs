@@ -164,6 +164,13 @@ const cover = resolve(base, rootCovers[0]);
 // See: https://github.com/NTLx/ntlx.github.io/issues/xxx (curly-quote incident 2026-07-08)
 {
   const html = readFileSync(htmlPath, "utf-8");
+  const authorPlaceholder = /\{\{\s*(?:作者名|一句话简介|简介)[^}]*\}\}/u;
+  if (authorPlaceholder.test(html)) {
+    const msg = "article-wechat.html contains an unresolved author signature placeholder; replace it with the project author NTLx before publishing";
+    process.stderr.write(`publish-wechat: ${msg}\n`);
+    markStepFailed(opts.slug, 6.2, msg);
+    process.exit(5);
+  }
   // 1. Curly/smart quotes inside HTML tags destroy attribute parsing.
   //    wechat-api.ts regex only matches ASCII " or ' in src attributes.
   const tagRe = /<[^>]*>/g;
