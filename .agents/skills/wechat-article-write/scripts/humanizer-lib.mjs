@@ -51,7 +51,7 @@ export function validateHumanizerReceipt({ state, draftPath, skillPath }) {
   if (!existsSync(draftPath)) {
     errors.push(`draft.md missing: ${draftPath}`);
   } else if (receipt.draft_sha256 && sha256File(draftPath) !== receipt.draft_sha256) {
-    errors.push("draft.md changed after humanizer-zh; rerun humanizer and mark-humanized");
+    errors.push("Step 3 reopened: draft.md changed after humanizer-zh; return to draft.md, rerun humanizer-zh, mark-humanized, and step3-polish");
   } else if (!receipt.draft_sha256) {
     errors.push("humanizer receipt is missing draft_sha256; rerun humanizer and mark-humanized");
   }

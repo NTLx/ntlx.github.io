@@ -13,6 +13,7 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 - 生成博客轨 `article.md`。
 - 生成微信轨中间稿 `article-wechat-source.md`（本地图片路径 + 纯文本 URL 版）。
 - 若 `article-wechat.html` 已存在，运行 `gzh-design` 自带校验并 finalize Step 5；若不存在，则输出 `phase: prepared`，等待 Agent 调用 `gzh-design`。
+- prepare 同时写入 `.step5-artifacts.json`（draft、image-plan、image-review、两份 Markdown 的 SHA）；finalize 后再绑定 HTML SHA。之后任何关键文件变化都会阻断发布。
 
 链接处理：
 
@@ -25,7 +26,7 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 - `--dry-run`：只做本地预检，不访问图床，不写 map、文章产物或 state。
 - `--prepare-only`：只完成 `article.md` + `article-wechat-source.md`。
-- `--finalize-only`：先校验 `draft.md` 的 humanizer receipt/freshness，再对现有
+- `--finalize-only`：先校验 prepared manifest、`draft.md` 的 humanizer receipt/freshness，再对现有
   `article.md`、`article-wechat-source.md` 和 `article-wechat.html` 运行 `gzh-design`
   validator / structural parity / preview wrapper 并落 Step 5 状态；不调用图床。
 
@@ -42,7 +43,7 @@ Agent 排版阶段：
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
 ```
 
-行为：写入 `src/content/docs/articles/` 或 frontmatter `targetPath` 指定位置，运行 Astro sync/build，提交并 push。
+行为：先验证 finalized Step 5 manifest，再写入 `src/content/docs/articles/` 或 frontmatter `targetPath` 指定位置，运行 Astro sync/build，提交并 push。`push` 只证明 remote pushed；GitHub Pages 的 `site_deployed` 在本脚本中保持 unknown。
 
 ## Step 6.2 微信草稿
 
@@ -50,13 +51,13 @@ bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
 ```
 
-发布前必须通过：
+发布前必须通过 finalized artifact freshness，以及：
 
 - root `cover.png` / `cover.jpg` 恰好存在一个，且扩展名与实际 MIME 一致；
 - `article-wechat.html` 存在；
 - frontmatter `title`、`summary`、`sourceUrl` 存在。
 
-`publish-wechat.mjs` 会从 canonical `sourceUrl` 生成带 UTM 的 `wechatSourceUrl`，再转发给 `baoyu-post-to-wechat --source-url`；底层技能原生负责写入微信草稿的“阅读原文”链接。
+`publish-wechat.mjs` 会从 canonical `sourceUrl` 生成带 UTM 的 `wechatSourceUrl`，核对 canonical author/signature，再转发给 `baoyu-post-to-wechat --source-url`；成功结果是 WeChat draft created，不表示自动群发或粉丝已收到。
 
 ## 编排器
 

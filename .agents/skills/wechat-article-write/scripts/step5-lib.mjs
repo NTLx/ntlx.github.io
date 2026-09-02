@@ -5,9 +5,10 @@ import { repoRoot } from "./path-resolver.mjs";
 import { normalizeLinksForWechat, stripWechatAnchors } from "./wechat-link-normalizer.mjs";
 import { SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
 import { assertWechatStructuralParity } from "./wechat-structure-lib.mjs";
+import { assertCanonicalSignature, assertNoAuthorPlaceholders, replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 export function buildWechatSourceMarkdown(draft, imgs) {
-  let localMd = replaceSlotPlaceholders(draft, match => {
+  let localMd = replaceSlotPlaceholders(replaceKnownAuthorPlaceholders(draft), match => {
     const file = resolveSlotImageFile(match, imgs);
     if (!file) return match;
     return `![](imgs/${file})`;
@@ -25,6 +26,8 @@ export function validateBlogArtifact(articleContent) {
   if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) {
     throw new Error("article.md still has local imgs/ paths");
   }
+  const authorErrors = assertNoAuthorPlaceholders(articleContent);
+  if (authorErrors.length > 0) throw new Error(authorErrors.join("; "));
 }
 
 export function finalizeStep5Artifacts({ slug, wechatSourcePath, wechatHtmlPath, generatePreview, markDone }) {
@@ -44,15 +47,17 @@ export function finalizeStep5Artifacts({ slug, wechatSourcePath, wechatHtmlPath,
   // may still produce <a href> tags. This pass ensures the WeChat HTML
   // never contains clickable anchors (platform rule).
   const rawHtml = readFileSync(wechatHtmlPath, "utf8");
-  const authorPlaceholder = /\{\{\s*(?:作者名|一句话简介|简介)[^}]*\}\}/u;
-  if (authorPlaceholder.test(rawHtml)) {
-    throw new Error("article-wechat.html contains an unresolved author signature placeholder; use the project author NTLx and replace the introduction with ‘热衷于分享 AI 观察与干货’");
-  }
-  const strippedHtml = stripWechatAnchors(rawHtml);
+  const normalizedAuthorHtml = replaceKnownAuthorPlaceholders(rawHtml);
+  const authorErrors = assertNoAuthorPlaceholders(normalizedAuthorHtml);
+  if (authorErrors.length > 0) throw new Error(authorErrors.join("; "));
+  const strippedHtml = stripWechatAnchors(normalizedAuthorHtml);
   if (strippedHtml !== rawHtml) {
     writeFileSync(wechatHtmlPath, strippedHtml, "utf8");
     process.stderr.write("step5: stripped residual <a href> tags from article-wechat.html\n");
   }
+
+  const signatureErrors = assertCanonicalSignature(strippedHtml);
+  if (signatureErrors.length > 0) throw new Error(signatureErrors.join("; "));
 
   const validate = spawnSync("python3", [validateScript, wechatHtmlPath], { stdio: "inherit", encoding: "utf8" });
   if (validate.status !== 0) {

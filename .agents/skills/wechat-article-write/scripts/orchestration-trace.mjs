@@ -12,11 +12,6 @@ import { resolve } from "node:path";
 import { postsRoot } from "./path-resolver.mjs";
 
 export const TRACE_FILENAME = "orchestration-trace.jsonl";
-const ILLUSTRATE_CORE_DESIGN = [
-  "baoyu-article-illustrator",
-  "baoyu-cover-image",
-  "baoyu-infographic",
-];
 const MAX_TEXT_LENGTH = 360;
 const MAX_LIST_ITEMS = 8;
 const MAX_ITEM_LENGTH = 120;
@@ -54,16 +49,16 @@ export function buildTraceRecord(slug, input = {}, timestamp = new Date().toISOS
     throw new Error(`result must be one of: ${[...VALID_RESULTS].join(", ")}`);
   }
   const selected = listOrEmpty(input.selected);
-  const traceSelected = stage === "illustrate"
-    ? [...ILLUSTRATE_CORE_DESIGN, ...selected.filter((item) => item !== "no-skill" && !ILLUSTRATE_CORE_DESIGN.includes(item))]
-    : selected;
   return {
     timestamp,
     slug: textOrUndefined(slug, MAX_ITEM_LENGTH),
     stage,
     gap: textOrUndefined(input.gap),
     candidates: listOrEmpty(input.candidates),
-    selected: traceSelected,
+    // This is the actual route selected for this article, not an inventory of
+    // installed dependencies. In particular, an article with no body image
+    // must not claim that baoyu-infographic was called.
+    selected,
     reason: textOrUndefined(input.reason),
     gate: textOrUndefined(input.gate, MAX_ITEM_LENGTH),
     result,

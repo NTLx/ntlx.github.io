@@ -259,8 +259,8 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
   const state = { errors, warnings };
   const illustrateDeps = HARD_DEPENDENCIES.illustrate ?? [];
   const expectedIllustrateDeps = [
-    "baoyu-article-illustrator",
     "baoyu-cover-image",
+    "baoyu-xhs-images",
     "baoyu-infographic",
     "baoyu-diagram",
     "baoyu-image-gen",
@@ -278,6 +278,8 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
     "scripts/generate-image-prompts.mjs",
     "references/content-invariants.md",
     "references/image-policy.md",
+    "references/image-plan.schema.json",
+    "references/image-review.schema.json",
   ];
   for (const rel of protocolFiles) {
     const path = resolve(SKILL_DIR, rel);
@@ -297,6 +299,7 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
   if (/\bproducer\s*(?:===|!==|==|!=)\s*["'`]/.test(generator)) {
     state.errors.push("generate-image-prompts must not dispatch on producer name");
   }
+  if (generator.includes("baoyu-article-illustrator")) state.errors.push("retired visual Skill remains in generate-image-prompts");
   const backend = readFileSync(resolve(SKILL_DIR, "scripts/check-image-backend.mjs"), "utf8");
   if (/HIGH_LEVEL_RASTER_SKILLS|checkHighLevelConfigs/.test(backend)) {
     state.errors.push("image backend check must not keep a high-level visual Skill registry");
@@ -313,6 +316,9 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
     if (!renderer.includes('"--provider", "codex-cli"')) {
       state.errors.push("serial renderer must explicitly invoke provider=codex-cli");
     }
+    if (!renderer.includes('return "2.35:1"') || !renderer.includes('"--ar", asset.aspect')) {
+      state.errors.push("serial renderer must keep the production cover aspect contract at 2.35:1");
+    }
     if (!renderer.includes("BAOYU_IMAGE_GEN_MAX_WORKERS: \"1\"") ||
         !renderer.includes("BAOYU_IMAGE_GEN_CODEX_CLI_CONCURRENCY: \"1\"")) {
       state.errors.push("serial renderer must cap child image workers at 1");
@@ -325,6 +331,11 @@ function checkAdaptiveVisualBoundaries(errors, warnings) {
     resolve(SKILL_DIR, "scripts/generate-image-prompts.mjs"),
     rendererPath,
   ];
+  for (const path of productionFiles) {
+    if (existsSync(path) && readFileSync(path, "utf8").includes("baoyu-article-illustrator")) {
+      state.errors.push(`retired visual Skill remains in production path: ${basename(path)}`);
+    }
+  }
   const forbiddenRouterIdentifiers = [
     "requiredSkills",
     "optionalSkills",
@@ -404,6 +415,22 @@ function checkQualityProtocolBoundaries(errors, warnings) {
   const visualPlan = readFileSync(resolve(SKILL_DIR, "scripts/visual-plan-lib.mjs"), "utf8");
   if (!visualPlan.includes("validateVisualCoverage") || !visualPlan.includes("validateSlotHeadInvariant")) {
     state.errors.push("visual plan library must enforce coverage_review and SLOT00 head invariant");
+  }
+  for (const [label, token] of [
+    ["cover authority", 'cover: "baoyu-cover-image"'],
+    ["SLOT00 authority", 'infographic: "baoyu-xhs-images"'],
+    ["body authority", 'body: "baoyu-infographic"'],
+  ]) {
+    if (!visualPlan.includes(token)) state.errors.push(`visual plan library is missing ${label}: ${token}`);
+  }
+  for (const token of [
+    '"producer": { "const": "baoyu-cover-image" }',
+    '"producer": { "const": "baoyu-xhs-images" }',
+    '"producer": { "const": "baoyu-infographic" }',
+    '"aspect": { "const": "2.35:1" }',
+    '"card_count": { "const": 1 }',
+  ]) {
+    if (!schema.includes(token)) state.errors.push(`image-plan schema is missing fixed visual contract: ${token}`);
   }
 
   const step5Lib = readFileSync(resolve(SKILL_DIR, "scripts/step5-lib.mjs"), "utf8");

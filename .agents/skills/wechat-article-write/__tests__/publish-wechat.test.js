@@ -10,6 +10,7 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { writePreparedArtifactManifest, writeFinalizedArtifactManifest } from "../scripts/artifact-integrity-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/publish-wechat.mjs");
 const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
@@ -41,11 +42,23 @@ function seedPublishDeps(repoRoot) {
   ]) {
     writeFileSync(join(repoRoot, rel), "---\nname: fake\n---\n");
   }
+  mkdirSync(join(repoRoot, ".agents/skills/wechat-article-write"), { recursive: true });
+  writeFileSync(join(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), [
+    "default_author: NTLx",
+    "default_author_bio: 热衷于分享 AI 观察与干货",
+    "visual_style_profile: bright-vivid-warm",
+    "visual_brightness: bright",
+    "visual_saturation: high",
+    "visual_contrast: high",
+    "visual_background: clean",
+    "visual_clarity: crisp",
+    "visual_mood: warm-positive",
+  ].join("\n") + "\n");
 }
 
 function writePost(postsRoot, slug, {
   sourceUrl = "https://ntlx.github.io/articles/wechat-utm-test",
-  html = "<section>微信正文</section>\n",
+  html = "<section>微信正文<p>我是 NTLx，热衷于分享 AI 观察与干货。</p></section>\n",
 } = {}) {
   const dir = join(postsRoot, slug);
   mkdirSync(dir, { recursive: true });
@@ -59,6 +72,12 @@ sourceUrl: ${sourceUrl}
 
 正文。
 `);
+  writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n正文。\n");
+  writeFileSync(join(dir, "image-plan.json"), "{}\n");
+  writeFileSync(join(dir, "image-review.json"), "{}\n");
+  writeFileSync(join(dir, "article-wechat-source.md"), "正文。\n");
+  writePreparedArtifactManifest(dir);
+  writeFinalizedArtifactManifest(dir);
 }
 
 function runPublish(args, fixture) {
@@ -92,7 +111,7 @@ describe("publish-wechat", () => {
 
     const r = runPublish([slug, "--dry-run"], fx);
 
-    expect(r.status).toBe(0);
+    expect(r.status, r.stderr || r.stdout).toBe(0);
     expect(r.stdout).toContain("--source-url https://ntlx.github.io/articles/wechat-utm-test?utm_source=wechat&utm_medium=social&utm_campaign=article_push");
   });
 
@@ -106,7 +125,7 @@ describe("publish-wechat", () => {
 
     const r = runPublish([slug], fx);
 
-    expect(r.status).toBe(0);
+    expect(r.status, r.stderr || r.stdout).toBe(0);
     const state = JSON.parse(readFileSync(join(fx.postsRoot, slug, ".pipeline-state.json"), "utf8"));
     expect(state.sourceUrl).toBe(canonicalUrl);
     expect(state.wechatSourceUrl).toBe(wechatSourceUrl);
@@ -141,6 +160,6 @@ describe("publish-wechat", () => {
     const r = runPublish([slug, "--dry-run"], fx);
 
     expect(r.status).toBe(5);
-    expect(r.stderr).toContain("unresolved author signature placeholder");
+    expect(r.stderr).toContain("unresolved author placeholder");
   });
 });

@@ -45,9 +45,17 @@ describe("resolveSlotImageFile", () => {
 
 function visualPlan(illustrations) {
   return {
-    cover: { intent: "文章中心" },
-    infographic: { intent: "全文摘要" },
-    illustrations,
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: [] },
+    cover: { intent: "文章中心", producer: "baoyu-cover-image", prompt_source: "external" },
+    infographic: { intent: "全文摘要", producer: "baoyu-xhs-images", prompt_source: "external" },
+    illustrations: illustrations.map((entry) => ({
+      producer: "baoyu-infographic",
+      prompt_source: "external",
+      ...entry,
+    })),
+    source_image_review: [],
   };
 }
 
@@ -107,8 +115,8 @@ describe("validateVisualPlanTopology", () => {
     expect(duplicatePlan.errors.join("\n")).toContain("duplicate slot 1");
   });
 
-  test("defaults legacy plans to adapter and requires producer for external nodes", () => {
-    expect(normalizePromptSource(undefined)).toBe("adapter");
+  test("requires an explicit external producer prompt source", () => {
+    expect(() => normalizePromptSource(undefined)).toThrow('prompt_source must be "external"');
 
     const result = validateVisualPlanTopology(
       {
@@ -126,26 +134,36 @@ describe("validateVisualPlanTopology", () => {
 
 function completeBaoyuPlan(body = []) {
   return {
-    article_visual_design: { skill: "baoyu-article-illustrator" },
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: [] },
     cover: {
       intent: "封面中心",
-      baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", palette: "cool", rendering: "flat-vector" },
+      producer: "baoyu-cover-image",
+      baoyu_design: { skill: "baoyu-cover-image", aspect: "2.35:1", text: "none", type: "conceptual", palette: "cool", rendering: "flat-vector" },
       contributors: [],
-      prompt_source: "adapter",
+      prompt_source: "external",
     },
     infographic: {
       intent: "全文摘要",
-      baoyu_design: { skill: "baoyu-infographic", layout: "bento-grid", style: "craft-handmade" },
+      producer: "baoyu-xhs-images",
+      baoyu_design: { skill: "baoyu-xhs-images", card_count: 1, layout: "bento-grid", style: "craft-handmade" },
       contributors: [],
-      prompt_source: "adapter",
+      prompt_source: "external",
+      text_density: "low",
+      has_long_copy: false,
     },
     illustrations: body.map((slot) => ({
       slot,
       intent: `解释 ${slot}`,
-      baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "minimal" },
+      producer: "baoyu-infographic",
+      baoyu_design: { skill: "baoyu-infographic", type: "framework", style: "minimal" },
       contributors: [],
-      prompt_source: "adapter",
+      prompt_source: "external",
+      text_density: "low",
+      has_long_copy: false,
     })),
+    source_image_review: [],
   };
 }
 
@@ -159,8 +177,8 @@ describe("Baoyu visual design authority", () => {
   test("requires the fixed core authority for cover, infographic, and body", () => {
     const cases = [
       ["cover", "baoyu-cover-image"],
-      ["infographic", "baoyu-infographic"],
-      ["body", "baoyu-article-illustrator"],
+      ["infographic", "baoyu-xhs-images"],
+      ["body", "baoyu-infographic"],
     ];
     for (const [asset, expected] of cases) {
       const plan = completeBaoyuPlan(asset === "body" ? [1] : []);
@@ -183,14 +201,15 @@ describe("Baoyu visual design authority", () => {
     plan.illustrations[0].prompt_source = "external";
     plan.illustrations[0].producer = "baoyu-diagram";
     const errors = validateBaoyuDesign(plan).join("\n");
-    expect(errors).toContain("baoyu-diagram may contribute diagram structure");
-    expect(errors).toContain("final body raster prompt authority must remain baoyu-article-illustrator");
+    expect(errors).toContain("producer must be baoyu-infographic");
   });
 });
 
 function coveragePlan(coverage, illustrations = [], sourceImageReview = []) {
   return {
-    article_visual_design: { skill: "baoyu-article-illustrator", coverage_review: coverage },
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: coverage },
     illustrations,
     source_image_review: sourceImageReview,
   };
@@ -249,7 +268,7 @@ describe("visual coverage and source disposition", () => {
     const body = bodyWithSections(["A", "![](imgs/original.png)"]);
     const valid = validateVisualCoverage(coveragePlan([
       { section_index: 1, heading: "A", decision: "reuse-source", source: "original.png", reason: "原图就是本节证据" },
-    ], [], [{ source: "original.png", decision: "body", reason: "承载关键关系" }]), body);
+    ], [], [{ source: "original.png", reusable: true, decision: "body", reason: "承载关键关系" }]), body);
     expect(valid.ok).toBe(true);
 
     const missing = validateVisualCoverage(coveragePlan([
@@ -263,14 +282,34 @@ describe("visual coverage and source disposition", () => {
     const body = bodyWithSections(["A"]);
     const coverOnly = validateVisualCoverage(coveragePlan([
       { section_index: 1, heading: "A", decision: "text-only", reason: "原图只适合作为封面" },
-    ], [], [{ source: "original.png", decision: "cover-only", reason: "缩略图识别度更好" }]), body);
+    ], [], [{ source: "original.png", reusable: false, decision: "cover-only", reason: "缩略图识别度更好" }]), body);
     expect(coverOnly.ok).toBe(true);
 
     const badDiscard = validateVisualCoverage(coveragePlan([
       { section_index: 1, heading: "A", decision: "text-only", reason: "无需正文图" },
-    ], [], [{ source: "unused.png", decision: "discard", reason: "" }]), body);
+    ], [], [{ source: "unused.png", reusable: false, decision: "discard", reason: "" }]), body);
     expect(badDiscard.ok).toBe(false);
     expect(badDiscard.errors.join("\n")).toContain("reason must be a non-empty string");
+  });
+
+  test("prefer-reuse requires a reusable source to appear in the body", () => {
+    const allDiscarded = validateVisualCoverage(coveragePlan([
+      { section_index: 1, heading: "A", decision: "text-only", reason: "正文已足够清楚" },
+    ], [], [{ source: "source.png", reusable: true, decision: "discard", exception_code: "redundant", reason: "重复信息" }]), bodyWithSections(["A"]));
+    expect(allDiscarded.ok).toBe(false);
+    expect(allDiscarded.errors.join("\n")).toContain("prefer-reuse requires at least one reusable source image");
+
+    const missingBodyReference = validateVisualCoverage(coveragePlan([
+      { section_index: 1, heading: "A", decision: "text-only", reason: "正文已足够清楚" },
+    ], [], [{ source: "source.png", reusable: true, decision: "body", reason: "支持关键论证" }]), bodyWithSections(["A"]));
+    expect(missingBodyReference.ok).toBe(false);
+    expect(missingBodyReference.errors.join("\n")).toContain("decision=body requires the source image to be referenced");
+
+    const nonReusableBody = validateVisualCoverage(coveragePlan([
+      { section_index: 1, heading: "A", decision: "reuse-source", source: "source.png", reason: "原图支持本节" },
+    ], [], [{ source: "source.png", reusable: false, decision: "body", reason: "错误的复用声明" }]), bodyWithSections(["A", "![](imgs/source.png)"]));
+    expect(nonReusableBody.ok).toBe(false);
+    expect(nonReusableBody.errors.join("\n")).toContain("requires reusable=true");
   });
 });
 

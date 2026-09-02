@@ -22,10 +22,11 @@
 import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, relative, basename } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markBlogDone } from "./state-lib.mjs";
+import { markBlogDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
+import { assertFinalizedArtifactFreshness } from "./artifact-integrity-lib.mjs";
 
 
 function run(cmd, args, opts = {}) {
@@ -191,6 +192,14 @@ if (!opts.slug) {
 }
 
 const dateSlug = opts.slug;
+try {
+  assertFinalizedArtifactFreshness(resolve(postsRoot(), dateSlug));
+} catch (error) {
+  const message = `finalized Step 5 artifacts are stale: ${error.message}`;
+  process.stderr.write(`publish-blog: FAIL - ${message}\n`);
+  markStepFailed(dateSlug, 6.1, message);
+  process.exit(5);
+}
 const articlePath = resolve(postsRoot(), dateSlug, "article.md");
 if (!existsSync(articlePath)) {
   process.stderr.write(`publish-blog: ${articlePath} 不存在\n`);
@@ -368,15 +377,34 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-di
 if (opts.noPush) {
   markBlogDone(dateSlug, {
     pushed: false,
-    extra: { commit: null, blog_slug: slug, pushed: false, no_push: true, local_only: true },
+    extra: {
+      commit: null,
+      blog_slug: slug,
+      pushed: false,
+      no_push: true,
+      local_only: true,
+      publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: false, remote_pushed: false, site_deployed: null } },
+    },
   });
   process.stderr.write("publish-blog: --no-push enabled; local article written but blog state is blocked until commit/push completes.\n");
 } else if (pushBlocked) {
-  const stateExtra = { commit: sha, blog_slug: slug, pushed: false, push_error: pushError, resume_file: resumeFile };
+  const stateExtra = {
+    commit: sha,
+    blog_slug: slug,
+    pushed: false,
+    push_error: pushError,
+    resume_file: resumeFile,
+    publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: true, remote_pushed: false, site_deployed: null } },
+  };
   markBlogDone(dateSlug, { pushed: false, extra: stateExtra });
   process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push origin HEAD:main' manually then mark step complete.\n");
 } else {
-  const stateExtra = { commit: sha, blog_slug: slug, pushed };
+  const stateExtra = {
+    commit: sha,
+    blog_slug: slug,
+    pushed,
+    publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: true, remote_pushed: pushed, site_deployed: null } },
+  };
   markBlogDone(dateSlug, { pushed: true, extra: stateExtra });
 }
 
@@ -385,6 +413,10 @@ process.stdout.write(JSON.stringify({
   target: targetPath,
   commit: sha,
   pushed,
+  build_passed: opts.noBuild ? null : true,
+  commit_created: sha !== null,
+  remote_pushed: pushed,
+  site_deployed: null,
   no_push: opts.noPush,
   blocked: pushBlocked || opts.noPush,
   resume_file: resumeFile,

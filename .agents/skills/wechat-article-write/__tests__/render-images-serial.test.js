@@ -4,9 +4,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { renderImagesSerial } from "../scripts/render-images-serial.mjs";
+import { assertCoverPixelAspect, renderImagesSerial } from "../scripts/render-images-serial.mjs";
+import { finalizeCanonicalPrompt } from "../scripts/visual-plan-lib.mjs";
+import { getVisualStyleProfile } from "../scripts/config-lib.mjs";
 
-const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_BYTES = Buffer.alloc(24);
+Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(PNG_BYTES);
+PNG_BYTES.writeUInt32BE(235, 16);
+PNG_BYTES.writeUInt32BE(100, 20);
 
 function makeFixture() {
   const root = join(tmpdir(), `serial-renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -35,23 +40,32 @@ sourceUrl: https://ntlx.github.io/articles/serial-renderer
 `);
 
   writeFileSync(join(postDir, "image-plan.json"), JSON.stringify({
-    article_visual_design: { skill: "baoyu-article-illustrator", strategy: "只为降低理解成本创建图片" },
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: [
+      { section_index: 1, heading: "正文", decision: "illustrate", slot: 1, reason: "状态关系需要结构图" },
+    ] },
     cover: {
       intent: "表达串行图片执行",
-      baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", palette: "cool", rendering: "flat-vector", aspect: "16:9" },
+      producer: "baoyu-cover-image",
+      baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", palette: "cool", rendering: "flat-vector", aspect: "2.35:1", text: "none" },
       contributors: [],
-      prompt_source: "adapter",
+      prompt_source: "external",
     },
     infographic: {
       intent: "压缩串行执行闭环",
-      baoyu_design: { skill: "baoyu-infographic", layout: "circular-flow", style: "technical-schematic", aspect: "16:9" },
+      producer: "baoyu-xhs-images",
+      baoyu_design: { skill: "baoyu-xhs-images", layout: "circular-flow", style: "technical-schematic", card_count: 1 },
       contributors: [],
-      prompt_source: "adapter",
+      text_density: "low",
+      has_long_copy: false,
+      prompt_source: "external",
     },
     illustrations: [
-      { slot: 1, intent: "展示状态流", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "minimal", palette: "cool" }, contributors: [], description: "state-flow", prompt_source: "adapter" },
-      { slot: 2, intent: "展示控制闭环", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "minimal", palette: "cool" }, contributors: [], description: "control-loop", prompt_source: "adapter" },
+      { slot: 1, producer: "baoyu-infographic", intent: "展示状态流", baoyu_design: { skill: "baoyu-infographic", type: "flowchart", style: "minimal", palette: "cool" }, contributors: [], description: "state-flow", prompt_source: "external", text_density: "low", has_long_copy: false },
+      { slot: 2, producer: "baoyu-infographic", intent: "展示控制闭环", baoyu_design: { skill: "baoyu-infographic", type: "framework", style: "minimal", palette: "cool" }, contributors: [], description: "control-loop", prompt_source: "external", text_density: "low", has_long_copy: false },
     ],
+    source_image_review: [],
   }, null, 2) + "\n");
 
   for (const name of [
@@ -60,7 +74,15 @@ sourceUrl: https://ntlx.github.io/articles/serial-renderer
     "01-state-flow.md",
     "02-control-loop.md",
   ]) {
-    writeFileSync(join(postDir, "imgs", "prompts", name), `prompt for ${name}\n`);
+    const role = name.startsWith("00-cover") ? "cover" : name.startsWith("00-") ? "header-infographic" : "body-illustration";
+    const textDensity = role === "cover" ? "none" : "low";
+    const aspect = role === "cover" ? "2.35:1" : undefined;
+    writeFileSync(join(postDir, "imgs", "prompts", name), finalizeCanonicalPrompt(`Prompt for ${name}`, {
+      profile: getVisualStyleProfile(),
+      role,
+      textDensity,
+      aspect,
+    }));
   }
 
   return { root, postsRoot, slug, postDir };
@@ -114,6 +136,8 @@ describe("serial image renderer", () => {
       join(fx.postDir, "imgs", "02-control-loop.png"),
     ]);
     expect(mock.maxActive).toBe(1);
+    expect(mock.calls[0].args).toContain("--ar");
+    expect(mock.calls[0].args[mock.calls[0].args.indexOf("--ar") + 1]).toBe("2.35:1");
     for (const call of mock.calls) {
       expect(call.args).toContain("--provider");
       expect(call.args[call.args.indexOf("--provider") + 1]).toBe("codex-cli");
@@ -226,5 +250,16 @@ describe("serial image renderer", () => {
     expect(backendChecks).toBe(0);
     expect(commands).toBe(0);
     expect(existsSync(join(fx.postDir, "cover.png"))).toBe(false);
+  });
+
+  test("rejects a final cover whose pixel ratio is not 2.35:1", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const square = Buffer.alloc(24);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(square);
+    square.writeUInt32BE(100, 16);
+    square.writeUInt32BE(100, 20);
+    writeFileSync(join(fx.postDir, "cover.png"), square);
+    expect(() => assertCoverPixelAspect(join(fx.postDir, "cover.png"))).toThrow("2.35:1");
   });
 });

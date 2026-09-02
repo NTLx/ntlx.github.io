@@ -76,10 +76,12 @@ function writeImagePlan(dir, body) {
       : { section_index: index + 1, heading, decision: "text-only", reason: "测试章节文字已经足够清楚" };
   });
   writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
-    article_visual_design: { skill: "baoyu-article-illustrator", coverage_review: coverageReview },
-    cover: { intent: "测试封面" },
-    infographic: { intent: "测试摘要" },
-    illustrations: slots.map(({ slot }) => ({ slot, intent: `测试 SLOT ${slot}` })),
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: coverageReview },
+    cover: { producer: "baoyu-cover-image", intent: "测试封面", baoyu_design: { skill: "baoyu-cover-image", aspect: "2.35:1", text: "none" }, prompt_source: "external" },
+    infographic: { producer: "baoyu-xhs-images", intent: "测试摘要", baoyu_design: { skill: "baoyu-xhs-images", card_count: 1 }, text_density: "low", has_long_copy: false, prompt_source: "external" },
+    illustrations: slots.map(({ slot }) => ({ slot, producer: "baoyu-infographic", intent: `测试 SLOT ${slot}`, baoyu_design: { skill: "baoyu-infographic" }, text_density: "low", has_long_copy: false, prompt_source: "external" })),
     source_image_review: [],
   }, null, 2));
 }

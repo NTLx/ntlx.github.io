@@ -8,16 +8,14 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.60.0"
+  version: "1.61.0"
 ---
 
 # 微信公众号文章写作
-
 本技能是博客 + 微信双轨管线的监督层。它固定文件协议、状态、Gate 和
 发布顺序；内容理解、写作方法和专项视觉 contributor 按当前任务动态选择。
 
 ## 先读路由
-
 | 任务 | 必读文件 |
 |---|---|
 | 完整写作/续跑 | `references/pipeline-overview.md` |
@@ -66,16 +64,17 @@ metadata:
 6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
    重复，也不得绕过 Gate。trace 失败不影响 artifact、state 或 Gate。具体
 规则见 `orchestration-policy.md`。
-`illustrate` 是例外：它必须先经过 Baoyu Core Design Skills，`no-skill` 只表示
-没有额外 contributor。文章级规划使用 `baoyu-article-illustrator`；封面使用
-`baoyu-cover-image`；`SLOT_IMG_00` 使用 `baoyu-infographic`。涉及架构、流程、
-时序、数据流或状态关系时，Agent 可从 catalog 选择 `baoyu-diagram`，但它只
-贡献结构语法，不生成 SVG/PNG，也不成为最终 prompt authority。
+`illustrate` 是例外：coverage_review 由当前 wechat-article-write Agent 根据
+draft、understanding-brief 和 source_image_review 自主完成。封面使用
+`baoyu-cover-image`；`SLOT_IMG_00` 使用 `baoyu-xhs-images`；正文 SLOT 使用
+`baoyu-infographic`。涉及架构、流程、时序、数据流或状态关系时，Agent 可从
+catalog 选择 `baoyu-diagram`，但它只贡献结构语法，不生成 SVG/PNG，也不成为
+最终 prompt authority。
 
 ## 图片视觉与成本硬约束
 
-Baoyu Core Design Skills 负责视觉判断与 canonical prompt；可选 contributor 只
-补充结构或设计意见。高层设计委托统一使用 DESIGN-ONLY MODE：不得调用 native
+Baoyu Design Skills 负责视觉判断与 canonical prompt；可选 contributor 只补充
+结构或设计意见。所有设计调用统一使用 DESIGN-ONLY MODE：不得调用 native
 imagegen、GenerateImage、image_generate、API image provider、`baoyu-image-gen`
 或输出最终 SVG/PNG。唯一 raster 链路是 `baoyu-image-gen` → `codex-cli`，唯一
 执行器是集中式串行脚本。先运行：
@@ -99,9 +98,10 @@ bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <da
 
 Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
 按策略完成理解或适配/写作；Step 3 先完成 pre-humanizer-normalize，再执行 mandatory humanizer-zh，随后针对实际问题
-refine；Step 4 先运行 Baoyu article-level visual design，并为每个 substantive H2
-完成 `coverage_review`（正文 SLOT 仍可为 0..N），再分别完成 cover、SLOT_IMG_00
-和正文的 Baoyu 设计合同。SLOT_IMG_00 必须恰好一次、位于首个 substantive H2 前
+refine；用户指出“生硬、AI 味重、不像作者”等语言问题时，回到 draft.md 重新执行
+Step 3。Step 4 由 Agent 为每个 substantive H2 完成 `coverage_review`（正文 SLOT
+仍可为 0..N），再分别调用 cover、SLOT_IMG_00 和正文的固定 Baoyu producer。
+SLOT_IMG_00 必须恰好一次、位于首个 substantive H2 前
 并作为正文第一张视觉；Step 5 构建并校验双轨产物，gzh-design 可自由排版但必须
 通过 structural parity；Step 6
 按顺序发布。
@@ -119,7 +119,7 @@ prepare 会调用图床一次，使用 `--folder wechat-articles`、文章命名
 索引远端 blob、处理冲突、重试并生成真实 CDN URL。Step 5 不解析图床配置、不
 拼 CDN URL、不维护上传重试或复用状态。`image-map.json` 仍是
 “本地文件名 → CDN URL”的 flat map，旧的 `{ "files": ... }` 只作读取兼容。
-`--dry-run` 只做 draft、cover、imgs、SLOT/local reference、humanizer receipt
+`--dry-run` 只做 draft、cover、imgs、SLOT/local reference、image-review receipt、humanizer receipt
 的本地校验，并报告图片数量、SLOT 数量、命名前缀和目标目录；不访问图床、不写
 map、文章产物或 state。
 Agent 调用 `gzh-design` 生成 `article-wechat.html` 后，运行：
@@ -127,7 +127,7 @@ Agent 调用 `gzh-design` 生成 `article-wechat.html` 后，运行：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
-finalize-only 先在本地检查 `draft.md` 与 humanizer receipt 一致，再消费 `article.md`、
+finalize-only 先在本地检查 manifest、`draft.md`、image-plan 和 image-review 一致，再消费 `article.md`、
 `article-wechat-source.md`、`article-wechat.html`，运行 gzh validator 与 structural
 parity；它绝不调用 `github-image-hosting`，也不需要 GitHub 配置、CLI 或网络。协议可
 安全重复，重复 finalize 始终是零图床调用；root cover 必须恰好一个，MIME/扩展名须在 receipt 前由 `pre-humanizer-normalize.mjs` 处理，Step 5 只校验不自动改名。

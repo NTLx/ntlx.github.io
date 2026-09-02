@@ -76,19 +76,14 @@ describe("orchestration trace", () => {
     expect(record.selected).toEqual(["no-skill"]);
   });
 
-  test("always records the mandatory Baoyu core layer for illustrate", () => {
+  test("records only the actual visual route selected for illustrate", () => {
     const record = buildTraceRecord("trace-illustrate", {
       stage: "illustrate",
       selected: ["baoyu-diagram"],
       result: "pass",
     });
 
-    expect(record.selected).toEqual([
-      "baoyu-article-illustrator",
-      "baoyu-cover-image",
-      "baoyu-infographic",
-      "baoyu-diagram",
-    ]);
+    expect(record.selected).toEqual(["baoyu-diagram"]);
   });
 
   test("accepts only the four route-attempt results", () => {

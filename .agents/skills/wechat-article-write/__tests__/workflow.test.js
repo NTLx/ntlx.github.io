@@ -126,8 +126,8 @@ describe("workflow stage contracts", () => {
       expect(HARD_SKILLS).not.toContain(skill);
     }
     expect(HARD_SKILLS).toEqual(expect.arrayContaining([
-      "baoyu-article-illustrator",
       "baoyu-cover-image",
+      "baoyu-xhs-images",
       "baoyu-infographic",
       "baoyu-diagram",
       "baoyu-image-gen",

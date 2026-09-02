@@ -142,15 +142,15 @@ function printStageContract(slug, strategy, stage, nextStep = null) {
   }
   if (stage === "illustrate") {
     process.stdout.write("\n  Visual design requirements:\n");
-    process.stdout.write("    1. 先运行 Baoyu article-level visual design；即使正文图片为 0 张，也要记录 baoyu-article-illustrator 的判断。\n");
-    process.stdout.write("    2. 使用 baoyu-cover-image 设计 cover。\n");
-    process.stdout.write("    3. 使用 baoyu-infographic 设计 SLOT_IMG_00。\n");
-    process.stdout.write("    4. 从 catalog 检查专项 Baoyu 能力；涉及结构、流程、状态、时序或架构关系时，可由 Agent 选择 baoyu-diagram 作为 contributor。\n");
-    process.stdout.write("    5. Optional contributors 只能增强设计；最终 raster prompt authority 必须留在对应 Baoyu 核心设计层。\n");
-    process.stdout.write("    6. 先物化全部 canonical prompts，再开始渲染。\n");
+    process.stdout.write("    1. 当前 wechat-article-write Agent 根据 draft、brief、coverage_review 和原图审阅完成 image-plan。\n");
+    process.stdout.write("    2. 使用 baoyu-cover-image 设计 cover，固定 2.35:1 且默认无文字。\n");
+    process.stdout.write("    3. 使用 baoyu-xhs-images 设计恰好一张 SLOT_IMG_00 头部信息图。\n");
+    process.stdout.write("    4. 仅当正文有信息增益时使用 baoyu-infographic 设计 SLOT_IMG_01+；正文图片可为 0 张。\n");
+    process.stdout.write("    5. 从 catalog 按需选择 baoyu-diagram 作为结构 contributor；它不生成最终图片或 Prompt。\n");
+    process.stdout.write("    6. 让固定 producer 先产出 canonical prompts，再由 generate-image-prompts.mjs 做项目合同 finalize。\n");
     process.stdout.write(`    7. 只运行串行 renderer: bun run ${resolve(scriptsDir, "render-images-serial.mjs")} ${slug}\n`);
     process.stdout.write("    8. Raster backend: baoyu-image-gen → codex-cli only。\n");
-    process.stdout.write("    9. 不使用 batch 或并行生图；Image N 完成后才能启动 Image N+1。\n");
+    process.stdout.write("    9. 不使用 batch 或并行生图；每张图还必须有 hash-bound image-review receipt。\n");
     process.stdout.write(`  Backend preflight: bun run ${resolve(scriptsDir, "check-image-backend.mjs")} --runtime\n`);
     process.stdout.write("  Raster policy: 由串行 renderer 显式执行 baoyu-image-gen → codex-cli；不可用时 fail closed。\n");
   }

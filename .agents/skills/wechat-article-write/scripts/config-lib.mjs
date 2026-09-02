@@ -9,7 +9,7 @@
  * 设计约束：
  *   - 不修改第三方技能源码或 EXTEND 格式
  *   - 不引入外部 YAML 解析器（配置足够简单，正则即够）
- *   - 每个 getter 只为兼容现有脚本提供协议默认值，不承担 Skill 路由
+ *   - 每个 getter 只为本技能的确定性协议提供配置，不承担开放式 Skill 路由
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -17,6 +17,13 @@ import { resolve } from "node:path";
 import { repoRoot } from "./path-resolver.mjs";
 
 const BAOYU_ROOT = resolve(repoRoot(), ".baoyu-skills");
+
+// Tests and direct module consumers may run with the skill test directory as
+// their CWD. The project-owned configuration must still resolve to this
+// skill unless an isolated repository is explicitly supplied.
+const PROJECT_SKILL_ROOT = process.env.PIPELINE_REPO_ROOT
+  ? resolve(repoRoot(), ".agents/skills/wechat-article-write")
+  : resolve(import.meta.dir, "..");
 
 // --- 简单的 frontmatter / key:value 解析 ---
 
@@ -63,12 +70,11 @@ let _cache = null;
 function loadAll() {
   if (_cache) return _cache;
   _cache = {
-    wechatArticleWrite: parseExtend(resolve(repoRoot(), ".agents/skills/wechat-article-write/EXTEND.md")),
+    wechatArticleWrite: parseExtend(resolve(PROJECT_SKILL_ROOT, "EXTEND.md")),
     markdownToHtml: parseExtend(resolve(BAOYU_ROOT, "baoyu-markdown-to-html/EXTEND.md")),
     postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
     coverImage:     parseExtend(resolve(BAOYU_ROOT, "baoyu-cover-image/EXTEND.md")),
     imagine:        parseExtend(resolve(BAOYU_ROOT, "baoyu-image-gen/EXTEND.md")),
-    illustrator:    parseExtend(resolve(BAOYU_ROOT, "baoyu-article-illustrator/EXTEND.md")),
   };
   return _cache;
 }
@@ -87,11 +93,47 @@ export function getMarkdownToHtmlConfig() {
   };
 }
 
-/** Step 6.2: baoyu-post-to-wechat 配置 */
+/** 唯一作者事实源：缺失配置直接 fail closed。 */
+export function getWechatAuthorProfile() {
+  const c = loadAll().wechatArticleWrite;
+  const name = c.default_author;
+  const bio = c.default_author_bio;
+  if (typeof name !== "string" || name.trim() === "" || typeof bio !== "string" || bio.trim() === "") {
+    throw new Error("wechat-article-write author profile is incomplete; configure default_author and default_author_bio in EXTEND.md");
+  }
+  const cleanName = name.trim();
+  const cleanBio = bio.trim();
+  return {
+    name: cleanName,
+    bio: cleanBio,
+    signature: `我是 ${cleanName}，${cleanBio}。`,
+  };
+}
+
+/** 唯一项目视觉事实源：缺失字段直接 fail closed。 */
+export function getVisualStyleProfile() {
+  const c = loadAll().wechatArticleWrite;
+  const values = {
+    id: c.visual_style_profile,
+    brightness: c.visual_brightness,
+    saturation: c.visual_saturation,
+    contrast: c.visual_contrast,
+    background: c.visual_background,
+    clarity: c.visual_clarity,
+    mood: c.visual_mood,
+  };
+  if (Object.values(values).some((value) => typeof value !== "string" || value.trim() === "")) {
+    throw new Error("wechat-article-write visual style profile is incomplete; configure all visual_* fields in EXTEND.md");
+  }
+  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
+}
+
+/** Step 6.2: 发布参数；作者只来自本技能，不读取第三方作者配置。 */
 export function getPostToWechatConfig() {
   const c = loadAll().postToWechat;
+  const author = getWechatAuthorProfile();
   return {
-    author:        c.default_author         ?? "NTLx",
+    author:        author.name,
     theme:         c.default_theme          ?? "default",
     color:         c.default_color          ?? "blue",
     openComment:   c.need_open_comment      ?? 1,
@@ -106,7 +148,7 @@ export function getCoverImageConfig() {
     preferredBackend: c.preferred_image_backend ?? "baoyu-image-gen",
     quickMode:        c.quick_mode               ?? true,
     language:         c.language                 ?? "zh",
-    defaultAspect:    c.default_aspect           ?? "2.35:1",
+    defaultAspect:    "2.35:1",
   };
 }
 
@@ -116,16 +158,6 @@ export function getImagineConfig() {
   return {
     defaultProvider:   c.default_provider ?? null,
     defaultModel:     c.default_model           ?? {},
-  };
-}
-
-/** Step 4: baoyu-article-illustrator 模板配置；raster backend 由项目 policy 统一校验。 */
-export function getArticleIllustratorConfig() {
-  const c = loadAll().illustrator;
-  return {
-    preferredBackend: c.preferred_image_backend ?? "baoyu-image-gen",
-    preferredStyle:   c.preferred_style         ?? "vector-illustration",
-    defaultOutputDir: c.default_output_dir      ?? "imgs-subdir",
   };
 }
 
@@ -144,11 +176,12 @@ export function getWechatArticleWriteConfig() {
 // 运行配置汇总（一次性获取所有需要的内容，方便一次性解构）
 export function getAllConfig() {
   return {
+    author:         getWechatAuthorProfile(),
+    visualProfile:  getVisualStyleProfile(),
     wechatArticleWrite: getWechatArticleWriteConfig(),
     markdownToHtml: getMarkdownToHtmlConfig(),
     postToWechat:   getPostToWechatConfig(),
     coverImage:     getCoverImageConfig(),
     imagine:        getImagineConfig(),
-    illustrator:    getArticleIllustratorConfig(),
   };
 }

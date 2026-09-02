@@ -55,8 +55,8 @@ describe("check-deps", () => {
     try {
       mkdirSync(join(root, ".baoyu-skills", "baoyu-image-gen"), { recursive: true });
       for (const name of [
-        "baoyu-article-illustrator",
         "baoyu-cover-image",
+        "baoyu-xhs-images",
         "baoyu-infographic",
         "baoyu-diagram",
         "baoyu-image-gen",
@@ -66,8 +66,8 @@ describe("check-deps", () => {
       }
       mkdirSync(join(root, ".agents", "skills", "wechat-article-write", "references"), { recursive: true });
       writeFileSync(join(root, ".baoyu-skills", "baoyu-image-gen", "EXTEND.md"), "---\nversion: 1\ndefault_provider: codex-cli\n---\n");
-      writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "references", "image-template-map.json"), "{}\n");
       writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "references", "image-plan.schema.json"), "{}\n");
+      writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "references", "image-review.schema.json"), "{}\n");
       mkdirSync(join(root, ".agents", "skills", "wechat-article-write", "scripts"), { recursive: true });
       writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "scripts", "visual-plan-lib.mjs"), "\n");
       writeFileSync(join(root, ".agents", "skills", "wechat-article-write", "scripts", "render-images-serial.mjs"), "\n");
@@ -77,8 +77,8 @@ describe("check-deps", () => {
       expect(JSON.parse(r.stdout).ok).toBe(true);
 
       for (const missingName of [
-        "baoyu-article-illustrator",
         "baoyu-cover-image",
+        "baoyu-xhs-images",
         "baoyu-infographic",
         "baoyu-diagram",
         "baoyu-image-gen",

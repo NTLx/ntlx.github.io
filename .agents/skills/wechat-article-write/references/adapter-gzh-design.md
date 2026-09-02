@@ -38,11 +38,10 @@ posts/<date-slug>/article-wechat-source.md
   `article-wechat-source.md` 的 substantive H2 顺序或正文图片拓扑。不得删除、重复、
   重排图片，不得把图片移动到其它章节，也不得把 SLOT00 从 lead 移入正文。
 - 使用 `gzh-design` 自带组件与流程，不手写裸 HTML
-- **作者签名**：gzh-design 的签名区默认使用 `{{作者名}}` / `{{简介}}` 占位符。本项目的固定作者信息：
-  - 作者名：`NTLx`
-  - 一句话简介：`热衷于分享 AI 观察与干货`
-  
-  调用 gzh-design 时，明确告知 Agent 将签名区的 `{{作者名}}` 替换为 `NTLx`、`{{简介}}` 替换为上述简介。不要用占位符，也不要让 Agent 自行猜测作者信息。
+- **作者签名**：gzh-design 的签名区默认使用 `{{作者名}}` / `{{简介}}` 占位符。调用前读取
+  `config-lib.mjs` 的 `getWechatAuthorProfile()`，使用返回的 canonical `name`、`bio` 和
+  `signature` 完成替换；不要在本适配器文档或 gzh-design 配置中复制作者信息，也不要让
+  Agent 自行猜测作者信息。Step 5 与发布前 Gate 会再次拒绝未知占位符并校验签名恰好一次。
 
 4b. **参考资料与延伸阅读 HTML 输出规范**：
 

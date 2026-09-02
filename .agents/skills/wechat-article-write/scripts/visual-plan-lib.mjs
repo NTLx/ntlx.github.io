@@ -1,31 +1,127 @@
 /**
  * image-plan / draft SLOT 的最小拓扑协议。
  *
- * 这里只验证计划图的连通性和唯一性，不选择 Skill、不读取第三方 Skill、
- * 不生成 prompt，也不调用模型。视觉字段的 adapter-specific 校验由
- * generate-image-prompts.mjs 负责。
+ * 这里只验证计划图的连通性、producer authority 和项目视觉合同，不选择
+ * Skill、不读取第三方 Skill、不调用模型。canonical prompt 由选定 producer
+ * 先产出，再由 finalizeCanonicalPrompt 注入项目不可变约束。
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { SLOT_EXTRACT_RE, normalizeSlotDesc, resolveSlotImg } from "./validation-lib.mjs";
 
-export const VALID_PROMPT_SOURCES = new Set(["adapter", "external"]);
+export const VALID_PROMPT_SOURCES = new Set(["external"]);
 export const BAOYU_CORE_DESIGN_SKILLS = Object.freeze([
-  "baoyu-article-illustrator",
   "baoyu-cover-image",
+  "baoyu-xhs-images",
   "baoyu-infographic",
 ]);
 
 export const BAOYU_DESIGN_AUTHORITIES = Object.freeze({
-  article: "baoyu-article-illustrator",
+  article: "wechat-article-write-agent",
   cover: "baoyu-cover-image",
-  infographic: "baoyu-infographic",
-  body: "baoyu-article-illustrator",
+  infographic: "baoyu-xhs-images",
+  body: "baoyu-infographic",
 });
 
 const NON_SUBSTANTIVE_HEADINGS = new Set(["参考资料", "延伸阅读"]);
 const COVERAGE_DECISIONS = new Set(["illustrate", "reuse-source", "text-only"]);
 const SOURCE_IMAGE_DECISIONS = new Set(["cover-only", "body", "both", "discard"]);
+const SOURCE_IMAGE_POLICIES = new Set(["prefer-reuse", "neutral", "no-reuse"]);
+const SOURCE_EXCEPTION_CODES = new Set(["irrelevant", "duplicate", "redundant", "low-quality", "unreadable", "legal-risk", "incompatible"]);
+const TEXT_DENSITIES = new Set(["none", "low", "medium"]);
+
+export const VISUAL_CONTRACT_START = "<!-- WECHAT_ARTICLE_VISUAL_CONTRACT_START -->";
+export const VISUAL_CONTRACT_END = "<!-- WECHAT_ARTICLE_VISUAL_CONTRACT_END -->";
+
+function visualContractText(profile, { role, aspect, textDensity }) {
+  const defaultStyleLines = profile.id === "bright-vivid-warm"
+    ? [
+      "- Bright high-key visual treatment.",
+      "- Vivid, high-saturation colors.",
+      "- Strong visual/color contrast.",
+      "- Clean and uncluttered background.",
+      "- Crisp, clear shapes and details.",
+      "- Warm and optimistic overall atmosphere.",
+      "- Energetic and positive rather than gloomy or oppressive.",
+    ]
+    : [
+      `- Explicit user visual override: ${profile.override_reason ?? "custom direction"}.`,
+      "- Follow the explicit user visual direction recorded in image-plan.json.",
+    ];
+  const lines = [
+    VISUAL_CONTRACT_START,
+    "",
+    `Project visual profile: ${profile.id}`,
+    "",
+    ...defaultStyleLines,
+    "",
+    `Role: ${role}`,
+    `Text density: ${textDensity}`,
+  ];
+  if (aspect) lines.push(`Aspect ratio: ${aspect}`);
+  lines.push(
+    role === "cover"
+      ? "- No visible text by default; rely on visual metaphor, subject composition, color, and spatial relationships."
+      : role === "header-infographic"
+        ? "- Use short labels only; do not copy prose, paragraphs, dates, version numbers, or figure numbers."
+        : "- Keep any text concise and information-bearing; do not use long copy, dates, version numbers, or figure numbers.",
+    "- Do not add dimension lines, engineering borders, title blocks, or meaningless decorative English text.",
+    "- Avoid dark dominant backgrounds, muddy or desaturated colors, low contrast, dirty or over-complicated backgrounds, cold oppressive mood, and unclear visual hierarchy.",
+    ...(profile.id === "bright-vivid-warm"
+      ? ["- Unless the user explicitly overrides the project profile, preserve the bright, vivid, high-contrast, clean, crisp, warm-positive result."]
+      : []),
+    VISUAL_CONTRACT_END,
+  );
+  return lines.join("\n");
+}
+
+/** Add only project-owned immutable constraints to an external prompt. */
+export function finalizeCanonicalPrompt(prompt, { profile, role, aspect, textDensity } = {}) {
+  if (typeof prompt !== "string" || prompt.trim() === "") throw new Error("canonical prompt must be a non-empty string");
+  if (!profile || typeof profile.id !== "string" || !role || !TEXT_DENSITIES.has(textDensity)) {
+    throw new Error("visual prompt finalize requires profile, role, and a valid textDensity");
+  }
+  const source = prompt.trimEnd();
+  const start = source.indexOf(VISUAL_CONTRACT_START);
+  const end = source.indexOf(VISUAL_CONTRACT_END);
+  if (start >= 0 && end >= start) return source.slice(0, start).trimEnd() + "\n\n" + visualContractText(profile, { role, aspect, textDensity }) + "\n";
+  return `${source}\n\n${visualContractText(profile, { role, aspect, textDensity })}\n`;
+}
+
+export function validateCanonicalPrompt(prompt, { profile, role, aspect, textDensity } = {}) {
+  const errors = [];
+  if (typeof prompt !== "string" || prompt.trim() === "") return ["canonical prompt must be a non-empty string"];
+  if (!profile?.id) errors.push("canonical prompt profile is missing");
+  if ((prompt.match(new RegExp(VISUAL_CONTRACT_START, "g")) ?? []).length !== 1 ||
+      (prompt.match(new RegExp(VISUAL_CONTRACT_END, "g")) ?? []).length !== 1) {
+    errors.push("canonical prompt must contain exactly one project visual contract");
+  }
+  if (profile?.id && !prompt.includes(`Project visual profile: ${profile.id}`)) {
+    errors.push(`canonical prompt must declare visual profile ${profile.id}`);
+  }
+  if (profile?.id === "bright-vivid-warm") {
+    for (const line of [
+      "Bright high-key visual treatment.",
+      "Vivid, high-saturation colors.",
+      "Strong visual/color contrast.",
+      "Clean and uncluttered background.",
+      "Crisp, clear shapes and details.",
+      "Warm and optimistic overall atmosphere.",
+      "Energetic and positive rather than gloomy or oppressive.",
+    ]) {
+      if (!prompt.includes(line)) errors.push(`canonical prompt must contain visual contract: ${line}`);
+    }
+  } else if (profile?.override_reason && !prompt.includes(`Explicit user visual override: ${profile.override_reason}.`)) {
+    errors.push("custom canonical prompt must record the explicit visual override");
+  }
+  if (role === "cover") {
+    if (!prompt.includes("Aspect ratio: 2.35:1")) errors.push("cover canonical prompt must contain Aspect ratio: 2.35:1");
+    if (/Aspect ratio:\s*16:9/iu.test(prompt)) errors.push("cover canonical prompt must not contain Aspect ratio: 16:9");
+  }
+  if (aspect && !prompt.includes(`Aspect ratio: ${aspect}`)) errors.push(`canonical prompt must contain Aspect ratio: ${aspect}`);
+  if (textDensity && !prompt.includes(`Text density: ${textDensity}`)) errors.push(`canonical prompt must declare text density ${textDensity}`);
+  return errors;
+}
 
 function normalizedHeading(value) {
   return String(value ?? "")
@@ -107,6 +203,10 @@ function sourceImageBasename(value) {
   return text.split("/").at(-1)?.toLowerCase() ?? "";
 }
 
+export function normalizeSourceImageKey(value) {
+  return sourceImageBasename(value);
+}
+
 function sameSourceImage(left, right) {
   return sourceImageBasename(left) !== "" && sourceImageBasename(left) === sourceImageBasename(right);
 }
@@ -154,8 +254,18 @@ function validateSourceImageReview(imagePlan, draftBody, errors) {
       continue;
     }
     if (!nonEmptyString(entry.source)) errors.push(`${label}.source must be a non-empty string`);
+    if (typeof entry.reusable !== "boolean") errors.push(`${label}.reusable must be a boolean`);
     if (!SOURCE_IMAGE_DECISIONS.has(entry.decision)) errors.push(`${label}.decision must be one of cover-only, body, both, discard`);
     if (!nonEmptyString(entry.reason)) errors.push(`${label}.reason must be a non-empty string`);
+    if (entry.exception_code !== undefined && !SOURCE_EXCEPTION_CODES.has(entry.exception_code)) {
+      errors.push(`${label}.exception_code must be one of ${[...SOURCE_EXCEPTION_CODES].join(", ")}`);
+    }
+    if (entry.reusable === true && ["cover-only", "discard"].includes(entry.decision) && !SOURCE_EXCEPTION_CODES.has(entry.exception_code)) {
+      errors.push(`${label} reusable=true with decision=${entry.decision} requires exception_code`);
+    }
+    if (["body", "both"].includes(entry.decision) && entry.reusable !== true) {
+      errors.push(`${label} decision=${entry.decision} requires reusable=true`);
+    }
     const sourceKey = sourceImageBasename(entry.source);
     if (sourceKey && seen.has(sourceKey)) errors.push(`${label}.source is duplicated`);
     if (sourceKey) seen.add(sourceKey);
@@ -177,6 +287,10 @@ function validateSourceImageReview(imagePlan, draftBody, errors) {
  */
 export function validateVisualCoverage(imagePlan, draftBody) {
   const errors = [];
+  const sourcePolicy = imagePlan?.source_image_policy;
+  if (!SOURCE_IMAGE_POLICIES.has(sourcePolicy)) {
+    errors.push(`image-plan.source_image_policy must be one of prefer-reuse, neutral, no-reuse`);
+  }
   const sections = collectSubstantiveSections(draftBody);
   const coverage = imagePlan?.article_visual_design?.coverage_review;
   const sourceReview = validateSourceImageReview(imagePlan, draftBody, errors);
@@ -185,6 +299,11 @@ export function validateVisualCoverage(imagePlan, draftBody) {
       .filter((entry) => isObject(entry))
       .map((entry) => [sourceImageBasename(entry.source), entry]),
   );
+
+  if (sourcePolicy === "prefer-reuse" && sourceReview.some((entry) => isObject(entry) && entry.reusable === true)) {
+    const reused = sourceReview.some((entry) => isObject(entry) && entry.reusable === true && ["body", "both"].includes(entry.decision));
+    if (!reused) errors.push("source_image_policy=prefer-reuse requires at least one reusable source image decision=body or both");
+  }
 
   if (!Array.isArray(coverage)) {
     errors.push("image-plan.article_visual_design.coverage_review must be an array with one entry per substantive H2");
@@ -263,12 +382,14 @@ export function validateVisualCoverage(imagePlan, draftBody) {
   return { ok: errors.length === 0, errors, sections };
 }
 
-/** 缺失的旧字段按当前兼容规则解释为 adapter。 */
+/** Prompt source is explicit so the external producer boundary cannot be skipped. */
 export function normalizePromptSource(value) {
-  if (value === undefined || value === null || String(value).trim() === "") return "adapter";
+  if (value === undefined || value === null || String(value).trim() === "") {
+    throw new Error(`prompt_source must be "external"`);
+  }
   const source = String(value).trim();
   if (!VALID_PROMPT_SOURCES.has(source)) {
-    throw new Error(`prompt_source must be "adapter" or "external"`);
+    throw new Error(`prompt_source must be "external"`);
   }
   return source;
 }
@@ -322,47 +443,64 @@ function checkContributors(node, label, errors) {
 
 function checkDesignAuthority(node, label, authority, errors) {
   if (!isObject(node)) return;
+  if (!nonEmptyString(node.intent)) errors.push(`${label}.intent must be a non-empty string`);
   const design = node.baoyu_design;
   if (!isObject(design)) {
     errors.push(`${label}.baoyu_design is required`);
   } else if (design.skill !== authority) {
     errors.push(`${label}.baoyu_design.skill must be ${authority}`);
   }
-  checkContributors(node, label, errors);
-
-  try {
-    if (normalizePromptSource(node.prompt_source) === "external" &&
-        node.producer !== undefined && node.producer !== authority) {
-      const detail = authority === BAOYU_DESIGN_AUTHORITIES.body
-        ? "baoyu-diagram may contribute diagram structure, but final body raster prompt authority must remain baoyu-article-illustrator."
-        : `final ${label.replace(/^image-plan\./, "")} raster prompt authority must remain ${authority}.`;
-      errors.push(`${label}.producer must be ${authority}; ${detail}`);
-    }
-  } catch {
-    // checkPromptSource reports the invalid source and missing producer separately.
+  if (typeof node.producer !== "string" || node.producer.trim() === "") {
+    errors.push(`${label}.producer is required and must be ${authority}`);
+  } else if (node.producer !== authority) {
+    errors.push(`${label}.producer must be ${authority}`);
   }
+  checkContributors(node, label, errors);
 }
 
 /**
  * Validate the mandatory Baoyu design layer without selecting a Skill.
- * `allowLegacy` is reserved for explicitly requested old-plan compatibility.
  */
-export function validateBaoyuDesign(imagePlan, { allowLegacy = false } = {}) {
+export function validateBaoyuDesign(imagePlan) {
   const errors = [];
-  if (allowLegacy) return errors;
   if (!isObject(imagePlan)) return ["image-plan.json must contain an object"];
+
+  if (imagePlan.visual_profile !== "bright-vivid-warm" && imagePlan.visual_profile !== "custom") {
+    errors.push("image-plan.visual_profile must be bright-vivid-warm or custom");
+  }
+  if (imagePlan.visual_profile === "custom" && !nonEmptyString(imagePlan.visual_override_reason)) {
+    errors.push("image-plan.visual_override_reason is required when visual_profile=custom");
+  }
+  if (!SOURCE_IMAGE_POLICIES.has(imagePlan.source_image_policy)) {
+    errors.push("image-plan.source_image_policy must be one of prefer-reuse, neutral, no-reuse");
+  }
 
   const articleDesign = imagePlan.article_visual_design;
   if (!isObject(articleDesign)) {
     errors.push("image-plan.article_visual_design is required");
-  } else if (articleDesign.skill !== BAOYU_DESIGN_AUTHORITIES.article) {
-    errors.push(`image-plan.article_visual_design.skill must be ${BAOYU_DESIGN_AUTHORITIES.article}`);
+  } else if (articleDesign.planner !== BAOYU_DESIGN_AUTHORITIES.article) {
+    errors.push(`image-plan.article_visual_design.planner must be ${BAOYU_DESIGN_AUTHORITIES.article}`);
   }
 
   checkDesignAuthority(imagePlan.cover, "image-plan.cover", BAOYU_DESIGN_AUTHORITIES.cover, errors);
   checkDesignAuthority(imagePlan.infographic, "image-plan.infographic", BAOYU_DESIGN_AUTHORITIES.infographic, errors);
-  for (const [index, entry] of (imagePlan.illustrations ?? []).entries()) {
-    checkDesignAuthority(entry, `image-plan.illustrations[${index}]`, BAOYU_DESIGN_AUTHORITIES.body, errors);
+  const coverDesign = imagePlan.cover?.baoyu_design;
+  if (coverDesign?.aspect !== "2.35:1") errors.push("image-plan.cover.baoyu_design.aspect must be 2.35:1");
+  if (coverDesign?.text !== "none") errors.push("image-plan.cover.baoyu_design.text must be none");
+  const infoDesign = imagePlan.infographic?.baoyu_design;
+  if (infoDesign?.card_count !== 1) errors.push("image-plan.infographic.baoyu_design.card_count must be 1");
+  if (imagePlan.infographic?.text_density !== "low") errors.push("image-plan.infographic.text_density must be low");
+  if (imagePlan.infographic?.has_long_copy !== false) errors.push("image-plan.infographic.has_long_copy must be false");
+  if (!Array.isArray(imagePlan.illustrations)) {
+    errors.push("image-plan.illustrations must be an array");
+  } else {
+    for (const [index, entry] of imagePlan.illustrations.entries()) {
+      checkDesignAuthority(entry, `image-plan.illustrations[${index}]`, BAOYU_DESIGN_AUTHORITIES.body, errors);
+      if (!TEXT_DENSITIES.has(entry?.text_density) || entry.text_density === "none" || entry.text_density === "high") {
+        errors.push(`image-plan.illustrations[${index}].text_density must be low or medium`);
+      }
+      if (entry?.has_long_copy !== false) errors.push(`image-plan.illustrations[${index}].has_long_copy must be false`);
+    }
   }
   return errors;
 }

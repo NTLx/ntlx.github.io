@@ -12,8 +12,10 @@ import { basename, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { extractBody, parseFrontmatter } from "./frontmatter-lib.mjs";
 import { repoRoot as configuredRepoRoot, postsRoot as configuredPostsRoot } from "./path-resolver.mjs";
+import { getVisualStyleProfile } from "./config-lib.mjs";
 import {
   collectActiveAssets,
+  validateCanonicalPrompt,
   validateBaoyuDesign,
   validateVisualPlanTopology,
   readImagePlan,
@@ -57,7 +59,10 @@ function firstExistingOutput(baseDir, asset) {
   return null;
 }
 
-function outputPath(baseDir, asset) {
+function outputPath(baseDir, asset, frontmatter) {
+  if (asset.key === "cover" && /^(?:cover\.png|cover\.jpg)$/iu.test(String(frontmatter?.coverImage ?? ""))) {
+    return resolve(baseDir, String(frontmatter.coverImage));
+  }
   const outputDir = asset.key === "cover" ? baseDir : resolve(baseDir, "imgs");
   return resolve(outputDir, `${asset.outputBasename}.png`);
 }
@@ -67,8 +72,16 @@ function promptPath(baseDir, asset) {
 }
 
 function assetAspect(asset) {
+  if (asset.key === "cover") return "2.35:1";
   const aspect = asset.design?.aspect;
   return typeof aspect === "string" && aspect.trim() ? aspect.trim() : "16:9";
+}
+
+function visualProfileFor(imagePlan) {
+  if (imagePlan.visual_profile === "custom") {
+    return { id: "custom", override_reason: imagePlan.visual_override_reason };
+  }
+  return getVisualStyleProfile();
 }
 
 function readArticlePlan(baseDir) {
@@ -113,7 +126,7 @@ function runBackendRuntimeCheck({ repositoryRoot, runCommand }) {
   return payload;
 }
 
-function preflightPrompts(baseDir, assets) {
+function preflightPrompts(baseDir, assets, profile) {
   for (const asset of assets) {
     const path = promptPath(baseDir, asset);
     if (basename(path, ".md") !== asset.promptBasename) {
@@ -122,12 +135,59 @@ function preflightPrompts(baseDir, assets) {
     if (!nonEmptyFile(path)) {
       throw new Error(`active canonical prompt missing or empty for ${asset.label}: ${path}`);
     }
+    const promptErrors = validateCanonicalPrompt(readFileSync(path, "utf8"), {
+      profile,
+      role: asset.key === "cover" ? "cover" : asset.key === "SLOT_IMG_00" ? "header-infographic" : "body-illustration",
+      aspect: asset.key === "cover" ? "2.35:1" : undefined,
+      textDensity: asset.key === "cover" ? "none" : asset.key === "SLOT_IMG_00" ? "low" : asset.design?.text_density,
+    });
+    if (promptErrors.length > 0) throw new Error(`${asset.label} canonical prompt contract invalid: ${promptErrors.join("; ")}`);
   }
+}
+
+export function imageDimensions(path) {
+  const bytes = readFileSync(path);
+  const ext = path.slice(path.lastIndexOf(".")).toLowerCase();
+  if (ext === ".png" && bytes.length >= 24) return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  if (ext === ".gif" && bytes.length >= 10) return { width: bytes.readUInt16LE(6), height: bytes.readUInt16LE(8) };
+  if (ext === ".webp" && bytes.length >= 30 && bytes.subarray(12, 16).toString("ascii") === "VP8X") {
+    return { width: 1 + bytes.readUIntLE(24, 3), height: 1 + bytes.readUIntLE(27, 3) };
+  }
+  if (ext === ".jpg" || ext === ".jpeg") {
+    let offset = 2;
+    while (offset + 9 < bytes.length) {
+      if (bytes[offset] !== 0xff) { offset += 1; continue; }
+      const marker = bytes[offset + 1];
+      offset += 2;
+      if (marker === 0xd8 || marker === 0xd9) continue;
+      if (offset + 2 > bytes.length) break;
+      const length = bytes.readUInt16BE(offset);
+      if (length < 2 || offset + length > bytes.length) break;
+      if ((marker >= 0xc0 && marker <= 0xc3) || (marker >= 0xc5 && marker <= 0xc7) || (marker >= 0xc9 && marker <= 0xcb) || (marker >= 0xcd && marker <= 0xcf)) {
+        return { width: bytes.readUInt16BE(offset + 5), height: bytes.readUInt16BE(offset + 3) };
+      }
+      offset += length;
+    }
+  }
+  return null;
+}
+
+export function assertCoverPixelAspect(path) {
+  const dimensions = imageDimensions(path);
+  if (!dimensions || dimensions.width <= 0 || dimensions.height <= 0) throw new Error(`cover dimensions cannot be read for ${path}`);
+  const actual = dimensions.width / dimensions.height;
+  if (Math.abs(actual - 2.35) > 0.03) {
+    throw new Error(`cover pixel aspect ratio must be 2.35:1 ±0.03; found ${dimensions.width}x${dimensions.height} (${actual.toFixed(4)}:1)`);
+  }
+  return dimensions;
 }
 
 function verifyOutput(asset, path) {
   if (!usableImageFile(path)) {
     throw new Error(`image generation returned without a usable output for ${asset.label}: ${path}`);
+  }
+  if (asset.key === "cover") {
+    assertCoverPixelAspect(path);
   }
 }
 
@@ -142,17 +202,15 @@ export function renderImagesSerial({
   postsRoot = configuredPostsRoot(),
   force = false,
   dryRun = false,
-  allowDefaultImagePlan = false,
   runCommand = defaultRunCommand,
   backendCheck = () => runBackendRuntimeCheck({ repositoryRoot, runCommand }),
 } = {}) {
   if (!slug) throw new Error("slug is required");
   const baseDir = resolve(postsRoot, slug);
   const { imagePlan, body, frontmatter } = readArticlePlan(baseDir);
-  if (!allowDefaultImagePlan) {
-    const designErrors = validateBaoyuDesign(imagePlan);
-    if (designErrors.length > 0) throw new Error(`Baoyu visual design contract invalid: ${designErrors.join("; ")}`);
-  }
+  const designErrors = validateBaoyuDesign(imagePlan);
+  if (designErrors.length > 0) throw new Error(`Baoyu visual design contract invalid: ${designErrors.join("; ")}`);
+  const profile = visualProfileFor(imagePlan);
 
   const assets = collectActiveAssets(imagePlan, body, {
     blogSlug: frontmatter.blogSlug,
@@ -160,14 +218,14 @@ export function renderImagesSerial({
   }).map((asset) => ({
     ...asset,
     promptPath: promptPath(baseDir, asset),
-    outputPath: outputPath(baseDir, asset),
+    outputPath: outputPath(baseDir, asset, frontmatter),
     existingPath: firstExistingOutput(baseDir, asset),
     aspect: assetAspect(asset),
   }));
 
   // This is intentionally before both runtime checks and generation.  A late
   // missing prompt must not spend generation quota on earlier assets.
-  preflightPrompts(baseDir, assets);
+  preflightPrompts(baseDir, assets, profile);
 
   if (dryRun) return { slug, dryRun: true, assets, rendered: [], skipped: [] };
 
@@ -179,6 +237,7 @@ export function renderImagesSerial({
     const existing = asset.existingPath && nonEmptyFile(asset.existingPath)
       ? asset.existingPath
       : null;
+    if (existing && asset.key === "cover") assertCoverPixelAspect(existing);
     if (existing && !force) {
       skipped.push({ ...asset, existingPath: existing });
       continue;
@@ -214,7 +273,7 @@ export function renderImagesSerial({
 }
 
 function usage() {
-  process.stderr.write("usage: render-images-serial.mjs <date-slug> [--dry-run] [--force] [--allow-default-image-plan]\n");
+  process.stderr.write("usage: render-images-serial.mjs <date-slug> [--dry-run] [--force]\n");
 }
 
 function main() {
@@ -223,7 +282,7 @@ function main() {
     usage();
     process.exit(0);
   }
-  const flags = new Set(["--dry-run", "--force", "--allow-default-image-plan"]);
+  const flags = new Set(["--dry-run", "--force"]);
   const positional = [];
   for (const arg of argv) {
     if (arg.startsWith("--")) {
@@ -241,7 +300,6 @@ function main() {
     slug: positional[0],
     dryRun: argv.includes("--dry-run"),
     force: argv.includes("--force"),
-    allowDefaultImagePlan: argv.includes("--allow-default-image-plan"),
   });
   if (result.dryRun) {
     result.assets.forEach((asset, index) => {

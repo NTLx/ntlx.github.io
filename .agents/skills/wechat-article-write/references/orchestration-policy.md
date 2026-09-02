@@ -85,6 +85,11 @@ Skill 的返回值只是候选材料。主 Agent 必须判断它是否真正解�
 允许零改动，但不允许不调用。receipt 产生后直到 Step 5 finalize，`draft.md` 不得
 再由流水线脚本改写；humanizer 之后不得凭空增加作者经历、态度或情绪。
 
+用户反馈“生硬、AI 味重、宣传腔、总结腔、排比过多、太抽象或不像作者”时，
+视为 Step 3 reopened：只回到 `draft.md` 修改，重新完成 pre-humanizer-normalize、
+humanizer-zh、mark-humanized 和 Step 3 Gate。不得直接修改 article.md、微信 source
+或 HTML 来绕过草稿与 receipt。
+
 委托合同追加以下边界：
 
 ```text
@@ -152,15 +157,15 @@ bun run .agents/skills/wechat-article-write/scripts/orchestration-trace.mjs <dat
 ## 视觉专用规则
 
 视觉阶段先回答“读者需要看懂什么”，再判断这个位置是否真的有视觉信息
-增益；没有增益就不创建正文 SLOT。即使正文 SLOT 为零，也必须完成
-`baoyu-article-illustrator` 的文章级视觉规划，并在 `image-plan.json` 记录
-`article_visual_design.skill`。
+增益；没有增益就不创建正文 SLOT。`coverage_review` 由当前
+`wechat-article-write` Agent 完成，并在 `image-plan.json` 记录
+`article_visual_design.planner=wechat-article-write-agent`。
 
 illustrate 的四层合同如下：
 
-1. **Baoyu Core Design Skills**：`baoyu-article-illustrator` 规划全文并负责正文
-   authority；`baoyu-cover-image` 负责 cover；`baoyu-infographic` 负责
-   `SLOT_IMG_00`。每个最终 raster asset 都必须有匹配的 `baoyu_design.skill`。
+1. **Baoyu Design Skills**：`baoyu-cover-image` 负责 cover；`baoyu-xhs-images`
+   负责 `SLOT_IMG_00`；`baoyu-infographic` 负责正文 SLOT。每个最终 raster
+   asset 都必须有匹配的 `baoyu_design.skill` 和 `producer`。
 2. **Baoyu Specialized Design Skills**：当前至少有 `baoyu-diagram`。只有当
    结构、架构、流程、时序、数据流、层级或状态转换确实需要专项语法时，Agent
    才从 catalog 选择它。它提供 nodes、edges、方向、分组和拓扑，不是全局 style
@@ -176,9 +181,10 @@ illustrate 的四层合同如下：
 
 ```text
 OBSERVE ARTICLE → DEFINE VISUAL NEEDS
-→ baoyu-article-illustrator（文章级规划）
+→ wechat-article-write-agent（coverage_review）
 → baoyu-cover-image（cover）
-→ baoyu-infographic（SLOT_IMG_00）
+→ baoyu-xhs-images（SLOT_IMG_00）
+→ baoyu-infographic（按需的 SLOT_IMG_01+）
 → 检查 catalog，按需选择 baoyu-diagram / 其它 contributor
 → 写 image-plan → 物化全部 canonical prompts
 → prompt preflight → runtime Codex preflight
@@ -205,15 +211,9 @@ SVG→PNG、调用任何图片 backend 或成为最终 raster prompt authority�
 canonical prompt，不新增 diagram artifact 或第二套图片产物链。
 
 正常模式不根据 `article_type`、`direction`、关键词或 Skill 名称决定 layout/style。
-Agent 自主组合 Type、Layout、Style、Palette、Rendering、Mood、Font；adapter
-只验证并读取所选的当前 Baoyu reference。若上游存在稳定的
-`references/layouts/<name>.md`、`references/styles/<name>.md`，运行时直接检查
-文件存在；没有稳定 reference 时只要求非空，不复制上游枚举。旧
-`image-template-map.json` 仅由 `--allow-default-image-plan` 读取。
-
-`prompt_source=adapter` 由 deterministic adapter 读取 Agent 已完成的 Baoyu
-设计决策并生成 canonical prompt；`external` 只允许对应 Baoyu Core Skill 作为
-`producer`，不能由 `baoyu-diagram` 或任意其它 contributor 直接接管最终 prompt。
+Agent 自主组合 Type、Layout、Style、Palette、Rendering、Mood、Font；
+`generate-image-prompts.mjs` 只验证 external producer 已生成的 Prompt，并追加
+项目视觉合同。`baoyu-diagram` 或其它 contributor 不能接管最终 prompt。
 所有 prompt 在第一张图前完成 preflight；真实生图前运行：
 
 ```bash

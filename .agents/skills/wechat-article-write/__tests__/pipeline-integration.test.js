@@ -5,6 +5,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, wr
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
 const SCRIPTS = resolve(import.meta.dir, "../scripts");
@@ -13,9 +14,9 @@ const PNG_BYTES = Buffer.from(
   "base64",
 );
 const JPEG_BYTES = Buffer.from([
-  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
-  0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-  0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+  0xff, 0xd8, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00,
+  0x64, 0x00, 0xeb, 0x01, 0x01, 0x11, 0x00, 0xff,
+  0xd9,
 ]);
 
 function makeFixture() {
@@ -207,9 +208,10 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
     writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
       article_type: "future-architecture-analysis",
       direction: "future-style-language",
+      visual_profile: "bright-vivid-warm",
+      source_image_policy: "prefer-reuse",
       article_visual_design: {
-        skill: "baoyu-article-illustrator",
-        strategy: "先判断视觉增益，再决定正文 SLOT 数量",
+        planner: "wechat-article-write-agent",
         coverage_review: [
           { section_index: 1, heading: "先分清谁负责什么", decision: "illustrate", slot: 1, reason: "比较确定性内核与 Agent 层的职责" },
           { section_index: 2, heading: "为什么不能把 Skill 链写死", decision: "illustrate", slot: 2, reason: "表达 Gate 失败后的改道路径" },
@@ -218,6 +220,7 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
         ],
       },
       cover: {
+        producer: "baoyu-cover-image",
         intent: "表达确定性协议与自适应方法之间的边界",
         baoyu_design: {
           skill: "baoyu-cover-image",
@@ -225,24 +228,30 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
           style: "technical editorial",
           palette: "cool",
           rendering: "flat-vector",
+          aspect: "2.35:1",
+          text: "none",
         },
         contributors: [],
-        prompt_source: "adapter",
+        prompt_source: "external",
       },
       infographic: {
+        producer: "baoyu-xhs-images",
         intent: "压缩缺口、选择、产物和 Gate 的闭环",
         baoyu_design: {
-          skill: "baoyu-infographic",
+          skill: "baoyu-xhs-images",
           layout: "circular-flow",
           style: "technical-schematic",
+          card_count: 1,
         },
+        text_density: "low",
+        has_long_copy: false,
         contributors: ["baoyu-diagram"],
-        prompt_source: "adapter",
+        prompt_source: "external",
       },
       illustrations: [
-        { slot: 1, intent: "比较确定性内核与 Agent 自适应层", baoyu_design: { skill: "baoyu-article-illustrator", type: "comparison", style: "editorial" }, contributors: [], description: "core-boundary", prompt_source: "adapter" },
-        { slot: 2, intent: "解释 Gate 失败后的改道路径", baoyu_design: { skill: "baoyu-article-illustrator", type: "flowchart", style: "minimal" }, contributors: ["baoyu-diagram"], description: "gate-reroute", prompt_source: "adapter" },
-        { slot: 3, intent: "呈现图片成本边界的分层结构", baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "scientific" }, contributors: [], description: "cost-boundary", prompt_source: "adapter" },
+        { slot: 1, producer: "baoyu-infographic", intent: "比较确定性内核与 Agent 自适应层", baoyu_design: { skill: "baoyu-infographic", type: "comparison", style: "editorial" }, contributors: [], description: "core-boundary", prompt_source: "external", text_density: "low", has_long_copy: false },
+        { slot: 2, producer: "baoyu-infographic", intent: "解释 Gate 失败后的改道路径", baoyu_design: { skill: "baoyu-infographic", type: "flowchart", style: "minimal" }, contributors: ["baoyu-diagram"], description: "gate-reroute", prompt_source: "external", text_density: "low", has_long_copy: false },
+        { slot: 3, producer: "baoyu-infographic", intent: "呈现图片成本边界的分层结构", baoyu_design: { skill: "baoyu-infographic", type: "framework", style: "scientific" }, contributors: [], description: "cost-boundary", prompt_source: "external", text_density: "low", has_long_copy: false },
       ],
       source_image_review: [],
     }, null, 2) + "\n");
@@ -250,6 +259,14 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
     // Exercise the pre-humanizer normalization boundary: the cover has JPEG
     // bytes under a .png name, so normalization must happen before receipt.
     writeFileSync(join(dir, "cover.png"), JPEG_BYTES);
+    mkdirSync(join(imgsDir, "prompts"), { recursive: true });
+    for (const name of [
+      "00-cover-agentic-orchestration-smoke.md",
+      "00-infographic-core-summary.md",
+      "01-core-boundary.md",
+      "02-gate-reroute.md",
+      "03-cost-boundary.md",
+    ]) writeFileSync(join(imgsDir, "prompts", name), "Producer canonical design prompt.\n");
 
     expectSuccess(runScript("step2-write.mjs", slug, fx.postsRoot, ["--allow-no-related"]));
     expectSuccess(runScript("pre-humanizer-normalize.mjs", slug, fx.postsRoot));
@@ -265,6 +282,14 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
     for (const promptFile of promptFiles) {
       writeFileSync(join(imgsDir, promptFile.replace(/\.md$/u, ".png")), PNG_BYTES);
     }
+    const hash = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
+    const style = { bright: true, high_saturation: true, high_contrast: true, clean_background: true, crisp: true, warm: true, positive: true };
+    const reviewedAssets = [
+      { asset: "cover.jpg", role: "cover", path: join(dir, "cover.jpg"), text_density: "none" },
+      { asset: "00-infographic-core-summary.png", role: "header", path: join(imgsDir, "00-infographic-core-summary.png"), text_density: "low" },
+      ...["core-boundary", "gate-reroute", "cost-boundary"].map((description, index) => ({ asset: `${String(index + 1).padStart(2, "0")}-${description}.png`, role: "body", path: join(imgsDir, `${String(index + 1).padStart(2, "0")}-${description}.png`), text_density: "low" })),
+    ].map(({ path, ...asset }) => ({ ...asset, sha256: hash(path), approved: true, semantic_match: true, legibility: true, visible_text_ok: true, has_long_copy: false, style_review: style, reviewer_note: "测试图片清晰" }));
+    writeFileSync(join(dir, "image-review.json"), JSON.stringify({ version: 1, visual_profile: "bright-vivid-warm", assets: reviewedAssets }, null, 2));
     expect(promptFiles.length).toBe(4);
     expectSuccess(runScript("step4-images.mjs", slug, fx.postsRoot));
 
@@ -275,14 +300,22 @@ sourceUrl: https://ntlx.github.io/articles/agentic-orchestration-smoke
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">先分清谁负责什么</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-core-boundary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <p><span leaf="">确定性内核负责状态、文件和发布协议；Agent 负责识别缺口并选择当前真正有用的能力。</span></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">为什么不能把 Skill 链写死</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/02-gate-reroute.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <p><span leaf="">一个简单任务可能不需要 Skill，复杂结构任务才值得引入专门能力。</span></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">Gate 让改道变得可见</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/03-cost-boundary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <p><span leaf="">如果产物没有满足合同，就诊断缺口、修正输入或换路线，而不是把失败当成功。</span></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">成本边界不能自适应突破</span></h3>',
+      '  <p><span leaf="">内容方法可以变化，图片 raster 仍然必须收束到项目固定的 Codex CLI 路径。</span></p>',
       '  <p style="margin:0;line-height:1.8;color:#222;">',
       "    <span leaf=\"\">Smoke test 正文</span>",
       "  </p>",
+      '  <p><span leaf="">你会把哪一个开放阶段首先改造成这种“先定义缺口、再选择能力”的闭环？</span></p>',
+      '  <p><span leaf="">官方资料</span></p>',
+      '  <p><span leaf="">https://example.com/agentic-orchestration</span></p>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">我是 NTLx，热衷于分享 AI 观察与干货。</span></p>',
       "</section>",
       "",
     ].join("\n"));

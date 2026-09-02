@@ -9,9 +9,9 @@
 | 依赖 | 类型 | 用途 |
 |---|---|---|
 | `humanizer-zh` | Mandatory Humanization Layer | Step 2 Gate 后清理 AI 写作痕迹；receipt 绑定当前 draft freshness |
-| `baoyu-article-illustrator` | Baoyu Core Design Skill | 全文视觉规划和正文设计 authority；正文可判定为 0 张 |
 | `baoyu-cover-image` | Baoyu Core Design Skill | 封面设计 authority |
-| `baoyu-infographic` | Baoyu Core Design Skill | `SLOT_IMG_00` 摘要信息图 authority |
+| `baoyu-xhs-images` | Baoyu Core Design Skill | `SLOT_IMG_00` 单张头部信息图 authority |
+| `baoyu-infographic` | Baoyu Core Design Skill | `SLOT_IMG_01+` 正文解释图 authority |
 | `baoyu-diagram` | Baoyu Specialized Design Skill | 按需提供架构、流程、时序、状态和关系结构；不渲染最终图片 |
 | `baoyu-image-gen` | raster renderer | 唯一最终图片生成入口；provider 必须是 `codex-cli` |
 | `render-images-serial.mjs` | 确定性执行器 | 全 prompt preflight 后单图串行调用 renderer |
@@ -33,10 +33,9 @@ Baoyu Core Design Layer 和 writing 的 mandatory humanizer-zh 外，no-skill �
 
 ## Conditional adapter template sources
 
-当当前 `image-plan.json` 选择 `prompt_source: adapter` 时，
-`generate-image-prompts.mjs` 才按需读取兼容模板，例如 Baoyu infographic
-layout/style 或 article illustrator style。它们不是 workflow hard dependency；
-选择 `external` 时脚本不读取 producer Skill，只检查确定性 prompt 文件。
+正常 `image-plan.json` 必须选择 `prompt_source: external`。固定 producer 先输出
+确定性 Prompt，`generate-image-prompts.mjs` 只做项目合同 finalize，不读取 producer
+模板或复制其实现。
 
 ## 必需 CLI 与脚本
 
@@ -62,9 +61,9 @@ bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --ru
 
 | 配置 | 用途 |
 |---|---|
-| `.agents/skills/wechat-article-write/EXTEND.md` | 本技能运行偏好 |
+| `.agents/skills/wechat-article-write/EXTEND.md` | 本技能运行偏好、作者与视觉 profile |
 | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | `default_provider: codex-cli` 和其它上游合法默认值 |
-| `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信作者和发布偏好 |
+| `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信发布适配器偏好（作者不在此定义） |
 | `.baoyu-skills/.env` | 本地 Secret 和运行时参数；被 Git 忽略，不打印不提交 |
 
 Baoyu Core 和 Specialized Skill 只能产出视觉方案、结构或 rendering prompt；

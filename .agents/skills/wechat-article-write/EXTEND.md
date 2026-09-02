@@ -6,6 +6,31 @@
 
 ## 配置项
 
+### author profile
+
+作者和简介只在本技能配置；Step 5 与 Step 6.2 都通过 `config-lib.mjs`
+读取，禁止从发布适配器或其它文档复制作者事实。
+
+```yaml
+default_author: NTLx
+default_author_bio: 热衷于分享 AI 观察与干货
+```
+
+### visual profile
+
+这是本项目的默认图片视觉合同。具体 Baoyu style/layout 仍由当前文章的 Agent
+根据内容选择；这里固定的是视觉结果的性质，不固定第三方 preset 名称。
+
+```yaml
+visual_style_profile: bright-vivid-warm
+visual_brightness: bright
+visual_saturation: high
+visual_contrast: high
+visual_background: clean
+visual_clarity: crisp
+visual_mood: warm-positive
+```
+
 ### quick_mode
 
 是否尽量跳过可选确认。它不改变 Agent 的缺口判断，也不改变任何 Gate。
@@ -55,9 +80,9 @@ wechat_layout_generate_preview: true
 
 | 适配器 | 配置或来源 | 作用 |
 |---|---|---|
-| `baoyu-article-illustrator` | `.agents/skills/baoyu-article-illustrator/` | Baoyu Core：全文视觉规划和正文设计 |
 | `baoyu-cover-image` | `.agents/skills/baoyu-cover-image/` | Baoyu Core：封面设计 |
-| `baoyu-infographic` | `.agents/skills/baoyu-infographic/` | Baoyu Core：`SLOT_IMG_00` 设计 |
+| `baoyu-xhs-images` | `.agents/skills/baoyu-xhs-images/` | Baoyu Core：`SLOT_IMG_00` 单张头部信息图设计 |
+| `baoyu-infographic` | `.agents/skills/baoyu-infographic/` | Baoyu Core：正文新增解释图设计 |
 | `baoyu-diagram` | `.agents/skills/baoyu-diagram/` | Baoyu Specialized：按需贡献结构语法，不渲染图片 |
 | `baoyu-image-gen` | `.baoyu-skills/baoyu-image-gen/EXTEND.md` | raster backend；`default_provider` 必须为 `codex-cli` |
 | `render-images-serial.mjs` | `.agents/skills/wechat-article-write/scripts/` | 唯一 single-image serial raster execution boundary |
@@ -65,9 +90,9 @@ wechat_layout_generate_preview: true
 | `github-image-hosting` | `.agents/skills/github-image-hosting/` | 博客图片 CDN 适配 |
 | `baoyu-post-to-wechat` | `.baoyu-skills/baoyu-post-to-wechat/EXTEND.md` | 微信草稿适配 |
 
-`generate-image-prompts.mjs` 仅在实际资产选择 `adapter` 时读取兼容模板；
-`external` producer 路径不读取这些模板，也不复制第三方生成算法。图片阶段
-的四层术语固定为：Baoyu Core Design Skills、Baoyu Specialized Design Skills、
+`generate-image-prompts.mjs` 只接受固定 producer 已完成的 external canonical
+prompt，并做项目合同 finalize；它不读取第三方模板，也不复制第三方生成算法。
+图片阶段的四层术语固定为：Baoyu Design Skills、Baoyu Specialized Design Skills、
 Optional Contributors、Raster Renderer。前三层只完成设计；唯一 Raster Renderer
 是 `baoyu-image-gen`，唯一 provider 是 `codex-cli`。
 

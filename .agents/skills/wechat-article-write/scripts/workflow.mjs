@@ -132,13 +132,13 @@ export const STAGE_CONTRACTS = {
   },
   illustrate: {
     mode: "adaptive-with-hard-backend-policy",
-    goal: "先经过 Baoyu 核心视觉设计层确定每个视觉节点，再按需吸收专项能力并生成可审阅的图片资产。",
+    goal: "由当前 Agent 完成 coverage_review 和 image-plan，再调用固定 Baoyu producer 生成可审阅的图片资产。",
     inputs: ["draft.md", "image-plan.json", "图片 prompt", "当前 Skill catalog"],
     outputs: ["cover.png", "imgs/*"],
     acceptance: [
       "视觉资产解释正文中的信息、关系或结论，而非只满足数量",
       "draft SLOT、image-plan、prompt 和最终 image 一一对应，所有可见文字已复核",
-      "baoyu-article-illustrator 完成文章级视觉规划；cover、SLOT 00 和正文分别由对应 Baoyu 核心设计能力负责",
+      "coverage_review 由 wechat-article-write Agent 完成；cover、SLOT 00 和正文分别由固定 Baoyu producer 负责",
       "baoyu-diagram 只作为按需的结构语法 contributor，不成为最终文章图片 renderer",
       "所有 raster rendering 都经过 baoyu-image-gen 且显式使用 codex-cli，按单图串行执行",
       "Codex CLI 不可用或失败时保留可诊断的阻塞状态",
@@ -191,8 +191,8 @@ export const HARD_DEPENDENCIES = {
   adapt: ["humanizer-zh"],
   refine: ["humanizer-zh"],
   illustrate: [
-    "baoyu-article-illustrator",
     "baoyu-cover-image",
+    "baoyu-xhs-images",
     "baoyu-infographic",
     "baoyu-diagram",
     "baoyu-image-gen",

@@ -79,43 +79,44 @@ sourceUrl: https://ntlx.github.io/articles/example-article
 {
   "article_type": "future-article-context",
   "direction": "future-visual-language",
+  "visual_profile": "bright-vivid-warm",
+  "source_image_policy": "prefer-reuse",
   "article_visual_design": {
-    "skill": "baoyu-article-illustrator",
-    "strategy": "只在视觉明显降低理解成本的位置创建正文 SLOT"
+    "planner": "wechat-article-write-agent",
+    "coverage_review": []
   },
   "cover": {
     "intent": "表达文章中心张力",
     "baoyu_design": {
       "skill": "baoyu-cover-image",
       "type": "conceptual",
-      "palette": "warm",
-      "rendering": "flat-vector",
-      "text": "title-only",
-      "mood": "balanced",
-      "font": "clean",
-      "aspect": "16:9"
+      "text": "none",
+      "aspect": "2.35:1"
     },
     "contributors": [],
-    "prompt_source": "adapter"
+    "prompt_source": "external",
+    "producer": "baoyu-cover-image"
   },
   "infographic": {
     "intent": "压缩全文判断、论证路径和结论",
     "baoyu_design": {
-      "skill": "baoyu-infographic",
-      "layout": "hub-spoke",
-      "style": "morandi-journal",
-      "aspect": "16:9"
+      "skill": "baoyu-xhs-images",
+      "card_count": 1
     },
     "contributors": [],
-    "prompt_source": "adapter"
+    "prompt_source": "external",
+    "producer": "baoyu-xhs-images",
+    "text_density": "low",
+    "has_long_copy": false
   },
-  "illustrations": []
+  "illustrations": [],
+  "source_image_review": []
 }
 ```
 
 这个最小例子只保留文章级摘要图；正文没有明确视觉增益时，
 `illustrations: []` 是合法计划。需要局部解释时，再为对应正文 SLOT 增加
-entry，并在其 `baoyu_design.skill` 写 `baoyu-article-illustrator`。若使用
+entry，并在其 `baoyu_design.skill` 写 `baoyu-infographic`。若使用
 `prompt_source: "external"`，`producer` 仍必须是该资产对应的 Baoyu Core
 Skill；`baoyu-diagram` 只能作为 contributor。
 

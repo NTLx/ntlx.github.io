@@ -7,6 +7,7 @@
 
 import { extractBody } from "./frontmatter-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections } from "./visual-plan-lib.mjs";
+import { extractSubstantiveMarkdownBlocks, normalizeVisibleText } from "./content-parity-lib.mjs";
 
 const LEAD_INFOGRAPHIC = "00-infographic-core-summary";
 
@@ -154,6 +155,13 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   const htmlHeadingTags = headingTagSequence(html);
   const htmlSubstantiveHeadings = substantiveHtmlHeadings(htmlHeadingTags, source.headings);
   const errors = [];
+
+  for (const [index, block] of extractSubstantiveMarkdownBlocks(sourceMarkdown).entries()) {
+    const needle = normalizeVisibleText(block);
+    if (needle && !flattened.normalized.includes(needle)) {
+      errors.push(`substantive block ${index + 1} missing from HTML`);
+    }
+  }
 
   if (source.images.length !== flattened.images.length) {
     errors.push(`body image count mismatch: source=${source.images.length}, html=${flattened.images.length}`);

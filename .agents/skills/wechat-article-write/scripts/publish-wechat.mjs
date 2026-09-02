@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 /**
- * 微信草稿发布（Step 6.2）— API only
+ * 创建微信草稿（Step 6.2）— API only
  *
  * 行为:
  *   1. 读取 posts/<date-slug>/article.md frontmatter，自动提取 title / sourceUrl / summary
  *   2. 探活带 WeChat UTM 的原文链接（仅在 --no-skip-deploy-check 时）
- *   3. 调用 wechat-api.ts 通过微信官方 API 发布草稿
+ *   3. 调用 wechat-api.ts 通过微信官方 API 创建草稿
  *   4. 自动安装 baoyu-post-to-wechat 依赖（node_modules 缺失时）
  *   5. 成功后 markWechatDone
  *
@@ -19,7 +19,7 @@
  *   bun run publish-wechat.mjs <date-slug> [--type news]
  *                              [--author <cfg>] [--no-skip-deploy-check] [--dry-run]
  * 退出码:
- *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 发布脚本失败
+ *   0 成功；1 参数错误；2 frontmatter 缺字段；3 sourceUrl 探活失败；4 草稿脚本失败
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -28,6 +28,9 @@ import { spawnSync } from "node:child_process";
 import { markStepFailed, markWechatDone } from "./state-lib.mjs";
 import { getPostToWechatConfig } from "./config-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { getWechatAuthorProfile } from "./config-lib.mjs";
+import { assertFinalizedArtifactFreshness } from "./artifact-integrity-lib.mjs";
+import { assertCanonicalSignature, assertNoAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const SCRIPT_DIR = dirname(new URL(import.meta.url).pathname);
 
@@ -50,7 +53,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  process.stdout.write(`publish-wechat.mjs — 微信草稿发布编排 (Step 6.2, API only)
+  process.stdout.write(`publish-wechat.mjs — 微信草稿创建编排 (Step 6.2, API only)
 
 用法:
   bun run publish-wechat.mjs <date-slug> [options]
@@ -146,6 +149,21 @@ const htmlPath    = resolve(base, "article-wechat.html");
 const coverPng    = resolve(base, "cover.png");
 const coverJpg    = resolve(base, "cover.jpg");
 
+function failPublish(message, code = 5) {
+  process.stderr.write(`publish-wechat: ${message}\n`);
+  markStepFailed(opts.slug, 6.2, message);
+  process.exit(code);
+}
+
+let authorProfile;
+try {
+  authorProfile = getWechatAuthorProfile();
+  if (opts.author !== authorProfile.name) failPublish(`API author must equal canonical author ${authorProfile.name}`);
+  assertFinalizedArtifactFreshness(base);
+} catch (error) {
+  failPublish(error.message);
+}
+
 if (!existsSync(articlePath)) { process.stderr.write(`publish-wechat: ${articlePath} 缺失\n`); process.exit(2); }
 if (!existsSync(htmlPath))    { process.stderr.write(`publish-wechat: ${htmlPath} 缺失（先跑 Step 5 产物构建）\n`); process.exit(2); }
 const rootCovers = [
@@ -164,13 +182,10 @@ const cover = resolve(base, rootCovers[0]);
 // See: https://github.com/NTLx/ntlx.github.io/issues/xxx (curly-quote incident 2026-07-08)
 {
   const html = readFileSync(htmlPath, "utf-8");
-  const authorPlaceholder = /\{\{\s*(?:作者名|一句话简介|简介)[^}]*\}\}/u;
-  if (authorPlaceholder.test(html)) {
-    const msg = "article-wechat.html contains an unresolved author signature placeholder; replace it with the project author NTLx before publishing";
-    process.stderr.write(`publish-wechat: ${msg}\n`);
-    markStepFailed(opts.slug, 6.2, msg);
-    process.exit(5);
-  }
+  const authorErrors = assertNoAuthorPlaceholders(html);
+  if (authorErrors.length > 0) failPublish(authorErrors.join("; "));
+  const signatureErrors = assertCanonicalSignature(html, authorProfile);
+  if (signatureErrors.length > 0) failPublish(signatureErrors.join("; "));
   // 1. Curly/smart quotes inside HTML tags destroy attribute parsing.
   //    wechat-api.ts regex only matches ASCII " or ' in src attributes.
   const tagRe = /<[^>]*>/g;
@@ -235,7 +250,7 @@ const args = [
   "--title", title,
   "--summary", digest,
   "--source-url", wechatSourceUrl,
-  "--author", opts.author,
+  "--author", authorProfile.name,
   "--cover", cover,
   "--type", opts.type,
   "--no-cite",
@@ -255,5 +270,9 @@ if (result.status !== 0) {
   process.exit(4);
 }
 
-markWechatDone(opts.slug, { sourceUrl, wechatSourceUrl });
-process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, wechatSourceUrl }) + "\n");
+markWechatDone(opts.slug, {
+  sourceUrl,
+  wechatSourceUrl,
+  publish_result: { wechat: { draft_created: true } },
+});
+process.stdout.write(JSON.stringify({ slug: opts.slug, sourceUrl, wechatSourceUrl, draft_created: true }) + "\n");

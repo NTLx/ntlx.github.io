@@ -10,12 +10,18 @@ import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "node
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { finalizeCanonicalPrompt } from "../scripts/visual-plan-lib.mjs";
+import { getVisualStyleProfile } from "../scripts/config-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/step4-images.mjs");
 const PRE_NORMALIZE_SCRIPT = resolve(import.meta.dir, "../scripts/pre-humanizer-normalize.mjs");
 const MARK_HUMANIZED_SCRIPT = resolve(import.meta.dir, "../scripts/mark-humanized.mjs");
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
-const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_BYTES = Buffer.alloc(24);
+Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(PNG_BYTES);
+PNG_BYTES.writeUInt32BE(235, 16);
+PNG_BYTES.writeUInt32BE(100, 20);
 const JPEG_BYTES = Buffer.from([
   0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
   0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
@@ -56,11 +62,14 @@ function writePost(postsRoot, slug, body, imageNames, options = {}) {
     const description = image?.replace(/^\d{2}-/, "").replace(/\.(?:png|jpe?g|webp|gif)$/i, "") ?? slot.desc ?? "visual-node";
     return {
       slot: slot.slot,
+      producer: "baoyu-infographic",
       intent: `解释 SLOT ${slot.slot}`,
-      baoyu_design: { skill: "baoyu-article-illustrator", type: "framework", style: "minimal" },
+      baoyu_design: { skill: "baoyu-infographic", type: "framework", style: "minimal" },
       contributors: [],
       description,
-      prompt_source: "adapter",
+      prompt_source: "external",
+      text_density: "low",
+      has_long_copy: false,
     };
   });
   const sectionMatches = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gm)]
@@ -73,19 +82,35 @@ function writePost(postsRoot, slug, body, imageNames, options = {}) {
       : { section_index: index + 1, heading: match[1].trim(), decision: "text-only", reason: "测试章节无需额外视觉" };
   });
   writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
-    article_visual_design: { skill: "baoyu-article-illustrator", strategy: "只在视觉能降低理解成本的位置创建图片", coverage_review: coverageReview },
-    cover: { intent: "表达文章中心", baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", style: "editorial" }, contributors: [], prompt_source: "adapter" },
-    infographic: { intent: "压缩全文", baoyu_design: { skill: "baoyu-infographic", layout: "bento-grid", style: "claymation" }, contributors: [], prompt_source: "adapter" },
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: { planner: "wechat-article-write-agent", coverage_review: coverageReview },
+    cover: { producer: "baoyu-cover-image", intent: "表达文章中心", baoyu_design: { skill: "baoyu-cover-image", type: "conceptual", style: "editorial", aspect: "2.35:1", text: "none" }, contributors: [], prompt_source: "external" },
+    infographic: { producer: "baoyu-xhs-images", intent: "压缩全文", baoyu_design: { skill: "baoyu-xhs-images", layout: "bento-grid", style: "claymation", card_count: 1 }, contributors: [], prompt_source: "external", text_density: "low", has_long_copy: false },
     illustrations,
     source_image_review: [],
   }, null, 2));
   const promptsDir = join(imgsDir, "prompts");
   mkdirSync(promptsDir, { recursive: true });
-  writeFileSync(join(promptsDir, "00-cover-step-four-test.md"), "cover prompt\n");
-  writeFileSync(join(promptsDir, "00-infographic-core-summary.md"), "infographic prompt\n");
+  writeFileSync(join(promptsDir, "00-cover-step-four-test.md"), finalizeCanonicalPrompt("cover prompt", {
+    profile: getVisualStyleProfile(), role: "cover", aspect: "2.35:1", textDensity: "none",
+  }));
+  writeFileSync(join(promptsDir, "00-infographic-core-summary.md"), finalizeCanonicalPrompt("infographic prompt", {
+    profile: getVisualStyleProfile(), role: "header-infographic", textDensity: "low",
+  }));
   for (const entry of illustrations) {
-    writeFileSync(join(promptsDir, `${String(entry.slot).padStart(2, "0")}-${entry.description}.md`), "body prompt\n");
+    writeFileSync(join(promptsDir, `${String(entry.slot).padStart(2, "0")}-${entry.description}.md`), finalizeCanonicalPrompt("body prompt", {
+      profile: getVisualStyleProfile(), role: "body-illustration", textDensity: "low",
+    }));
   }
+  const hash = (name) => createHash("sha256").update(readFileSync(join(dir, name === "cover.png" ? name : join("imgs", name)))).digest("hex");
+  const style = { bright: true, high_saturation: true, high_contrast: true, clean_background: true, crisp: true, warm: true, positive: true };
+  const reviewAssets = [
+    { asset: "cover.png", role: "cover", text_density: "none" },
+    { asset: "00-infographic-core-summary.png", role: "header", text_density: "low" },
+    ...illustrations.map((entry) => ({ asset: `${String(entry.slot).padStart(2, "0")}-${entry.description}.png`, role: "body", text_density: "low" })),
+  ].map((asset) => ({ ...asset, sha256: hash(asset.asset), approved: true, semantic_match: true, legibility: true, visible_text_ok: true, has_long_copy: false, style_review: style, reviewer_note: "测试图清晰" }));
+  writeFileSync(join(dir, "image-review.json"), JSON.stringify({ version: 1, visual_profile: "bright-vivid-warm", assets: reviewAssets }, null, 2));
   writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
     slug,
     started_at: new Date().toISOString(),

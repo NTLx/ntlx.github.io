@@ -5,6 +5,8 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { writePreparedArtifactManifest } from "../scripts/artifact-integrity-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/step5-build.mjs");
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
@@ -97,7 +99,40 @@ function writePost(postsRoot, slug, options = {}) {
   writeFileSync(join(dir, "draft.md"), `---\n${frontmatter}\n---\n\n${body}`);
   if (options.cover !== false) writeFileSync(join(dir, "cover.png"), PNG_BYTES);
   writeFileSync(join(imgsDir, "00-infographic-core-summary.png"), PNG_BYTES);
-  writeFileSync(join(imgsDir, "01-detail.png"), PNG_BYTES);
+  if (/SLOT_IMG_01/u.test(body)) writeFileSync(join(imgsDir, "01-detail.png"), PNG_BYTES);
+  const sections = [...body.matchAll(/^##(?!#)\s+(.+?)\s*$/gmu)]
+    .filter((match) => !["参考资料", "延伸阅读"].includes(match[1].trim()));
+  const slots = [...body.matchAll(/<!--\s*SLOT_IMG_(\d{2})(?:_[A-Za-z0-9_-]+)?\s*-->/gu)]
+    .map((match) => ({ slot: Number(match[1]), index: match.index }))
+    .filter(({ slot }) => slot > 0);
+  writeFileSync(join(dir, "image-plan.json"), JSON.stringify({
+    visual_profile: "bright-vivid-warm",
+    source_image_policy: "prefer-reuse",
+    article_visual_design: {
+      planner: "wechat-article-write-agent",
+      coverage_review: sections.map((section, index) => {
+        const next = sections[index + 1]?.index ?? body.length;
+        const slot = slots.find((candidate) => candidate.index >= section.index && candidate.index < next);
+        return slot
+          ? { section_index: index + 1, heading: section[1].trim(), decision: "illustrate", slot: slot.slot, reason: "测试章节包含视觉节点" }
+          : { section_index: index + 1, heading: section[1].trim(), decision: "text-only", reason: "测试章节文字已经足够清楚" };
+      }),
+    },
+    cover: { producer: "baoyu-cover-image", intent: "测试封面", baoyu_design: { skill: "baoyu-cover-image", aspect: "2.35:1", text: "none" }, prompt_source: "external" },
+    infographic: { producer: "baoyu-xhs-images", intent: "测试摘要", baoyu_design: { skill: "baoyu-xhs-images", card_count: 1 }, text_density: "low", has_long_copy: false, prompt_source: "external" },
+    illustrations: slots.map(({ slot }) => ({ slot, producer: "baoyu-infographic", intent: `测试 SLOT ${slot}`, baoyu_design: { skill: "baoyu-infographic" }, text_density: "low", has_long_copy: false, prompt_source: "external", description: "detail" })),
+    source_image_review: [],
+  }, null, 2));
+  if (options.cover !== false) {
+    const sha = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
+    const style = { bright: true, high_saturation: true, high_contrast: true, clean_background: true, crisp: true, warm: true, positive: true };
+    const assets = [
+      { asset: "cover.png", role: "cover", path: join(dir, "cover.png"), text_density: "none" },
+      { asset: "00-infographic-core-summary.png", role: "header", path: join(imgsDir, "00-infographic-core-summary.png"), text_density: "low" },
+      ...slots.map(({ slot }) => ({ asset: `${String(slot).padStart(2, "0")}-detail.png`, role: "body", path: join(imgsDir, "01-detail.png"), text_density: "low" })),
+    ].map(({ path, ...asset }) => ({ ...asset, sha256: sha(path), approved: true, semantic_match: true, legibility: true, visible_text_ok: true, has_long_copy: false, style_review: style, reviewer_note: "测试图片清晰" }));
+    writeFileSync(join(dir, "image-review.json"), JSON.stringify({ version: 1, visual_profile: "bright-vivid-warm", assets }, null, 2));
+  }
   writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
     slug,
     started_at: new Date().toISOString(),
@@ -194,7 +229,7 @@ describe("step5-build phase boundaries", () => {
     const result = runStep5(slug, fx.postsRoot, fx.fake, ["--dry-run"]);
 
     expect(result.status).toBe(4);
-    expect(result.stderr).toContain("no SLOT_IMG placeholders");
+    expect(result.stderr).toContain("SLOT_IMG_00 exactly once");
     expect(uploaderCalls(fx.fake)).toHaveLength(0);
     expect(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).not.toContain('"step": 5');
   });
@@ -242,7 +277,7 @@ describe("step5-build phase boundaries", () => {
     cleanup.push(fx.root);
     const slug = "2026-05-18-finalize-only";
     const dir = writePost(fx.postsRoot, slug);
-    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![image](https://cdn.fake/image.png)\n");
+    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![summary](https://cdn.fake/00-infographic-core-summary.png)\n\n## 正文\n\n正文\n\n![detail](https://cdn.fake/01-detail.png)\n");
     writeFileSync(join(dir, "article-wechat-source.md"), [
       "![](imgs/00-infographic-core-summary.png)",
       "",
@@ -253,15 +288,21 @@ describe("step5-build phase boundaries", () => {
       "![](imgs/01-detail.png)",
       "",
     ].join("\n"));
+    writeFileSync(join(dir, "image-map.json"), JSON.stringify({
+      "00-infographic-core-summary.png": "https://cdn.fake/00-infographic-core-summary.png",
+      "01-detail.png": "https://cdn.fake/01-detail.png",
+    }));
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">正文</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">正文</span></p>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">我是 NTLx，热衷于分享 AI 观察与干货。</span></p>',
       "</section>",
       "",
     ].join("\n"));
+    writePreparedArtifactManifest(dir);
 
     const first = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);
     const second = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);
@@ -278,7 +319,7 @@ describe("step5-build phase boundaries", () => {
     cleanup.push(fx.root);
     const slug = "2026-05-18-finalize-stale-draft";
     const dir = writePost(fx.postsRoot, slug);
-    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![image](https://cdn.fake/image.png)\n");
+    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![summary](https://cdn.fake/00-infographic-core-summary.png)\n\n## 正文\n\n正文\n\n![detail](https://cdn.fake/01-detail.png)\n");
     writeFileSync(join(dir, "article-wechat-source.md"), [
       "![](imgs/00-infographic-core-summary.png)",
       "",
@@ -289,15 +330,21 @@ describe("step5-build phase boundaries", () => {
       "![](imgs/01-detail.png)",
       "",
     ].join("\n"));
+    writeFileSync(join(dir, "image-map.json"), JSON.stringify({
+      "00-infographic-core-summary.png": "https://cdn.fake/00-infographic-core-summary.png",
+      "01-detail.png": "https://cdn.fake/01-detail.png",
+    }));
     writeFileSync(join(dir, "article-wechat.html"), [
       '<section style="margin:0 auto;max-width:720px;">',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
       '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">正文</span></h3>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">正文</span></p>',
       '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">我是 NTLx，热衷于分享 AI 观察与干货。</span></p>',
       "</section>",
       "",
     ].join("\n"));
+    writePreparedArtifactManifest(dir);
     writeFileSync(join(dir, "draft.md"), `${readFileSync(join(dir, "draft.md"), "utf8")}\n有人改了冻结后的草稿。\n`);
 
     const result = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);

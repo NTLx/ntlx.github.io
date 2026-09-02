@@ -12,10 +12,15 @@ import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getWechatArticleWriteConfig } from "./config-lib.mjs";
-import { readFmValue } from "./frontmatter-lib.mjs";
+import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
+import { assertImageReview } from "./image-review-lib.mjs";
+import { assertMarkdownParity } from "./content-parity-lib.mjs";
+import { assertFinalizeInputsFresh, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
+import { validateBaoyuDesign, validateVisualCoverage, validateVisualPlanTopology, readImagePlan } from "./visual-plan-lib.mjs";
+import { replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const args = process.argv.slice(2);
 let slug = null;
@@ -169,6 +174,13 @@ function finalize() {
   if (!existsSync(articlePath)) fail(4, "article.md missing; cannot finalize Step 5");
   if (!existsSync(wechatSourcePath)) fail(4, "article-wechat-source.md missing; cannot finalize Step 5");
   if (!existsSync(wechatHtmlPath)) fail(4, "article-wechat.html missing; cannot finalize Step 5");
+  try {
+    assertFinalizeInputsFresh(base);
+    const imageMap = loadImageMap();
+    assertMarkdownParity(readFileSync(articlePath, "utf8"), readFileSync(wechatSourcePath, "utf8"), imageMap);
+  } catch (error) {
+    fail(4, error.message);
+  }
 
   let previewPath = null;
   try {
@@ -177,11 +189,14 @@ function finalize() {
       wechatSourcePath,
       wechatHtmlPath,
       generatePreview: getWechatArticleWriteConfig().wechatLayoutGeneratePreview,
-      markDone: () => markStepDone(slug, 5, {
-        article_md: "article.md",
-        article_wechat_source_md: "article-wechat-source.md",
-        article_wechat_html: "article-wechat.html",
-      }),
+      markDone: () => {
+        writeFinalizedArtifactManifest(base);
+        markStepDone(slug, 5, {
+          article_md: "article.md",
+          article_wechat_source_md: "article-wechat-source.md",
+          article_wechat_html: "article-wechat.html",
+        });
+      },
     });
   } catch (error) {
     fail(4, error.message);
@@ -225,6 +240,21 @@ validateCoverFormats();
 const draft = readFileSync(draftPath, "utf8");
 const imgs = imageFiles(imgsDir);
 if (imgs.length === 0) fail(2, "imgs/ contains no image files");
+const imagePlanPath = resolve(base, "image-plan.json");
+let imagePlan;
+try {
+  imagePlan = readImagePlan(imagePlanPath);
+  const body = extractBody(draft);
+  const topology = validateVisualPlanTopology(imagePlan, body);
+  if (!topology.ok) fail(4, `visual plan topology invalid: ${topology.errors.join("; ")}`);
+  const coverageErrors = validateVisualCoverage(imagePlan, body).errors;
+  if (coverageErrors.length > 0) fail(4, `visual coverage review invalid: ${coverageErrors.join("; ")}`);
+  const designErrors = validateBaoyuDesign(imagePlan);
+  if (designErrors.length > 0) fail(4, `Baoyu visual design contract invalid: ${designErrors.join("; ")}`);
+  assertImageReview({ postDir: base, imagePlan, draftBody: body });
+} catch (error) {
+  fail(4, error.message);
+}
 const dateStr = slug.slice(0, 10);
 const assetSlug = resolveAssetSlug(draft);
 const namePrefix = `${dateStr}-${assetSlug}-img`;
@@ -267,6 +297,7 @@ const applyScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scr
 const applyResult = spawnSync("bun", ["run", applyScript, slug], { stdio: "inherit", encoding: "utf8" });
 if (applyResult.status !== 0) fail(4, "apply-image-map failed");
 if (!existsSync(articlePath)) fail(4, "article.md not created");
+writeFileSync(articlePath, replaceKnownAuthorPlaceholders(readFileSync(articlePath, "utf8")));
 
 // Generate article-wechat-source.md from draft.md (local image paths).
 writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
@@ -278,6 +309,12 @@ try {
 }
 if (!existsSync(wechatSourcePath) || readFileSync(wechatSourcePath, "utf8").length === 0) {
   fail(4, "article-wechat-source.md empty");
+}
+try {
+  assertMarkdownParity(readFileSync(articlePath, "utf8"), readFileSync(wechatSourcePath, "utf8"), imageMap);
+  writePreparedArtifactManifest(base);
+} catch (error) {
+  fail(4, error.message);
 }
 
 if (prepareOnly) {

@@ -10,6 +10,7 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import { writePreparedArtifactManifest, writeFinalizedArtifactManifest } from "../scripts/artifact-integrity-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/publish-blog.mjs");
 
@@ -38,6 +39,13 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}: ${v}`);
   writeFileSync(join(dir, "article.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n内容。`);
+  writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n内容。\n");
+  writeFileSync(join(dir, "image-plan.json"), "{}\n");
+  writeFileSync(join(dir, "image-review.json"), "{}\n");
+  writeFileSync(join(dir, "article-wechat-source.md"), "## 正文\n\n内容。\n");
+  writeFileSync(join(dir, "article-wechat.html"), "<section><p>内容。</p></section>\n");
+  writePreparedArtifactManifest(dir);
+  writeFinalizedArtifactManifest(dir);
 }
 
 function runPublish(args, fixture) {

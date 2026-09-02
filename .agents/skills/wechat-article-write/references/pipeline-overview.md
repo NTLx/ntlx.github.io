@@ -74,7 +74,7 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 专业写作能力，Agent 都必须负责仓库适配：frontmatter、`summary`、
 `sourceUrl`、H2 正文、参考资料、互动（策略允许时）、站内联动和 SLOT
 占位符都要完整。SLOT 不是章节打卡，而是放在确实需要视觉解释的论证节点；
-同时必须由 `baoyu-article-illustrator` 完成全文视觉价值审阅，并在
+同时必须由当前 `wechat-article-write` Agent 完成全文视觉价值审阅，并在
 `article_visual_design.coverage_review` 为每个 substantive H2 写出
 `illustrate`/`reuse-source`/`text-only` 决定。正文 SLOT 只在有明确视觉信息增益时
 创建，数量仍由 `image-plan.json` 决定，可以为 0..N；SLOT00 必须恰好一次、位于
@@ -117,11 +117,10 @@ Contract，不会替代 artifact、state 或 Gate。没有调用 Skill 时记录
 
 ## Step 4：Baoyu 视觉设计与图片资产
 
-先运行 `baoyu-article-illustrator` 完成全文视觉规划：判断哪些位置真正有
-视觉增益、正文密度和整体 controlled variation；即使正文插图为 0 张，也要
-记录 `article_visual_design.skill=baoyu-article-illustrator`。随后使用
-`baoyu-cover-image` 设计 cover，使用 `baoyu-infographic` 设计
-`SLOT_IMG_00`。这三项是每篇文章的 Baoyu Core Design Layer。
+由当前 Agent 完成 `coverage_review`：判断哪些位置真正有视觉增益、原图是否
+值得复用以及正文密度；正文插图为 0 张仍是合法结果。随后使用
+`baoyu-cover-image` 设计 cover，使用 `baoyu-xhs-images` 设计
+`SLOT_IMG_00`，按需使用 `baoyu-infographic` 设计 `SLOT_IMG_01+`。
 
 再运行 metadata-only catalog，按当前结构需求渐进式读取专项能力。涉及组件
 关系、架构、流程、时序、数据流、层级或状态转换时，Agent 可以选择
@@ -131,11 +130,12 @@ Optional Contributor。所有设计委托都处于 DESIGN-ONLY MODE，不调用�
 backend。
 
 image-plan 使用一个现有文件，且每个最终 asset 必须有对应的 `baoyu_design`：
-cover 为 `baoyu-cover-image`，SLOT00 为 `baoyu-infographic`，正文为
-`baoyu-article-illustrator`；正文 `illustrations` 允许为空。Agent 自主组合
+cover 为 `baoyu-cover-image`，SLOT00 为 `baoyu-xhs-images`，正文为
+`baoyu-infographic`；正文 `illustrations` 允许为空。Agent 自主组合
 Type、Layout、Style、Palette、Rendering、Mood、Font，不由 `article_type`、
-`direction`、关键词或代码路由决定。动态 adapter 直接验证当前 Baoyu 的稳定
-reference 文件；旧 map 只供显式 `--allow-default-image-plan` 兼容模式。
+`direction`、关键词或代码路由决定。固定 producer 先输出 external canonical
+Prompt，`generate-image-prompts.mjs` 只追加项目视觉合同，不保留旧 adapter
+视觉生成路径。
 
 图片拓扑必须满足：draft SLOT ↔ image-plan entry ↔ active canonical prompt ↔
 image。生成全部 active prompt 后，先运行 prompt preflight，再运行：

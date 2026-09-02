@@ -17,11 +17,15 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { normalizeSlotDesc } from "./validation-lib.mjs";
 import { extractBody, parseFrontmatter, readFmValue } from "./frontmatter-lib.mjs";
+import { getVisualStyleProfile } from "./config-lib.mjs";
+import { assertCoverPixelAspect } from "./render-images-serial.mjs";
+import { assertImageReview } from "./image-review-lib.mjs";
 import {
   activeImageBasenames,
   activePromptBasenames,
   collectActiveAssets,
   normalizePromptSource,
+  validateCanonicalPrompt,
   readImagePlan,
   validateVisualCoverage,
   validateBaoyuDesign,
@@ -30,7 +34,6 @@ import {
 } from "./visual-plan-lib.mjs";
 import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
 
-const allowDefaultImagePlan = process.argv.includes("--allow-default-image-plan");
 const slug = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
 if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); process.exit(1); }
 
@@ -145,23 +148,19 @@ if (!topology.ok) {
   markStepFailed(slug, 4, msg);
   process.exit(2);
 }
-if (!allowDefaultImagePlan) {
-  const coverageErrors = validateVisualCoverage(imagePlan, body).errors;
-  if (coverageErrors.length > 0) {
-    const msg = `visual coverage review invalid: ${coverageErrors.join("; ")}`;
-    process.stderr.write(`step4: FAIL - ${msg}\n`);
-    markStepFailed(slug, 4, msg);
-    process.exit(2);
-  }
+const coverageErrors = validateVisualCoverage(imagePlan, body).errors;
+if (coverageErrors.length > 0) {
+  const msg = `visual coverage review invalid: ${coverageErrors.join("; ")}`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
 }
-if (!allowDefaultImagePlan) {
-  const designErrors = validateBaoyuDesign(imagePlan);
-  if (designErrors.length > 0) {
-    const msg = `Baoyu visual design contract invalid: ${designErrors.join("; ")}`;
-    process.stderr.write(`step4: FAIL - ${msg}\n`);
-    markStepFailed(slug, 4, msg);
-    process.exit(2);
-  }
+const designErrors = validateBaoyuDesign(imagePlan);
+if (designErrors.length > 0) {
+  const msg = `Baoyu visual design contract invalid: ${designErrors.join("; ")}`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
 }
 
 // 4. SLOT-only enforcement: no local imgs/ Markdown references allowed
@@ -192,16 +191,29 @@ function promptSource(node) {
 function requirePrompt(path, label, node) {
   const source = promptSource(node);
   if (!existsSync(path)) {
-    const producerHint = source === "external"
-      ? `producer=${node.producer}\nRun/delegate the selected producer first, save its final rendering prompt to the expected path, then rerun generate-image-prompts.mjs.`
-      : "Run generate-image-prompts.mjs to materialize the adapter prompt, then rerun Step 4.";
-    const msg = `${source} visual prompt missing for ${label}\nproducer=${node?.producer ?? "(adapter)"}\nexpected: ${path}\n${producerHint}`;
+    const producerHint = `producer=${node.producer}\nRun/delegate the selected producer first, save its final rendering prompt to the expected path, then rerun generate-image-prompts.mjs.`;
+    const msg = `${source} visual prompt missing for ${label}\nproducer=${node?.producer ?? "(unknown)"}\nexpected: ${path}\n${producerHint}`;
     process.stderr.write(`step4: FAIL - ${msg}\n`);
     markStepFailed(slug, 4, msg);
     process.exit(2);
   }
   if (readFileSync(path, "utf8").trim().length === 0) {
     const msg = `visual prompt is empty for ${label}: ${path}`;
+    process.stderr.write(`step4: FAIL - ${msg}\n`);
+    markStepFailed(slug, 4, msg);
+    process.exit(2);
+  }
+  const profile = imagePlan.visual_profile === "custom"
+    ? { id: "custom", override_reason: imagePlan.visual_override_reason }
+    : getVisualStyleProfile();
+  const promptErrors = validateCanonicalPrompt(readFileSync(path, "utf8"), {
+    profile,
+    role: label === "cover" ? "cover" : label === "SLOT_IMG_00" ? "header-infographic" : "body-illustration",
+    aspect: label === "cover" ? "2.35:1" : undefined,
+    textDensity: label === "cover" ? "none" : label === "SLOT_IMG_00" ? "low" : node?.text_density,
+  });
+  if (promptErrors.length > 0) {
+    const msg = `canonical visual prompt invalid for ${label}: ${promptErrors.join("; ")}`;
     process.stderr.write(`step4: FAIL - ${msg}\n`);
     markStepFailed(slug, 4, msg);
     process.exit(2);
@@ -255,6 +267,16 @@ if (infoFiles.length > 0) {
   if (!hasInfoRef) {
     process.stderr.write("step4: WARNING infographic file exists but not referenced in draft.md\n");
   }
+}
+
+try {
+  assertCoverPixelAspect(resolve(base, rootCovers[0]));
+  assertImageReview({ postDir: base, imagePlan, draftBody: body });
+} catch (error) {
+  const msg = error.message;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
 }
 
 // 6b. Prompt/image basename contract for active assets. Stale prompts are
