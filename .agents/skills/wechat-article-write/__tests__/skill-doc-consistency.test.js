@@ -6,6 +6,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { HARD_SKILLS } from "../scripts/workflow.mjs";
 
 const SKILL_DIR = resolve(import.meta.dir, "..");
 const REPO_ROOT = resolve(SKILL_DIR, "../../..");
@@ -145,5 +146,13 @@ describe("wechat-article-write documentation consistency", () => {
     expect(agents).toContain("432");
     expect(agents).toContain("tavily");
     expect(agents).toContain("exa");
+  });
+
+  test("agent governance dependency cache matches workflow source", () => {
+    const agents = readRepo(".agents/AGENTS.md");
+    const line = agents.split(/\r?\n/u).find((entry) => entry.startsWith("- **核心工程依赖**"));
+    expect(line).toBeString();
+    const documented = [...(line ?? "").matchAll(/`([^`]+)`/gu)].map(([_, name]) => name);
+    expect(documented).toEqual(HARD_SKILLS);
   });
 });

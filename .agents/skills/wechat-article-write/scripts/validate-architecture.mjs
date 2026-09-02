@@ -83,6 +83,7 @@ const REPO_ROOT = resolve(SKILL_DIR, "../../..");
 const SKILLS_ROOT = resolve(REPO_ROOT, ".agents/skills");
 const CLAUDE_SKILLS = resolve(REPO_ROOT, ".claude/skills");
 const LOCK_PATH = resolve(REPO_ROOT, "skills-lock.json");
+const AGENTS_PATH = resolve(REPO_ROOT, ".agents/AGENTS.md");
 
 /** 自建技能判定：frontmatter 中 metadata.author 或顶层 author 为 NTLx */
 const CUSTOM_AUTHOR = "NTLx";
@@ -247,6 +248,28 @@ function checkWorkflowArtifacts(errors, warnings) {
         state.errors.push(`Stage ${stage} Gate 脚本不存在: scripts/${gate.script}`);
       }
     }
+  }
+  return state;
+}
+
+/**
+ * 2b. 治理文档中的 hard dependency 缓存必须与 workflow 机器源一致。
+ */
+function checkGovernanceDependencyCache(errors, warnings) {
+  const state = { errors, warnings };
+  if (!existsSync(AGENTS_PATH)) {
+    state.errors.push(".agents/AGENTS.md 缺失");
+    return state;
+  }
+  const text = readFileSync(AGENTS_PATH, "utf8");
+  const line = text.split(/\r?\n/u).find((entry) => entry.startsWith("- **核心工程依赖**"));
+  if (!line) {
+    state.errors.push(".agents/AGENTS.md 缺少核心工程依赖缓存行");
+    return state;
+  }
+  const documented = [...line.matchAll(/`([^`]+)`/gu)].map(([, name]) => name);
+  if (JSON.stringify(documented) !== JSON.stringify(HARD_SKILLS)) {
+    state.errors.push(`.agents/AGENTS.md 核心工程依赖必须与 workflow.mjs HARD_SKILLS 一致: expected=${HARD_SKILLS.join(",")}, found=${documented.join(",")}`);
   }
   return state;
 }
@@ -590,6 +613,7 @@ export function runArchitectureChecks() {
   checkCustomSkillFrontmatter(errors, warnings);
   checkWorkflowContracts(errors, warnings);
   checkWorkflowArtifacts(errors, warnings);
+  checkGovernanceDependencyCache(errors, warnings);
   checkAdaptiveVisualBoundaries(errors, warnings);
   checkQualityProtocolBoundaries(errors, warnings);
   checkHardSkills(errors, warnings);

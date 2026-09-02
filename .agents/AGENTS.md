@@ -50,10 +50,10 @@ metadata:
 
 ## Skill 分层（决策记录）
 
-写作管线只把 **workflow.mjs 中声明为 required 的技能** 作为硬依赖（缺失 = 阻断）；其余为 optional toolbox，缺失不阻断，按需加载：
+写作管线只把 **workflow.mjs 的 `HARD_SKILLS`** 作为硬依赖（缺失 = 阻断）；其余为 optional toolbox，缺失不阻断，按需加载。核心依赖列表在此保留一份可读缓存，并由架构检查与机器源对照：
 
-- **核心**（workflow.mjs `DEPENDENCIES[*].required`）：`ljg-qa`/`ljg-think`/`ljg-writes`/`baoyu-format-markdown`/`baoyu-cover-image`/`baoyu-article-illustrator`/`baoyu-image-gen`/`baoyu-infographic`/`github-image-hosting`/`gzh-design`/`baoyu-post-to-wechat`
-- **optional（按需）**：`aihot`/`last30days`/`ljg-read`/`ljg-rank`/`ljg-constraint`/`ljg-plain`/`ljg-learn`/`ljg-paper`/`ljg-book`/`ljg-roundtable`/`ljg-invest`/`ljg-word`/`renwei-writing`/`humanizer-zh`/`baoyu-youtube-transcript`/`baoyu-translate`
+- **核心工程依赖**（唯一机器来源：workflow.mjs 的 HARD_SKILLS）：`baoyu-cover-image`、`baoyu-diagram`、`baoyu-image-gen`、`baoyu-infographic`、`baoyu-post-to-wechat`、`baoyu-xhs-images`、`github-image-hosting`、`gzh-design`、`humanizer-zh`
+- **optional（按需）**：`aihot`/`last30days`/`ljg-read`/`ljg-rank`/`ljg-constraint`/`ljg-plain`/`ljg-learn`/`ljg-paper`/`ljg-book`/`ljg-roundtable`/`ljg-invest`/`ljg-word`/`renwei-writing`/`baoyu-youtube-transcript`/`baoyu-translate`
 
 它们仍由 `npx skills` 安装并受 lock 管理；本分层只约束「哪些缺失会阻断流程」，不改变安装方式。
 
