@@ -39,9 +39,11 @@ export function splitBlockFragments(block) {
 }
 
 /**
- * Extract paragraphs, list items and code lines together with the substantive
- * section each belongs to. Section indices follow collectSubstantiveSections,
- * so 0 is the lead area before the first substantive H2.
+ * Extract paragraphs, list items and code blocks together with the substantive
+ * section each belongs to. Each protected code fence remains one literal
+ * sequence so its syntax and line order are checked as a unit. Section indices
+ * follow collectSubstantiveSections, so 0 is the lead area before the first
+ * substantive H2.
  */
 export function extractSubstantiveMarkdownBlockEntries(markdown) {
   const body = extractBody(markdown);
@@ -51,11 +53,18 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
   let paragraph = [];
   let paragraphStart = 0;
   let fence = null;
+  let codeLines = [];
+  let codeStart = 0;
   let offset = 0;
   const flush = () => {
     const text = normalizeVisibleText(paragraph.join("\n"));
     if (text) entries.push({ text, section_index: sectionIndexAt(paragraphStart) });
     paragraph = [];
+  };
+  const flushCode = () => {
+    const text = codeLines.join("");
+    if (text) entries.push({ text, kind: "code", section_index: sectionIndexAt(codeStart) });
+    codeLines = [];
   };
   for (const rawLine of body.match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
     const lineStart = offset;
@@ -65,12 +74,14 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
     if (fenceMatch) {
       flush();
       if (fence) {
+        if (fence.protect) flushCode();
         fence = null;
       } else {
         const lang = fenceMatch[1].trim().toLowerCase();
         // Mermaid/PlantUML are rendered to images downstream, so their fence body
         // legitimately has no text counterpart in the HTML track.
         fence = { protect: !IMAGE_RENDERED_FENCES.has(lang) };
+        codeStart = lineStart;
       }
       continue;
     }
@@ -80,7 +91,7 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
       // `Array<int>` is not mistaken for an HTML tag the way prose normalization
       // would strip it.
       const code = current.replace(/\s+/gu, "");
-      if (code) entries.push({ text: code, section_index: sectionIndexAt(lineStart) });
+      if (code) codeLines.push(code);
       continue;
     }
     const line = current.trim();
@@ -95,6 +106,7 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
     if (paragraph.length === 0) paragraphStart = lineStart;
     paragraph.push(line);
   }
+  if (fence?.protect) flushCode();
   flush();
   return entries;
 }

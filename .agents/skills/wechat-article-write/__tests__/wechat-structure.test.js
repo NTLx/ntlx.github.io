@@ -127,6 +127,44 @@ node build.mjs
     expect(result.errors.join("\n")).toContain("substantive block");
   });
 
+  test("rejects semantic loss inside generic code", () => {
+    const codeSource = `---
+title: 泛型代码测试
+---
+
+## A
+
+\`\`\`cpp
+std::vector<int> values;
+\`\`\`
+`;
+    const rendered = '<section><p><span leaf="">A</span></p><p>std::vector values;</p></section>';
+    const result = validateWechatStructuralParity(codeSource, rendered);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("substantive block");
+
+    const preserved = rendered.replace("std::vector values;", "std::vector&lt;int&gt; values;");
+    expect(validateWechatStructuralParity(codeSource, preserved).ok).toBe(true);
+  });
+
+  test("rejects reordered lines inside one code fence", () => {
+    const codeSource = `---
+title: 代码顺序测试
+---
+
+## A
+
+\`\`\`javascript
+stepA();
+stepB();
+\`\`\`
+`;
+    const reordered = '<section><p><span leaf="">A</span></p><p>stepB();</p><p>stepA();</p></section>';
+    const result = validateWechatStructuralParity(codeSource, reordered);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("missing or reordered");
+  });
+
   test("skips fences that downstream renderers turn into images", () => {
     const diagram = (lang) => `---
 title: 图测试

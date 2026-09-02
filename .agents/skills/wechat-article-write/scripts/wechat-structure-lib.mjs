@@ -182,11 +182,18 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   // re-orders clauses within a section (for example hoisting one into a callout card),
   // so coverage is checked per clause fragment instead of as one contiguous needle.
   for (const [index, entry] of extractSubstantiveMarkdownBlockEntries(sourceMarkdown).entries()) {
-    const needle = normalizeVisibleText(entry.text);
+    // Code fences are literal syntax, not prose. In particular, applying the
+    // prose HTML-tag cleanup here would erase C++ generics such as `<int>`.
+    const isCode = entry.kind === "code";
+    const needle = isCode ? entry.text : normalizeVisibleText(entry.text);
     if (!needle) continue;
     const scope = windows?.[entry.section_index];
     const scopeText = scope ? flattened.normalized.slice(scope.start, scope.end) : flattened.normalized;
     if (scopeText.includes(needle)) continue;
+    if (isCode) {
+      errors.push(`substantive block ${index + 1} (code) missing or reordered in ${formatSection(entry.section_index)}`);
+      continue;
+    }
     // Bottom citations legitimately relocate a URL to the document tail, so URLs are
     // document-scoped; prose stays confined to the section it was written in.
     const urls = needle.match(URL_RE) ?? [];
