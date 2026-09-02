@@ -62,8 +62,8 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
     paragraph = [];
   };
   const flushCode = () => {
-    const text = codeLines.join("");
-    if (text) entries.push({ text, kind: "code", section_index: sectionIndexAt(codeStart) });
+    const text = codeLines.join("\n").replace(/\r\n?/gu, "\n");
+    if (text.trim()) entries.push({ text, kind: "code", section_index: sectionIndexAt(codeStart) });
     codeLines = [];
   };
   for (const rawLine of body.match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
@@ -90,8 +90,7 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
       // Code lines keep their literal characters: only whitespace is folded, so
       // `Array<int>` is not mistaken for an HTML tag the way prose normalization
       // would strip it.
-      const code = current.replace(/\s+/gu, "");
-      if (code) codeLines.push(code);
+      codeLines.push(current);
       continue;
     }
     const line = current.trim();

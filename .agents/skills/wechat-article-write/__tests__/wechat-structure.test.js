@@ -115,13 +115,13 @@ node build.mjs
 ## B
 
 收尾说明。
-`;
+    `;
     const rendered = '<section><p><span leaf="">A</span></p><p>安装依赖：</p>'
-      + "<section><p>npm install demo</p><p>node build.mjs</p></section>"
+      + "<pre><code>npm install demo\nnode build.mjs</code></pre>"
       + '<p><span leaf="">B</span></p><p>收尾说明。</p></section>';
     expect(validateWechatStructuralParity(codeSource, rendered).ok).toBe(true);
 
-    const droppedLine = rendered.replace("<p>node build.mjs</p>", "");
+    const droppedLine = rendered.replace("node build.mjs", "");
     const result = validateWechatStructuralParity(codeSource, droppedLine);
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toContain("substantive block");
@@ -138,7 +138,7 @@ title: 泛型代码测试
 std::vector<int> values;
 \`\`\`
 `;
-    const rendered = '<section><p><span leaf="">A</span></p><p>std::vector values;</p></section>';
+    const rendered = '<section><p><span leaf="">A</span></p><pre><code>std::vector values;</code></pre></section>';
     const result = validateWechatStructuralParity(codeSource, rendered);
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toContain("substantive block");
@@ -161,6 +161,59 @@ stepB();
 `;
     const reordered = '<section><p><span leaf="">A</span></p><p>stepB();</p><p>stepA();</p></section>';
     const result = validateWechatStructuralParity(codeSource, reordered);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("missing or reordered");
+  });
+
+  test("rejects whitespace loss inside code strings", () => {
+    const codeSource = `---
+title: 代码空格测试
+---
+
+## A
+
+\`\`\`javascript
+const x = "a b";
+\`\`\`
+`;
+    const rendered = '<section><p><span leaf="">A</span></p><pre><code>const x = "ab";</code></pre></section>';
+    const result = validateWechatStructuralParity(codeSource, rendered);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("missing or reordered");
+  });
+
+  test("rejects indentation loss in Python code", () => {
+    const codeSource = `---
+title: Python 缩进测试
+---
+
+## A
+
+\`\`\`python
+if ready:
+    run()
+\`\`\`
+`;
+    const rendered = '<section><p><span leaf="">A</span></p><pre><code>if ready:\nrun()</code></pre></section>';
+    const result = validateWechatStructuralParity(codeSource, rendered);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("missing or reordered");
+  });
+
+  test("rejects code line-boundary loss", () => {
+    const codeSource = `---
+title: 代码行边界测试
+---
+
+## A
+
+\`\`\`text
+ab
+c
+\`\`\`
+`;
+    const rendered = '<section><p><span leaf="">A</span></p><pre><code>abc</code></pre></section>';
+    const result = validateWechatStructuralParity(codeSource, rendered);
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toContain("missing or reordered");
   });

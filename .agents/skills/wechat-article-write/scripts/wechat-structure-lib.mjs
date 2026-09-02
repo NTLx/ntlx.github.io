@@ -84,7 +84,53 @@ export function extractMarkdownStructure(markdown) {
   };
 }
 
+function normalizeCodeText(value) {
+  return String(value ?? "").replace(/\r\n?/gu, "\n");
+}
+
+function htmlAttributeValue(tag, name) {
+  return String(tag).match(new RegExp(`\\b${name}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, "iu"))?.[2] ?? null;
+}
+
+function visibleCodeText(value) {
+  return normalizeCodeText(
+    decodeHtmlEntities(
+      String(value ?? "")
+        .replace(/<!--[\s\S]*?-->/gu, "")
+        .replace(/<br\b[^>]*>/giu, "\n")
+        .replace(/<[^>]+>/gu, ""),
+    ),
+  ).replace(/^\n/gu, "").replace(/\n$/gu, "");
+}
+
+function maskHtmlCodeBlocks(html) {
+  const source = String(html ?? "");
+  const codeBlocks = [];
+  let masked = "";
+  let cursor = 0;
+  const preRe = /<pre\b[^>]*>[\s\S]*?<\/pre>/giu;
+  let match;
+  while ((match = preRe.exec(source)) !== null) {
+    masked += source.slice(cursor, match.index);
+    const pre = match[0];
+    const codeOpen = pre.match(/<code\b[^>]*>/iu)?.[0] ?? "";
+    const rawCode = htmlAttributeValue(codeOpen, "data-raw-code");
+    const codeInner = pre.match(/<code\b[^>]*>([\s\S]*?)<\/code>/iu)?.[1] ?? pre;
+    const text = rawCode === null
+      ? visibleCodeText(codeInner)
+      : normalizeCodeText(decodeHtmlEntities(rawCode));
+    const marker = `\u0000CODE_${codeBlocks.length}\u0000`;
+    codeBlocks.push({ text, marker });
+    masked += marker;
+    cursor = match.index + match[0].length;
+  }
+  masked += source.slice(cursor);
+  return { html: masked, codeBlocks };
+}
+
 function flattenHtml(html) {
+  const masked = maskHtmlCodeBlocks(html);
+  const source = masked.html;
   let normalized = "";
   const images = [];
   const tagRe = /<!--[\s\S]*?-->|<img\b[^>]*>|<[^>]+>/giu;
@@ -93,8 +139,8 @@ function flattenHtml(html) {
     normalized += decodeHtmlEntities(text).replace(/\s+/gu, "");
   };
   let match;
-  while ((match = tagRe.exec(String(html ?? ""))) !== null) {
-    appendText(String(html).slice(cursor, match.index));
+  while ((match = tagRe.exec(source)) !== null) {
+    appendText(source.slice(cursor, match.index));
     if (/^<img\b/iu.test(match[0])) {
       const src = match[0].match(/\bsrc\s*=\s*["']([^"']+)["']/iu)?.[1] ?? "";
       const image = {
@@ -106,8 +152,15 @@ function flattenHtml(html) {
     }
     cursor = match.index + match[0].length;
   }
-  appendText(String(html ?? "").slice(cursor));
-  return { normalized, images };
+  appendText(source.slice(cursor));
+  return {
+    normalized,
+    images,
+    codeBlocks: masked.codeBlocks.map((block) => ({
+      text: block.text,
+      index: normalized.indexOf(block.marker),
+    })),
+  };
 }
 
 function headingTagSequence(html) {
@@ -181,19 +234,34 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   // Body text must survive into the HTML inside its own section. gzh-design legitimately
   // re-orders clauses within a section (for example hoisting one into a callout card),
   // so coverage is checked per clause fragment instead of as one contiguous needle.
-  for (const [index, entry] of extractSubstantiveMarkdownBlockEntries(sourceMarkdown).entries()) {
+  const sourceEntries = extractSubstantiveMarkdownBlockEntries(sourceMarkdown);
+  const sourceCodeEntries = sourceEntries.filter((entry) => entry.kind === "code");
+  const htmlCodeBlocks = flattened.codeBlocks.map((block) => ({
+    ...block,
+    section_index: actualHeadingPositions
+      ? actualHeadingPositions.filter((position) => position < block.index).length
+      : null,
+  }));
+  if (sourceCodeEntries.length !== htmlCodeBlocks.length) {
+    errors.push(`code block count mismatch: source=${sourceCodeEntries.length}, html=${htmlCodeBlocks.length}`);
+  }
+  let codeIndex = 0;
+  for (const [index, entry] of sourceEntries.entries()) {
     // Code fences are literal syntax, not prose. In particular, applying the
     // prose HTML-tag cleanup here would erase C++ generics such as `<int>`.
     const isCode = entry.kind === "code";
-    const needle = isCode ? entry.text : normalizeVisibleText(entry.text);
+    if (isCode) {
+      const actual = htmlCodeBlocks[codeIndex++];
+      if (actual && actual.text === entry.text &&
+          (actual.section_index === null || actual.section_index === entry.section_index)) continue;
+      errors.push(`substantive block ${index + 1} (code) missing or reordered in ${formatSection(entry.section_index)}`);
+      continue;
+    }
+    const needle = normalizeVisibleText(entry.text);
     if (!needle) continue;
     const scope = windows?.[entry.section_index];
     const scopeText = scope ? flattened.normalized.slice(scope.start, scope.end) : flattened.normalized;
     if (scopeText.includes(needle)) continue;
-    if (isCode) {
-      errors.push(`substantive block ${index + 1} (code) missing or reordered in ${formatSection(entry.section_index)}`);
-      continue;
-    }
     // Bottom citations legitimately relocate a URL to the document tail, so URLs are
     // document-scoped; prose stays confined to the section it was written in.
     const urls = needle.match(URL_RE) ?? [];
