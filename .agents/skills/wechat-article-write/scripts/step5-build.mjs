@@ -214,7 +214,12 @@ try {
 if (finalizeOnly) finalize();
 
 if (!existsSync(imgsDir)) fail(2, "imgs/ directory missing");
-if (!existsSync(coverPng) && !existsSync(coverJpg)) fail(2, "cover image missing (cover.png/cover.jpg)");
+const rootCovers = [
+  ...(existsSync(coverPng) ? ["cover.png"] : []),
+  ...(existsSync(coverJpg) ? ["cover.jpg"] : []),
+];
+if (rootCovers.length === 0) fail(2, "cover image missing (cover.png/cover.jpg)");
+if (rootCovers.length > 1) fail(2, `multiple root cover images: ${rootCovers.join(", ")}; keep exactly one`);
 validateCoverFormats();
 
 const draft = readFileSync(draftPath, "utf8");

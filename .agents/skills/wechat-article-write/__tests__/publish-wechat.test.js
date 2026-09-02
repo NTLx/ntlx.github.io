@@ -112,4 +112,18 @@ describe("publish-wechat", () => {
     expect(json.sourceUrl).toBe(canonicalUrl);
     expect(json.wechatSourceUrl).toBe(wechatSourceUrl);
   });
+
+  test("fails closed when both root cover extensions exist", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-07-05-wechat-dual-cover";
+    writePost(fx.postsRoot, slug);
+    const dir = join(fx.postsRoot, slug);
+    writeFileSync(join(dir, "cover.jpg"), "another cover");
+
+    const r = runPublish([slug, "--dry-run"], fx);
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("multiple root cover images");
+  });
 });

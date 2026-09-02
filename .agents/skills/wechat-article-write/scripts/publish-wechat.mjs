@@ -148,8 +148,16 @@ const coverJpg    = resolve(base, "cover.jpg");
 
 if (!existsSync(articlePath)) { process.stderr.write(`publish-wechat: ${articlePath} 缺失\n`); process.exit(2); }
 if (!existsSync(htmlPath))    { process.stderr.write(`publish-wechat: ${htmlPath} 缺失（先跑 Step 5 产物构建）\n`); process.exit(2); }
-const cover = existsSync(coverPng) ? coverPng : (existsSync(coverJpg) ? coverJpg : null);
-if (!cover) { process.stderr.write("publish-wechat: cover.png/cover.jpg 都不存在\n"); process.exit(2); }
+const rootCovers = [
+  ...(existsSync(coverPng) ? ["cover.png"] : []),
+  ...(existsSync(coverJpg) ? ["cover.jpg"] : []),
+];
+if (rootCovers.length === 0) { process.stderr.write("publish-wechat: cover.png/cover.jpg 都不存在\n"); process.exit(2); }
+if (rootCovers.length > 1) {
+  process.stderr.write(`publish-wechat: multiple root cover images: ${rootCovers.join(", ")}; keep exactly one\n`);
+  process.exit(2);
+}
+const cover = resolve(base, rootCovers[0]);
 
 // --- HTML integrity pre-check ---
 // Catches corrupted HTML attributes (e.g. curly quotes in src="..." breaking image upload).

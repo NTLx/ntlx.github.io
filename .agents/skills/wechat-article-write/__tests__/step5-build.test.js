@@ -12,6 +12,11 @@ const PNG_BYTES = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
   "base64",
 );
+const JPEG_BYTES = Buffer.from([
+  0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+  0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+  0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+]);
 
 function makeFakeBun(root) {
   const bin = join(root, "bin");
@@ -308,11 +313,7 @@ describe("step5-build phase boundaries", () => {
     cleanup.push(fx.root);
     const slug = "2026-05-18-cover-mismatch";
     const dir = writePost(fx.postsRoot, slug);
-    writeFileSync(join(dir, "cover.png"), Buffer.from([
-      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
-      0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-      0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
-    ]));
+    writeFileSync(join(dir, "cover.png"), JPEG_BYTES);
 
     const result = runStep5(slug, fx.postsRoot, fx.fake, ["--prepare-only"]);
 
@@ -321,6 +322,23 @@ describe("step5-build phase boundaries", () => {
     expect(existsSync(join(dir, "cover.png"))).toBe(true);
     expect(existsSync(join(dir, "cover.jpg"))).toBe(false);
     expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(existsSync(join(dir, "image-map.json"))).toBe(false);
+  });
+
+  test("prepare fails closed when both root cover extensions exist", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-dual-root-cover-step5";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "cover.jpg"), JPEG_BYTES);
+
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--prepare-only"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("multiple root cover images");
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(true);
     expect(existsSync(join(dir, "image-map.json"))).toBe(false);
   });
 });

@@ -262,6 +262,64 @@ ${slots}
     expect(existsSync(join(dir, "imgs", "00-cover.png"))).toBe(false);
   });
 
+  test("pre-humanizer check rejects ambiguous dual root covers", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-dual-root-cover-precheck";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+正文内容。
+`, ["00-infographic-core-summary.png"], { skipReceipt: true });
+    writeFileSync(join(dir, "cover.jpg"), PNG_BYTES);
+
+    const r = spawnSync("bun", ["run", PRE_NORMALIZE_SCRIPT, slug, "--check"], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.postsRoot },
+      encoding: "utf8",
+    });
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("multiple root cover images");
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(true);
+  });
+
+  test("Step 4 rejects ambiguous dual root covers instead of choosing one", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-dual-root-cover-step4";
+    const dir = writePost(fx.postsRoot, slug, `
+<!-- SLOT_IMG_00_INFOGRAPHIC -->
+
+## 正文
+
+正文内容。
+`, ["00-infographic-core-summary.png"], { skipReceipt: true });
+    const receipt = spawnSync("bun", ["run", PRE_NORMALIZE_SCRIPT, slug], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.postsRoot },
+      encoding: "utf8",
+    });
+    expect(receipt.status, receipt.stderr || receipt.stdout).toBe(0);
+    const mark = spawnSync("bun", ["run", MARK_HUMANIZED_SCRIPT, slug], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.postsRoot },
+      encoding: "utf8",
+    });
+    expect(mark.status, mark.stderr || mark.stdout).toBe(0);
+    writeFileSync(join(dir, "cover.jpg"), PNG_BYTES);
+
+    const r = runStep4(slug, fx.postsRoot);
+
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain("multiple root cover images");
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(true);
+  });
+
   test("does not modify draft.md after the humanizer receipt", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);

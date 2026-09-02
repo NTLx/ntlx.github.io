@@ -49,9 +49,23 @@ function nestedCoverNames() {
     .filter((name) => existsSync(resolve(imgsDir, name)));
 }
 
+function rootCoverNames() {
+  return ["cover.png", "cover.jpg"].filter((name) => existsSync(resolve(base, name)));
+}
+
+function assertSingleRootCover() {
+  const roots = rootCoverNames();
+  if (roots.length > 1) {
+    fail(`multiple root cover images: ${roots.join(", ")}; keep exactly one`);
+  }
+  return roots;
+}
+
 function rootCoverExt() {
-  if (existsSync(resolve(base, "cover.jpg"))) return "jpg";
-  if (existsSync(resolve(base, "cover.png"))) return "png";
+  const roots = rootCoverNames();
+  if (roots.length !== 1) return null;
+  if (roots[0] === "cover.jpg") return "jpg";
+  if (roots[0] === "cover.png") return "png";
   return null;
 }
 
@@ -73,11 +87,12 @@ function runFormatNormalization(dryRun) {
 }
 
 function moveNestedCovers() {
+  const existingRootCovers = assertSingleRootCover();
   const nested = nestedCoverNames();
   if (nested.length === 0) return [];
 
   const moved = [];
-  const existingRootCover = rootCoverExt();
+  const existingRootCover = existingRootCovers[0] ?? null;
   if (existingRootCover) {
     const discardDir = resolve(imgsDir, "_discard");
     mkdirSync(discardDir, { recursive: true });
@@ -111,6 +126,7 @@ function moveNestedCovers() {
 }
 
 if (checkOnly) {
+  assertSingleRootCover();
   const nested = nestedCoverNames();
   const normalizeOutput = runFormatNormalization(true);
   const issues = [];
@@ -135,6 +151,7 @@ if (checkOnly) {
 const moved = moveNestedCovers();
 for (const item of moved) process.stdout.write(`pre-humanizer-normalize: moved ${item}\n`);
 runFormatNormalization(false);
+assertSingleRootCover();
 
 const ext = rootCoverExt();
 if (ext) {

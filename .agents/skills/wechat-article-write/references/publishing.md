@@ -52,7 +52,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 
 发布前必须通过：
 
-- `cover.png` 或 `cover.jpg` 存在；
+- root `cover.png` / `cover.jpg` 恰好存在一个，且扩展名与实际 MIME 一致；
 - `article-wechat.html` 存在；
 - frontmatter `title`、`summary`、`sourceUrl` 存在。
 

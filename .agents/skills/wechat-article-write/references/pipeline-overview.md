@@ -107,6 +107,8 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 规范化，必须发生在 humanizer receipt 之前。receipt 产生后至 Step 5 finalize
 完成，`draft.md` 是 immutable；Step 4 若发现 MIME、路径或 `coverImage` 不一致，
 直接失败并要求回到该预处理、重新 humanize，不得自行修正正文。
+post root 的 `cover.png` / `cover.jpg` 必须恰好存在一个；normalize check、Step 4、
+Step 5 和 publish-wechat 都会拒绝双 cover，不会猜选或删除其中一个。
 
 每次 Adaptive Stage 路线尝试完成 Gate 后，按 policy 默认 best-effort 使用
 `scripts/orchestration-trace.mjs` 写入一条 JSONL 记录；它不属于 Stage
@@ -187,7 +189,7 @@ finalize（HTML finalize）会先在本地确认 `draft.md` 与 humanizer receip
 Step 5 状态。parity 只比较 substantive heading 顺序、图片数量/basename 顺序、图片
 所属 section 和 SLOT00 lead 归属，不限制主题 wrapper、CSS 或其它视觉表现。
 `--finalize-only` 只消费三个已准备的本地 artifact 加上 draft freshness gate，不调用
-图床、不读取 GitHub 配置、不访问网络。封面 MIME/扩展名必须在 receipt 前完成规范化；
+图床、不读取 GitHub 配置、不访问网络。封面 MIME/扩展名和唯一 root cover 必须在 receipt 前完成规范化；
 Step 5 发现不一致时 fail closed，不自动改名。不能用 post 内临时渲染脚本替代排版
 适配器。
 

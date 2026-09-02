@@ -87,21 +87,27 @@ if (batchFiles.length > 0) {
 // nested-cover, and coverImage normalization must have happened beforehand.
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
-let coverExt = "png";
-if (!existsSync(coverPng) && existsSync(coverJpg)) coverExt = "jpg";
-else if (existsSync(coverJpg)) {
-  // Both exist — prefer jpg for compatibility with JPEG-producing backends.
-  coverExt = "jpg";
+const rootCovers = [
+  ...(existsSync(coverPng) ? ["cover.png"] : []),
+  ...(existsSync(coverJpg) ? ["cover.jpg"] : []),
+];
+
+if (rootCovers.length > 1) {
+  const msg = `multiple root cover images: ${rootCovers.join(", ")}; keep exactly one`;
+  process.stderr.write(`step4: FAIL - ${msg}\n`);
+  markStepFailed(slug, 4, msg);
+  process.exit(2);
 }
 
 // Fail if no cover image exists at all
-if (!existsSync(coverPng) && !existsSync(coverJpg)) {
+if (rootCovers.length === 0) {
   const msg = "cover image missing: expected post root cover.png/cover.jpg. Run pre-humanizer-normalize.mjs before humanizer-zh for any existing nested cover; the renderer must write the generated cover at the post root.";
   process.stderr.write(`step4: FAIL - ${msg}\n`);
   markStepFailed(slug, 4, msg);
   process.exit(2);
 }
 
+const coverExt = rootCovers[0] === "cover.jpg" ? "jpg" : "png";
 const currentDraft = readFileSync(draftPath, "utf8");
 if (readFmValue(currentDraft, "coverImage") !== `cover.${coverExt}`) {
   const msg = `draft.md coverImage is not normalized to cover.${coverExt}; run pre-humanizer-normalize.mjs, humanizer-zh, mark-humanized, and Step 3 again`;
