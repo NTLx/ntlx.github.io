@@ -8,7 +8,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "1.57.0"
+  version: "1.58.0"
 ---
 
 # 微信公众号文章写作
@@ -127,10 +127,10 @@ Agent 调用 `gzh-design` 生成 `article-wechat.html` 后，运行：
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
-finalize-only 只消费已经准备好的 `article.md`、`article-wechat-source.md` 和
-`article-wechat.html`，运行 gzh validator 与 structural parity；它绝不调用
-`github-image-hosting`，也不需要 GitHub 配置、CLI 或网络。prepare → Agent
-排版 → finalize 的协议可安全重复，重复 finalize 始终是零图床调用。
+finalize-only 先在本地检查 `draft.md` 与 humanizer receipt 一致，再消费 `article.md`、
+`article-wechat-source.md`、`article-wechat.html`，运行 gzh validator 与 structural
+parity；它绝不调用 `github-image-hosting`，也不需要 GitHub 配置、CLI 或网络。协议可
+安全重复，重复 finalize 始终是零图床调用；封面 MIME/扩展名须在 receipt 前由 `pre-humanizer-normalize.mjs` 处理，Step 5 只校验不自动改名。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all

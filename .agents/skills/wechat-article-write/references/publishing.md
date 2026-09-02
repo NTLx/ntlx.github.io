@@ -25,9 +25,9 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug>
 
 - `--dry-run`：只做本地预检，不访问图床，不写 map、文章产物或 state。
 - `--prepare-only`：只完成 `article.md` + `article-wechat-source.md`。
-- `--finalize-only`：只对现有 `article.md`、`article-wechat-source.md` 和
-  `article-wechat.html` 运行 `gzh-design` validator / structural parity / preview
-  wrapper 并落 Step 5 状态；不调用图床。
+- `--finalize-only`：先校验 `draft.md` 的 humanizer receipt/freshness，再对现有
+  `article.md`、`article-wechat-source.md` 和 `article-wechat.html` 运行 `gzh-design`
+  validator / structural parity / preview wrapper 并落 Step 5 状态；不调用图床。
 
 Agent 排版阶段：
 

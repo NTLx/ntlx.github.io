@@ -8,7 +8,10 @@ import { spawnSync } from "node:child_process";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/step5-build.mjs");
 const REPO_ROOT = resolve(import.meta.dir, "../../../..");
-const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const PNG_BYTES = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
 
 function makeFakeBun(root) {
   const bin = join(root, "bin");
@@ -263,5 +266,61 @@ describe("step5-build phase boundaries", () => {
     expect(lastJsonLine(second.stdout).phase).toBe("completed");
     expect(uploaderCalls(fx.fake)).toHaveLength(0);
     expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(5);
+  });
+
+  test("finalize-only enforces the humanizer draft freeze without invoking image hosting", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-finalize-stale-draft";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "article.md"), "---\ntitle: prepared\n---\n\n![image](https://cdn.fake/image.png)\n");
+    writeFileSync(join(dir, "article-wechat-source.md"), [
+      "![](imgs/00-infographic-core-summary.png)",
+      "",
+      "## 正文",
+      "",
+      "正文",
+      "",
+      "![](imgs/01-detail.png)",
+      "",
+    ].join("\n"));
+    writeFileSync(join(dir, "article-wechat.html"), [
+      '<section style="margin:0 auto;max-width:720px;">',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/00-infographic-core-summary.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      '  <h3 style="font-size:20px;color:#222;margin:16px 0;"><span leaf="">正文</span></h3>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><span leaf="">正文</span></p>',
+      '  <p style="margin:0;line-height:1.8;color:#222;"><img src="imgs/01-detail.png" style="max-width:100%;height:auto;display:block;margin:0 auto;"></p>',
+      "</section>",
+      "",
+    ].join("\n"));
+    writeFileSync(join(dir, "draft.md"), `${readFileSync(join(dir, "draft.md"), "utf8")}\n有人改了冻结后的草稿。\n`);
+
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--finalize-only"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("draft.md changed after humanizer-zh");
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(4);
+  });
+
+  test("prepare fails closed on a cover MIME/extension mismatch without renaming or uploading", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-18-cover-mismatch";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "cover.png"), Buffer.from([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46,
+      0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+      0x00, 0x01, 0x00, 0x00, 0xff, 0xd9,
+    ]));
+
+    const result = runStep5(slug, fx.postsRoot, fx.fake, ["--prepare-only"]);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("cover.png has MIME image/jpeg");
+    expect(existsSync(join(dir, "cover.png"))).toBe(true);
+    expect(existsSync(join(dir, "cover.jpg"))).toBe(false);
+    expect(uploaderCalls(fx.fake)).toHaveLength(0);
+    expect(existsSync(join(dir, "image-map.json"))).toBe(false);
   });
 });

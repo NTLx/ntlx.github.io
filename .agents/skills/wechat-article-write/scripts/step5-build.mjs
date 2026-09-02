@@ -6,7 +6,7 @@
  * finalize: 只消费本地准备产物，运行 gzh validator / structural parity。
  */
 
-import { existsSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
@@ -64,6 +64,22 @@ function fail(code, message) {
 
 function imageFiles(dir) {
   return readdirSync(dir).filter(file => /\.(png|jpe?g|webp|gif)$/i.test(file)).sort();
+}
+
+function validateCoverFormat(path, expectedMime) {
+  const fileType = spawnSync("file", ["-b", "--mime-type", path], { encoding: "utf8" });
+  const actualMime = fileType.stdout?.trim();
+  if (fileType.error || fileType.status !== 0 || !actualMime) {
+    fail(2, `unable to detect MIME type for ${path}`);
+  }
+  if (actualMime !== expectedMime) {
+    fail(2, `${path.split("/").at(-1)} has MIME ${actualMime}; run pre-humanizer-normalize.mjs before humanizer-zh`);
+  }
+}
+
+function validateCoverFormats() {
+  if (existsSync(coverPng)) validateCoverFormat(coverPng, "image/png");
+  if (existsSync(coverJpg)) validateCoverFormat(coverJpg, "image/jpeg");
 }
 
 function readStateWithoutMigration() {
@@ -183,10 +199,6 @@ function finalize() {
   process.exit(0);
 }
 
-// finalize-only intentionally exits before reading draft/images or resolving
-// the image-hosting skill. It is a local gate over prepared artifacts.
-if (finalizeOnly) finalize();
-
 if (!existsSync(draftPath)) fail(2, "draft.md missing");
 try {
   assertCurrentDraftHumanized(slug, {
@@ -196,8 +208,14 @@ try {
 } catch (error) {
   fail(2, error.message);
 }
+
+// finalize-only checks the frozen draft locally, then consumes prepared
+// artifacts without resolving or invoking the image-hosting skill.
+if (finalizeOnly) finalize();
+
 if (!existsSync(imgsDir)) fail(2, "imgs/ directory missing");
 if (!existsSync(coverPng) && !existsSync(coverJpg)) fail(2, "cover image missing (cover.png/cover.jpg)");
+validateCoverFormats();
 
 const draft = readFileSync(draftPath, "utf8");
 const imgs = imageFiles(imgsDir);
@@ -246,13 +264,6 @@ if (applyResult.status !== 0) fail(4, "apply-image-map failed");
 if (!existsSync(articlePath)) fail(4, "article.md not created");
 
 // Generate article-wechat-source.md from draft.md (local image paths).
-if (existsSync(coverPng)) {
-  const fileType = spawnSync("file", ["-b", "--mime-type", coverPng], { encoding: "utf8" });
-  if (fileType.stdout?.trim()?.startsWith("image/jpeg")) {
-    renameSync(coverPng, coverJpg);
-    process.stderr.write("step5: renamed cover.png → cover.jpg (was actually JPEG)\n");
-  }
-}
 writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 
 try {
