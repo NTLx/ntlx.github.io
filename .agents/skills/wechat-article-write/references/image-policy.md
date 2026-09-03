@@ -11,9 +11,11 @@
 | generated `SLOT_IMG_01+` | `baoyu-infographic` | 对应 `imgs/NN-<desc>.png` |
 | architecture / flow / sequence / state / data flow / topology | 按需 `baoyu-diagram` | 结构辅助；最终 raster 仍由正文图片 Skill 产出 |
 
-每次委托都把当前 draft 语境、项目视觉偏好、输出路径和
-`baoyu-image-gen --provider codex-cli` backend override 传入。专业 Skill 自己完成分析、
-style/layout/preset、prompt、raster 和报告；父 Skill 不重建 prompt、不集中渲染。
+每次委托都把当前 draft 语境、项目视觉偏好、输出路径、子 Skill 原生的非交互参数和
+`baoyu-image-gen --provider codex-cli` backend override 传入。cover 使用等价于
+`--quick --aspect 2.35:1 --no-title` 的参数，SLOT00 使用 `--yes --batch-size 1`，正文图使用
+`--no-confirm`。专业 Skill 自己完成分析、style/layout/preset、prompt、raster 和报告；父 Skill
+不重建 prompt、不集中渲染。
 
 ## Project preference
 

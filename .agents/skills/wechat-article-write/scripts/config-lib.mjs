@@ -2,7 +2,7 @@
 /**
  * config-lib.mjs — 集中配置解析（精简版）
  *
- * 从项目级 .baoyu-skills 目录下各 EXTEND.md 读取 baoyu 系列技能配置。
+ * 只读取本技能和发布适配所需的项目配置。
  * 原理：确定性脚本只读取它真正需要的项目配置；开放式能力不在这里路由。
  * CLI 参数仍可覆盖第三方工具本身，但本文章管线不使用它来改写图片 provider。
  *
@@ -37,7 +37,7 @@ function parseExtend(filePath) {
     const block = end > 0 ? raw.slice(4, end) : raw.slice(4);
     return parseKeyValue(block);
   }
-  // 无分隔符 → 整体解析（baoyu-cover-image 等无 frontmatter）
+  // 无分隔符 → 整体解析（兼容简单的旧配置）
   return parseKeyValue(raw);
 }
 
@@ -71,27 +71,12 @@ function loadAll() {
   if (_cache) return _cache;
   _cache = {
     wechatArticleWrite: parseExtend(resolve(PROJECT_SKILL_ROOT, "EXTEND.md")),
-    markdownToHtml: parseExtend(resolve(BAOYU_ROOT, "baoyu-markdown-to-html/EXTEND.md")),
     postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
-    coverImage:     parseExtend(resolve(BAOYU_ROOT, "baoyu-cover-image/EXTEND.md")),
-    imagine:        parseExtend(resolve(BAOYU_ROOT, "baoyu-image-gen/EXTEND.md")),
   };
   return _cache;
 }
 
 // --- 公开 getter ---
-
-/** Step 5: baoyu-markdown-to-html 配置 */
-export function getMarkdownToHtmlConfig() {
-  const c = loadAll().markdownToHtml;
-  return {
-    theme:     c.default_theme     ?? "grace",
-    color:     c.default_color     ?? "vermilion",
-    fontSize:  c.default_font_size ?? "16px",
-    cite:      c.default_cite      ?? false,
-    keepTitle: c.default_keep_title ?? false,
-  };
-}
 
 /** 唯一作者事实源：缺失配置直接 fail closed。 */
 export function getWechatAuthorProfile() {
@@ -110,24 +95,6 @@ export function getWechatAuthorProfile() {
   };
 }
 
-/** 唯一项目视觉事实源：缺失字段直接 fail closed。 */
-export function getVisualStyleProfile() {
-  const c = loadAll().wechatArticleWrite;
-  const values = {
-    id: c.visual_style_profile,
-    brightness: c.visual_brightness,
-    saturation: c.visual_saturation,
-    contrast: c.visual_contrast,
-    background: c.visual_background,
-    clarity: c.visual_clarity,
-    mood: c.visual_mood,
-  };
-  if (Object.values(values).some((value) => typeof value !== "string" || value.trim() === "")) {
-    throw new Error("wechat-article-write visual style profile is incomplete; configure all visual_* fields in EXTEND.md");
-  }
-  return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()]));
-}
-
 /** Step 6.2: 发布参数；作者只来自本技能，不读取第三方作者配置。 */
 export function getPostToWechatConfig() {
   const c = loadAll().postToWechat;
@@ -141,26 +108,6 @@ export function getPostToWechatConfig() {
   };
 }
 
-/** Step 4: baoyu-cover-image 模板配置；raster backend 由项目 policy 统一校验。 */
-export function getCoverImageConfig() {
-  const c = loadAll().coverImage;
-  return {
-    preferredBackend: c.preferred_image_backend ?? "baoyu-image-gen",
-    quickMode:        c.quick_mode               ?? true,
-    language:         c.language                 ?? "zh",
-    defaultAspect:    "2.35:1",
-  };
-}
-
-/** Step 4: baoyu-image-gen 配置；defaultProvider 是项目级硬约束。 */
-export function getImagineConfig() {
-  const c = loadAll().imagine;
-  return {
-    defaultProvider:   c.default_provider ?? null,
-    defaultModel:     c.default_model           ?? {},
-  };
-}
-
 /** Skill-level runtime preferences owned by wechat-article-write itself */
 export function getWechatArticleWriteConfig() {
   const c = loadAll().wechatArticleWrite;
@@ -170,18 +117,5 @@ export function getWechatArticleWriteConfig() {
     wechatLayoutDefaultTheme: c.wechat_layout_default_theme ?? "zen-whitespace",
     wechatLayoutSecondaryTheme: c.wechat_layout_secondary_theme ?? "moyu-green",
     wechatLayoutGeneratePreview: c.wechat_layout_generate_preview ?? true,
-  };
-}
-
-// 运行配置汇总（一次性获取所有需要的内容，方便一次性解构）
-export function getAllConfig() {
-  return {
-    author:         getWechatAuthorProfile(),
-    visualProfile:  getVisualStyleProfile(),
-    wechatArticleWrite: getWechatArticleWriteConfig(),
-    markdownToHtml: getMarkdownToHtmlConfig(),
-    postToWechat:   getPostToWechatConfig(),
-    coverImage:     getCoverImageConfig(),
-    imagine:        getImagineConfig(),
   };
 }

@@ -115,11 +115,11 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ### Step 4 — Illustrate
 
-需要图片时先读取 `references/image-policy.md`。按顺序一次处理一张：
+需要图片时读取 `references/image-policy.md`；需要修改长期图片默认偏好时，读取并编辑对应 `.baoyu-skills/<skill>/EXTEND.md`。按顺序一次处理一张：
 
-1. 需要 cover 时委托 `baoyu-cover-image`：输入最终 draft，约束 `2.35:1`、默认无文字、项目视觉偏好、`quick_mode=true`、backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。
-2. 委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：输入全文，数量 1，使用项目视觉偏好，让该 Skill 自己选择 style/layout/palette/preset 并生成 prompt，backend override 同上，输出 `imgs/00-infographic-core-summary.png`。
-3. 每个 generated `SLOT_IMG_01+` 单独委托 `baoyu-infographic`：只传对应正文语境、关系、必要背景、项目视觉偏好、输出路径和 backend override。完成并实际查看一张后再处理下一张。
+1. 需要 cover 时原生委托 `baoyu-cover-image`：传入最终 draft，以及等价于 `--quick --aspect 2.35:1 --no-title` 的子 Skill 参数；项目 backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。
+2. 原生委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：传入全文，以及等价于 `--yes --batch-size 1` 的子 Skill 参数；让它按项目配置自行选择 style/layout/palette/preset、生成 prompt 和 raster，输出 `imgs/00-infographic-core-summary.png`。
+3. 每个 generated `SLOT_IMG_01+` 单独原生委托 `baoyu-infographic`：传入对应正文语境、关系、必要背景、输出路径和 backend override，以及等价于 `--no-confirm` 的参数；由它自行选择 layout/style。完成并实际查看一张后再处理下一张。
 4. 只有确有 architecture、flow、sequence、state、data flow 或 topology 需求时，才按需委托 `baoyu-diagram` 辅助形成结构；最终正文 raster 仍交给 `baoyu-infographic`。
 5. `prefer-reuse` 时先审阅来源材料中的可用原图；把最终事实写入最小 `image-plan.json`，不记录 prompt、producer、contributors 或视觉 receipt。
 
@@ -142,7 +142,7 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-它把图片目录和业务命名意图交给 `github-image-hosting`，生成 `image-map.json`、
+它通过 `github-image-hosting` 的原生上传入口，把图片目录、业务 folder、命名前缀和输出路径交给该 Skill；由它处理配置、远端状态、冲突和重试，生成 `image-map.json`、
 `article.md` 和 `article-wechat-source.md`。随后直接委托 `gzh-design`，输入微信 source
 和本地图片，输出 `article-wechat.html`；让 gzh-design 完整执行主题选择、组件装配、
 validator 和预览流程。最后运行：
@@ -168,13 +168,19 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 
 ## Native delegation
 
-父 Skill 传递目标、输入、strategy、项目偏好、输出路径、backend override 和验收边界。
-被委托 Skill 直接读取自己的 `SKILL.md`，完整执行自己的流程并写出最终产物；父 Skill
-只审阅结果并运行本仓库 Gate。研究和理解能力按实际缺口自然发现，父 Skill 不维护 catalog。
+父 Skill 传递目标、输入、strategy、项目偏好、输出路径、backend override、子 Skill 原生的
+非交互参数和验收边界。被委托 Skill 直接读取自己的 `SKILL.md`，完整执行自己的流程并写出
+最终产物；父 Skill 只审阅结果并运行本仓库 Gate。研究和理解能力按实际缺口自然发现，父 Skill
+不维护 catalog。
 
-固定业务映射：`humanizer-zh` → 文本人性化；`baoyu-cover-image` → cover；
-`baoyu-xhs-images` → SLOT00；`baoyu-infographic` → generated body visual；
-`gzh-design` → 微信 HTML；`github-image-hosting` → 图片托管。
+| 任务 | 原生 Skill | 父 Skill 传递的最小控制 |
+|---|---|---|
+| 文本人性化 | `humanizer-zh` | draft capsule；保持语义、frontmatter、H2 和 SLOT topology |
+| 微信封面 | `baoyu-cover-image` | `--quick`、`--aspect 2.35:1`、`--no-title`、Codex backend override |
+| 头部摘要卡 SLOT00 | `baoyu-xhs-images` | `--yes`、`--batch-size 1`、全文、目标路径、Codex backend override |
+| 正文生成图 | `baoyu-infographic` | `--no-confirm`、当前正文语境、目标路径、Codex backend override |
+| 微信 HTML | `gzh-design` | 微信 source、本地图片、目标路径、最终结构边界 |
+| 图片托管/CDN | `github-image-hosting` | 图片目录、业务 folder、命名前缀、`image-map.json` 路径 |
 
 ## Recovery
 

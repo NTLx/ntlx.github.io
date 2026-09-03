@@ -3,6 +3,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse as parseYaml } from "yaml";
 
 const skillDir = resolve(import.meta.dir, "..");
 const repoRoot = resolve(skillDir, "../../..");
@@ -13,6 +14,25 @@ const warnings = [];
 
 function file(rel) { return resolve(skillDir, rel); }
 function requireFile(rel) { if (!existsSync(file(rel))) errors.push(`missing: ${rel}`); }
+function readProjectExtend(rel) {
+  const path = resolve(repoRoot, rel);
+  if (!existsSync(path)) {
+    errors.push(`missing project config: ${rel}`);
+    return null;
+  }
+  const raw = readFileSync(path, "utf8");
+  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\s*$/u);
+  if (!match) {
+    errors.push(`project config must use YAML frontmatter: ${rel}`);
+    return null;
+  }
+  try {
+    return parseYaml(match[1]);
+  } catch (error) {
+    errors.push(`project config is invalid YAML: ${rel} (${error.message})`);
+    return null;
+  }
+}
 function parseFrontmatter(text) {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/u);
   const result = {};
@@ -42,6 +62,23 @@ for (const name of [
   "baoyu-diagram", "baoyu-image-gen", "github-image-hosting", "gzh-design",
 ]) {
   if (!existsSync(resolve(skillsRoot, name, "SKILL.md"))) errors.push(`required Skill missing: ${name}`);
+}
+
+const coverConfig = readProjectExtend(".baoyu-skills/baoyu-cover-image/EXTEND.md");
+const xhsConfig = readProjectExtend(".baoyu-skills/baoyu-xhs-images/EXTEND.md");
+const infographicConfig = readProjectExtend(".baoyu-skills/baoyu-infographic/EXTEND.md");
+const imageGenConfig = readProjectExtend(".baoyu-skills/baoyu-image-gen/EXTEND.md");
+if (coverConfig && (coverConfig.version !== 3 || coverConfig.default_aspect !== "2.35:1" || coverConfig.quick_mode !== true || coverConfig.preferred_image_backend !== "baoyu-image-gen")) {
+  errors.push("baoyu-cover-image project config must use v3, 2.35:1, quick mode, and baoyu-image-gen");
+}
+if (xhsConfig && (xhsConfig.version !== 1 || xhsConfig.language !== "zh" || xhsConfig.preferred_image_backend !== "baoyu-image-gen" || xhsConfig.generation_batch_size !== 1)) {
+  errors.push("baoyu-xhs-images project config must use v1, zh, batch size 1, and baoyu-image-gen");
+}
+if (infographicConfig && (infographicConfig.version !== 1 || infographicConfig.language !== "zh" || infographicConfig.preferred_image_backend !== "baoyu-image-gen")) {
+  errors.push("baoyu-infographic project config must use v1, zh, and baoyu-image-gen");
+}
+if (imageGenConfig && (imageGenConfig.version !== 1 || imageGenConfig.default_provider !== "codex-cli")) {
+  errors.push("baoyu-image-gen project config must use v1 and default_provider codex-cli");
 }
 
 for (const match of skillText.matchAll(/`(references\/[^`\s)]+)`/gu)) if (!match[1].includes("*")) requireFile(match[1]);
@@ -75,7 +112,7 @@ for (const rel of activeFiles) {
 
 const mapping = [
   ["cover", "baoyu-cover-image"], ["SLOT_IMG_00", "baoyu-xhs-images"],
-  ["generated body visual", "baoyu-infographic"], ["humanizer-zh", "humanizer-zh"],
+  ["正文生成图", "baoyu-infographic"], ["humanizer-zh", "humanizer-zh"],
   ["gzh-design", "gzh-design"],
 ];
 for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText.includes(right)) errors.push(`native delegation mapping missing: ${left} -> ${right}`);

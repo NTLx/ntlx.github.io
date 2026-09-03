@@ -8,8 +8,9 @@
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-脚本把 `imgs/`、业务 folder `wechat-articles` 和稳定命名前缀交给
-`github-image-hosting`；不复制其 repo 配置、远端索引、冲突处理、重试或 CDN 构造。
+脚本通过 `github-image-hosting` 的原生上传入口把 `imgs/`、业务 folder `wechat-articles`、稳定
+命名前缀和 `image-map.json` 输出路径交给它；不复制其 repo 配置、远端索引、冲突处理、重试或
+CDN 构造。图床 Skill 不支持项目级 `EXTEND.md`，配置以其 `.github-image-hosting.env` 契约为准。
 然后委托 `gzh-design` 生成 `article-wechat.html`，再运行 `--finalize-only`。
 
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、
