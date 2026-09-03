@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # 微信公众号文章写作
@@ -170,18 +170,23 @@ validator 和预览流程。最后运行：
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-完成条件：`article.md`、`article-wechat-source.md`、`article-wechat.html` 均存在；substantive H2 顺序、paragraph/list/code semantics、图片 basename/order/section placement 和 lead visual 一致；gzh validator 与 structural parity Gate 均通过。
+完成条件：`article.md`、`article-wechat-source.md`、`article-wechat.html` 均存在；substantive H2 顺序、paragraph/list/code semantics、图片 basename/order/section placement 和 lead visual 一致；gzh-design 已完成其 validator/preview，父层 structural/integrity Gate 通过。
 
 ### Step 6 — Publish
 
-读取 `references/publishing.md`。先运行博客发布，确认博客状态，再运行微信草稿发布：
+读取 `references/publishing.md`。先完成博客轨，再构建微信发布 capsule，由 Agent 原生委托
+`baoyu-post-to-wechat`，成功后才 finalize 微信 state：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
-bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --prepare-only
+# Agent native delegates baoyu-post-to-wechat
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --finalize-only [--media-id <id>]
 ```
 
-微信输入固定为 `article-wechat.html`，`sourceUrl` 由现有逻辑添加 UTM；创建草稿不等于群发。博客提交、push、站点 deploy 状态保持可区分。
+Agent 只传递最终 HTML、cover、title、summary、canonical author 和带 UTM 的 source URL；child
+Skill 自己读取其 `SKILL.md` 与 project `EXTEND.md`，选择并执行发布方法。创建草稿不等于群发。
+博客提交、push、站点 deploy 状态保持可区分。
 
 完成条件：博客发布状态已记录且先于微信草稿完成；微信草稿状态已记录；失败任一侧都能通过 state v2 独立恢复。
 

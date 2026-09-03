@@ -54,7 +54,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.1.0") errors.push("SKILL.md must declare metadata.version=2.1.0");
+if (fm["metadata.version"] !== "2.2.0") errors.push("SKILL.md must declare metadata.version=2.2.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const name of [
@@ -68,6 +68,9 @@ const coverConfig = readProjectExtend(".baoyu-skills/baoyu-cover-image/EXTEND.md
 const xhsConfig = readProjectExtend(".baoyu-skills/baoyu-xhs-images/EXTEND.md");
 const infographicConfig = readProjectExtend(".baoyu-skills/baoyu-infographic/EXTEND.md");
 const imageGenConfig = readProjectExtend(".baoyu-skills/baoyu-image-gen/EXTEND.md");
+const parentExtendPath = file("EXTEND.md");
+const postExtendPath = resolve(repoRoot, ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
+if (!existsSync(postExtendPath)) errors.push("missing project config: .baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
 if (coverConfig && (coverConfig.version !== 3 || coverConfig.default_aspect !== "2.35:1" || coverConfig.quick_mode !== true || coverConfig.preferred_image_backend !== "baoyu-image-gen")) {
   errors.push("baoyu-cover-image project config must use v3, 2.35:1, quick mode, and baoyu-image-gen");
 }
@@ -79,6 +82,18 @@ if (infographicConfig && (infographicConfig.version !== 1 || infographicConfig.l
 }
 if (imageGenConfig && (imageGenConfig.version !== 1 || imageGenConfig.default_provider !== "codex-cli")) {
   errors.push("baoyu-image-gen project config must use v1 and default_provider codex-cli");
+}
+if (existsSync(parentExtendPath)) {
+  const parentExtend = readFileSync(parentExtendPath, "utf8");
+  for (const key of ["default_publish_method", "wechat_layout_generate_preview"]) {
+    if (new RegExp(`^${key}:`, "mu").test(parentExtend)) errors.push(`parent EXTEND must not own ${key}`);
+  }
+  if (/^visual_[^:]+:/mu.test(parentExtend)) errors.push("parent EXTEND must not own visual_* fields");
+}
+if (existsSync(postExtendPath)) {
+  const postExtend = readFileSync(postExtendPath, "utf8");
+  if (!/^default_publish_method:\s*api\s*$/mu.test(postExtend)) errors.push("baoyu-post-to-wechat EXTEND must set default_publish_method=api");
+  if (!/^default_author:\s*NTLx\s*$/mu.test(postExtend)) errors.push("baoyu-post-to-wechat EXTEND must set default_author=NTLx");
 }
 
 for (const match of skillText.matchAll(/`(references\/[^`\s)]+)`/gu)) if (!match[1].includes("*")) requireFile(match[1]);
@@ -113,9 +128,25 @@ for (const rel of activeFiles) {
 const mapping = [
   ["cover", "baoyu-cover-image"], ["SLOT_IMG_00", "baoyu-xhs-images"],
   ["正文生成图", "baoyu-infographic"], ["humanizer-zh", "humanizer-zh"],
-  ["gzh-design", "gzh-design"],
+  ["gzh-design", "gzh-design"], ["github-image-hosting", "github-image-hosting"],
+  ["微信草稿", "baoyu-post-to-wechat"],
 ];
 for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText.includes(right)) errors.push(`native delegation mapping missing: ${left} -> ${right}`);
+
+const productionFiles = [
+  "scripts/publish-wechat.mjs", "scripts/step5-build.mjs", "scripts/step5-lib.mjs",
+  "scripts/config-lib.mjs", "scripts/check-deps.mjs", "scripts/pipeline.mjs",
+];
+const forbiddenCoupling = [
+  "wechat-api.ts", "BAOYU_POST_TO_WECHAT_BIN", "resolveWechatApiScript", "ensureDepsInstalled",
+  "github-image-hosting/scripts/upload", "gzh-design/scripts/validate_gzh_html.py",
+  "gzh-design/scripts/wrap_preview.py", "render-images-serial", "orchestration-trace",
+  "skill-catalog", "image-review receipt",
+];
+for (const rel of productionFiles) {
+  const text = readFileSync(file(rel), "utf8");
+  for (const token of forbiddenCoupling) if (text.includes(token)) errors.push(`${rel} contains forbidden coupling: ${token}`);
+}
 
 const result = { ok: errors.length === 0, errors, warnings };
 if (json) process.stdout.write(JSON.stringify(result, null, 2) + "\n");

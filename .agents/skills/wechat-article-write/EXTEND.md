@@ -10,11 +10,10 @@ source_image_policy: prefer-reuse
 
 quick_mode: true
 
-default_publish_method: api
-
 wechat_layout_default_theme: zen-whitespace
 wechat_layout_secondary_theme: moyu-green
-wechat_layout_generate_preview: true
 ```
 
-作者、原图策略、quick mode、发布方式和微信主题偏好由本技能读取；图片视觉偏好、style/layout、主题组件和 backend 行为由对应第三方 Skill 读取自己的配置并执行。
+作者、原图策略、quick mode 和微信主题偏好属于本工作流的项目偏好；发布方式与微信发布选项
+由 `baoyu-post-to-wechat` 读取自己的配置，图片视觉偏好、style/layout、主题组件和 backend
+行为也由对应第三方 Skill 读取自己的配置并执行。

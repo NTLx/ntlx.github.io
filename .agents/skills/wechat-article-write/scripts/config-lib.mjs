@@ -16,8 +16,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { repoRoot } from "./path-resolver.mjs";
 
-const BAOYU_ROOT = resolve(repoRoot(), ".baoyu-skills");
-
 // Tests and direct module consumers may run with the skill test directory as
 // their CWD. The project-owned configuration must still resolve to this
 // skill unless an isolated repository is explicitly supplied.
@@ -71,7 +69,6 @@ function loadAll() {
   if (_cache) return _cache;
   _cache = {
     wechatArticleWrite: parseExtend(resolve(PROJECT_SKILL_ROOT, "EXTEND.md")),
-    postToWechat:   parseExtend(resolve(BAOYU_ROOT, "baoyu-post-to-wechat/EXTEND.md")),
   };
   return _cache;
 }
@@ -92,30 +89,5 @@ export function getWechatAuthorProfile() {
     name: cleanName,
     bio: cleanBio,
     signature: `我是 ${cleanName}，${cleanBio}。`,
-  };
-}
-
-/** Step 6.2: 发布参数；作者只来自本技能，不读取第三方作者配置。 */
-export function getPostToWechatConfig() {
-  const c = loadAll().postToWechat;
-  const author = getWechatAuthorProfile();
-  return {
-    author:        author.name,
-    theme:         c.default_theme          ?? "default",
-    color:         c.default_color          ?? "blue",
-    openComment:   c.need_open_comment      ?? 1,
-    fansComment:   c.only_fans_can_comment  ?? 1,
-  };
-}
-
-/** Skill-level runtime preferences owned by wechat-article-write itself */
-export function getWechatArticleWriteConfig() {
-  const c = loadAll().wechatArticleWrite;
-  return {
-    quickMode: c.quick_mode ?? true,
-    publishMethod: c.default_publish_method ?? "api",
-    wechatLayoutDefaultTheme: c.wechat_layout_default_theme ?? "zen-whitespace",
-    wechatLayoutSecondaryTheme: c.wechat_layout_secondary_theme ?? "moyu-green",
-    wechatLayoutGeneratePreview: c.wechat_layout_generate_preview ?? true,
   };
 }

@@ -99,31 +99,6 @@ export function normalizeLinksForWechat(markdown) {
   );
 }
 
-function stripTags(html) {
-  return String(html ?? "").replace(/<[^>]+>/g, "").trim();
-}
-
-function decodeBasicEntities(text) {
-  return String(text ?? "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
-
-export function stripWechatAnchors(html) {
-  return String(html ?? "").replace(
-    /<a\b[^>]*\bhref=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi,
-    (_full, _quote, href, inner) => {
-      const url = decodeBasicEntities(href);
-      const label = decodeBasicEntities(stripTags(inner));
-      if (!label || label === url || label.includes(url)) return url;
-      return `${label}（链接：${url}）`;
-    },
-  );
-}
-
 function runCli(argv) {
   const input = argv[0];
   let output = null;

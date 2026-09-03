@@ -14,6 +14,7 @@ describe("thin orchestrator architecture", () => {
       ["humanize", "humanizer-zh"],
       ["gzh-design", "gzh-design"],
       ["图片托管/CDN", "github-image-hosting"],
+      ["微信草稿", "baoyu-post-to-wechat"],
     ]) {
       expect(skill).toContain(asset);
       expect(skill).toContain(delegatedSkill);
@@ -24,6 +25,17 @@ describe("thin orchestrator architecture", () => {
     expect(skill).toContain("--yes");
     expect(skill).toContain("--batch-size 1");
     expect(skill).toContain("--no-confirm");
+  });
+
+  test("keeps child-owned validators, uploaders, and publishers out of parent production code", () => {
+    const scripts = ["publish-wechat.mjs", "step5-build.mjs", "step5-lib.mjs", "config-lib.mjs", "check-deps.mjs", "pipeline.mjs"];
+    for (const name of scripts) {
+      const source = readFileSync(resolve(skillDir, "scripts", name), "utf8");
+      for (const token of [
+        "wechat-api.ts", "BAOYU_POST_TO_WECHAT_BIN", "resolveWechatApiScript", "ensureDepsInstalled",
+        "github-image-hosting/scripts/upload", "gzh-design/scripts/validate_gzh_html.py", "gzh-design/scripts/wrap_preview.py",
+      ]) expect(source).not.toContain(token);
+    }
   });
 
   test("does not advertise a retired orchestration layer", () => {

@@ -27,28 +27,30 @@ const requireCodexImageConfig = () => {
   if (provider !== "codex-cli") errors.push("baoyu-image-gen default_provider must be codex-cli");
 };
 const warnPath = (rel) => { if (!existsSync(resolve(root, rel))) warnings.push(`missing optional config: ${rel}`); };
-const skills = [
-  "humanizer-zh", "baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic",
-  "baoyu-diagram", "baoyu-image-gen", "github-image-hosting", "gzh-design",
-];
+const stageSkills = {
+  writing: ["humanizer-zh"],
+  images: ["baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic", "baoyu-image-gen"],
+  build: ["github-image-hosting", "gzh-design"],
+  publish: ["baoyu-post-to-wechat"],
+};
 
 if (stage === "all" || stage === "architecture") {
   const result = spawnSync(process.execPath, [resolve(root, ".agents/skills/wechat-article-write/scripts/validate-architecture.mjs"), "--json"], { encoding: "utf8" });
   try { const payload = JSON.parse(result.stdout ?? "{}"); errors.push(...(payload.errors ?? [])); warnings.push(...(payload.warnings ?? [])); }
   catch { errors.push("validate-architecture.mjs returned invalid JSON"); }
 }
-if (stage === "all" || stage === "writing" || stage === "images" || stage === "build") {
-  for (const name of skills) requirePath(`.agents/skills/${name}/SKILL.md`);
+for (const [stageName, names] of Object.entries(stageSkills)) {
+  if (stage === "all" || stage === stageName) {
+    for (const name of names) requirePath(`.agents/skills/${name}/SKILL.md`);
+  }
 }
 if (stage === "all" || stage === "images") {
   requireCodexImageConfig();
+  warnPath(".agents/skills/baoyu-diagram/SKILL.md");
 }
-if (stage === "all" || stage === "build") {
-  requirePath(".agents/skills/gzh-design/scripts/validate_gzh_html.py");
-  requirePath(".agents/skills/gzh-design/scripts/wrap_preview.py");
+if (stage === "all" || stage === "publish") {
+  requirePath(".baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
 }
-if (stage === "all" || stage === "publish") warnPath(".baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
-if (stage === "all" || stage === "publish") requirePath(".agents/skills/baoyu-post-to-wechat/SKILL.md");
 if (stage === "all") warnPath(".baoyu-skills/.env");
 
 const result = { ok: errors.length === 0, stage, errors, warnings };

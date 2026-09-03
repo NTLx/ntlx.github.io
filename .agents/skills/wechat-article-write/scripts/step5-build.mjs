@@ -3,14 +3,13 @@
  * Step 5: 双轨产物构建。
  *
  * prepare: 校验 Agent 已生成的 image-map.json → 双轨中间产物。
- * finalize: 只消费本地准备产物，运行 gzh validator / structural parity。
+ * finalize: 只读取 gzh-design 已生成的 HTML，运行项目级 structural/integrity Gate。
  */
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { getWechatArticleWriteConfig } from "./config-lib.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
@@ -18,7 +17,7 @@ import { assertMarkdownParity } from "./content-parity-lib.mjs";
 import { assertFinalizeInputsFresh, sha256File, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
-import { applyImageMapToMarkdown } from "./apply-image-map.mjs";
+import { applyImageMapToMarkdown } from "./step5-lib.mjs";
 import { replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -176,13 +175,10 @@ function finalize() {
     fail(4, error.message);
   }
 
-  let previewPath = null;
   try {
-    previewPath = finalizeStep5Artifacts({
-      slug,
+    finalizeStep5Artifacts({
       wechatSourcePath,
       wechatHtmlPath,
-      generatePreview: getWechatArticleWriteConfig().wechatLayoutGeneratePreview,
       markDone: () => {
         writeFinalizedArtifactManifest(base);
         markStepDone(slug, 5, {
@@ -203,7 +199,6 @@ function finalize() {
     article_md: "article.md",
     wechat_source: "article-wechat-source.md",
     article_wechat_html: "article-wechat.html",
-    preview: previewPath ? previewPath.split("/").at(-1) : null,
   }) + "\n");
   process.exit(0);
 }

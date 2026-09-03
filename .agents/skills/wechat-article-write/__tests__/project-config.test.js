@@ -53,6 +53,16 @@ describe("project-level image Skill preferences", () => {
   test("keeps visual preferences with the visual Skills", () => {
     const parent = readFileSync(resolve(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), "utf8");
     expect(parent).not.toMatch(/^visual_/mu);
+    expect(parent).not.toMatch(/^default_publish_method:/mu);
+    expect(parent).not.toMatch(/^wechat_layout_generate_preview:/mu);
     expect(parent).toContain("source_image_policy: prefer-reuse");
+  });
+
+  test("keeps WeChat publishing preferences with the publishing Skill", () => {
+    const path = resolve(repoRoot, ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
+    expect(existsSync(path)).toBe(true);
+    const child = readFileSync(path, "utf8");
+    expect(child).toMatch(/^default_publish_method:\s*api\s*$/mu);
+    expect(child).toMatch(/^default_author:\s*NTLx\s*$/mu);
   });
 });

@@ -2,7 +2,7 @@
  * 共享验证常量、字数统计、SLOT_IMG 占位符统一模式
  *
  * 消除 step2-write / step3-polish / step4-images / step5-build /
- * apply-image-map 中对分类、slug、字数、SLOT_IMG 正则的重复定义。
+ * Step 5 image-map application and validation share these canonical SLOT rules.
  *
  * SLOT_IMG 占位符格式：<!-- SLOT_IMG_NN_DESC -->
  *   NN   = 两位数字（00-99）

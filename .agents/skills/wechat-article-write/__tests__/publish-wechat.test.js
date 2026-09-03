@@ -1,11 +1,7 @@
-#!/usr/bin/env bun
-/**
- * publish-wechat.mjs 回归测试
- *
- * 覆盖微信“阅读原文”source-url 的 UTM 归因参数。
- */
+/** Regression tests for the deterministic Step 6.2 boundary. */
 
 import { describe, test, expect, afterEach } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -17,70 +13,49 @@ const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
 
 function makeFixture() {
   const root = join(tmpdir(), `publish-wechat-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  const postsRoot = join(root, "posts");
   const repoRoot = join(root, "repo");
-  const fakeWechatApi = join(repoRoot, "fake-wechat-api.ts");
-
-  seedPublishDeps(repoRoot);
-  writeFileSync(fakeWechatApi, "#!/usr/bin/env bun\nprocess.exit(0);\n");
-
-  return { root, postsRoot, repoRoot, fakeWechatApi };
-}
-
-function seedPublishDeps(repoRoot) {
-  for (const rel of [
-    ".baoyu-skills/baoyu-post-to-wechat",
-    ".agents/skills/baoyu-post-to-wechat",
-  ]) {
-    mkdirSync(join(repoRoot, rel), { recursive: true });
-  }
-
-  writeFileSync(join(repoRoot, ".baoyu-skills/.env"), "DUMMY=1\n");
-  for (const rel of [
-    ".baoyu-skills/baoyu-post-to-wechat/EXTEND.md",
-    ".agents/skills/baoyu-post-to-wechat/SKILL.md",
-  ]) {
-    writeFileSync(join(repoRoot, rel), "---\nname: fake\n---\n");
-  }
   mkdirSync(join(repoRoot, ".agents/skills/wechat-article-write"), { recursive: true });
-  writeFileSync(join(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), [
-    "default_author: NTLx",
-    "default_author_bio: 热衷于分享 AI 观察与干货",
-  ].join("\n") + "\n");
+  writeFileSync(join(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), "default_author: NTLx\ndefault_author_bio: 热衷于分享 AI 观察与干货\n");
+  return { root, postsRoot: join(root, "posts"), repoRoot };
 }
 
 function writePost(postsRoot, slug, {
   sourceUrl = "https://ntlx.github.io/articles/wechat-utm-test",
-  html = "<section>微信正文<p>我是 NTLx，热衷于分享 AI 观察与干货。</p></section>\n",
+  html = "<section><h2>正文</h2><p>正文内容。</p><p>我是 NTLx，热衷于分享 AI 观察与干货。</p></section>\n",
 } = {}) {
   const dir = join(postsRoot, slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "cover.png"), "");
+  writeFileSync(join(dir, "cover.png"), "cover");
   writeFileSync(join(dir, "article-wechat.html"), html);
-  writeFileSync(join(dir, "article.md"), `---
+  const article = `---
 title: 测试微信发布
 summary: 用于测试微信发布摘要。
+author: NTLx
 sourceUrl: ${sourceUrl}
 ---
 
 正文。
-`);
+`;
+  writeFileSync(join(dir, "article.md"), article);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n正文。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
   writeFileSync(join(dir, "article-wechat-source.md"), "正文。\n");
+  writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
+    slug,
+    last_complete_step: 6,
+    step3_draft_sha256: createHash("sha256").update(readFileSync(join(dir, "draft.md"))).digest("hex"),
+    publish: { blog: "done", wechat: "pending" },
+    failed_step: null,
+  }) + "\n");
   writePreparedArtifactManifest(dir);
   writeFinalizedArtifactManifest(dir);
+  return dir;
 }
 
 function runPublish(args, fixture) {
   return spawnSync("bun", ["run", SCRIPT, ...args], {
     cwd: PROJECT_ROOT,
-    env: {
-      ...process.env,
-      PIPELINE_POSTS_ROOT: fixture.postsRoot,
-      PIPELINE_REPO_ROOT: fixture.repoRoot,
-      BAOYU_POST_TO_WECHAT_BIN: fixture.fakeWechatApi,
-    },
+    env: { ...process.env, PIPELINE_POSTS_ROOT: fixture.postsRoot, PIPELINE_REPO_ROOT: fixture.repoRoot },
     encoding: "utf8",
   });
 }
@@ -89,69 +64,73 @@ describe("publish-wechat", () => {
   const cleanup = [];
 
   afterEach(() => {
-    while (cleanup.length > 0) {
-      const dir = cleanup.pop();
-      try { rmSync(dir, { recursive: true, force: true }); } catch {}
+    while (cleanup.length > 0) rmSync(cleanup.pop(), { recursive: true, force: true });
+  });
+
+  test("prepare emits the UTM capsule without changing publish state", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-wechat-prepare";
+    const dir = writePost(fx.postsRoot, slug);
+
+    const result = runPublish([slug, "--prepare-only"], fx);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    const capsule = JSON.parse(result.stdout.trim().split("\n").at(-1));
+    expect(capsule.input).toBe(`posts/${slug}/article-wechat.html`);
+    expect(capsule.cover).toBe(`posts/${slug}/cover.png`);
+    expect(capsule.author).toBe("NTLx");
+    expect(capsule.source_url).toBe("https://ntlx.github.io/articles/wechat-utm-test?utm_source=wechat&utm_medium=social&utm_campaign=article_push");
+    expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).publish.wechat).toBe("pending");
+  });
+
+  test("finalize records success and optional media_id without invoking a child script", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-wechat-finalize";
+    const dir = writePost(fx.postsRoot, slug);
+
+    const result = runPublish([slug, "--finalize-only", "--media-id", "media-123"], fx);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    expect(state.publish.wechat).toBe("done");
+    expect(state.sourceUrl).toBe("https://ntlx.github.io/articles/wechat-utm-test");
+    expect(state.wechatSourceUrl).toBe("https://ntlx.github.io/articles/wechat-utm-test?utm_source=wechat&utm_medium=social&utm_campaign=article_push");
+    expect(state.publish_result.wechat).toEqual({ draft_created: true, media_id: "media-123" });
+  });
+
+  test("keeps root cover uniqueness and author placeholders as hard gates", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-wechat-integrity";
+    const dir = writePost(fx.postsRoot, slug, { html: "<p>我是 {{作者名}}，{{一句话简介}}。</p>\n" });
+    writeFileSync(join(dir, "cover.jpg"), "another cover");
+
+    const result = runPublish([slug, "--prepare-only"], fx);
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("multiple root cover images");
+  });
+
+  test("rejects curly quote attributes and img tags without ASCII src", () => {
+    for (const html of [
+      '<p>我是 NTLx，热衷于分享 AI 观察与干货。</p><img src=“https://cdn.example.test/a.png”>',
+      '<p>我是 NTLx，热衷于分享 AI 观察与干货。</p><img alt="missing">',
+    ]) {
+      const fx = makeFixture();
+      cleanup.push(fx.root);
+      const slug = `2026-09-03-wechat-html-${cleanup.length}`;
+      writePost(fx.postsRoot, slug, { html });
+      const result = runPublish([slug, "--prepare-only"], fx);
+      expect(result.status).toBe(5);
     }
   });
 
-  test("passes a WeChat-attributed source URL in dry-run", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-07-05-wechat-utm";
-    writePost(fx.postsRoot, slug);
-
-    const r = runPublish([slug, "--dry-run"], fx);
-
-    expect(r.status, r.stderr || r.stdout).toBe(0);
-    expect(r.stdout).toContain("--source-url https://ntlx.github.io/articles/wechat-utm-test?utm_source=wechat&utm_medium=social&utm_campaign=article_push");
-  });
-
-  test("records canonical and WeChat-attributed source URLs after publish", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-07-05-wechat-utm-query";
-    const canonicalUrl = "https://ntlx.github.io/articles/wechat-utm-test?ref=existing&utm_source=old#read";
-    const wechatSourceUrl = "https://ntlx.github.io/articles/wechat-utm-test?ref=existing&utm_source=wechat&utm_medium=social&utm_campaign=article_push#read";
-    writePost(fx.postsRoot, slug, { sourceUrl: canonicalUrl });
-
-    const r = runPublish([slug], fx);
-
-    expect(r.status, r.stderr || r.stdout).toBe(0);
-    const state = JSON.parse(readFileSync(join(fx.postsRoot, slug, ".pipeline-state.json"), "utf8"));
-    expect(state.sourceUrl).toBe(canonicalUrl);
-    expect(state.wechatSourceUrl).toBe(wechatSourceUrl);
-
-    const json = JSON.parse(r.stdout.trim().split("\n").at(-1));
-    expect(json.sourceUrl).toBe(canonicalUrl);
-    expect(json.wechatSourceUrl).toBe(wechatSourceUrl);
-  });
-
-  test("fails closed when both root cover extensions exist", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-07-05-wechat-dual-cover";
-    writePost(fx.postsRoot, slug);
-    const dir = join(fx.postsRoot, slug);
-    writeFileSync(join(dir, "cover.jpg"), "another cover");
-
-    const r = runPublish([slug, "--dry-run"], fx);
-
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain("multiple root cover images");
-  });
-
-  test("fails closed when the author signature placeholder remains", () => {
-    const fx = makeFixture();
-    cleanup.push(fx.root);
-    const slug = "2026-07-05-wechat-author-placeholder";
-    writePost(fx.postsRoot, slug, {
-      html: "<section>我是 {{作者名}}，{{一句话简介}}。</section>\n",
-    });
-
-    const r = runPublish([slug, "--dry-run"], fx);
-
-    expect(r.status).toBe(5);
-    expect(r.stderr).toContain("unresolved author placeholder");
+  test("production script contains no WeChat child implementation bridge", () => {
+    const source = readFileSync(SCRIPT, "utf8");
+    for (const token of ["wechat-api.ts", "BAOYU_POST_TO_WECHAT_BIN", "resolveWechatApiScript", "ensureDepsInstalled", "spawnSync"]) {
+      expect(source).not.toContain(token);
+    }
   });
 });

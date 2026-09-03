@@ -68,6 +68,17 @@ export function loadState(slug) {
   }
 }
 
+/** Read existing state without performing the v1→v2 migration write. */
+function readState(slug) {
+  const p = statePath(slug);
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /** 写状态文件（自动创建目录） */
 export function saveState(slug, state) {
   const p = statePath(slug);
@@ -162,7 +173,7 @@ export function markWechatFailed(slug, error) {
 
 /** 获取下一个应执行的步骤编号 */
 export function nextStep(slug) {
-  const state = loadState(slug);
+  const state = readState(slug);
   if (!state) return 1;
 
   // 有失败步骤 → 从失败步骤恢复
@@ -192,7 +203,7 @@ export function isComplete(slug) {
 
 /** 获取发布子状态 */
 export function getPublishState(slug) {
-  const state = loadState(slug);
+  const state = readState(slug);
   if (!state) return { ...DEFAULT_PUBLISH };
   return state.publish ?? { ...DEFAULT_PUBLISH };
 }

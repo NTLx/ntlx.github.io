@@ -14,5 +14,7 @@ HTML 不使用普通 `<a href>`。作者事实从本技能 `EXTEND.md` 读取：
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-finalize 先运行 gzh validator，再运行 structural parity；两者都通过才标记 Step 5 完成。
+gzh-design 委托必须先完成其原生 validator 和 preview；随后 finalize 只运行本仓库的
+structural/integrity Gate，并且只读 `article-wechat.html`。任何失败都回到 gzh-design
+重新生成，不在父层修补 child 输出。
 不要用 post-local renderer 替代 gzh-design，也不要把微信 source 直接发布。

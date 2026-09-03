@@ -356,11 +356,13 @@ git log origin/main..HEAD   # 应为空
 \`\`\`bash
 SLUG="${dateSlug}"
 
-# Step 6 微信发布
-bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs --post-dir posts/"$SLUG"
+# Step 6 微信发布：先构建 capsule，再由 Agent 原生委托 baoyu-post-to-wechat，最后 finalize
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs "$SLUG" --prepare-only
+# native delegate baoyu-post-to-wechat
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs "$SLUG" --finalize-only
 \`\`\`
 
-如需等 GitHub Pages 部署完成并强制探活，再给 publish-wechat.mjs 传 \`--no-skip-deploy-check\`。
+\`publish-wechat.mjs\` 不执行网络探活或第三方发布脚本；部署状态由博客轨和 Agent 自行确认。
 
 ## 排查 push 失败常见原因
 

@@ -12,7 +12,7 @@
 | 3 | Step 2 draft | 更新后的 `draft.md`、`step3_draft_sha256` | `humanizer-zh` + `step3-polish.mjs` |
 | 4 | hash-fresh draft、source images | `cover.*`、`imgs/*`、`image-plan.json` | 原生视觉委托 + `step4-images.mjs` |
 | 5 | draft、图片 | `image-map.json`、三轨 artifact | `github-image-hosting`、`gzh-design`、`step5-build.mjs` |
-| 6 | finalized artifacts | blog、WeChat draft 状态 | `publish-blog.mjs`、`publish-wechat.mjs` |
+| 6 | finalized artifacts | blog、WeChat draft 状态 | `publish-blog.mjs`、`publish-wechat.mjs` prepare/finalize + native `baoyu-post-to-wechat` |
 
 ## State v2
 
@@ -27,5 +27,6 @@ draft freshness 事实。没有新的 schema generation，也没有调用 receip
 
 ## 恢复
 
-Step 1–4 由 Agent 完成认知或原生委托后运行 Gate。Step 5 先 prepare，得到微信 source
-后调用 `gzh-design`，再 finalize。Step 6 先博客、后微信；任一失败只从 state 指定的子状态恢复。
+Step 1–4 由 Agent 完成认知或原生委托后运行 Gate。Step 5 先 prepare，得到微信 source 后调用
+`gzh-design`，child 完成 validator/preview 后再 finalize。Step 6 先博客，再运行微信 prepare、
+native `baoyu-post-to-wechat`，最后 finalize；任一失败只从 state 指定的子状态恢复。
