@@ -46,13 +46,6 @@ function seedPublishDeps(repoRoot) {
   writeFileSync(join(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), [
     "default_author: NTLx",
     "default_author_bio: 热衷于分享 AI 观察与干货",
-    "visual_style_profile: bright-vivid-warm",
-    "visual_brightness: bright",
-    "visual_saturation: high",
-    "visual_contrast: high",
-    "visual_background: clean",
-    "visual_clarity: crisp",
-    "visual_mood: warm-positive",
   ].join("\n") + "\n");
 }
 

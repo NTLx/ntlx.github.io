@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # 微信公众号文章写作
@@ -136,14 +136,33 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ### Step 5 — Build
 
 先读取 `references/publishing.md` 与需要时的 `references/adapter-gzh-design.md`。
-运行确定性构建：
+
+#### Step 5A — 图片托管
+
+由 Agent 原生读取并委托 `github-image-hosting`。传递最少的业务上下文：
+
+```text
+images: posts/<date-slug>/imgs/
+folder: wechat-articles
+prefix: <date-slug>-<blogSlug>-img
+output: posts/<date-slug>/image-map.json
+```
+
+实际调用参数必须遵循 `github-image-hosting/SKILL.md` 的当前契约。该 Skill 自己负责
+项目配置、GitHub repo、branch、远端状态、SHA、幂等、冲突、重试、CDN URL 和
+`image-map.json`；父 Skill 不调用其 uploader，也不解析上传诊断输出。
+
+#### Step 5B — 确定性文章构建
+
+确认 Step 5A 已生成 `image-map.json` 后，运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-它通过 `github-image-hosting` 的原生上传入口，把图片目录、业务 folder、命名前缀和输出路径交给该 Skill；由它处理配置、远端状态、冲突和重试，生成 `image-map.json`、
-`article.md` 和 `article-wechat-source.md`。随后直接委托 `gzh-design`，输入微信 source
+脚本只读取并校验 `image-map.json`，将本地图片引用替换为 CDN URL 生成 `article.md`，
+并生成 `article-wechat-source.md`。缺少 map 时 fail closed，并提示先完成
+`github-image-hosting` 原生委托。随后由 Agent 原生委托 `gzh-design`，输入微信 source
 和本地图片，输出 `article-wechat.html`；让 gzh-design 完整执行主题选择、组件装配、
 validator 和预览流程。最后运行：
 
@@ -181,6 +200,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 | 正文生成图 | `baoyu-infographic` | `--no-confirm`、当前正文语境、目标路径、Codex backend override |
 | 微信 HTML | `gzh-design` | 微信 source、本地图片、目标路径、最终结构边界 |
 | 图片托管/CDN | `github-image-hosting` | 图片目录、业务 folder、命名前缀、`image-map.json` 路径 |
+| 微信草稿 | `baoyu-post-to-wechat` | 最终 HTML、cover、作者、source URL |
 
 ## Recovery
 

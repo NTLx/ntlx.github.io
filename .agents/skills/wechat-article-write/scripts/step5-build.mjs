@@ -2,15 +2,14 @@
 /**
  * Step 5: 双轨产物构建。
  *
- * prepare: 本地校验 → github-image-hosting 一次 → image-map → 双轨中间产物。
+ * prepare: 校验 Agent 已生成的 image-map.json → 双轨中间产物。
  * finalize: 只消费本地准备产物，运行 gzh validator / structural parity。
  */
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
-import { postsRoot, repoRoot } from "./path-resolver.mjs";
+import { postsRoot } from "./path-resolver.mjs";
 import { getWechatArticleWriteConfig } from "./config-lib.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
@@ -18,6 +17,8 @@ import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
 import { assertFinalizeInputsFresh, sha256File, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
+import { imageMime } from "./image-asset-lib.mjs";
+import { applyImageMapToMarkdown } from "./apply-image-map.mjs";
 import { replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -70,11 +71,8 @@ function imageFiles(dir) {
 }
 
 function validateCoverFormat(path, expectedMime) {
-  const fileType = spawnSync("file", ["-b", "--mime-type", path], { encoding: "utf8" });
-  const actualMime = fileType.stdout?.trim();
-  if (fileType.error || fileType.status !== 0 || !actualMime) {
-    fail(2, `unable to detect MIME type for ${path}`);
-  }
+  const actualMime = imageMime(path);
+  if (!actualMime) fail(2, `unable to detect MIME type for ${path}`);
   if (actualMime !== expectedMime) {
     fail(2, `${path.split("/").at(-1)} has MIME ${actualMime}; regenerate or normalize the cover before Step 5`);
   }
@@ -96,14 +94,14 @@ function readStateWithoutMigration() {
 }
 
 function loadImageMap() {
-  if (!existsSync(mapPath)) fail(3, "image-map.json missing after github-image-hosting");
+  if (!existsSync(mapPath)) fail(3, "image-map.json missing; first complete native github-image-hosting delegation");
   let raw;
   try {
     raw = JSON.parse(readFileSync(mapPath, "utf8"));
   } catch (error) {
     fail(3, `image-map.json invalid JSON: ${error.message}`);
   }
-  const files = raw.files ?? raw;
+  const files = raw?.files ?? raw;
   if (!files || typeof files !== "object" || Array.isArray(files)) {
     fail(3, "image-map.json must be an object or contain a files object");
   }
@@ -157,15 +155,6 @@ function validateLocalImageReferences(draft, files) {
     fail(4, "draft.md has images in imgs/ but no SLOT_IMG placeholders or local imgs/ references");
   }
   return { slot_count: slotRefs.length, local_ref_count: localRefs.length };
-}
-
-function findScriptDir(name) {
-  const candidates = [
-    resolve(repoRoot(), `.agents/skills/${name}`),
-    resolve(process.env.HOME ?? "", `.claude/skills/${name}`),
-  ];
-  for (const directory of candidates) if (existsSync(directory)) return directory;
-  return null;
 }
 
 function assertStep3Fresh() {
@@ -271,30 +260,18 @@ if (dryRun) {
   process.exit(0);
 }
 
-const githubDir = findScriptDir("github-image-hosting");
-if (!githubDir) fail(2, "github-image-hosting skill not found");
-
-// The supervising protocol supplies business folder and naming intent. The
-// image-hosting Skill owns config, remote state, collision resolution and retry.
-const uploadScript = resolve(githubDir, "scripts/upload.ts");
-const uploadResult = spawnSync("bun", [
-  "run", uploadScript,
-  imgsDir,
-  "--folder", WECHAT_IMAGE_FOLDER,
-  "--name-prefix", namePrefix,
-  "--output", mapPath,
-], { stdio: "inherit", encoding: "utf8" });
-if (uploadResult.status !== 0) fail(3, "github-image-hosting failed");
-
 const imageMap = loadImageMap();
 const coverage = validateImageMapCoverage(draft, imgs, imageMap);
 
 // Placeholder → CDN URL → article.md
-const applyScript = resolve(repoRoot(), ".agents/skills/wechat-article-write/scripts/apply-image-map.mjs");
-const applyResult = spawnSync("bun", ["run", applyScript, slug], { stdio: "inherit", encoding: "utf8" });
-if (applyResult.status !== 0) fail(4, "apply-image-map failed");
+let articleMarkdown;
+try {
+  articleMarkdown = applyImageMapToMarkdown(draft, imgsDir, imageMap);
+  writeFileSync(articlePath, replaceKnownAuthorPlaceholders(articleMarkdown));
+} catch (error) {
+  fail(4, `image-map application failed: ${error.message}`);
+}
 if (!existsSync(articlePath)) fail(4, "article.md not created");
-writeFileSync(articlePath, replaceKnownAuthorPlaceholders(readFileSync(articlePath, "utf8")));
 
 // Generate article-wechat-source.md from draft.md (local image paths).
 writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));

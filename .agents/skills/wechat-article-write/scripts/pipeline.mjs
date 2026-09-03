@@ -27,7 +27,7 @@ process.stdout.write(`current step: ${step}\n`);
 if (step === "done") process.exit(0);
 if (!auto) {
   process.stdout.write("Complete the current Agent-owned step and run its Gate, then resume here.\n");
-  if (step === 5) process.stdout.write(`Step 5: run step5-build.mjs ${slug}; after gzh-design creates article-wechat.html, run --finalize-only.\n`);
+  if (step === 5) process.stdout.write(`Step 5: delegate github-image-hosting to create image-map.json, run step5-build.mjs ${slug} --prepare-only, then delegate gzh-design and run --finalize-only.\n`);
   if (step === 6) process.stdout.write(`Publish states: ${JSON.stringify(publishState())}\n`);
   process.exit(0);
 }

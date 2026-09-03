@@ -34,6 +34,7 @@ describe("project-level image Skill preferences", () => {
     expect(xhs.language).toBe("zh");
     expect(xhs.preferred_image_backend).toBe("baoyu-image-gen");
     expect(xhs.generation_batch_size).toBe(1);
+    expect(xhs.preferred_layout).toBeNull();
     expect(xhs.preferred_style.name).toBe("bright-vivid-warm");
     expect(xhs.custom_styles.some(({ name }) => name === "bright-vivid-warm")).toBe(true);
 
@@ -46,5 +47,12 @@ describe("project-level image Skill preferences", () => {
 
     expect(imageGen.version).toBe(1);
     expect(imageGen.default_provider).toBe("codex-cli");
+    expect(imageGen.default_model?.["codex-cli"]).toBeUndefined();
+  });
+
+  test("keeps visual preferences with the visual Skills", () => {
+    const parent = readFileSync(resolve(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), "utf8");
+    expect(parent).not.toMatch(/^visual_/mu);
+    expect(parent).toContain("source_image_policy: prefer-reuse");
   });
 });

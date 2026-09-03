@@ -78,6 +78,11 @@ function replaceWithCdn(md, resolver, map) {
   return out;
 }
 
+/** Apply a validated flat image map to Markdown without invoking the CLI. */
+export function applyImageMapToMarkdown(md, imgsDir, map) {
+  return replaceWithCdn(md, buildResolver(map, imgsDir), map);
+}
+
 function replaceWithLocal(md, resolver) {
   // article-local.md 用于 CDN 不可达时的降级渲染，保留本地路径即可
   return replaceSlotPlaceholders(md, (match, slot, desc) => {
@@ -101,6 +106,7 @@ function htmlRewrite(htmlPath, mapPath) {
   writeFileSync(htmlPath, html);
 }
 
+function main() {
 const args = process.argv.slice(2);
 
 if (args[0] === "--html-rewrite") {
@@ -131,9 +137,7 @@ if (!existsSync(draftPath)) {
 
 const map = loadMap(mapPath);
 const draft = readFileSync(draftPath, "utf8");
-const resolver = buildResolver(map, imgsDir);
-
-const cdnMd = replaceWithCdn(draft, resolver, map);
+const cdnMd = applyImageMapToMarkdown(draft, imgsDir, map);
 
 writeFileSync(resolve(baseDir, "article.md"), cdnMd);
 
@@ -157,3 +161,6 @@ process.stdout.write(JSON.stringify({
   article_md: "article.md",
   image_count: Object.keys(map).length,
 }) + "\n");
+}
+
+if (import.meta.main) main();

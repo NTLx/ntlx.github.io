@@ -10,7 +10,7 @@ preferred_style:
   name: bright-vivid-warm
   description: "明亮鲜艳、高饱和高对比、干净背景、轮廓清晰、温暖积极的知识卡风格。"
 
-preferred_layout: dense
+preferred_layout: null
 language: zh
 preferred_image_backend: baoyu-image-gen
 generation_batch_size: 1
