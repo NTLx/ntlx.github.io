@@ -28,12 +28,8 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
-import {
-  collectDraftSlots,
-  readImagePlan,
-  validateVisualCoverage,
-  validateVisualPlanTopology,
-} from "./visual-plan-lib.mjs";
+import { collectDraftSlots } from "./validation-lib.mjs";
+import { collectMarkdownImages, collectSubstantiveSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
 const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction", "--allow-no-related"]);
@@ -129,21 +125,19 @@ for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.sl
 const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
 if (duplicateSlots.length > 0) fail(4, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}`);
 if ((slotCounts.get(0) ?? 0) !== 1) fail(4, "正文必须恰好包含一次 SLOT_IMG_00 信息图占位符（SLOT 00 是必填视觉摘要）");
+const bodySlotNumbers = [...slotCounts.keys()].filter((slot) => slot > 0).sort((a, b) => a - b);
+if (!bodySlotNumbers.every((slot, index) => slot === index + 1)) fail(4, "正文 generated SLOT 必须从 SLOT_IMG_01 连续编号");
 
-// 3b. The draft must carry a complete, section-by-section visual review before
-// humanization. This proves that zero body images is an editorial decision.
-const imagePlanPath = resolve(postsRoot(), slug, "image-plan.json");
-let imagePlan;
-try {
-  imagePlan = readImagePlan(imagePlanPath);
-} catch (error) {
-  fail(4, error.message);
+// SLOT00 is the lead visual. Body visual planning happens after humanization,
+// when source-image reuse and final assets are known.
+const sections = collectSubstantiveSections(body);
+if (sections[0] && draftSlots.find((slot) => slot.slot === 0)?.index >= sections[0].start) {
+  fail(4, "SLOT_IMG_00 must appear before the first substantive H2");
 }
-if (!imagePlan) fail(4, `image-plan.json missing: ${imagePlanPath}`);
-const visualTopology = validateVisualPlanTopology(imagePlan, body);
-if (!visualTopology.ok) fail(4, `visual plan topology invalid: ${visualTopology.errors.join("; ")}`);
-const visualCoverage = validateVisualCoverage(imagePlan, body);
-if (!visualCoverage.ok) fail(4, `visual coverage review invalid: ${visualCoverage.errors.join("; ")}`);
+const firstVisual = [...draftSlots.map((slot) => ({ index: slot.index, slot: slot.slot })),
+  ...collectMarkdownImages(body).map((item) => ({ index: item.index, slot: null }))]
+  .sort((a, b) => a.index - b.index)[0];
+if (firstVisual?.slot !== 0) fail(4, "SLOT_IMG_00 must be the first body visual image");
 
 // 4. Interaction check
 // 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：
@@ -229,7 +223,6 @@ const stateExtra = {
   allow_no_related: allowNoRelated,
   blog_memory_candidates: blogMemoryCandidates,
   blog_memory_used: blogMemoryUsed,
-  humanizer: { status: "pending" },
 };
 markStepDone(slug, 2, stateExtra);
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount, humanizer: "pending" }) + "\n");
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount }) + "\n");

@@ -1,140 +1,208 @@
 ---
 name: wechat-article-write
 description: >
-  Use when creating, adapting, illustrating, building, or publishing WeChat
-  Official Account articles from this repository, especially when the task
-  involves raw materials, article drafts, blog/WeChat dual artifacts,
-  "写公众号文章", "公众号推文", "wechat article", or the wechat-article-write pipeline.
+  Orchestrates this repository's WeChat + blog article workflow. Use when
+  creating or resuming an article, producing its required visuals, building
+  the dual blog/WeChat artifacts, or publishing the blog and WeChat draft.
 license: MIT
 metadata:
   author: NTLx
-  version: "1.63.0"
+  version: "2.0.0"
 ---
 
 # 微信公众号文章写作
-本技能是博客 + 微信双轨管线的监督层。它固定文件协议、状态、Gate 和
-发布顺序；内容理解、写作方法和专项视觉 contributor 按当前任务动态选择。
 
-## 先读路由
-| 任务 | 必读文件 |
-|---|---|
-| 完整写作/续跑 | `references/pipeline-overview.md` |
-| Adaptive Stage 编排 | `references/orchestration-policy.md` |
-| 三种编辑目标 | `references/strategy-{reader-response,tutorial,news-digest}.md` |
-| 理解 brief 合同 | `references/material-understanding.md` |
-| 正文和 frontmatter/SLOT 不变量 | `references/content-invariants.md` |
-| 图片意图、命名和审核 | `references/image-policy.md` |
-| 图片 provider 成本边界 | `references/image-backends.md` |
-| 微信排版与发布 | `references/adapter-gzh-design.md`、`references/publishing.md` |
-| 依赖和本地配置 | `references/dependency-manifest.md` |
+这是仓库级薄编排 Skill：负责顺序、项目边界和 Gate；专业子任务由对应 Skill
+完整执行。统一原则是 Native Delegation：传递任务所需上下文，让被委托 Skill
+拥有自己的分析、选择、prompt、生成和报告流程。
 
-## 不可变的工程协议
+## Start or resume
 
-- state 使用现有 v2 数字 Step；续跑前先读 `state.mjs next`，不要从头重做。
-- 博客轨消费 `article.md` 和 CDN 图片；微信轨消费
-  `article-wechat.html` 和本地图片。两条产物不能混用。
-- frontmatter、`summary`、`blogSlug`、`sourceUrl`、SLOT 占位符、图片命名、
-  MDX 安全和链接双轨规则由确定性脚本校验。
-- Step 5 的 prepare 先校验本地资产，再由 `github-image-hosting` 一次性发布
-  `imgs/*` 并产出 `image-map.json`；随后生成 `article.md` 和
-  `article-wechat-source.md`。最后由 `gzh-design` 排版并运行 finalize；不得用
-  post 内自写渲染脚本替代它。
-- 发布顺序固定为博客先行、微信草稿后行；两条状态可以独立恢复。
-- 第三方 Skill 源码只读。运行时动态 catalog 发现普通能力；但
-  `humanizer-zh` 是所有文章的 Mandatory Humanization Layer，不是开放式
-  writing Router，必须在 Step 2 Gate 后、Step 3 Gate 前实际调用并登记 receipt；
-  receipt 前先运行 `pre-humanizer-normalize.mjs`，receipt 后 `draft.md` 冻结到
-  Step 5 finalize。
-- `humanizer-zh` 只能去除 AI 写作痕迹、保留作者已有声音和技术准确性；不得凭空
-  编造作者经历、态度或情绪，不得改事实、引用、URL、代码、H2 顺序或 SLOT topology。
+1. 读取 `posts/<date-slug>/.pipeline-state.json`。没有 state 时，确定日期、ASCII
+   `date-slug`、strategy（`reader-response`、`tutorial` 或 `news-digest`），创建
+   `posts/<date-slug>/` 并运行：
 
-## Adaptive Stage 规则
+   ```bash
+   bun run .agents/skills/wechat-article-write/scripts/state.mjs init <date-slug>
+   ```
 
-1. 读取当前 Stage Contract、输入、已有 artifacts 和上一 Gate 结果，先定义
-   当前真正缺口。
-2. 运行 metadata-only catalog：
-   `bun run .agents/skills/wechat-article-write/scripts/skill-catalog.mjs --json`。
-3. 不要根据 Skill 名称猜用途；先读 catalog description，只有入选少量候选
-   后才读取完整 `SKILL.md` 及直接引用的配置。
-4. 选择最小充分路线：普通 adaptive 方法可由 Agent 原生、单 Skill 或少量互补
-   Skill 完成；no-skill 是合法路线。Mandatory protocol layers
-   `humanizer-zh`、Mandatory Baoyu Visual Design 和 `gzh-design` 不能跳过。
-5. Delegate 后把结果适配成 contract 要求的 artifact，运行对应 Gate；每次
-   路线尝试完成 Gate 后都 best-effort 追加 orchestration trace。
-6. Gate 失败时诊断后修输入、有限重试、换路线或由 Agent 补足；不得无脑
-   重复，也不得绕过 Gate。trace 失败不影响 artifact、state 或 Gate。具体
-规则见 `orchestration-policy.md`。
-`illustrate` 是例外：coverage_review 由当前 wechat-article-write Agent 根据
-draft、understanding-brief 和 source_image_review 自主完成。封面使用
-`baoyu-cover-image`；`SLOT_IMG_00` 使用 `baoyu-xhs-images`；正文 SLOT 使用
-`baoyu-infographic`。涉及架构、流程、时序、数据流或状态关系时，Agent 可从
-catalog 选择 `baoyu-diagram`，但它只贡献结构语法，不生成 SVG/PNG，也不成为
-最终 prompt authority。
+2. 已有 state 从 `state.mjs next <date-slug>` 指定的 Step 继续。状态仍使用 v2；
+   `publish.blog` 与 `publish.wechat` 可以独立恢复。
 
-## 图片视觉与成本硬约束
+完成条件：state 有效，strategy 已记录，新任务的 `date-slug` 与 post 目录已确定，
+当前待执行 Step 唯一明确。
 
-Baoyu Design Skills 负责视觉判断与 canonical prompt；可选 contributor 只补充
-结构或设计意见。所有设计调用统一使用 DESIGN-ONLY MODE：不得调用 native
-imagegen、GenerateImage、image_generate、API image provider、`baoyu-image-gen`
-或输出最终 SVG/PNG。唯一 raster 链路是 `baoyu-image-gen` → `codex-cli`，唯一
-执行器是集中式串行脚本。先运行：
+## Workflow
+
+### Step 1 — Research
+
+把原始材料、用户目标、必要的背景和时效信息整理为
+`posts/<date-slug>/materials.md`。按实际缺口自然使用当前可发现的研究能力；
+只有能补齐事实、来源或理解的能力才调用。区分事实、推断和作者判断，进入文章的
+外部事实保留可追溯 URL。完成后运行：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-image-backend.mjs --runtime
+bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 ```
 
-Codex CLI 不可用、未登录或生成失败时，图片阶段必须 fail closed。允许在
-同一路径内诊断、修改 prompt 和有限重试；禁止切换其它 provider，也不能
-使用运行时原生 image generation 绕过配置。
+完成条件：`materials.md` 非空，所有准备进入正文的重要外部事实可追溯，事实/推断/作者判断可区分，且 Step 1 Gate 通过。
 
-不得由 Agent 并行调用生图、使用 batchfile、`--jobs` 或 `Promise.all`；必须先
-物化全部 active canonical prompt，再执行：
+### Step 1.5 — Blog memory
+
+运行现有站内文章检索：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/render-images-serial.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
 ```
 
-## 最小流程
+写作时消费生成的 `blog-memory.md`；没有合适关联内容时在该记忆文件中明确记录。
 
-Step 0 选策略；Step 1 收集材料；Step 1.5 生成站内记忆；Step 1.8/2
-按策略完成理解或适配/写作；Step 3 先完成 pre-humanizer-normalize，再执行 mandatory humanizer-zh，随后针对实际问题
-refine；用户指出“生硬、AI 味重、不像作者”等语言问题时，回到 draft.md 重新执行
-Step 3。Step 4 由 Agent 为每个 substantive H2 完成 `coverage_review`（正文 SLOT
-仍可为 0..N），再分别调用 cover、SLOT_IMG_00 和正文的固定 Baoyu producer。
-SLOT_IMG_00 必须恰好一次、位于首个 substantive H2 前
-并作为正文第一张视觉；Step 5 构建并校验双轨产物，gzh-design 可自由排版但必须
-通过 structural parity；Step 6
-按顺序发布。
+完成条件：当前文章已有可消费的站内记忆，或文件明确记录没有合适关联内容。
 
-## Step 5 阶段边界
+### Step 1.8 — Understand
 
-Step 5 只把文章资产集合、业务目录和稳定命名前缀交给
-`github-image-hosting`：
+仅当 strategy 或任务需要深度理解时生成 `understanding-brief.md`。Agent 可以
+原生分析，或委托一个匹配的专业 Skill；把材料结构、核心问题、中心判断、机制、
+边界、反方、可写判断、可视觉化节点和至少三条可检查的原创增量压缩进 brief。
+需要理解规范时读取 `references/material-understanding.md`，然后运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <date-slug>
+```
+
+完成条件：brief 足以直接支持写作，核心小节均有内容或明确写“未发现”及原因，原创增量承诺可逐条检查，且 understanding Gate 通过。
+
+### Step 2 — Draft
+
+生成 `draft.md`。Agent 或匹配的写作 Skill 负责正文；父 Skill 负责仓库适配：
+frontmatter、`summary`、`blogSlug`、`sourceUrl`、H2、引用与 URL、SLOT、站内关联和
+strategy 约束。需要正文规则时读取 `references/content-invariants.md` 与对应的
+`references/strategy-*.md`。
+
+`SLOT_IMG_00` 必须恰好一次，位于第一个 substantive H2 前，并是正文第一张视觉。
+正文 generated SLOT 只在确有视觉信息增益时创建，编号为 `01..N`，数量允许为 0..N。
+此时只校验 draft topology；最终资产事实在 Step 4 写入 `image-plan.json`。
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
+```
+
+完成条件：`draft.md` 完整，frontmatter、H2、链接、互动、引用、SLOT topology 与站内记忆约束通过 Step 2 Gate。
+
+### Step 3 — Native Humanization
+
+`humanizer-zh` 对正常文章 mandatory。读取并完整执行
+`.agents/skills/humanizer-zh/SKILL.md`，给它以下 capsule：
+
+```text
+目标：去除 draft.md 中的 AI 写作痕迹，使文本自然，同时保持作者已有声音。
+保持：事实、数字、术语、URL、直接引语、代码、frontmatter、H2 顺序和 SLOT topology 的语义不变。
+输入：当前 draft.md。
+输出：更新后的 draft.md。
+```
+
+完成后审阅 diff：检查 semantic drift、数字、URL、技术结论、H2、SLOT 和第一人称事实，
+再运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
+```
+
+该 Gate 将当前 `draft.md` SHA256 写入 state v2 的 `step3_draft_sha256`。Step 4/5
+只比较当前 draft 与此 hash；变化时回到 Step 3，重新委托 humanizer-zh 并重审。
+
+完成条件：humanizer-zh 已处理当前 draft，semantic drift 已审阅，Step 3 Gate 通过，state 记录当前 draft hash。
+
+### Step 4 — Illustrate
+
+需要图片时先读取 `references/image-policy.md`。按顺序一次处理一张：
+
+1. 需要 cover 时委托 `baoyu-cover-image`：输入最终 draft，约束 `2.35:1`、默认无文字、项目视觉偏好、`quick_mode=true`、backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。
+2. 委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：输入全文，数量 1，使用项目视觉偏好，让该 Skill 自己选择 style/layout/palette/preset 并生成 prompt，backend override 同上，输出 `imgs/00-infographic-core-summary.png`。
+3. 每个 generated `SLOT_IMG_01+` 单独委托 `baoyu-infographic`：只传对应正文语境、关系、必要背景、项目视觉偏好、输出路径和 backend override。完成并实际查看一张后再处理下一张。
+4. 只有确有 architecture、flow、sequence、state、data flow 或 topology 需求时，才按需委托 `baoyu-diagram` 辅助形成结构；最终正文 raster 仍交给 `baoyu-infographic`。
+5. `prefer-reuse` 时先审阅来源材料中的可用原图；把最终事实写入最小 `image-plan.json`，不记录 prompt、producer、contributors 或视觉 receipt。
+
+专业 Skill 完整拥有 analyze → style/layout/preset → prompt → raster → report 流程。父 Skill 不重建 prompt、不集中渲染，也不建立调用证明。
+
+完成后运行：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
+```
+
+完成条件：根目录恰好一个 cover 且像素比例满足 `2.35:1 ±0.03`；SLOT00 恰好一个且 basename 正确；每个正文 SLOT 有且只有一个最终图片文件（或正文 SLOT 数量为 0）；`image-plan.json`、draft SLOT 和本地文件一致；每张图片已实际查看并通过语义、文字和构图审阅；Step 4 Gate 通过。
+
+### Step 5 — Build
+
+先读取 `references/publishing.md` 与需要时的 `references/adapter-gzh-design.md`。
+运行确定性构建：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
-prepare 会调用图床一次，使用 `--folder wechat-articles`、文章命名前缀和
-`--output posts/<date-slug>/image-map.json`；图床 Skill 自己解析仓库/分支配置、
-索引远端 blob、处理冲突、重试并生成真实 CDN URL。Step 5 不解析图床配置、不
-拼 CDN URL、不维护上传重试或复用状态。`image-map.json` 仍是
-“本地文件名 → CDN URL”的 flat map，旧的 `{ "files": ... }` 只作读取兼容。
-`--dry-run` 只做 draft、cover、imgs、SLOT/local reference、image-review receipt、humanizer receipt
-的本地校验，并报告图片数量、SLOT 数量、命名前缀和目标目录；不访问图床、不写
-map、文章产物或 state。
-Agent 调用 `gzh-design` 生成 `article-wechat.html` 后，运行：
+
+它把图片目录和业务命名意图交给 `github-image-hosting`，生成 `image-map.json`、
+`article.md` 和 `article-wechat-source.md`。随后直接委托 `gzh-design`，输入微信 source
+和本地图片，输出 `article-wechat.html`；让 gzh-design 完整执行主题选择、组件装配、
+validator 和预览流程。最后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
-finalize-only 先在本地检查 manifest、`draft.md`、image-plan 和 image-review 一致，再消费 `article.md`、
-`article-wechat-source.md`、`article-wechat.html`，运行 gzh validator 与 structural
-parity；它绝不调用 `github-image-hosting`，也不需要 GitHub 配置、CLI 或网络。协议可
-安全重复，重复 finalize 始终是零图床调用；root cover 必须恰好一个，MIME/扩展名须在 receipt 前由 `pre-humanizer-normalize.mjs` 处理，Step 5 只校验不自动改名。
+
+完成条件：`article.md`、`article-wechat-source.md`、`article-wechat.html` 均存在；substantive H2 顺序、paragraph/list/code semantics、图片 basename/order/section placement 和 lead visual 一致；gzh validator 与 structural parity Gate 均通过。
+
+### Step 6 — Publish
+
+读取 `references/publishing.md`。先运行博客发布，确认博客状态，再运行微信草稿发布：
 
 ```bash
-bun run .agents/skills/wechat-article-write/scripts/check-deps.mjs --stage all
+bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug>
+```
+
+微信输入固定为 `article-wechat.html`，`sourceUrl` 由现有逻辑添加 UTM；创建草稿不等于群发。博客提交、push、站点 deploy 状态保持可区分。
+
+完成条件：博客发布状态已记录且先于微信草稿完成；微信草稿状态已记录；失败任一侧都能通过 state v2 独立恢复。
+
+## Native delegation
+
+父 Skill 传递目标、输入、strategy、项目偏好、输出路径、backend override 和验收边界。
+被委托 Skill 直接读取自己的 `SKILL.md`，完整执行自己的流程并写出最终产物；父 Skill
+只审阅结果并运行本仓库 Gate。研究和理解能力按实际缺口自然发现，父 Skill 不维护 catalog。
+
+固定业务映射：`humanizer-zh` → 文本人性化；`baoyu-cover-image` → cover；
+`baoyu-xhs-images` → SLOT00；`baoyu-infographic` → generated body visual；
+`gzh-design` → 微信 HTML；`github-image-hosting` → 图片托管。
+
+## Recovery
+
+先运行：
+
+```bash
 bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
 ```
-完成或修复任何阶段后，重新运行该阶段 Gate，再继续 `pipeline.mjs`。
+
+Gate 失败时读取实际错误，修正当前输入或回到对应委托；重新运行同一 Gate。用户指出 AI 味、生硬或不像作者时回到 Step 3；图片视觉问题回到同一图片 Skill regenerate。不要修改已通过的下游 artifact 来绕过上游 Gate。
+
+## References
+
+需要了解完整 Step 输入、输出和恢复关系时，读取 `references/pipeline-overview.md`。
+
+需要写作 frontmatter、SLOT、链接、MDX 和双轨内容不变量时，读取 `references/content-invariants.md`。
+
+需要选择 `reader-response`、`tutorial` 或 `news-digest` 编辑目标时，读取对应的 `references/strategy-*.md`。
+
+需要生成 `understanding-brief.md` 时，读取 `references/material-understanding.md`。
+
+需要决定复用原图、SLOT 命名和视觉验收时，读取 `references/image-policy.md`。
+
+需要构建或 finalize 微信 HTML 时，读取 `references/adapter-gzh-design.md`。
+
+需要发布博客或微信草稿时，读取 `references/publishing.md`。
+
+需要落实原创增量和近期文章形式差异时，读取 `references/originality-policy.md`。
+
+遇到 Gate、路径、图片或发布错误时，读取 `references/troubleshooting.md`。

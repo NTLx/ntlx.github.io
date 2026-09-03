@@ -48,17 +48,14 @@ metadata:
 - description 只描述**触发条件**（Use when / 什么场景），不写实现细节、不写 pipeline 步骤、不写产物格式
 - 每个任务只选择最匹配的 1-2 个技能；description 触发面重叠的优先收敛
 
-## Skill 分层（决策记录）
+## 写作管线依赖
 
-写作管线只把 **workflow.mjs 的 `HARD_SKILLS`** 作为硬依赖（缺失 = 阻断）；其余为 optional toolbox，缺失不阻断，按需加载。核心依赖列表在此保留一份可读缓存，并由架构检查与机器源对照：
+`wechat-article-write/SKILL.md` 是写作步骤和固定业务委托的唯一来源。它要求的第三方 Skill 由 `check-deps.mjs` 检查是否安装；每个第三方 Skill 的行为、参数和配置仍以它自己的 `SKILL.md` 与项目配置为准。研究和写作能力按实际任务由运行时自然发现，不维护父 Skill 的能力目录。
 
-- **核心工程依赖**（唯一机器来源：workflow.mjs 的 HARD_SKILLS）：`baoyu-cover-image`、`baoyu-diagram`、`baoyu-image-gen`、`baoyu-infographic`、`baoyu-post-to-wechat`、`baoyu-xhs-images`、`github-image-hosting`、`gzh-design`、`humanizer-zh`
-- **optional（按需）**：`aihot`/`last30days`/`ljg-read`/`ljg-rank`/`ljg-constraint`/`ljg-plain`/`ljg-learn`/`ljg-paper`/`ljg-book`/`ljg-roundtable`/`ljg-invest`/`ljg-word`/`renwei-writing`/`baoyu-youtube-transcript`/`baoyu-translate`
-
-它们仍由 `npx skills` 安装并受 lock 管理；本分层只约束「哪些缺失会阻断流程」，不改变安装方式。
+所有第三方技能仍由 `npx skills` 安装并受 `skills-lock.json` 管理；本节不缓存另一份路由或依赖注册表。
 
 ## 校验与测试
 
 - 每次改动后运行 `npm run test:agent`（bun 测试）+ `npm run check:agent`（`validate-architecture.mjs` 静态校验）
-- 架构校验覆盖：自建 frontmatter 合规 / 必需技能存在 / 无悬空 skill 引用 / strategy 文件存在 / symlink 完整 / SKILL.md 引用脚本存在 / skills-lock 覆盖 managed
+- 架构校验覆盖：自建 frontmatter 合规 / 必需技能存在 / 本 Skill 引用文件存在 / retired 组件不在场 / 关键确定性入口存在
 - 升级第三方技能后跑 `check-deps.mjs --stage architecture`

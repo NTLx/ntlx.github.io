@@ -41,7 +41,6 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
   writeFileSync(join(dir, "article.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n内容。`);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n内容。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
-  writeFileSync(join(dir, "image-review.json"), "{}\n");
   writeFileSync(join(dir, "article-wechat-source.md"), "## 正文\n\n内容。\n");
   writeFileSync(join(dir, "article-wechat.html"), "<section><p>内容。</p></section>\n");
   writePreparedArtifactManifest(dir);

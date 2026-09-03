@@ -1,147 +1,71 @@
 #!/usr/bin/env bun
-/**
- * Step 3: 文本后处理验证
- *
- * 验证 draft.md 经过当前 refine 阶段的必要修改后：
- *   - 文件存在且非空
- *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
- *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
- *   - 正文无 H1
- *   - SLOT_IMG_00 信息图保留且正文 SLOT 编号不重复
- *   - 全文视觉覆盖审阅、SLOT 归属和 SLOT00 head invariant 保留
- *   - 参考资料 区块未丢失（若原文存在）
- *   - mandatory humanizer-zh receipt 存在且绑定当前 draft
- *
- * 字数属于当前 strategy 的编辑判断，本脚本仅记录字数不设门控。
- *
- * 用法:
- *   bun run step3-polish.mjs <date-slug>
- *
- * 退出码: 0 通过；2 frontmatter/内容损坏
- */
+/** Step 3 Gate: validate the humanized draft and record its freshness hash. */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
+import { ASCII_SLUG_RE, VALID_CATEGORIES, collectDraftSlots, countWords } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
-import {
-  collectDraftSlots,
-  readImagePlan,
-  validateVisualCoverage,
-  validateVisualPlanTopology,
-} from "./visual-plan-lib.mjs";
-import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
+import { sha256File } from "./artifact-integrity-lib.mjs";
 
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
 
-function fail(code, msg) {
-  process.stderr.write(`step3: FAIL - ${msg}\n`);
-  markStepFailed(slug, 3, msg);
+function fail(code, message) {
+  process.stderr.write(`step3: FAIL - ${message}\n`);
+  markStepFailed(slug, 3, message);
   process.exit(code);
 }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
-if (!existsSync(draftPath)) {
-  fail(2, `draft.md missing: ${draftPath}`);
-}
-
-const stat = statSync(draftPath);
-if (stat.size === 0) {
-  fail(2, "draft.md is empty");
-}
-
-// --- Re-validation after polish ---
+if (!existsSync(draftPath)) fail(2, `draft.md missing: ${draftPath}`);
+if (statSync(draftPath).size === 0) fail(2, "draft.md is empty");
 
 const content = readFileSync(draftPath, "utf8");
-
 const fm = parseFrontmatter(content);
 const body = extractBody(content);
-
-// Mandatory humanization is a freshness gate, not an optional writing route.
 const state = loadState(slug);
-try {
-  assertCurrentDraftHumanized(slug, { state, draftPath });
-} catch (error) {
-  fail(2, error.message);
+if ((state?.last_complete_step ?? 0) < 2) fail(2, "Step 2 must pass before Step 3");
+
+if (!fm) fail(2, "frontmatter 缺失或格式损坏");
+if (!fm.title) fail(2, "frontmatter.title 缺失");
+if (!/^\d{4}-\d{2}-\d{2}$/.test(fm.date ?? "")) fail(2, `frontmatter.date 不合法: ${fm.date ?? ""}`);
+if (!fm.summary) fail(2, "frontmatter.summary 缺失");
+if (!fm.coverImage) fail(2, "frontmatter.coverImage 缺失");
+if (!VALID_CATEGORIES.includes(fm.category)) fail(2, `frontmatter.category 不合法: ${fm.category ?? ""}`);
+if (!ASCII_SLUG_RE.test(fm.blogSlug ?? "")) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case: ${fm.blogSlug ?? ""}`);
+if (!fm.sourceUrl) fail(2, "frontmatter.sourceUrl 缺失");
+if (!fm.targetPath) {
+  if (!/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(fm.sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法: ${fm.sourceUrl}`);
+  const expected = `https://ntlx.github.io/articles/${fm.blogSlug}`;
+  if (fm.sourceUrl.replace(/\/+$/, "") !== expected) fail(2, "sourceUrl 与 blogSlug 不一致");
 }
+if (/^# /m.test(body)) fail(2, "正文不能包含 H1");
+
+const slots = collectDraftSlots(body);
+const counts = new Map();
+for (const slot of slots) counts.set(slot.slot, (counts.get(slot.slot) ?? 0) + 1);
+const duplicate = [...counts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
+if (duplicate.length) fail(2, `SLOT 编号重复: ${duplicate.join(", ")}`);
+if (counts.get(0) !== 1) fail(2, "正文必须保留恰好一次 SLOT_IMG_00");
+
 const allowNoInteraction = state?.allow_no_interaction === true;
-const allowNoReferences = state?.allow_no_references === true;
-const hasTargetPath = !!fm.targetPath;
-
-// 1. Frontmatter integrity
-if (!fm) fail(2, "frontmatter 缺失或格式损坏（未找到 --- 开闭标记）");
-if (!fm.title) fail(2, "frontmatter.title 缺失（polish 后丢失）");
-if (!fm.date || !/^\d{4}-\d{2}-\d{2}$/.test(fm.date)) fail(2, `frontmatter.date 不合法（polish 后损坏）: ${fm.date ?? ""}`);
-if (!fm.summary) fail(2, "frontmatter.summary 缺失（polish 后丢失）");
-if (!fm.coverImage) fail(2, "frontmatter.coverImage 缺失（polish 后丢失）");
-if (!fm.category) fail(2, "frontmatter.category 缺失（polish 后丢失）");
-if (!VALID_CATEGORIES.includes(fm.category)) fail(2, `frontmatter.category 不在白名单（polish 后损坏）: ${fm.category}`);
-if (!fm.blogSlug) fail(2, "frontmatter.blogSlug 缺失（polish 后丢失）");
-if (!ASCII_SLUG_RE.test(fm.blogSlug)) fail(2, `frontmatter.blogSlug 不符合 ASCII kebab-case（polish 后损坏）: ${fm.blogSlug}`);
-if (!fm.sourceUrl) fail(2, "frontmatter.sourceUrl 缺失（polish 后丢失）");
-// sourceUrl 格式和一致性检查：有 targetPath 时（教程策略）跳过，sourceUrl 指向博文实际地址
-if (!hasTargetPath) {
-  if (!/^https:\/\/ntlx\.github\.io\/articles\/.+/.test(fm.sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（polish 后损坏）: ${fm.sourceUrl ?? ""}`);
-  const expectedSourceUrl = `https://ntlx.github.io/articles/${fm.blogSlug}`;
-  if (fm.sourceUrl.replace(/\/+$/, "") !== expectedSourceUrl) {
-    fail(2, `frontmatter.sourceUrl (${fm.sourceUrl}) 与 blogSlug (${fm.blogSlug}) 不一致`);
-  }
+if (!allowNoInteraction && !/[？?]/.test(body.split(/^## 参考资料/m)[0].slice(-1200))) {
+  fail(2, "缺少文末互动问题；若确无互动，复用 Step 2 的 allow_no_interaction 状态");
+}
+if (state?.allow_no_references !== true && !/^## 参考资料/m.test(body)) {
+  fail(2, "缺少 ## 参考资料 区块；若确无参考资料，复用 Step 2 的 allow_no_references 状态");
 }
 
-// 2. No H1 in body
-if (/^# /m.test(body)) {
-  fail(2, "正文出现 H1 标题（polish 可能引入，Starlight 会重复渲染 title 为 H1）");
-}
-
-// 3. SLOT_IMG placeholders preserved
-const draftSlots = collectDraftSlots(body);
-if (draftSlots.length === 0) {
-  fail(2, "正文缺少 SLOT_IMG 占位符（polish 可能清除）");
-}
-const slotCounts = new Map();
-for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.slot) ?? 0) + 1);
-const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
-if (duplicateSlots.length > 0) {
-  fail(2, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}（polish 可能重复或复制占位符）`);
-}
-if ((slotCounts.get(0) ?? 0) !== 1) {
-  fail(2, "正文必须保留恰好一次 SLOT_IMG_00 信息图占位符（polish 可能清除或复制）");
-}
-
-// Re-check the visual contract after humanization. section_index is the
-// identity; heading text is diagnostic and may receive a small wording edit.
-const imagePlanPath = resolve(postsRoot(), slug, "image-plan.json");
-let imagePlan;
-try {
-  imagePlan = readImagePlan(imagePlanPath);
-} catch (error) {
-  fail(2, error.message);
-}
-if (!imagePlan) fail(2, `image-plan.json missing: ${imagePlanPath}`);
-const visualTopology = validateVisualPlanTopology(imagePlan, body);
-if (!visualTopology.ok) fail(2, `visual plan topology invalid after humanizer: ${visualTopology.errors.join("; ")}`);
-const visualCoverage = validateVisualCoverage(imagePlan, body);
-if (!visualCoverage.ok) fail(2, `visual coverage review invalid after humanizer: ${visualCoverage.errors.join("; ")}`);
-
-// 4. Word count (informational only — the active strategy owns this decision)
-const { total: wordCount, chineseChars, englishWords } = countWords(body);
-
-// 5. Interaction preserved unless Step 2 explicitly allowed skipping it
-const bodyBeforeRefs = body.split(/^## 参考资料/m)[0];
-const interactionTail = bodyBeforeRefs.slice(-1200);
-const hasInteractionQuestion = /[？?]/.test(interactionTail);
-if (!allowNoInteraction && !hasInteractionQuestion) {
-  fail(2, "缺少文末互动问题（polish 可能删除；正文末尾附近需含至少一个中/英文问号；如确无互动，使用 Step 2 的 --allow-no-interaction 跳过）");
-}
-
-// 6. 参考资料 preserved unless Step 2 explicitly allowed skipping it.
-const referencesRequired = !allowNoReferences;
-if (referencesRequired && !/^## 参考资料/m.test(body)) {
-  fail(2, "缺少 ## 参考资料 区块（polish 可能删除）");
-}
-
-markStepDone(slug, 3, { draft_path: draftPath, size_bytes: stat.size, word_count: wordCount, blog_slug: fm.blogSlug, source_url: fm.sourceUrl });
-process.stdout.write(JSON.stringify({ slug, step: 3, size_bytes: stat.size, word_count: wordCount, blogSlug: fm.blogSlug, sourceUrl: fm.sourceUrl, humanizer: "applied" }) + "\n");
+const hash = sha256File(draftPath);
+const wordCount = countWords(body);
+markStepDone(slug, 3, {
+  draft_path: draftPath,
+  size_bytes: statSync(draftPath).size,
+  word_count: wordCount,
+  blog_slug: fm.blogSlug,
+  source_url: fm.sourceUrl,
+  step3_draft_sha256: hash,
+});
+process.stdout.write(JSON.stringify({ slug, step: 3, draft_sha256: hash, word_count: wordCount }) + "\n");

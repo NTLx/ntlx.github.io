@@ -1,6 +1,6 @@
 # 材料理解合同
 
-本文件定义 `synthesize` 阶段的认知质量，不规定由哪个 Skill 产生理解。
+本文件定义需要深度理解时的认知质量，不规定由哪个 Skill 产生理解。
 目标是把 `materials.md`、`blog-memory.md` 和用户意图压缩成一份能直接
 指导写作、视觉规划和边界声明的 `understanding-brief.md`。
 
@@ -17,10 +17,10 @@
 - `posts/{date-slug}/blog-memory.md` 或 `blog-memory.json`（若已生成）；
 - 用户要求、目标读者和限制；
 - 当前 strategy、已有 artifacts、上一 Gate 结果；
-- `references/orchestration-policy.md` 和运行时 Skill catalog。
+- 当前任务实际可用的研究或理解能力；优先使用最匹配且能补齐缺口的能力。
 
 先回答“当前真正的认知缺口是什么”。Agent 可以原生完成，也可以从
-catalog 选择一个最匹配的能力，或组合少量互补能力。只有能改善某个
+选择一个最匹配的能力，或组合少量互补能力。只有能改善某个
 具体缺口的调用才保留。没有缺口时 `no-skill` 是合法结果。任何候选输出都必须经过二次判断，不因报告很长
 或命令成功就写入 brief。
 
@@ -96,4 +96,4 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 
 Gate 失败时先看具体缺哪一项：修材料、补证据、缩小中心判断、改变输出
 结构，或重新选择能力。不要无条件重复上一条调用，也不要因某个可选
-Skill 缺失而阻断整个工作流。只有当前 brief 满足合同，才进入写作。
+Skill 缺失不阻断整个工作流；只有当前 brief 满足合同，才进入写作。

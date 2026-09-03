@@ -29,6 +29,7 @@ import { markStepFailed, markWechatDone } from "./state-lib.mjs";
 import { getPostToWechatConfig } from "./config-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { getWechatAuthorProfile } from "./config-lib.mjs";
+import { readFmValue } from "./frontmatter-lib.mjs";
 import { assertFinalizedArtifactFreshness } from "./artifact-integrity-lib.mjs";
 import { assertCanonicalSignature, assertNoAuthorPlaceholders } from "./author-profile-lib.mjs";
 
@@ -72,11 +73,6 @@ function printHelp() {
   bun run publish-wechat.mjs 2026-05-16-langchain
   bun run publish-wechat.mjs --post-dir posts/2026-05-16-langchain
 `);
-}
-
-function readFm(file, key) {
-  const r = spawnSync("bun", ["run", resolve(SCRIPT_DIR, "set-frontmatter.mjs"), file, "get", key], { encoding: "utf8" });
-  return (r.stdout ?? "").trim();
 }
 
 function buildWechatSourceUrl(sourceUrl) {
@@ -215,9 +211,10 @@ const cover = resolve(base, rootCovers[0]);
   }
 }
 
-const title = readFm(articlePath, "title");
-const sourceUrl = readFm(articlePath, "sourceUrl");
-const digest = readFm(articlePath, "summary");
+  const article = readFileSync(articlePath, "utf8");
+  const title = readFmValue(article, "title");
+  const sourceUrl = readFmValue(article, "sourceUrl");
+  const digest = readFmValue(article, "summary");
 if (!title || !sourceUrl) {
   process.stderr.write("publish-wechat: frontmatter.title 或 sourceUrl 缺失\n");
   process.exit(2);

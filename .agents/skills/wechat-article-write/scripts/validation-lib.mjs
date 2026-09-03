@@ -62,6 +62,18 @@ export function resolveSlotImg(placeholder) {
   return { slot: parseInt(m[1], 10), desc: m[2] ?? null };
 }
 
+/** Extract SLOT occurrences with their source position for topology gates. */
+export function collectDraftSlots(text) {
+  const slots = [];
+  SLOT_EXTRACT_RE.lastIndex = 0;
+  let match;
+  while ((match = SLOT_EXTRACT_RE.exec(String(text ?? ""))) !== null) {
+    const parsed = resolveSlotImg(match[0]);
+    if (parsed) slots.push({ ...parsed, index: match.index, raw: match[0] });
+  }
+  return slots;
+}
+
 /** Normalize SLOT description text to the prompt/image basename convention. */
 export function normalizeSlotDesc(desc) {
   return String(desc ?? "")

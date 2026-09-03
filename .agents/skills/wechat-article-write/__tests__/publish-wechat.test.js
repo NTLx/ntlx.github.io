@@ -74,7 +74,6 @@ sourceUrl: ${sourceUrl}
 `);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n正文。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
-  writeFileSync(join(dir, "image-review.json"), "{}\n");
   writeFileSync(join(dir, "article-wechat-source.md"), "正文。\n");
   writePreparedArtifactManifest(dir);
   writeFinalizedArtifactManifest(dir);

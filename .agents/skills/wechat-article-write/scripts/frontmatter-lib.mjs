@@ -1,7 +1,7 @@
 /**
  * 共享 frontmatter 解析
  *
- * 消除 step2-write（readFm via set-frontmatter spawn）、step3-polish（parseFrontmatter 内联）、
+ * 共享 step2/step3/发布脚本的 frontmatter 读取，
  * publish-blog（splitFm + parseFm 内联）、step5-build（readFmValue 内联）中的重复实现。
  *
  * 提供 parseFrontmatter（从文本解析）和 readFmValue（从文本提取单字段）两种接口。

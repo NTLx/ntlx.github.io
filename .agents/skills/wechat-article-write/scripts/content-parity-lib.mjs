@@ -1,5 +1,5 @@
 import { extractBody } from "./frontmatter-lib.mjs";
-import { collectMarkdownImages, collectSubstantiveSections, normalizeSourceImageKey } from "./visual-plan-lib.mjs";
+import { collectMarkdownImages, collectSubstantiveSections, normalizeSourceImageKey } from "./markdown-structure-lib.mjs";
 
 const IMAGE_RENDERED_FENCES = new Set(["mermaid", "plantuml"]);
 

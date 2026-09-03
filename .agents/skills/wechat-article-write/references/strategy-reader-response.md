@@ -12,15 +12,15 @@ applies_when: 用户提供一篇或多篇原始材料，要求写读后感、深
 摘要，也不是把外部分析报告拼接起来；读者应能看见材料如何改变、支持
 或限制作者的判断。
 
-本策略只定义编辑目标。研究、理解、写作和润色方法由 Agent 根据当前
-缺口和 stage contract 决定，允许 no-skill、单个能力或少量互补能力。
+本策略只定义编辑目标。研究、理解、写作和润色方法由 Agent 根据当前缺口决定，
+允许原生完成、单个能力或少量互补能力。
 
 ## Step 1：研究材料
 
 读取 URL、文件或用户粘贴的原文，辨认输入范围和来源。必要的背景、人物、
 概念、事件、争议和近期信号要通过可验证来源补齐；所有进入正文的事实
 保留 URL，无法核实的内容明确标记。输入是视频、论文或其它特殊格式时，
-由 Agent 依据 catalog 选择合适的提取/阅读能力，不能假设某个工具永远
+由 Agent 依据当前任务可用能力选择合适的提取/阅读能力，不能假设某个工具永远
 可用。
 
 将原始材料、背景核验、观点区分和可复用图片信息写入：
@@ -42,7 +42,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 ## Step 1.8：理解与契约
 
 读取 `materials.md`、`blog-memory.md`、用户意图和
-`references/orchestration-policy.md`，先定义缺口，再从 catalog 选择方法。
+先定义缺口，再选择能补齐缺口的方法。
 生成 `understanding-brief.md`，并运行：
 
 ```bash

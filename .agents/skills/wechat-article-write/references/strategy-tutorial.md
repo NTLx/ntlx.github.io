@@ -40,10 +40,10 @@ posts/{date-slug}/image-plan.json
 ```
 
 `draft.md` 必须包含 SLOT 00；SLOT 01+ 只在能降低理解成本时创建，数量由
-正文和 image-plan 决定，可以为零。这些图服务于概念、流程、配置关系或常见
-误区，不是按章节凑数。`image-plan.json` 还要由 Agent 明确写出每个视觉节点
-的 intent、producer、`baoyu_design` 和 `prompt_source`；style、layout、type
-等文章级设计由对应 Baoyu producer 根据内容决定，不能只写 article_type。
+正文的视觉判断决定，可以为零。这些图服务于概念、流程、配置关系或常见
+误区，不是按章节凑数。生成图片后，`image-plan.json` 只记录每个最终资产的
+slot、kind、file；source 图片另外记录 URL 和 reason。style、layout、type
+等设计由对应 Baoyu Skill 根据内容决定。
 
 完成后运行：
 
@@ -67,6 +67,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续阶段
 
-Step 4 先判断视觉意图，再选择当前 catalog 中能解释该意图的能力；所有
+Step 4 先判断视觉意图，再选择能解释该意图的能力；所有
 raster 生成统一收束到 `baoyu-image-gen → codex-cli`。Step 5/6 继续遵循
 通用双轨构建、finalize 和发布顺序。

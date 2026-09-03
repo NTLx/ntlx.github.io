@@ -15,11 +15,9 @@ import { getWechatArticleWriteConfig } from "./config-lib.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
-import { assertCurrentDraftHumanized } from "./humanizer-lib.mjs";
-import { assertImageReview } from "./image-review-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
-import { assertFinalizeInputsFresh, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
-import { validateBaoyuDesign, validateVisualCoverage, validateVisualPlanTopology, readImagePlan } from "./visual-plan-lib.mjs";
+import { assertFinalizeInputsFresh, sha256File, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
+import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -78,7 +76,7 @@ function validateCoverFormat(path, expectedMime) {
     fail(2, `unable to detect MIME type for ${path}`);
   }
   if (actualMime !== expectedMime) {
-    fail(2, `${path.split("/").at(-1)} has MIME ${actualMime}; run pre-humanizer-normalize.mjs before humanizer-zh`);
+    fail(2, `${path.split("/").at(-1)} has MIME ${actualMime}; regenerate or normalize the cover before Step 5`);
   }
 }
 
@@ -170,6 +168,13 @@ function findScriptDir(name) {
   return null;
 }
 
+function assertStep3Fresh() {
+  const state = readStateWithoutMigration();
+  if (!state?.step3_draft_sha256 || state.step3_draft_sha256 !== sha256File(draftPath)) {
+    fail(2, "draft.md changed after Step 3; rerun humanizer-zh and Step 3");
+  }
+}
+
 function finalize() {
   if (!existsSync(articlePath)) fail(4, "article.md missing; cannot finalize Step 5");
   if (!existsSync(wechatSourcePath)) fail(4, "article-wechat-source.md missing; cannot finalize Step 5");
@@ -216,10 +221,7 @@ function finalize() {
 
 if (!existsSync(draftPath)) fail(2, "draft.md missing");
 try {
-  assertCurrentDraftHumanized(slug, {
-    draftPath,
-    ...(dryRun ? { state: readStateWithoutMigration() } : {}),
-  });
+  assertStep3Fresh();
 } catch (error) {
   fail(2, error.message);
 }
@@ -240,19 +242,14 @@ validateCoverFormats();
 const draft = readFileSync(draftPath, "utf8");
 const imgs = imageFiles(imgsDir);
 if (imgs.length === 0) fail(2, "imgs/ contains no image files");
-const imagePlanPath = resolve(base, "image-plan.json");
-let imagePlan;
-try {
-  imagePlan = readImagePlan(imagePlanPath);
-  const body = extractBody(draft);
-  const topology = validateVisualPlanTopology(imagePlan, body);
-  if (!topology.ok) fail(4, `visual plan topology invalid: ${topology.errors.join("; ")}`);
-  const coverageErrors = validateVisualCoverage(imagePlan, body).errors;
-  if (coverageErrors.length > 0) fail(4, `visual coverage review invalid: ${coverageErrors.join("; ")}`);
-  const designErrors = validateBaoyuDesign(imagePlan);
-  if (designErrors.length > 0) fail(4, `Baoyu visual design contract invalid: ${designErrors.join("; ")}`);
-  assertImageReview({ postDir: base, imagePlan, draftBody: body });
-} catch (error) {
+  const imagePlanPath = resolve(base, "image-plan.json");
+  let imagePlan;
+  try {
+    imagePlan = readImagePlan(imagePlanPath);
+    const body = extractBody(draft);
+    const planResult = validateImagePlan(imagePlan, body, base);
+    if (!planResult.ok) fail(4, `image-plan invalid: ${planResult.errors.join("; ")}`);
+  } catch (error) {
   fail(4, error.message);
 }
 const dateStr = slug.slice(0, 10);

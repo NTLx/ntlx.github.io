@@ -6,7 +6,7 @@
  */
 
 import { extractBody } from "./frontmatter-lib.mjs";
-import { collectMarkdownImages, collectSubstantiveSections } from "./visual-plan-lib.mjs";
+import { collectMarkdownImages, collectSubstantiveSections } from "./markdown-structure-lib.mjs";
 import { extractSubstantiveMarkdownBlockEntries, normalizeVisibleText, splitBlockFragments } from "./content-parity-lib.mjs";
 
 const LEAD_INFOGRAPHIC = "00-infographic-core-summary";
