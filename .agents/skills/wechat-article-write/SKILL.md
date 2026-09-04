@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.4.0"
+  version: "2.5.0"
 ---
 
 # 微信公众号文章写作
@@ -98,8 +98,17 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 
 ### Step 3 — Native Humanization
 
-`humanizer-zh` 对正常文章 mandatory。读取并完整执行
-`.agents/skills/humanizer-zh/SKILL.md`，给它以下 capsule：
+`humanizer-zh` 对正常文章是 mandatory child。按以下顺序执行：
+
+1. Parent 读取当前 `draft.md`。
+2. Parent 通过运行时的 native Skill 机制委托 `humanizer-zh`。
+3. `humanizer-zh` 自己读取并完整执行自己的 `SKILL.md`，拥有全部人性化编辑。
+4. Parent 审阅 diff，检查 semantic drift、事实、数字、URL、术语、H2、SLOT 和第一人称事实。
+5. 如果发现 semantic drift，必要时恢复不合格结果，并将反馈重新委托给 `humanizer-zh`。
+6. Parent 不得自行进行风格改写来替代该 child。
+7. 运行 Step 3 deterministic Gate。
+
+传给 `humanizer-zh` 的 capsule：
 
 ```text
 目标：去除 draft.md 中的 AI 写作痕迹，使文本自然，同时保持作者已有声音。
@@ -108,8 +117,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 输出：更新后的 draft.md。
 ```
 
-完成后审阅 diff：检查 semantic drift、数字、URL、技术结论、H2、SLOT 和第一人称事实，
-再运行：
+完成 child 输出后审阅 diff，再运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
@@ -124,13 +132,13 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 需要图片时读取 `references/image-policy.md`；需要修改长期图片默认偏好时，读取并编辑对应 `.baoyu-skills/<skill>/EXTEND.md`。按顺序一次处理一张：
 
-1. 需要 cover 时原生委托 `baoyu-cover-image`：传入最终 draft，以及等价于 `--quick --aspect 2.35:1 --no-title` 的子 Skill 参数；项目 backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。
-2. 原生委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：传入全文，以及等价于 `--yes --batch-size 1` 的子 Skill 参数；让它按项目配置自行选择 style/layout/palette/preset、生成 prompt 和 raster，输出 `imgs/00-infographic-core-summary.png`。
+1. 需要 cover 时只能原生委托 `baoyu-cover-image`：传入最终 draft，以及等价于 `--quick --aspect 2.35:1 --no-title` 的子 Skill 参数；项目 backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。Parent 不得调用通用 `image_gen` 或直接调用 `baoyu-image-gen` 替代它。
+2. 只能原生委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：传入全文，以及等价于 `--yes --batch-size 1` 的子 Skill 参数；让它按项目配置自行选择 style/layout/palette/preset、生成 prompt 和 raster，输出 `imgs/00-infographic-core-summary.png`。Parent 不得调用通用 `image_gen` 或直接调用 `baoyu-image-gen` 替代它。
 3. 每个 body visual `SLOT_IMG_01+`：若 source image 能直接承担表达，复用 source；否则单独原生委托 `baoyu-infographic` 生成。委托时传入对应正文语境、关系、必要背景、输出路径和 backend override，以及等价于 `--no-confirm` 的参数；由它自行选择 layout/style。完成并实际查看一张后再处理下一张。
 4. 只有确有 architecture、flow、sequence、state、data flow 或 topology 需求时，才按需委托 `baoyu-diagram` 辅助形成结构；最终正文 raster 仍交给 `baoyu-infographic`。
 5. `prefer-reuse` 时先审阅来源材料中的可用原图；把最终事实写入最小 `image-plan.json`，不记录 prompt、producer、contributors 或视觉 receipt。
 
-专业 Skill 完整拥有 analyze → style/layout/preset → prompt → raster → report 流程。父 Skill 不重建 prompt、不集中渲染，也不建立调用证明。
+专业 Skill 完整拥有 analyze → style/layout/preset → prompt → raster → report 流程。父 Skill 不重建 prompt、不集中渲染，也不建立调用证明。cover、SLOT00 和 `kind: generated` 的正文视觉失败时，回到对应 child 重新委托；不得由 Parent 用通用图像工具、自写脚本或手工产物接管。
 
 完成后运行：
 
@@ -146,7 +154,7 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 
 #### Step 5A — 图片托管
 
-由 Agent 原生读取并委托 `github-image-hosting`。传递最少的业务上下文：
+由 Agent 原生委托 `github-image-hosting`。child 自己读取自己的 `SKILL.md` 和项目配置，选择并执行上传实现；传递最少的业务上下文：
 
 ```text
 images: posts/<date-slug>/imgs/
@@ -157,11 +165,11 @@ output: posts/<date-slug>/image-map.json
 
 实际调用参数必须遵循 `github-image-hosting/SKILL.md` 的当前契约。该 Skill 自己负责
 项目配置、GitHub repo、branch、远端状态、SHA、幂等、冲突、重试、CDN URL 和
-`image-map.json`；父 Skill 不调用其 uploader，也不解析上传诊断输出。
+`image-map.json`；父 Skill 不调用其 uploader，也不解析上传诊断输出。child 失败时保持在 Step 5A，按其反馈重新委托；不得由 Parent 自己上传或调用 child 内部脚本。
 
 #### Step 5B — 确定性文章构建
 
-确认 Step 5A 已生成 `image-map.json` 后，运行：
+确认 Step 5A 已由 `github-image-hosting` 生成 `image-map.json` 后，运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
@@ -171,18 +179,20 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 并生成 `article-wechat-source.md`。缺少 map 时 fail closed，并提示先完成
 `github-image-hosting` 原生委托。随后由 Agent 原生委托 `gzh-design`，输入微信 source
 和本地图片，输出 `article-wechat.html`；让 gzh-design 完整执行主题选择、组件装配、
-validator 和预览流程。最后运行：
+validator 和预览流程。Parent 不负责 HTML writing、inline style assembly 或 `<span leaf="">`
+手工装配。最后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-完成条件：`article.md`、`article-wechat-source.md`、`article-wechat.html` 均存在；substantive H2 顺序、paragraph/list/code semantics、图片 basename/order/section placement 和 lead visual 一致；gzh-design 已完成其 validator/preview，父层 structural/integrity Gate 通过。
+如果父层 structural/integrity Gate 失败，保持 `article-wechat.html` 不变，把实际诊断传回 `gzh-design`，由 child 从冻结的 `article-wechat-source.md` 重新生成并再次运行自己的 validator/preview；Parent 不得 `apply_patch`、`sed`、`perl` 或手工编辑 HTML。完成条件：`article.md`、`article-wechat-source.md`、`article-wechat.html` 均存在；substantive H2 顺序、paragraph/list/code semantics、图片 basename/order/section placement 和 lead visual 一致；gzh-design 已完成其 validator/preview，父层 structural/integrity Gate 通过。
 
 ### Step 6 — Publish
 
 读取 `references/publishing.md`。先完成博客轨，再构建微信发布 capsule，由 Agent 原生委托
-`baoyu-post-to-wechat`，成功后才 finalize 微信 state：
+`baoyu-post-to-wechat`，成功后才 finalize 微信 state。child 自己读取其 `SKILL.md` 和项目
+`EXTEND.md`，选择 API/browser/remote-api，并拥有上传图片、上传 cover 和创建草稿的实现：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
@@ -192,10 +202,91 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 ```
 
 Agent 只传递最终 HTML、cover、title、summary、canonical author 和带 UTM 的 source URL；child
-Skill 自己读取其 `SKILL.md` 与 project `EXTEND.md`，选择并执行发布方法。创建草稿不等于群发。
+Skill 自己读取其 `SKILL.md` 与 project `EXTEND.md`，选择并执行发布方法。Parent 不得直接
+调用 `baoyu-post-to-wechat` 的内部 API script。child 失败时保持在 Step 6.2，按其反馈重新
+委托；不得由 Parent 自己上传或创建等价草稿。创建草稿不等于群发。
 博客提交、push、站点 deploy 状态保持可区分。
 
 完成条件：博客发布状态已记录且先于微信草稿完成；微信草稿状态已记录；失败任一侧都能通过 state v2 独立恢复。
+
+## Delegation fidelity
+
+Native delegation means the child Skill owns and executes its documented workflow. Reading a
+child `SKILL.md` and imitating it is not delegation.
+
+以下行为不算 child Skill 调用：
+
+### Parent 模仿 child Skill
+
+错误：
+
+```text
+Parent → read humanizer-zh/SKILL.md → Parent manually rewrites article
+```
+
+正确：
+
+```text
+Parent → invoke humanizer-zh → child edits draft → Parent reviews result
+```
+
+### 直接调用 child 内部脚本
+
+Parent 不得直接调用 `github-image-hosting/scripts/upload.ts`、
+`baoyu-post-to-wechat` 的内部 API script，或 gzh-design 的 internal validator/render
+scripts。child Skill 自己决定并执行内部脚本。
+
+### 使用通用工具替代 mandatory child
+
+cover 固定委托 `baoyu-cover-image`，`SLOT_IMG_00` 固定委托 `baoyu-xhs-images`，生成的
+正文 visual 固定委托 `baoyu-infographic`。Parent 不得使用通用 `image_gen`、直接调用
+`baoyu-image-gen`，或其它自写实现替代这些 child。
+
+### 父 Agent 手工修补 child artifact
+
+Parent 可以诊断 child 输出并运行 deterministic Gate，但不能成为 replacement producer。
+Gate 失败时，将诊断传回产生该 artifact 的 child，由 child 从干净输入重新生成；Parent
+不得手工改写 HTML、draft 或图片来绕过 Gate。
+
+## Mandatory / optional delegation
+
+### Mandatory child delegation
+
+只要当前 workflow 使用对应能力，以下阶段必须通过对应 child Skill；不可用、无法调用、
+依赖缺失或执行失败时必须 fail closed，不能 fallback 到 Parent：
+
+| 阶段 | Child Skill | 父 Agent 替代 |
+|---|---|---|
+| Step 3 | `humanizer-zh` | 否 |
+| cover | `baoyu-cover-image` | 否 |
+| SLOT00 | `baoyu-xhs-images` | 否 |
+| generated body visual | `baoyu-infographic` | 否 |
+| Step 5A hosting | `github-image-hosting` | 否 |
+| Step 5B HTML | `gzh-design` | 否 |
+| Step 6 WeChat draft | `baoyu-post-to-wechat` | 否 |
+
+统一模型：
+
+```text
+mandatory child unavailable or failed
+        ↓
+report blocker
+        ↓
+remain at current Step
+        ↓
+do not fabricate equivalent execution
+```
+
+### Optional delegation
+
+`research`、understanding、`baoyu-diagram` 和其它辅助分析能力仍由 Parent 按语义需要选择。
+它们不可用时，Agent 可以原生完成语义判断，但不得侵犯 mandatory child 的专业 ownership。
+
+## Child-owned artifact immutability
+
+child 完成输出后，如果 Parent 对 child-owned artifact 做了专业内容修改，该 artifact 不再
+视为 child-complete，必须重新委托原 child 后才能进入下一个 Gate。这是 runtime contract，
+不是新的 state 字段或调用证明。
 
 ## Native delegation
 
@@ -223,7 +314,32 @@ bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/pipeline.mjs <date-slug>
 ```
 
-Gate 失败时读取实际错误，修正当前输入或回到对应委托；重新运行同一 Gate。用户指出 AI 味、生硬或不像作者时回到 Step 3；图片视觉问题回到同一图片 Skill regenerate。不要修改已通过的下游 artifact 来绕过上游 Gate。
+Gate failure → identify owner of failed artifact → return diagnostic to that owner → owner regenerates
+→ run the same Gate again。
+
+Ownership matrix：
+
+| Artifact | Owner |
+|---|---|
+| humanized `draft.md` | `humanizer-zh` |
+| cover | `baoyu-cover-image` |
+| SLOT00 | `baoyu-xhs-images` |
+| generated body image | `baoyu-infographic` |
+| `image-map.json` | `github-image-hosting` |
+| `article-wechat.html` | `gzh-design` |
+| WeChat draft | `baoyu-post-to-wechat` |
+| state / parity / deterministic artifacts | parent scripts |
+
+Parent may diagnose child output, but must not become the replacement producer. 尤其是：
+
+1. `gzh-design` 的输出失败：不要 patch `article-wechat.html`；将 Gate diagnostics 传回
+   `gzh-design`，从冻结的 `article-wechat-source.md` 重新生成，重新运行 child validator/preview，
+   再运行 Step 5 finalize。
+2. humanized draft、cover、SLOT00、generated body image、`image-map.json` 或 WeChat draft
+   失败：回到对应 owner 重新委托，保持在当前阶段；不得用 Parent 手工产物、通用工具或 child
+   内部脚本替代。
+3. 用户指出 AI 味、生硬或不像作者时回到 Step 3；图片视觉问题回到同一图片 Skill regenerate。
+4. 不要修改已通过的下游 artifact 来绕过上游 Gate。
 
 ## References
 

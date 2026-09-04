@@ -54,12 +54,17 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.4.0") errors.push("SKILL.md must declare metadata.version=2.4.0");
+if (fm["metadata.version"] !== "2.5.0") errors.push("SKILL.md must declare metadata.version=2.5.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
+
+for (const phrase of [
+  "## Delegation fidelity", "### Mandatory child delegation", "fail closed",
+  "## Child-owned artifact immutability", "Ownership matrix",
+]) if (!skillText.includes(phrase)) errors.push(`SKILL.md missing delegation contract: ${phrase}`);
 
 for (const name of [
   "humanizer-zh", "baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic",
-  "baoyu-diagram", "baoyu-image-gen", "github-image-hosting", "gzh-design",
+  "baoyu-diagram", "baoyu-image-gen", "github-image-hosting", "gzh-design", "baoyu-post-to-wechat",
 ]) {
   if (!existsSync(resolve(skillsRoot, name, "SKILL.md"))) errors.push(`required Skill missing: ${name}`);
 }
@@ -135,6 +140,8 @@ for (const rel of activeFiles) {
 }
 
 const mapping = [
+  ["Step 3", "humanizer-zh"], ["Step 5A hosting", "github-image-hosting"],
+  ["Step 5B HTML", "gzh-design"], ["Step 6 WeChat draft", "baoyu-post-to-wechat"],
   ["cover", "baoyu-cover-image"], ["SLOT_IMG_00", "baoyu-xhs-images"],
   ["正文生成图", "baoyu-infographic"], ["humanizer-zh", "humanizer-zh"],
   ["gzh-design", "gzh-design"], ["github-image-hosting", "github-image-hosting"],
@@ -142,10 +149,9 @@ const mapping = [
 ];
 for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText.includes(right)) errors.push(`native delegation mapping missing: ${left} -> ${right}`);
 
-const productionFiles = [
-  "scripts/publish-wechat.mjs", "scripts/step5-build.mjs", "scripts/step5-lib.mjs",
-  "scripts/config-lib.mjs", "scripts/check-deps.mjs", "scripts/pipeline.mjs",
-];
+const productionFiles = readdirSync(file("scripts"))
+  .filter((name) => name.endsWith(".mjs") && name !== "validate-architecture.mjs")
+  .map((name) => `scripts/${name}`);
 const forbiddenCoupling = [
   "wechat-api.ts", "BAOYU_POST_TO_WECHAT_BIN", "resolveWechatApiScript", "ensureDepsInstalled",
   "github-image-hosting/scripts/upload", "gzh-design/scripts/validate_gzh_html.py",

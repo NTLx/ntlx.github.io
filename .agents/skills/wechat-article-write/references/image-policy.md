@@ -24,7 +24,11 @@ Agent 每次委托都把当前 draft 语境、输出路径、子 Skill 原生的
 `baoyu-image-gen --provider codex-cli` backend override 传入。cover 使用等价于
 `--quick --aspect 2.35:1 --no-title` 的参数，SLOT00 使用 `--yes --batch-size 1`，正文图使用
 `--no-confirm`。专业 Skill 自己完成分析、style/layout/preset、prompt、raster 和报告；父 Skill
-不重建 prompt、不集中渲染。
+不重建 prompt、不集中渲染。通用 `image_gen`、直接调用 `baoyu-image-gen` 或父层自写脚本
+都不能替代 mandatory 的 `baoyu-cover-image`、`baoyu-xhs-images` 和 `baoyu-infographic`。
+
+mandatory child 不可发现、依赖缺失或执行失败时，图片阶段 fail closed 并停留在当前 Step；
+按对应 child 的反馈重新委托，不切换到父 Agent 的通用图像工具。
 
 ## Project preference
 
@@ -38,6 +42,17 @@ saturation、high contrast、clean、crisp、warm-positive 等视觉偏好由上
 把最终 `kind: source`、本地 file、source URL 和 reason 写入 `image-plan.json`。只记录最终资产事实。
 
 source reuse 决定的是某个视觉节点用什么图，不是决定这个视觉节点要不要存在。
+
+## Source provenance review
+
+如果正文显式引用 `Figure N`、`Fig. N`、`图 N`、`Table N` 或 `表 N`，Parent 必须逐项核对：
+
+- 原 source figure/table number；
+- source caption；
+- 正文描述；
+- 本地复用图片。
+
+四者必须指向同一个 source asset。复用审核仍由 Parent 负责，不新增调用证明或机器 Gate。
 
 高价值 source image 不直接绕过 SLOT 插入正文。如果原图承担一个正式正文视觉节点：
 
