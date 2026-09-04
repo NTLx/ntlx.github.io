@@ -54,7 +54,9 @@ cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
 
 正常长文（substantive H2 至少 3 个，或正文达到约 1400 字的正常长文级别）必须至少
 有两个 `SLOT_IMG_01+`。典型 3-6 H2 的 reader-response 在 2-4 个 body visuals 之间按
-语义判断自由选择。短文或确实没有独立视觉信息增益时允许 0 个。
+语义判断自由选择。未达到 normal long-form 阈值的短文可以为 0 个；normal long-form
+不能因没有合适的 source image 或判断视觉信息增益不足而豁免，仍应寻找有价值的视觉化
+节点，必要时使用 `kind: generated` 委托生成信息图。
 
 优先视觉化：
 

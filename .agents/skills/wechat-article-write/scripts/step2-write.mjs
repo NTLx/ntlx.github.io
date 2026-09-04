@@ -118,7 +118,7 @@ if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
 
 // 3a. SLOT_IMG placeholder check. SLOT00 is mandatory; normal long-form
-// articles also require at least one body visual SLOT beyond SLOT00.
+// articles also require at least two body visual SLOTs beyond SLOT00.
 const draftSlots = collectDraftSlots(body);
 if (draftSlots.length === 0) fail(4, "正文缺少 SLOT_IMG 占位符（必须包含 <!-- SLOT_IMG_00_INFOGRAPHIC -->）");
 const slotCounts = new Map();

@@ -42,7 +42,7 @@ posts/{date-slug}/draft.md
 ```
 
 `draft.md` 必须包含 SLOT00；SLOT_IMG_01+ 是正文 visual SLOT，正常长文至少两个；
-短文或确实没有独立视觉信息增益时允许 0 个。这些图服务于概念、流程、配置关系或常见
+未达到 normal long-form 阈值的短文可以为 0 个。这些图服务于概念、流程、配置关系或常见
 误区，不是按章节凑数。Step 2 只验证 `draft.md` 的 SLOT topology；Step 4 完成
 source reuse 或生成后，才创建 `image-plan.json`，记录每个最终资产的 slot、kind、file，
 以及 source 图片的 URL 和 reason。style、layout、type 等设计由对应 Baoyu Skill 根据内容决定。
