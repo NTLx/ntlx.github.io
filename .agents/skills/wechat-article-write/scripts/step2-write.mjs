@@ -28,7 +28,7 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, requiresBodyVisualCoverage } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
-import { collectMarkdownImages, collectSubstantiveSections } from "./markdown-structure-lib.mjs";
+import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
 const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction", "--allow-no-related"]);
@@ -104,9 +104,11 @@ if (!targetPath) {
   if (!/^https?:\/\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（需为合法 URL）: ${sourceUrl}`);
 }
 
-// 2. Word count (informational only — the active strategy owns this decision)
+// 2. Preserve full-body word_count for existing state consumers; coverage uses
+// a separate substantive article word count below.
 const body = extractBody(content);
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
+const substantiveWordCount = countWords(stripNonSubstantiveTailSections(body)).total;
 
 if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
   fail(4, "正文使用了 reference-style Markdown 链接。请改用 inline links: [文本](URL)，以便 Step 5 为博客/微信生成不同链接形态");
@@ -130,7 +132,7 @@ if (!bodySlotNumbers.every((slot, index) => slot === index + 1)) fail(4, "正文
 // SLOT00 is the lead visual. Body visual planning happens after humanization,
 // when source-image reuse and final assets are known.
 const sections = collectSubstantiveSections(body);
-if (requiresBodyVisualCoverage({ wordCount, substantiveSectionCount: sections.length }) && bodySlotNumbers.length === 0) {
+if (requiresBodyVisualCoverage({ wordCount: substantiveWordCount, substantiveSectionCount: sections.length }) && bodySlotNumbers.length === 0) {
   fail(4, "normal long-form article requires at least one body visual SLOT beyond SLOT00; review understanding-brief.md visualizable nodes and add SLOT_IMG_01+");
 }
 if (sections[0] && draftSlots.find((slot) => slot.slot === 0)?.index >= sections[0].start) {

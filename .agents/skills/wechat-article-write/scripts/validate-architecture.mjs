@@ -54,7 +54,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.3.0") errors.push("SKILL.md must declare metadata.version=2.3.0");
+if (fm["metadata.version"] !== "2.3.1") errors.push("SKILL.md must declare metadata.version=2.3.1");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const name of [

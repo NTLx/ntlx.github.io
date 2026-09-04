@@ -1,13 +1,13 @@
 import { extractBody } from "./frontmatter-lib.mjs";
 
-const NON_SUBSTANTIVE_HEADINGS = new Set(["参考资料", "延伸阅读"]);
+export const NON_SUBSTANTIVE_HEADINGS = new Set(["参考资料", "延伸阅读"]);
 
 function normalizedHeading(value) {
   return String(value ?? "").replace(/\s+#+\s*$/u, "").trim().replace(/\s+/gu, " ");
 }
 
-export function collectSubstantiveSections(body) {
-  const sections = [];
+function collectH2Headings(body) {
+  const headings = [];
   let offset = 0;
   let inFence = false;
   for (const line of String(body ?? "").match(/[^\r\n]*(?:\r?\n|$)/gu) ?? []) {
@@ -16,13 +16,31 @@ export function collectSubstantiveSections(body) {
     } else if (!inFence) {
       const match = line.match(/^\s*##(?!#)\s+(.+?)\s*$/u);
       const heading = normalizedHeading(match?.[1]);
-      if (heading && !NON_SUBSTANTIVE_HEADINGS.has(heading)) {
-        sections.push({ section_index: sections.length + 1, heading, start: offset });
-      }
+      if (heading) headings.push({ heading, start: offset });
     }
     offset += line.length;
   }
-  return sections;
+  return headings;
+}
+
+export function collectSubstantiveSections(body) {
+  return collectH2Headings(body)
+    .filter(({ heading }) => !NON_SUBSTANTIVE_HEADINGS.has(heading))
+    .map((section, index) => ({ section_index: index + 1, heading: section.heading, start: section.start }));
+}
+
+/** Remove trailing non-substantive H2 sections before article word counting. */
+export function stripNonSubstantiveTailSections(body) {
+  const text = String(body ?? "");
+  const headings = collectH2Headings(text);
+  let lastSubstantiveIndex = -1;
+  for (const [index, { heading }] of headings.entries()) {
+    if (!NON_SUBSTANTIVE_HEADINGS.has(heading)) lastSubstantiveIndex = index;
+  }
+  const firstTrailingNonSubstantive = headings
+    .slice(lastSubstantiveIndex + 1)
+    .find(({ heading }) => NON_SUBSTANTIVE_HEADINGS.has(heading));
+  return firstTrailingNonSubstantive ? text.slice(0, firstTrailingNonSubstantive.start).trimEnd() : text;
 }
 
 export function collectMarkdownImages(body) {

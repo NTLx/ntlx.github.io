@@ -2,11 +2,12 @@
 
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
-import { requiresBodyVisualCoverage } from "../scripts/validation-lib.mjs";
+import { countWords, requiresBodyVisualCoverage } from "../scripts/validation-lib.mjs";
+import { stripNonSubstantiveTailSections } from "../scripts/markdown-structure-lib.mjs";
 
 const STEP2 = resolve(import.meta.dir, "../scripts/step2-write.mjs");
 const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
@@ -17,8 +18,11 @@ function fixture() {
   return root;
 }
 
-function draft({ substantiveSections, bodySlots = "" }) {
-  const sections = substantiveSections.map((heading, index) => `## ${heading}\n\n第 ${index + 1} 节正文。`).join("\n\n");
+function draft({ substantiveSections, bodySlots = "", bodyImages = "", sectionBody, referenceContent = "- https://example.com/reference" }) {
+  const sections = substantiveSections.map((heading, index) => {
+    const content = sectionBody ? sectionBody(index) : `第 ${index + 1} 节正文。`;
+    return `## ${heading}\n\n${content}`;
+  }).join("\n\n");
   return `---
 title: Visual coverage test
 date: 2026-09-04
@@ -32,6 +36,7 @@ sourceUrl: https://ntlx.github.io/articles/visual-coverage-test
 <!-- SLOT_IMG_00_INFOGRAPHIC -->
 
 ${bodySlots}
+${bodyImages}
 ${sections}
 
 **你会怎么做？**
@@ -40,7 +45,7 @@ ${sections}
 
 ## 参考资料
 
-- https://example.com/reference
+${referenceContent}
 `;
 }
 
@@ -104,6 +109,20 @@ describe("visual coverage contract", () => {
     expect(requiresBodyVisualCoverage({ wordCount: 1399, substantiveSectionCount: 2 })).toBe(false);
   });
 
+  test("strips trailing non-substantive sections before counting article words", () => {
+    const body = [
+      `## 一\n\n${"正文".repeat(275)}`,
+      `## 二\n\n${"正文".repeat(275)}`,
+      `## 参考资料\n\n${"参考".repeat(500)}`,
+      `## 延伸阅读\n\n${"延伸".repeat(500)}`,
+    ].join("\n\n");
+    const substantiveBody = stripNonSubstantiveTailSections(body);
+    expect(substantiveBody).not.toContain("## 参考资料");
+    expect(substantiveBody).not.toContain("## 延伸阅读");
+    expect(countWords(substantiveBody).total).toBeLessThan(1400);
+    expect(requiresBodyVisualCoverage({ wordCount: countWords(substantiveBody).total, substantiveSectionCount: 2 })).toBe(false);
+  });
+
   test("fails a normal long-form article that has only SLOT00", () => {
     const root = fixture();
     try {
@@ -133,6 +152,49 @@ describe("visual coverage contract", () => {
     try {
       const result = runStep2(root, draft({ substantiveSections: ["一", "二"] }));
       expect(result.status, result.stderr || result.stdout).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("does not let a long reference section turn a short article into long-form coverage", () => {
+    const root = fixture();
+    try {
+      const result = runStep2(root, draft({
+        substantiveSections: ["一", "二"],
+        referenceContent: `- https://example.com/reference\n\n${"参考资料".repeat(500)}`,
+      }));
+      expect(result.status, result.stderr || result.stdout).toBe(0);
+      const state = JSON.parse(readFileSync(join(root, "2026-09-04-visual-coverage", ".pipeline-state.json"), "utf8"));
+      expect(state.word_count).toBeGreaterThan(1400);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("still requires coverage when substantive article content reaches 1400 words", () => {
+    const root = fixture();
+    try {
+      const result = runStep2(root, draft({
+        substantiveSections: ["一"],
+        sectionBody: () => "正".repeat(1400),
+      }));
+      expect(result.status).toBe(4);
+      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("does not let an ordinary Markdown source image satisfy formal coverage", () => {
+    const root = fixture();
+    try {
+      const result = runStep2(root, draft({
+        substantiveSections: ["一", "二", "三"],
+        bodyImages: "![架构截图](https://example.com/architecture.png)",
+      }));
+      expect(result.status).toBe(4);
+      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -170,6 +232,19 @@ describe("visual coverage contract", () => {
         substantiveSections: ["一", "二", "三", "四", "五"],
         bodySlots: "<!-- SLOT_IMG_01_SOURCE -->",
       }), true);
+      expect(result.status, result.stderr || result.stdout).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  test("Step 4 ignores long trailing references for coverage length", () => {
+    const root = fixture();
+    try {
+      const result = runStep4(root, draft({
+        substantiveSections: ["一", "二"],
+        referenceContent: `- https://example.com/reference\n\n${"参考资料".repeat(500)}`,
+      }));
       expect(result.status, result.stderr || result.stdout).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });

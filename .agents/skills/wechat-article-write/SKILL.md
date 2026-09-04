@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.3.0"
+  version: "2.3.1"
 ---
 
 # 微信公众号文章写作
@@ -87,13 +87,13 @@ strategy 约束。需要正文规则时读取 `references/content-invariants.md`
 `SLOT_IMG_01+` 是正文 visual SLOT，依据理解 brief 中的高价值视觉节点规划；正常长文
 至少一个，典型 3-6 个 substantive H2 的 reader-response 通常规划 2-4 个。不要按 H2
 数量机械配图，也不要重复 SLOT00。每个 SLOT 的 `kind`（`source` 或 `generated`）在
-Step 4 决定；此时只校验 draft topology，最终资产事实写入 `image-plan.json`。
+Step 4 决定；Step 2 只产出 `draft.md` 和 SLOT topology，不创建最终 `image-plan.json`。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
 
-完成条件：`draft.md` 完整，frontmatter、H2、链接、互动、引用、SLOT topology 与站内记忆约束通过 Step 2 Gate。
+完成条件：`draft.md` 完整，frontmatter、H2、链接、互动、引用、SLOT topology 与站内记忆约束通过 Step 2 Gate；最终图片事实留到 Step 4。
 
 ### Step 3 — Native Humanization
 

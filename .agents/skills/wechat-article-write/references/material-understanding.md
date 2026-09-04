@@ -108,6 +108,9 @@
 这仍然是 Markdown brief，不需要额外 schema；如果最终 draft 没采用某个“必须视觉化”
 节点，Agent 在过程说明中解释原因，不创建 receipt 文件。
 
+Understanding brief 只声明视觉节点、目标和取舍，不记录最终 file path、kind、source URL
+或 basename；这些事实由 Step 4 产生并写入 `image-plan.json`。
+
 契约应是短句和可检查的承诺，不要把工具名称当作承诺，也不要把外部
 分析报告全文复制进来。
 

@@ -39,6 +39,15 @@ saturation、high contrast、clean、crisp、warm-positive 等视觉偏好由上
 
 source reuse 决定的是某个视觉节点用什么图，不是决定这个视觉节点要不要存在。
 
+高价值 source image 不直接绕过 SLOT 插入正文。如果原图承担一个正式正文视觉节点：
+
+1. 为该节点规划有语义的 `SLOT_IMG_01+`；
+2. 下载或落盘到 `imgs/`；
+3. 在 Step 4 的 `image-plan.json` 中将该 SLOT 记为 `kind: source`；
+4. 保留 source URL 与 reason。
+
+这使 source reuse 与生成图片共享同一正文语义位置；普通 Markdown 图片不自动满足覆盖。
+
 ## Visual coverage
 
 cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
@@ -60,12 +69,15 @@ cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
 
 ## Serial review
 
-cover、SLOT00、正文 generated images 按 workflow 顺序一次一张；一张生成后由 Agent 实际查看
-semantic match、visual hierarchy、Chinese text correctness、legibility、text density 和 XHS character，
-通过后才处理下一张。失败时回到同一个专业 Skill regenerate。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。
+cover、SLOT00、每个 body visual 按 workflow 顺序一次处理；通过后才处理下一张。
+
+- `kind: source`：实际查看是否对应当前论点、是否清晰完整、是否需要裁切，以及是否含过期或误导信息、是否值得复用；不创建 receipt。
+- `kind: generated`：实际查看 semantic match、visual hierarchy、Chinese text correctness、legibility、text density 和 XHS character。
+
+失败时回到同一个专业 Skill regenerate。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。
 
 ## Machine Gate
 
 `step4-images.mjs` 只检查：root cover uniqueness、MIME/扩展名、cover ratio、SLOT00 basename、
-body SLOT ↔ `image-plan.json` ↔ local file topology、图片文件存在。它不读取或要求视觉布尔 receipt，
-也不要求 prompt 文件作为父 Skill 的控制层产物。
+normal long-form minimum body visual coverage、body SLOT ↔ `image-plan.json` ↔ local file topology、
+图片文件存在。它不检查视觉美学评分，也不读取或要求 prompt、producer、receipt 等控制层产物。

@@ -68,11 +68,13 @@ brief 要给出核心问题、中心判断、机制、边界、反方、可视�
   正文图优先表达局部机制、对比、框架、状态变化或原创增量，避免重复 SLOT00；
 - 写出金句式 `summary`（不超过 120 字）、互动问题和 `## 参考资料`。
 
-保存 `draft.md` 和 `image-plan.json`，再运行：
+保存 `draft.md` 并运行 Step 2 Gate：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
+
+Step 4 完成 source reuse 或生成后，才创建最终 `image-plan.json`，再进入后续图片校验。
 
 若没有合适的站内文章，使用 `--allow-no-related` 并记录理由；不要为了
 满足数量强行联动。

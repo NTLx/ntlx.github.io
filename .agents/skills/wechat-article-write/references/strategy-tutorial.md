@@ -24,7 +24,10 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
   可读的引用/提示；
 - 移除不属于文章协议的 frontmatter 字段；
 - 用 H2 组织正文，正文不放 H1；
-- 将需要重画的原图改成有语义的 SLOT 占位符，保留确有信息价值的原图；
+- 所有需要进入最终正文并计入视觉覆盖的图片，都映射到有语义的 `SLOT_IMG_01+`：
+  已有高价值原图保留其内容，在对应语义位置使用 SLOT，Step 4 记为 `kind: source`；
+  需要重画或没有合适原图的节点同样使用 SLOT，Step 4 记为 `kind: generated`。不要形成
+  “source image 是普通 Markdown 图片、generated image 才是 SLOT”的双轨语义；
 - 写入金句式 `summary`，选择分类、`blogSlug`、`targetPath` 和 canonical
   `sourceUrl`。
 
@@ -32,18 +35,17 @@ Agent 可读取 `blog-memory.md` 并选择是否联动旧文；如果不适合�
 `--allow-no-related` 说明理由。教程默认允许没有互动和参考资料，但如果
 原文有来源信息，应保留它们。
 
-产物：
+Step 2 产物：
 
 ```text
 posts/{date-slug}/draft.md
-posts/{date-slug}/image-plan.json
 ```
 
 `draft.md` 必须包含 SLOT00；SLOT_IMG_01+ 是正文 visual SLOT，正常长文至少一个；
 短文或确实没有独立视觉信息增益时允许 0 个。这些图服务于概念、流程、配置关系或常见
-误区，不是按章节凑数。生成图片后，`image-plan.json` 只记录每个最终资产的
-slot、kind、file；source 图片另外记录 URL 和 reason。style、layout、type
-等设计由对应 Baoyu Skill 根据内容决定。
+误区，不是按章节凑数。Step 2 只验证 `draft.md` 的 SLOT topology；Step 4 完成
+source reuse 或生成后，才创建 `image-plan.json`，记录每个最终资产的 slot、kind、file，
+以及 source 图片的 URL 和 reason。style、layout、type 等设计由对应 Baoyu Skill 根据内容决定。
 
 完成后运行：
 

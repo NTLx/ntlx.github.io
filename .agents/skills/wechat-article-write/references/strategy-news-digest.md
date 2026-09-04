@@ -39,12 +39,17 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 `## 参考资料`。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
 把猜测伪装成事实。
 
-保存 `draft.md`。图片完成后，`image-plan.json` 只记录最终资产的 slot、kind、file，
-以及 source 图片必要的 URL 和 reason；source 与 generated 都算正文视觉覆盖，
-再运行：
+保存 `draft.md` 并运行 Step 2 Gate；Step 2 不创建最终 `image-plan.json`：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
+```
+
+Step 4 图片完成后，才创建 `image-plan.json`，只记录最终资产的 slot、kind、file，以及
+source 图片必要的 URL 和 reason；source 与 generated 都算正文视觉覆盖，再运行 Step 4 Gate：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
 
 ## Step 3：按问题 refine

@@ -17,11 +17,14 @@
 至少一个 body visual SLOT；典型 3-6 H2 reader-response 推荐 2-4 个。source 与
 generated 都计入正文视觉覆盖，cover 与 SLOT00 不计入。真正短、结构简单且没有明显
 对比、流程、机制或复杂关系的内容允许 0 个，但正常长文不能静默 0 图通过。
+正式正文视觉统一由 `SLOT_IMG_01+` 表达；普通 Markdown 图片不计入 Visual Coverage
+Gate。`SLOT` 表示正文中的语义视觉位置，`kind` 表示资产来源（`source` 或 `generated`）。
 占位符描述具体说明附近内容，不使用泛化的 `chart`、`diagram` 或 `illustration`。
 
 ## Visual facts
 
-Step 4 的 `image-plan.json` 只记录最终资产事实：
+Step 2 只记录 `draft.md` 中的 SLOT topology，不创建最终图片计划。Step 4 的
+`image-plan.json` 只记录最终资产事实：
 
 ```json
 {
