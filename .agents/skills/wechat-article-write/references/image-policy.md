@@ -74,7 +74,8 @@ cover、SLOT00、每个 body visual 按 workflow 顺序一次处理；通过后�
 - `kind: source`：实际查看是否对应当前论点、是否清晰完整、是否需要裁切，以及是否含过期或误导信息、是否值得复用；不创建 receipt。
 - `kind: generated`：实际查看 semantic match、visual hierarchy、Chinese text correctness、legibility、text density 和 XHS character。
 
-失败时回到同一个专业 Skill regenerate。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。
+- `kind: source` 审核失败时，换用另一张合适的 source image；如果没有合适原图，将该 SLOT 改为 `kind: generated`，再委托 `baoyu-infographic`。
+- `kind: generated` 审核失败时，回到 `baoyu-infographic` 重新生成。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。
 
 ## Machine Gate
 
