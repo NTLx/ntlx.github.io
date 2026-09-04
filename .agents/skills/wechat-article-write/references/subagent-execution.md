@@ -18,6 +18,12 @@ commit/push、运行 Astro build、运行 Step scripts、运行 child Skill 内�
 完成执行工作。Main 可以读少量 artifact 片段做 semantic decision，但应优先读 summary 和
 contract。Worker failure never expands Main execution authority。
 
+native Subagent capability unavailable
+        ↓
+workflow BLOCKED
+        ↓
+Main MUST NOT fallback to direct execution
+
 ## Worker lifecycle
 
 默认每个 Worker 都是：
@@ -122,7 +128,7 @@ Worker 不返回完整研究报告、全文、HTML、图片 prompt、API token�
 
 ## Skill-via-Worker
 
-Skill-via-Worker 的成立条件是：Worker 直接读取 child `SKILL.md`，完整执行 child 的分析、
+Skill-via-Worker 的成立条件是：Worker 读取 required child Skill 的 `SKILL.md`，完整执行 child 的分析、
 选择、生成、validator 或发布流程，并写入其约定 artifact。Worker 可以根据 child Skill 自身
 文档调用 child 的内部 scripts；Main 不得调用这些 scripts，也不得读取 Skill 后自行模仿执行。
 

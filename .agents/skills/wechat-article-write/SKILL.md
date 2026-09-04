@@ -52,6 +52,12 @@ Main Agent should prefer reading summaries and contracts over raw execution arti
 failure never expands Main Agent execution authority；失败时只能分类、重派同类 Worker、改道到
 另一个 Worker，或报告 blocked。
 
+native Subagent capability unavailable
+        ↓
+workflow BLOCKED
+        ↓
+Main MUST NOT fallback to direct execution
+
 Worker 的生命周期、capsule、handoff、execution-unit matrix、Skill-via-Worker 定义和恢复规则
 见 `references/subagent-execution.md`。
 
@@ -923,7 +929,7 @@ Native delegation means the Worker Skill owns and executes its documented workfl
 ### Native delegation
 
 Main 传递目标、输入、strategy、项目偏好、输出路径、backend override、子 Skill 原生非交互参数
-和验收边界；Worker 直接读取自己的 `SKILL.md`，完整执行分析、选择、生成、validator 或发布，
+和验收边界；Worker 读取 required child Skill 的 `SKILL.md`，完整执行分析、选择、生成、validator 或发布，
 然后只返回短 handoff。
 
 ### Skill-via-Worker definition
