@@ -53,9 +53,8 @@ source reuse 决定的是某个视觉节点用什么图，不是决定这个视�
 cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
 
 正常长文（substantive H2 至少 3 个，或正文达到约 1400 字的正常长文级别）必须至少
-有一个 `SLOT_IMG_01+`。典型 3-6 H2 的 reader-response 通常规划 2-4 个 body visuals，
-但推荐范围由 Agent 的语义判断决定，不是额外 hard Gate。短文或确实没有独立视觉信息
-增益时允许 0 个。
+有两个 `SLOT_IMG_01+`。典型 3-6 H2 的 reader-response 在 2-4 个 body visuals 之间按
+语义判断自由选择。短文或确实没有独立视觉信息增益时允许 0 个。
 
 优先视觉化：
 

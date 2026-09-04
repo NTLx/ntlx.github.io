@@ -6,7 +6,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
-import { countWords, requiresBodyVisualCoverage } from "../scripts/validation-lib.mjs";
+import { countWords, requiresBodyVisualCoverage, bodyVisualMinimum } from "../scripts/validation-lib.mjs";
 import { stripNonSubstantiveTailSections } from "../scripts/markdown-structure-lib.mjs";
 
 const STEP2 = resolve(import.meta.dir, "../scripts/step2-write.mjs");
@@ -79,12 +79,20 @@ function runStep4(root, content, bodyPlan = false) {
   const images = [{ slot: "SLOT_IMG_00", kind: "generated", file: "imgs/00-infographic-core-summary.png" }];
   if (bodyPlan) {
     writeFileSync(join(postDir, "imgs/01-source.png"), pngWithDimensions(1, 1));
+    writeFileSync(join(postDir, "imgs/02-source.png"), pngWithDimensions(1, 1));
     images.push({
       slot: "SLOT_IMG_01",
       kind: "source",
       file: "imgs/01-source.png",
       source: "https://example.com/source.png",
       reason: "原图直接承担正文机制表达",
+    });
+    images.push({
+      slot: "SLOT_IMG_02",
+      kind: "source",
+      file: "imgs/02-source.png",
+      source: "https://example.com/source2.png",
+      reason: "原图直接承担正文对比表达",
     });
   }
   writeFileSync(join(postDir, "image-plan.json"), JSON.stringify({ cover: "cover.png", images }) + "\n");
@@ -109,6 +117,26 @@ describe("visual coverage contract", () => {
     expect(requiresBodyVisualCoverage({ wordCount: 1399, substantiveSectionCount: 2 })).toBe(false);
   });
 
+  test("normal long-form requires two body visual SLOTs, short articles require zero", () => {
+    expect(bodyVisualMinimum({ wordCount: 10, substantiveSectionCount: 3 })).toBe(2);
+    expect(bodyVisualMinimum({ wordCount: 1400, substantiveSectionCount: 1 })).toBe(2);
+    expect(bodyVisualMinimum({ wordCount: 1399, substantiveSectionCount: 2 })).toBe(0);
+  });
+
+  test("fails a normal long-form article that has only one body visual SLOT", () => {
+    const root = fixture();
+    try {
+      const result = runStep2(root, draft({
+        substantiveSections: ["一", "二", "三", "四", "五"],
+        bodySlots: "<!-- SLOT_IMG_01_TOKEN_VS_OUTCOME -->",
+      }));
+      expect(result.status).toBe(4);
+      expect(result.stderr).toContain("requires at least 2 body visual SLOTs");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test("strips trailing non-substantive sections before counting article words", () => {
     const body = [
       `## 一\n\n${"正文".repeat(275)}`,
@@ -128,18 +156,18 @@ describe("visual coverage contract", () => {
     try {
       const result = runStep2(root, draft({ substantiveSections: ["一", "二", "三", "四", "五"] }));
       expect(result.status).toBe(4);
-      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
+      expect(result.stderr).toContain("requires at least 2 body visual SLOTs");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
-  test("passes a normal long-form article with one body visual SLOT", () => {
+  test("passes a normal long-form article with two body visual SLOTs", () => {
     const root = fixture();
     try {
       const result = runStep2(root, draft({
         substantiveSections: ["一", "二", "三", "四", "五"],
-        bodySlots: "<!-- SLOT_IMG_01_TOKEN_VS_OUTCOME -->",
+        bodySlots: "<!-- SLOT_IMG_01_TOKEN_VS_OUTCOME -->\n\n<!-- SLOT_IMG_02_RECOVERY_LOOP -->",
       }));
       expect(result.status, result.stderr || result.stdout).toBe(0);
     } finally {
@@ -180,7 +208,7 @@ describe("visual coverage contract", () => {
         sectionBody: () => "正".repeat(1400),
       }));
       expect(result.status).toBe(4);
-      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
+      expect(result.stderr).toContain("requires at least 2 body visual SLOTs");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -194,7 +222,7 @@ describe("visual coverage contract", () => {
         bodyImages: "![架构截图](https://example.com/architecture.png)",
       }));
       expect(result.status).toBe(4);
-      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
+      expect(result.stderr).toContain("requires at least 2 body visual SLOTs");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -219,7 +247,7 @@ describe("visual coverage contract", () => {
     try {
       const result = runStep4(root, draft({ substantiveSections: ["一", "二", "三", "四", "五"] }));
       expect(result.status).toBe(2);
-      expect(result.stderr).toContain("normal long-form article requires at least one body visual SLOT beyond SLOT00");
+      expect(result.stderr).toContain("requires at least 2 body visual SLOTs");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -230,7 +258,7 @@ describe("visual coverage contract", () => {
     try {
       const result = runStep4(root, draft({
         substantiveSections: ["一", "二", "三", "四", "五"],
-        bodySlots: "<!-- SLOT_IMG_01_SOURCE -->",
+        bodySlots: "<!-- SLOT_IMG_01_SOURCE -->\n\n<!-- SLOT_IMG_02_SOURCE -->",
       }), true);
       expect(result.status, result.stderr || result.stdout).toBe(0);
     } finally {

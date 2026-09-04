@@ -26,6 +26,11 @@ export function requiresBodyVisualCoverage({ wordCount, substantiveSectionCount 
   return substantiveSectionCount >= 3 || wordCount >= NORMAL_LONGFORM_THRESHOLD;
 }
 
+/** Minimum body visual SLOTs for a normal long-form article; short articles return 0. */
+export function bodyVisualMinimum({ wordCount, substantiveSectionCount }) {
+  return requiresBodyVisualCoverage({ wordCount, substantiveSectionCount }) ? 2 : 0;
+}
+
 /* ── SLOT_IMG 统一正则 ── */
 
 /** 完整注释检测，不捕获 */

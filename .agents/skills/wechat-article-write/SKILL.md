@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.3.1"
+  version: "2.3.2"
 ---
 
 # 微信公众号文章写作
@@ -85,9 +85,10 @@ strategy 约束。需要正文规则时读取 `references/content-invariants.md`
 
 `SLOT_IMG_00` 必须恰好一次，位于第一个 substantive H2 前，并是正文第一张视觉。
 `SLOT_IMG_01+` 是正文 visual SLOT，依据理解 brief 中的高价值视觉节点规划；正常长文
-至少一个，典型 3-6 个 substantive H2 的 reader-response 通常规划 2-4 个。不要按 H2
-数量机械配图，也不要重复 SLOT00。每个 SLOT 的 `kind`（`source` 或 `generated`）在
-Step 4 决定；Step 2 只产出 `draft.md` 和 SLOT topology，不创建最终 `image-plan.json`。
+至少两个，典型 3-6 个 substantive H2 的 reader-response 在 2-4 个之间按语义判断自由
+选择。不要按 H2 数量机械配图，也不要重复 SLOT00。每个 SLOT 的 `kind`（`source` 或
+`generated`）在 Step 4 决定；Step 2 只产出 `draft.md` 和 SLOT topology，不创建最终
+`image-plan.json`。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
@@ -137,7 +138,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
 
-完成条件：根目录恰好一个 cover 且像素比例满足 `2.35:1 ±0.03`；SLOT00 恰好一个且 basename 正确；每个正文 visual SLOT 有且只有一个最终图片文件；短文可没有正文 visual SLOT，正常长文至少一个；`image-plan.json`、draft SLOT 和本地文件一致；每张图片已实际查看并通过语义、文字和构图审阅；Step 4 Gate 通过。
+完成条件：根目录恰好一个 cover 且像素比例满足 `2.35:1 ±0.03`；SLOT00 恰好一个且 basename 正确；每个正文 visual SLOT 有且只有一个最终图片文件；短文可没有正文 visual SLOT，正常长文至少两个；`image-plan.json`、draft SLOT 和本地文件一致；每张图片已实际查看并通过语义、文字和构图审阅；Step 4 Gate 通过。
 
 ### Step 5 — Build
 

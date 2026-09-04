@@ -14,9 +14,9 @@
 
 `<!-- SLOT_IMG_00_INFOGRAPHIC -->` 必须恰好一次，位于第一个 substantive H2 前，且是正文第一张视觉。
 `SLOT_IMG_01+` 是正文 visual SLOT，使用 `01..N`，每个编号只能出现一次。正常长文
-至少一个 body visual SLOT；典型 3-6 H2 reader-response 推荐 2-4 个。source 与
-generated 都计入正文视觉覆盖，cover 与 SLOT00 不计入。真正短、结构简单且没有明显
-对比、流程、机制或复杂关系的内容允许 0 个，但正常长文不能静默 0 图通过。
+至少两个 body visual SLOT；典型 3-6 H2 reader-response 在 2-4 个之间按语义判断自由
+选择。source 与 generated 都计入正文视觉覆盖，cover 与 SLOT00 不计入。真正短、结构
+简单且没有明显对比、流程、机制或复杂关系的内容允许 0 个，但正常长文不能静默 0 图通过。
 正式正文视觉统一由 `SLOT_IMG_01+` 表达；普通 Markdown 图片不计入 Visual Coverage
 Gate。`SLOT` 表示正文中的语义视觉位置，`kind` 表示资产来源（`source` 或 `generated`）。
 占位符描述具体说明附近内容，不使用泛化的 `chart`、`diagram` 或 `illustration`。

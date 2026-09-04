@@ -26,7 +26,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, requiresBodyVisualCoverage } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, bodyVisualMinimum } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
@@ -132,8 +132,9 @@ if (!bodySlotNumbers.every((slot, index) => slot === index + 1)) fail(4, "正文
 // SLOT00 is the lead visual. Body visual planning happens after humanization,
 // when source-image reuse and final assets are known.
 const sections = collectSubstantiveSections(body);
-if (requiresBodyVisualCoverage({ wordCount: substantiveWordCount, substantiveSectionCount: sections.length }) && bodySlotNumbers.length === 0) {
-  fail(4, "normal long-form article requires at least one body visual SLOT beyond SLOT00; review understanding-brief.md visualizable nodes and add SLOT_IMG_01+");
+const bodyVisualMin = bodyVisualMinimum({ wordCount: substantiveWordCount, substantiveSectionCount: sections.length });
+if (bodySlotNumbers.length < bodyVisualMin) {
+  fail(4, `normal long-form article requires at least ${bodyVisualMin} body visual SLOTs beyond SLOT00 (found ${bodySlotNumbers.length}); review understanding-brief.md visualizable nodes and add SLOT_IMG_01+`);
 }
 if (sections[0] && draftSlots.find((slot) => slot.slot === 0)?.index >= sections[0].start) {
   fail(4, "SLOT_IMG_00 must appear before the first substantive H2");

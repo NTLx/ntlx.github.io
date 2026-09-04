@@ -87,7 +87,8 @@
 ### 正文视觉计划
 
 写作契约必须明确正文 visual SLOT 的最低覆盖和语义选择，不把 SLOT00 或 cover
-算入正文视觉。典型 reader-response 可以写成：
+算入正文视觉。正常长文最低覆盖是两个 body visual SLOT；典型 3-6 H2 的
+reader-response 在 2-4 个之间按语义判断自由选择。示例可以写成：
 
 ```markdown
 ### 正文视觉计划

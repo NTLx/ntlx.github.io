@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
-import { collectDraftSlots, countWords, requiresBodyVisualCoverage } from "./validation-lib.mjs";
+import { collectDraftSlots, countWords, bodyVisualMinimum } from "./validation-lib.mjs";
 import { collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { assertCoverPixelAspect, imageMime, usableImageFile } from "./image-asset-lib.mjs";
@@ -39,8 +39,9 @@ const draftSlots = collectDraftSlots(body);
 const bodySlotCount = draftSlots.filter((slot) => slot.slot > 0).length;
 const substantiveSectionCount = collectSubstantiveSections(body).length;
 const substantiveWordCount = countWords(stripNonSubstantiveTailSections(body)).total;
-if (requiresBodyVisualCoverage({ wordCount: substantiveWordCount, substantiveSectionCount }) && bodySlotCount === 0) {
-  fail("normal long-form article requires at least one body visual SLOT beyond SLOT00; review understanding-brief.md visualizable nodes and add SLOT_IMG_01+");
+const bodyVisualMin = bodyVisualMinimum({ wordCount: substantiveWordCount, substantiveSectionCount });
+if (bodySlotCount < bodyVisualMin) {
+  fail(`normal long-form article requires at least ${bodyVisualMin} body visual SLOTs beyond SLOT00 (found ${bodySlotCount}); review understanding-brief.md visualizable nodes and add SLOT_IMG_01+`);
 }
 const coverImage = readFmValue(draft, "coverImage");
 const rootCovers = ["cover.png", "cover.jpg"].filter((file) => existsSync(resolve(base, file)));
