@@ -54,13 +54,25 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.5.0") errors.push("SKILL.md must declare metadata.version=2.5.0");
+if (fm["metadata.version"] !== "2.6.0") errors.push("SKILL.md must declare metadata.version=2.6.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const phrase of [
-  "## Delegation fidelity", "### Mandatory child delegation", "fail closed",
-  "## Child-owned artifact immutability", "Ownership matrix",
+  "## Main Agent execution boundary", "Main Agent MUST NOT directly", "Main Agent owns understanding and strategic judgement", "Worker Subagent",
+  "Execution owner", "Worker contract", "dispatch", "ephemeral", "fresh-context",
+  "## Delegation fidelity", "### Native delegation", "### Mandatory child delegation", "fail closed",
+  "## Child-owned artifact immutability", "### Ownership matrix", "Skill-via-Worker definition", "state v2",
 ]) if (!skillText.includes(phrase)) errors.push(`SKILL.md missing delegation contract: ${phrase}`);
+
+requireFile("references/subagent-execution.md");
+
+for (const worker of [
+  "Bootstrap Worker", "Research Worker", "Blog Memory Worker", "Understanding Worker", "Draft Worker",
+  "Humanization Worker", "Cover Worker", "Lead Summary Visual Worker", "Source Visual Worker",
+  "Body Visual Worker", "Visual Finalizer Worker", "Hosting Worker", "Build Prepare Worker",
+  "WeChat Layout Worker", "Build Finalize Worker", "Blog Publish Worker",
+  "WeChat Publish Prepare Worker", "WeChat Publishing Worker", "Verification Worker",
+]) if (!skillText.includes(worker)) errors.push(`SKILL.md missing execution owner: ${worker}`);
 
 for (const name of [
   "humanizer-zh", "baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic",
@@ -118,6 +130,11 @@ for (const retired of [
 ]) if (existsSync(file(`scripts/${retired}`))) errors.push(`retired script remains: scripts/${retired}`);
 
 for (const retired of [
+  "worker-trace.json", "delegation.json", "execution-receipt.json", "spawn-log.json",
+  "agent-id.json", "producer.json",
+]) if (existsSync(file(retired))) errors.push(`retired orchestration artifact remains: ${retired}`);
+
+for (const retired of [
   "orchestration-policy.md", "image-plan.schema.json", "image-review.schema.json",
   "image-template-catalog.md", "image-backends.md", "dependency-manifest.md", "golden-path.md",
 ]) if (existsSync(file(`references/${retired}`))) errors.push(`retired reference remains: references/${retired}`);
@@ -148,6 +165,15 @@ const mapping = [
   ["微信草稿", "baoyu-post-to-wechat"],
 ];
 for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText.includes(right)) errors.push(`native delegation mapping missing: ${left} -> ${right}`);
+
+const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
+if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
+
+const subagentText = readFileSync(file("references/subagent-execution.md"), "utf8");
+for (const phrase of [
+  "Main execution boundary", "ephemeral", "fresh-context", "Worker capsule", "Worker handoff",
+  "Execution-unit matrix", "Skill-via-Worker", "Failure recovery", "deterministic command",
+]) if (!subagentText.includes(phrase)) errors.push(`subagent reference missing contract: ${phrase}`);
 
 const productionFiles = readdirSync(file("scripts"))
   .filter((name) => name.endsWith(".mjs") && name !== "validate-architecture.mjs")

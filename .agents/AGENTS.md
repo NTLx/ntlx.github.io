@@ -52,6 +52,8 @@ metadata:
 
 `wechat-article-write/SKILL.md` 是写作步骤和固定业务委托的唯一来源。它要求的第三方 Skill 由 `check-deps.mjs` 检查是否安装；每个第三方 Skill 的行为、参数和配置仍以它自己的 `SKILL.md` 与项目配置为准。研究和写作能力按实际任务由运行时自然发现，不维护父 Skill 的能力目录。
 
+对于复杂 orchestrator Skill，如果其合同声明 Main Agent 为 planning-only，实际文件生产、工具调用、Skill 执行和 deterministic command 必须由独立 Worker Subagent 完成；Main Agent 不得以执行方便为由接管 Worker 工作。
+
 所有第三方技能仍由 `npx skills` 安装并受 `skills-lock.json` 管理；本节不缓存另一份路由或依赖注册表。
 
 ## 校验与测试

@@ -6,6 +6,17 @@ const skillDir = resolve(import.meta.dir, "..");
 const skill = readFileSync(resolve(skillDir, "SKILL.md"), "utf8");
 
 describe("thin orchestrator architecture", () => {
+  test("keeps Main planning-only and routes execution through ephemeral workers", () => {
+    expect(skill).toContain("## Main Agent execution boundary");
+    expect(skill).toContain("Main Agent MUST NOT directly");
+    for (const phrase of ["Execution owner", "Worker contract", "ephemeral", "fresh-context", "dispatch"]) {
+      expect(skill).toContain(phrase);
+    }
+    for (const forbidden of [
+      "抓取网页", "编写 `materials.md`", "编写 `draft.md`", "编写 HTML", "commit / push", "运行 Step scripts",
+    ]) expect(skill).toContain(forbidden);
+  });
+
   test("keeps the fixed native delegation mapping in the active instructions", () => {
     for (const [asset, delegatedSkill] of [
       ["cover", "baoyu-cover-image"],
