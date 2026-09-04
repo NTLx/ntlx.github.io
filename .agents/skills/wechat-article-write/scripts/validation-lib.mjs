@@ -19,6 +19,13 @@ export const VALID_CATEGORIES = ["ai-coding", "ai-agents", "ai-industry", "ai-mo
 
 export const ASCII_SLUG_RE = /^[a-z][a-z0-9-]*[a-z0-9]$/;
 
+export const NORMAL_LONGFORM_THRESHOLD = 1400;
+
+/** Whether the article must contain at least one body visual beyond SLOT00. */
+export function requiresBodyVisualCoverage({ wordCount, substantiveSectionCount }) {
+  return substantiveSectionCount >= 3 || wordCount >= NORMAL_LONGFORM_THRESHOLD;
+}
+
 /* ── SLOT_IMG 统一正则 ── */
 
 /** 完整注释检测，不捕获 */

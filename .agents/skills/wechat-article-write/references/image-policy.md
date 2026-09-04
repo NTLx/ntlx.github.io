@@ -8,7 +8,7 @@
 |---|---|---|
 | cover | `baoyu-cover-image` | post 根目录唯一 `cover.png` 或 `cover.jpg`，比例 `2.35:1` |
 | `SLOT_IMG_00` | `baoyu-xhs-images` | 唯一 `imgs/00-infographic-core-summary.png` |
-| generated `SLOT_IMG_01+` | `baoyu-infographic` | 对应 `imgs/NN-<desc>.png` |
+| 正文 visual `SLOT_IMG_01+`（`kind: generated`） | `baoyu-infographic` | 对应 `imgs/NN-<desc>.png` |
 | architecture / flow / sequence / state / data flow / topology | 按需 `baoyu-diagram` | 结构辅助；最终 raster 仍由正文图片 Skill 产出 |
 
 各视觉 Skill 的项目级长期偏好由其自己的配置提供：
@@ -36,6 +36,27 @@ saturation、high contrast、clean、crisp、warm-positive 等视觉偏好由上
 
 在生成正文图前检查材料中的可用原图。`prefer-reuse` 且原图直接承载讨论结果时优先复用，
 把最终 `kind: source`、本地 file、source URL 和 reason 写入 `image-plan.json`。只记录最终资产事实。
+
+source reuse 决定的是某个视觉节点用什么图，不是决定这个视觉节点要不要存在。
+
+## Visual coverage
+
+cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
+
+正常长文（substantive H2 至少 3 个，或正文达到约 1400 字的正常长文级别）必须至少
+有一个 `SLOT_IMG_01+`。典型 3-6 H2 的 reader-response 通常规划 2-4 个 body visuals，
+但推荐范围由 Agent 的语义判断决定，不是额外 hard Gate。短文或确实没有独立视觉信息
+增益时允许 0 个。
+
+优先视觉化：
+
+- 对比、流程、机制、层级、状态变化；
+- 决策框架、指标体系、因果关系、复杂 checklist；
+- 文章的关键原创增量。
+
+避免装饰图、重复 SLOT00，或按每个 H2 机械配图。没有合适 source image 只能改变
+视觉来源：该节点仍需要视觉化时，使用 `kind: generated` 并委托 `baoyu-infographic`，
+不能因此删除 body visual SLOT。
 
 ## Serial review
 

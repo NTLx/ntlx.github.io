@@ -6,7 +6,8 @@ import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
-import { collectDraftSlots } from "./validation-lib.mjs";
+import { collectDraftSlots, countWords, requiresBodyVisualCoverage } from "./validation-lib.mjs";
+import { collectSubstantiveSections } from "./markdown-structure-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { assertCoverPixelAspect, imageMime, usableImageFile } from "./image-asset-lib.mjs";
 import { sha256File } from "./artifact-integrity-lib.mjs";
@@ -34,6 +35,13 @@ if ((state?.last_complete_step ?? 0) < 3 || state?.step3_draft_sha256 !== draftH
 
 const draft = readFileSync(draftPath, "utf8");
 const body = extractBody(draft);
+const draftSlots = collectDraftSlots(body);
+const bodySlotCount = draftSlots.filter((slot) => slot.slot > 0).length;
+const substantiveSectionCount = collectSubstantiveSections(body).length;
+const wordCount = countWords(body).total;
+if (requiresBodyVisualCoverage({ wordCount, substantiveSectionCount }) && bodySlotCount === 0) {
+  fail("normal long-form article requires at least one body visual SLOT beyond SLOT00; review understanding-brief.md visualizable nodes and add SLOT_IMG_01+");
+}
 const coverImage = readFmValue(draft, "coverImage");
 const rootCovers = ["cover.png", "cover.jpg"].filter((file) => existsSync(resolve(base, file)));
 if (rootCovers.length !== 1) fail(`expected exactly one root cover, found ${rootCovers.join(", ") || "none"}`);
@@ -57,7 +65,7 @@ for (const entry of planResult.entries) {
   if (!imageMime(path)) fail(`${entry.slot} has an unknown image MIME: ${entry.file}`);
 }
 
-const slot00 = collectDraftSlots(body).find((slot) => slot.slot === 0);
+const slot00 = draftSlots.find((slot) => slot.slot === 0);
 if (!slot00) fail("SLOT_IMG_00 is missing");
 const files = readdirSync(imgsDir).filter((file) => /\.(?:png|jpe?g|webp|gif)$/iu.test(file));
 const mapped = new Set(planResult.entries.map((entry) => entry.file.replace(/^imgs\//u, "")));

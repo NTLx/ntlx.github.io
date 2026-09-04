@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.2.0"
+  version: "2.3.0"
 ---
 
 # 微信公众号文章写作
@@ -64,6 +64,8 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 仅当 strategy 或任务需要深度理解时生成 `understanding-brief.md`。Agent 可以
 原生分析，或委托一个匹配的专业 Skill；把材料结构、核心问题、中心判断、机制、
 边界、反方、可写判断、可视觉化节点和至少三条可检查的原创增量压缩进 brief。
+每个可视觉化节点至少记录：节点、视觉表达目的、最适合的视觉形式、是否可能直接
+复用 source image，以及是否与 SLOT00 重复。
 需要理解规范时读取 `references/material-understanding.md`，然后运行：
 
 ```bash
@@ -74,14 +76,18 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 
 ### Step 2 — Draft
 
-生成 `draft.md`。Agent 或匹配的写作 Skill 负责正文；父 Skill 负责仓库适配：
+生成 `draft.md`。写作前先读取 `understanding-brief.md` 中的“可视觉化的节点”、
+“写作契约”和“正文视觉计划”；最终采用的视觉节点要转成正文 visual SLOT。
+Agent 或匹配的写作 Skill 负责正文；父 Skill 负责仓库适配：
 frontmatter、`summary`、`blogSlug`、`sourceUrl`、H2、引用与 URL、SLOT、站内关联和
 strategy 约束。需要正文规则时读取 `references/content-invariants.md` 与对应的
 `references/strategy-*.md`。
 
 `SLOT_IMG_00` 必须恰好一次，位于第一个 substantive H2 前，并是正文第一张视觉。
-正文 generated SLOT 只在确有视觉信息增益时创建，编号为 `01..N`，数量允许为 0..N。
-此时只校验 draft topology；最终资产事实在 Step 4 写入 `image-plan.json`。
+`SLOT_IMG_01+` 是正文 visual SLOT，依据理解 brief 中的高价值视觉节点规划；正常长文
+至少一个，典型 3-6 个 substantive H2 的 reader-response 通常规划 2-4 个。不要按 H2
+数量机械配图，也不要重复 SLOT00。每个 SLOT 的 `kind`（`source` 或 `generated`）在
+Step 4 决定；此时只校验 draft topology，最终资产事实写入 `image-plan.json`。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
@@ -119,7 +125,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 1. 需要 cover 时原生委托 `baoyu-cover-image`：传入最终 draft，以及等价于 `--quick --aspect 2.35:1 --no-title` 的子 Skill 参数；项目 backend override 为 `baoyu-image-gen --provider codex-cli`，输出 post 根目录唯一 cover。
 2. 原生委托 `baoyu-xhs-images` 生成唯一的 `SLOT_IMG_00`：传入全文，以及等价于 `--yes --batch-size 1` 的子 Skill 参数；让它按项目配置自行选择 style/layout/palette/preset、生成 prompt 和 raster，输出 `imgs/00-infographic-core-summary.png`。
-3. 每个 generated `SLOT_IMG_01+` 单独原生委托 `baoyu-infographic`：传入对应正文语境、关系、必要背景、输出路径和 backend override，以及等价于 `--no-confirm` 的参数；由它自行选择 layout/style。完成并实际查看一张后再处理下一张。
+3. 每个 body visual `SLOT_IMG_01+`：若 source image 能直接承担表达，复用 source；否则单独原生委托 `baoyu-infographic` 生成。委托时传入对应正文语境、关系、必要背景、输出路径和 backend override，以及等价于 `--no-confirm` 的参数；由它自行选择 layout/style。完成并实际查看一张后再处理下一张。
 4. 只有确有 architecture、flow、sequence、state、data flow 或 topology 需求时，才按需委托 `baoyu-diagram` 辅助形成结构；最终正文 raster 仍交给 `baoyu-infographic`。
 5. `prefer-reuse` 时先审阅来源材料中的可用原图；把最终事实写入最小 `image-plan.json`，不记录 prompt、producer、contributors 或视觉 receipt。
 
@@ -131,7 +137,7 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
 
-完成条件：根目录恰好一个 cover 且像素比例满足 `2.35:1 ±0.03`；SLOT00 恰好一个且 basename 正确；每个正文 SLOT 有且只有一个最终图片文件（或正文 SLOT 数量为 0）；`image-plan.json`、draft SLOT 和本地文件一致；每张图片已实际查看并通过语义、文字和构图审阅；Step 4 Gate 通过。
+完成条件：根目录恰好一个 cover 且像素比例满足 `2.35:1 ±0.03`；SLOT00 恰好一个且 basename 正确；每个正文 visual SLOT 有且只有一个最终图片文件；短文可没有正文 visual SLOT，正常长文至少一个；`image-plan.json`、draft SLOT 和本地文件一致；每张图片已实际查看并通过语义、文字和构图审阅；Step 4 Gate 通过。
 
 ### Step 5 — Build
 

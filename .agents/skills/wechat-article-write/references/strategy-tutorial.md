@@ -39,8 +39,8 @@ posts/{date-slug}/draft.md
 posts/{date-slug}/image-plan.json
 ```
 
-`draft.md` 必须包含 SLOT 00；SLOT 01+ 只在能降低理解成本时创建，数量由
-正文的视觉判断决定，可以为零。这些图服务于概念、流程、配置关系或常见
+`draft.md` 必须包含 SLOT00；SLOT_IMG_01+ 是正文 visual SLOT，正常长文至少一个；
+短文或确实没有独立视觉信息增益时允许 0 个。这些图服务于概念、流程、配置关系或常见
 误区，不是按章节凑数。生成图片后，`image-plan.json` 只记录每个最终资产的
 slot、kind、file；source 图片另外记录 URL 和 reason。style、layout、type
 等设计由对应 Baoyu Skill 根据内容决定。

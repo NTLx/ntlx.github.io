@@ -54,7 +54,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.2.0") errors.push("SKILL.md must declare metadata.version=2.2.0");
+if (fm["metadata.version"] !== "2.3.0") errors.push("SKILL.md must declare metadata.version=2.3.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const name of [
@@ -118,8 +118,17 @@ for (const retired of [
 ]) if (existsSync(file(`references/${retired}`))) errors.push(`retired reference remains: references/${retired}`);
 
 const activeFiles = ["SKILL.md", "EXTEND.md", ...readdirSync(file("references")).filter((name) => name.endsWith(".md")).map((name) => `references/${name}`)];
+// Keep the retired phrases escaped so this guard does not itself appear in the
+// active-contract scan used by the regression checklist.
+const retiredZeroCoverageContract = new RegExp(
+  "\\u6b63\\u6587 \\u0067\\u0065\\u006e\\u0065\\u0072\\u0061\\u0074\\u0065\\u0064 SLOT|\\u6570\\u91cf\\u5141\\u8bb8\\u4e3a 0\\.\\.N|\\u6b63\\u6587\\u89c6\\u89c9\\u8282\\u70b9\\u6570\\u91cf\\u53ef\\u4ee5\\u4e3a\\u96f6",
+  "u",
+);
 for (const rel of activeFiles) {
   const text = readFileSync(file(rel), "utf8");
+  if (retiredZeroCoverageContract.test(text)) {
+    errors.push(`${rel} still advertises the retired zero-coverage visual contract`);
+  }
   for (const token of ["skill-catalog", "orchestration-trace", "DESIGN-ONLY", "generate-image-prompts", "render-images-serial", "image-review", "mark-humanized", "producer authority", "Optional Contributors"]) {
     if (text.includes(token)) errors.push(`${rel} still depends on retired concept: ${token}`);
   }
