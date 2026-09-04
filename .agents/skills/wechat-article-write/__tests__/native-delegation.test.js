@@ -6,15 +6,36 @@ const skillDir = resolve(import.meta.dir, "..");
 const skill = readFileSync(resolve(skillDir, "SKILL.md"), "utf8");
 
 describe("thin orchestrator architecture", () => {
-  test("keeps Main planning-only and routes execution through ephemeral workers", () => {
+  test("keeps Main planning-only and routes execution through isolated executors", () => {
     expect(skill).toContain("## Main Agent execution boundary");
     expect(skill).toContain("Main Agent MUST NOT directly");
-    for (const phrase of ["Execution owner", "Worker contract", "ephemeral", "fresh-context", "dispatch"]) {
+    for (const phrase of ["Execution Unit", "Delegated Executor", "isolated execution context", "dispatch"]) {
       expect(skill).toContain(phrase);
     }
     for (const forbidden of [
       "抓取网页", "编写 `materials.md`", "编写 `draft.md`", "编写 HTML", "commit / push", "运行 Step scripts",
     ]) expect(skill).toContain(forbidden);
+  });
+
+  test("keeps execution mechanism runtime-neutral", () => {
+    for (const phrase of [
+      "runtime-native isolation mechanism",
+      "Main chooses",
+      "These are examples, not required implementations",
+      "no suitable isolated delegated-execution mechanism",
+      "Main MUST NOT fallback to direct execution",
+      "Skill-via-Executor",
+    ]) expect(skill).toContain(phrase);
+    expect(skill).not.toContain(["native", "Subagent", "capability unavailable"].join(" "));
+    expect(skill).not.toContain(["Worker", "Subagent"].join(" "));
+    expect(skill).toContain('version: "2.7.0"');
+
+    const reference = readFileSync(resolve(skillDir, "references", "delegated-execution.md"), "utf8");
+    expect(reference).toContain("Delegated Executor capability contract");
+    expect(reference).toContain("Execution-unit matrix");
+    expect(reference).toContain("Delegated Execution Fidelity E2E");
+    expect(reference).not.toContain(["Subagent", "Execution Fidelity"].join(" "));
+    expect(existsSync(resolve(skillDir, "references", ["subagent", "execution.md"].join("-")))).toBe(false);
   });
 
   test("keeps the fixed native delegation mapping in the active instructions", () => {
@@ -54,5 +75,15 @@ describe("thin orchestrator architecture", () => {
     expect(skill).not.toContain("baoyu-article-illustrator");
     expect(existsSync(resolve(skillDir, "scripts", "workflow.mjs"))).toBe(false);
     expect(existsSync(resolve(skillDir, "scripts", "render-images-serial.mjs"))).toBe(false);
+  });
+});
+
+describe("governance compatibility adapters", () => {
+  test("keeps canonical governance in AGENTS.md", () => {
+    expect(readFileSync(resolve(skillDir, "../../..", "AGENTS.md"), "utf8"))
+      .toContain("唯一共享权威源");
+    expect(readFileSync(resolve(skillDir, "../../..", "CLAUDE.md"), "utf8").trim()).toBe("@AGENTS.md");
+    expect(readFileSync(resolve(skillDir, "../../..", "src/content/CLAUDE.md"), "utf8").trim()).toBe("@AGENTS.md");
+    expect(existsSync(resolve(skillDir, "../../..", ".agents", "AGENTS.md"))).toBe(false);
   });
 });

@@ -1,12 +1,12 @@
-# AGENTS.md
+# Repository Agent Governance
 
-本文件为所有 AI agent（Qoder / Claude Code / skills runner 等）在本仓库工作时的**共享入口（地图 + 宪法）**。详细规范按领域分散在以下权威文件，本文件只做导航；**一条规则只在一个地方定义，其余文件只引用不复述**。
+本文件是本仓库 repository-wide AI Agent governance 的**唯一共享权威源**。详细规则按领域分散在
+path-scoped 文件和 Skill reference；本文件只导航，不复制它们的规则全文。
 
 - **内容 / 发布规则**（frontmatter、URL 稳定性、Starlight、跨平台示例）→ [`src/content/AGENTS.md`](src/content/AGENTS.md)
 - **技术博文编写规范** → [`src/content/docs/guides/authoring-guide.md`](src/content/docs/guides/authoring-guide.md)
-- **Agent Skills 治理**（自建/第三方/生命周期/版本）→ [`.agents/AGENTS.md`](.agents/AGENTS.md)
+- **Agent Skills 治理**（自建/第三方/生命周期/版本）→ 本文件「Agent Skills Governance」
 - **微信 + 博客双轨发布管线** → [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
-- 行为准则 → [`CLAUDE.md`](CLAUDE.md)（与用户级 `~/CLAUDE.md` 合并生效）
 
 ## Repository Purpose
 
@@ -14,7 +14,7 @@
 
 ## Setup / Build / Test
 
-- **安装依赖**：`npm install`（Node.js 22+）；agent 测试/校验需要 `bun`（见 [`.agents/AGENTS.md`](.agents/AGENTS.md)）
+- **安装依赖**：`npm install`（Node.js 22+）；agent 测试/校验需要 `bun`
 - **启动开发服务器**：`npm run dev`（运行在 <http://localhost:4321>）
 - **构建生产版本**：`npm run build`（输出到 `dist/`）
 - **预览生产构建**：`npm run preview`
@@ -38,7 +38,7 @@
 - `src/components/`：自定义 Astro 组件
 - `posts/YYYY-MM-DD-slug/`：管线中间产物（governance 见 wechat-article-write）；最终产物落到 `src/content/docs/articles/`
 - `youtube-transcript/` / `material/`：素材本地存放目录（已 gitignore，不提交）
-- `.agents/skills/`：项目级技能源（治理见 [`.agents/AGENTS.md`](.agents/AGENTS.md)）
+- `.agents/skills/`：项目级 Skill canonical source（治理见本文件「Agent Skills Governance」）
 - `.baoyu-skills/<skill>/EXTEND.md`：第三方技能偏好配置；密钥单独放项目级 `.baoyu-skills/.env`
 - `.github/workflows/deploy.yml`：推 `main` → 自动构建并部署到 GitHub Pages
 - `public/`：静态资源（`favicon.ico` / `CNAME`）
@@ -47,7 +47,7 @@
 
 - **写作 / 公众号 / 博客双轨** → `.agents/skills/wechat-article-write/SKILL.md`（策略：`references/strategy-{reader-response,tutorial,news-digest}.md`）
 - **内容 docs 编写 / 修改** → `src/content/AGENTS.md`
-- **Skills 开发 / 治理** → `.agents/AGENTS.md`
+- **Skills 开发 / 治理** → 本文件「Agent Skills Governance」
 - **图片 / 发布 / 其他专用技能** → `.agents/skills/<skill>/SKILL.md`
 
 ## Global Safety & Change Rules
@@ -56,7 +56,7 @@
 | --- | --- |
 | **Shell 安全引用** | 所有 shell 脚本中涉及用户提供的路径必须使用引号包裹（`"$var"`），防止路径含空格或特殊字符时命令注入或路径断裂 |
 | **严格遵守 `.gitignore`** | 任何被 `.gitignore` 或其他 git ignore 规则排除的文件/目录，默认都视为**不应提交**。Agent 不得使用 `git add -f`、修改 ignore 规则或其他绕过方式提交，除非用户明确要求 |
-| **第三方技能禁止擅自修改** | 见 [`.agents/AGENTS.md`](.agents/AGENTS.md)（managed / vendored 不得私改；custom 遵循 metadata 版本规范） |
+| **第三方技能禁止擅自修改** | 见本文件「Agent Skills Governance」（managed / vendored 不得私改；custom 遵循 metadata 版本规范） |
 | **内容 / URL 稳定性** | 见 [`src/content/AGENTS.md`](src/content/AGENTS.md)（不重命名 `articles/`、正文禁 H1、文件名 kebab-case） |
 
 ## 内容分发质量守则
@@ -75,6 +75,63 @@
 4. **发布输入源校验**：博客轨（Step 6.1）输入必须是 `article.md`（CDN URL 版）；微信轨（Step 6.2）输入必须是 `article-wechat.html`（本地路径版 HTML），严禁混用。
 
 5. **覆盖发布备份位置**：`publish-blog.mjs --overwrite` 的备份自动落在 `posts/.backups/`（gitignore 的管线区），不在 `src/content/docs/` 内，不会生成 Starlight 重复页面。如需清理，`ls posts/.backups/` 后手动删除即可。
+
+## Agent Skills Governance
+
+### Skills canonical source and lifecycle
+
+- 项目级 Skill 位于 `.agents/skills/<skill>/`，每个 Skill 以 `SKILL.md` 为入口，配套
+  `scripts/` 和 `references/`；`.agents/skills/` 是 canonical source。
+- Skill 可通过 Skill 工具读取工作流，或按其文档用 `bun run` 执行脚本；用 `npx skills` 管理
+  安装版本，`skills-lock.json` 是安装锁，不是全技能 manifest。
+- `.claude/skills/<skill>` 等 runtime-specific discovery path 只能是指向 canonical source 的
+  thin alias / symlink，不得变成第二套 Skill 实现。
+
+一个 Skill 同时只能属于一种生命周期：
+
+| 类别 | 判定 | 规则 |
+|---|---|---|
+| **custom** | frontmatter `metadata.author: NTLx` | 项目自建；遵循 Agent Skills spec；`metadata.author` / `metadata.version` 是自建标识；可直接修改 |
+| **managed** | 由 `npx skills` / `skills-lock.json` 安装 | 不本地修改；更新后运行 integration tests |
+| **vendored** | 需要访问上游内部资源而 pin | 记录 upstream / commit / 本地 patch（若有）；更新必须通过 compatibility test |
+
+仓库内置第三方 Skill 统一以 git subtree vendoring 到 `.agents/skills/<skill>/`，禁止提交带内层
+`.git/` 的 clone 或 gitlink。同步上游使用：
+`git subtree pull --prefix=.agents/skills/<skill> <upstream-url> <branch> --squash`。
+
+### Skill authoring and dependency rules
+
+- 自建 Skill frontmatter 遵循：`name`、`description`、`license: MIT`，以及
+  `metadata.author`、`metadata.version`；`author` / `version` 不得放在顶层。
+- 行为变更（增删步骤、替换调用 Skill、修改门控逻辑）升 minor；纯文档或注释修正升 patch；
+  不升版本即视为改动不完整。
+- description 只写触发条件，不写实现细节、pipeline 步骤或产物格式；每项任务只选择最匹配的
+  1–2 个 Skill，重叠触发面优先收敛。
+- `.agents/skills/` 下由 `npx skills` 管理的第三方 Skill（如 `baoyu-*`、`ljg-*`）不得擅自
+  修改源码；更新版本不受此限制。
+- `wechat-article-write/SKILL.md` 是写作步骤和固定业务委托的唯一来源；它依赖的第三方 Skill
+  由 `check-deps.mjs` 检查，第三方 Skill 的行为、参数和配置仍以其自身文档及项目配置为准。
+  不维护父 Skill 的 research、understanding 或 writing 能力目录。
+
+### Orchestration and verification
+
+对于声明 Main Agent 为 planning-only 的 orchestrator，实际文件生产、工具调用、Skill 执行和
+deterministic command 必须委托到与 Main 上下文隔离的 execution context。具体隔离机制由运行时
+Agent 根据可用能力自行选择；Main 不得因运行时差异接管实际执行。
+
+每次 Skill 改动后运行 `npm run test:agent` 与 `npm run check:agent`；架构校验覆盖自建
+frontmatter、必需 Skill、引用文件、retired 组件和确定性入口。第三方 Skill 升级后运行
+`check-deps.mjs --stage architecture`。
+
+## Runtime compatibility
+
+Repository contracts define capabilities and boundaries, not product-specific orchestration APIs.
+Runtime-specific adapters may exist only for discovery or instruction loading, and must remain thin
+aliases/imports rather than a second workflow implementation。
+
+允许的例子包括 `CLAUDE.md → @AGENTS.md`、`src/content/CLAUDE.md → @AGENTS.md` 以及
+`.claude/skills/* → .agents/skills/*`；不得添加 Claude-specific、Codex-specific 或 Pi-specific
+workflow。
 
 ## 部署
 

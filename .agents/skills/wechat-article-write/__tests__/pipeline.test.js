@@ -46,6 +46,8 @@ describe("pipeline advisory CLI", () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain("baoyu-post-to-wechat");
     expect(result.stdout).toContain("--prepare-only");
+    expect(result.stdout).toContain("Main chooses an available isolated execution mechanism for each unit.");
+    expect(result.stdout).not.toContain("Worker");
     expect(readFileSync(join(fixture.postDir, ".pipeline-state.json"), "utf8")).toBe(before);
   });
 

@@ -54,25 +54,23 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.6.0") errors.push("SKILL.md must declare metadata.version=2.6.0");
+if (fm["metadata.version"] !== "2.7.0") errors.push("SKILL.md must declare metadata.version=2.7.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const phrase of [
-  "## Main Agent execution boundary", "Main Agent MUST NOT directly", "Main Agent owns understanding and strategic judgement", "Worker Subagent",
-  "Execution owner", "Worker contract", "dispatch", "ephemeral", "fresh-context",
+  "## Main Agent execution boundary", "Main Agent MUST NOT directly", "Main Agent owns understanding and strategic judgement",
+  "Execution Unit", "Delegated Executor", "isolated execution context", "runtime-native isolation mechanism",
+  "Main chooses", "These are examples, not required implementations", "dispatch", "fresh-context",
   "## Delegation fidelity", "### Native delegation", "### Mandatory child delegation", "fail closed",
-  "## Child-owned artifact immutability", "### Ownership matrix", "Skill-via-Worker definition", "state v2",
+  "## Child-owned artifact immutability", "### Ownership matrix", "Skill-via-Executor", "state v2",
 ]) if (!skillText.includes(phrase)) errors.push(`SKILL.md missing delegation contract: ${phrase}`);
 
-requireFile("references/subagent-execution.md");
+requireFile("references/delegated-execution.md");
 
-for (const worker of [
-  "Bootstrap Worker", "Research Worker", "Blog Memory Worker", "Understanding Worker", "Draft Worker",
-  "Humanization Worker", "Cover Worker", "Lead Summary Visual Worker", "Source Visual Worker",
-  "Body Visual Worker", "Visual Finalizer Worker", "Hosting Worker", "Build Prepare Worker",
-  "WeChat Layout Worker", "Build Finalize Worker", "Blog Publish Worker",
-  "WeChat Publish Prepare Worker", "WeChat Publishing Worker", "Verification Worker",
-]) if (!skillText.includes(worker)) errors.push(`SKILL.md missing execution owner: ${worker}`);
+const legacyNativeRequirement = ["native", "Subagent", "capability unavailable"].join(" ");
+if (skillText.includes(legacyNativeRequirement)) errors.push("SKILL.md retains a runtime-specific native delegation requirement");
+const legacyWorkerModel = ["Worker", "Subagent"].join(" ");
+if (skillText.includes(legacyWorkerModel)) errors.push("SKILL.md retains the retired delegated execution model");
 
 for (const name of [
   "humanizer-zh", "baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic",
@@ -169,11 +167,24 @@ for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText
 const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
 
-const subagentText = readFileSync(file("references/subagent-execution.md"), "utf8");
+const delegatedExecutionText = readFileSync(file("references/delegated-execution.md"), "utf8");
 for (const phrase of [
-  "Main execution boundary", "ephemeral", "fresh-context", "Worker capsule", "Worker handoff",
-  "Execution-unit matrix", "Skill-via-Worker", "Failure recovery", "deterministic command",
-]) if (!subagentText.includes(phrase)) errors.push(`subagent reference missing contract: ${phrase}`);
+  "Main execution boundary", "Delegated Executor capability contract", "fresh execution context",
+  "Execution capsule", "Bounded handoff", "Execution-unit matrix", "Skill-via-Executor",
+  "Failure recovery", "deterministic command", "Delegated Execution Fidelity",
+]) if (!delegatedExecutionText.includes(phrase)) errors.push(`delegated reference missing contract: ${phrase}`);
+
+const governancePath = resolve(repoRoot, "AGENTS.md");
+const claudeAdapterPath = resolve(repoRoot, "CLAUDE.md");
+const contentClaudeAdapterPath = resolve(repoRoot, "src/content/CLAUDE.md");
+const legacyGovernancePath = resolve(repoRoot, ".agents", "AGENTS.md");
+if (!existsSync(governancePath) || !readFileSync(governancePath, "utf8").includes("唯一共享权威源")) {
+  errors.push("AGENTS.md must be the shared canonical governance source");
+}
+for (const [path, expected] of [[claudeAdapterPath, "@AGENTS.md"], [contentClaudeAdapterPath, "@AGENTS.md"]]) {
+  if (!existsSync(path) || readFileSync(path, "utf8").trim() !== expected) errors.push(`thin governance adapter invalid: ${path}`);
+}
+if (existsSync(legacyGovernancePath)) errors.push("legacy .agents governance file must be removed");
 
 const productionFiles = readdirSync(file("scripts"))
   .filter((name) => name.endsWith(".mjs") && name !== "validate-architecture.mjs")
