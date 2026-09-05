@@ -1,7 +1,7 @@
 ---
 version: 1
 preferred_layout: null
-preferred_style: bright-vivid-warm
+preferred_style: hand-drawn-edu
 preferred_aspect: null
 language: zh
 preferred_image_backend: baoyu-image-gen
