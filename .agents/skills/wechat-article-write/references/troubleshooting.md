@@ -11,7 +11,7 @@
 | Step 4 source image 不一致 | 检查 `image-plan.json` 的最终 file、kind、source、reason 和本地文件 |
 | mandatory child unavailable | 当前专业阶段 `BLOCKED`，不使用 fallback；报告阻塞并保持在当前 Step |
 | cover child 失败 | 重新委托 `baoyu-cover-image`；不要使用 `image_gen` 或直接调用 `baoyu-image-gen` |
-| SLOT00 child 失败 | 重新委托 `baoyu-xhs-images`；不要用父 Agent 生成替代图片 |
+| SLOT00 child 失败 | 重新委托 `baoyu-infographic`；不要用父 Agent 生成替代图片 |
 | 正文 generated visual 失败 | 重新委托 `baoyu-infographic`；不要由 Parent 手工生成或修补 |
 | Step 5 prepared | 这是正常中间状态：调用 `gzh-design` 生成 HTML，再 finalize |
 | gzh validator/preview 失败 | 按 gzh-design 自己的输出修正输入并重新委托；父 finalize 不修补 child HTML |

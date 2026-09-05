@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.8.1"
+  version: "2.9.0"
 ---
 
 # 微信公众号文章写作
@@ -165,7 +165,7 @@ semantic drift；通过 `step3-polish.mjs <date-slug>`，state 记录 `step3_dra
 | Execution Unit | Required Skill | 必须保持的实现约束 | Output / Gate |
 |---|---|---|---|
 | `cover` | `baoyu-cover-image` | 等价于 `--quick --aspect 2.35:1 --no-title`；backend 服从项目配置 | 根目录唯一 cover |
-| `SLOT00` | `baoyu-xhs-images` | 等价于 `--yes --batch-size 1`；输出固定 basename | `imgs/00-infographic-core-summary.png` |
+| `SLOT00` | `baoyu-infographic` | 等价于 `--no-confirm`；每次只处理一个 SLOT；输出固定 basename | `imgs/00-infographic-core-summary.png` |
 | `source body visual` | none 或动态辅助 Skill | 实际查看、核对语义、caption、编号、完整性和时效性 | source reuse 或 generated required |
 | `generated body visual` | `baoyu-infographic` | 等价于 `--no-confirm`；每次只处理一个 SLOT；architecture/flow 等需要时才辅助 `baoyu-diagram` | 一个正文 raster |
 | `visual finalization` | none | 只记录最终 slot/kind/file 与必要 source URL/reason，不记录 prompt 或 receipt | `image-plan.json`；`step4-images.mjs` |
@@ -203,9 +203,11 @@ HTML。
 
 ### Native delegation
 
-Main 只传目标、输入、strategy、项目偏好、输出路径、原生非交互参数和验收边界。Executor 读取
-required child `SKILL.md`，完整执行分析、选择、生成、validator 或发布，再返回 bounded handoff。
-Main 读取 child Skill 或模仿流程不算 delegation。
+Main 只传目标、输入、strategy、输出路径、原生非交互参数和验收边界。Baoyu visual Skills 的
+layout、style、aspect、palette、backend 等长期 preference 由各自的
+`.baoyu-skills/<skill>/EXTEND.md` 管理；Parent 不复制、解释或覆盖 child preference。Executor
+读取 required child `SKILL.md`，完整执行分析、选择、生成、validator 或发布，再返回 bounded
+handoff。Main 读取 child Skill 或模仿流程不算 delegation。
 
 ### Mandatory child delegation
 
@@ -216,7 +218,7 @@ fail closed，停留在当前 Execution Unit：
 |---|---|
 | humanize / Step 3 | `humanization` → `humanizer-zh` |
 | cover | `cover` → `baoyu-cover-image` |
-| SLOT00 | `SLOT00` → `baoyu-xhs-images` |
+| SLOT00 | `SLOT00` → `baoyu-infographic` |
 | 正文生成图 / generated body visual | `generated body visual` → `baoyu-infographic` |
 | 图片托管/CDN / Step 5A hosting | `hosting` → `github-image-hosting` |
 | Step 5B HTML | `wechat-layout` → `gzh-design` |
@@ -239,7 +241,7 @@ owner；不得 patch、绕过 Gate 或由相邻阶段接管。state、parity 和
 |---|---|
 | humanized `draft.md` | `humanization` → `humanizer-zh` |
 | cover | `cover` → `baoyu-cover-image` |
-| SLOT00 | `SLOT00` → `baoyu-xhs-images` |
+| SLOT00 | `SLOT00` → `baoyu-infographic` |
 | generated body image | `generated body visual` → `baoyu-infographic` |
 | `image-map.json` | `hosting` → `github-image-hosting` |
 | `article-wechat.html` | `wechat-layout` → `gzh-design` |

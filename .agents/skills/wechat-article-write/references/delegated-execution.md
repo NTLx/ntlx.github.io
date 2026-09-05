@@ -145,7 +145,7 @@ thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化�
 | Draft | dynamic writing Skill or none | `draft.md` / `step2-write.mjs` |
 | Humanization | `humanizer-zh` | updated `draft.md` / `step3-polish.mjs` |
 | Cover | `baoyu-cover-image` | root cover / Step 4 Gate |
-| SLOT00 | `baoyu-xhs-images` | `imgs/00-infographic-core-summary.png` |
+| SLOT00 | `baoyu-infographic` | `imgs/00-infographic-core-summary.png` |
 | Source body visual | none or dynamic helper | source asset or generated-required decision |
 | Generated body visual | `baoyu-infographic` | one body SLOT raster / Step 4 Gate |
 | Visual finalization | none | `image-plan.json` / `step4-images.mjs` |
@@ -157,6 +157,9 @@ thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化�
 | WeChat prepare | none | publish capsule / `publish-wechat.mjs` |
 | WeChat publish | `baoyu-post-to-wechat` | draft/media_id/state |
 | Verification | none | test/check/build/publish summary |
+
+`SLOT00` 与 `Generated body visual` 即使都由 `baoyu-infographic` 执行，仍保持为两个独立
+Execution Unit：前者是全文视觉摘要，后者是局部机制、比较、流程或框架等正文信息节点。
 
 ## Skill-via-Executor
 
@@ -170,7 +173,7 @@ Skill-via-Executor 成立的条件是：Executor 读取 required child Skill 的
 |---|---|
 | 文本人性化 | Humanization → `humanizer-zh` |
 | 微信封面 | Cover → `baoyu-cover-image` |
-| 头部摘要卡 | SLOT00 → `baoyu-xhs-images` |
+| 头部摘要卡 | SLOT00 → `baoyu-infographic` |
 | 正文生成图 | Generated body visual → `baoyu-infographic` |
 | 图片托管/CDN | Hosting → `github-image-hosting` |
 | 微信 HTML | WeChat layout → `gzh-design` |
@@ -192,7 +195,7 @@ Gate。state、parity 和其它 deterministic artifact 由对应 unit 的 Execut
 |---|---|
 | humanized `draft.md` | Humanization → `humanizer-zh` |
 | cover | Cover → `baoyu-cover-image` |
-| SLOT00 | SLOT00 → `baoyu-xhs-images` |
+| SLOT00 | SLOT00 → `baoyu-infographic` |
 | generated body image | Generated body visual → `baoyu-infographic` |
 | `image-map.json` | Hosting → `github-image-hosting` |
 | `article-wechat.html` | WeChat layout → `gzh-design` |
@@ -233,7 +236,10 @@ Script owns deterministic mechanics。Executor 运行当前 unit 合同要求的
 
 行为版本升级后运行一次真实 E2E，覆盖适用的 Research、Understanding、Draft、Humanization、Cover、
 SLOT00、generated body visual、Hosting、WeChat layout、Blog publish 和 WeChat publish。E2E 关注
-实际是否隔离，不要求某个具体机制。机制可在会话复盘中临时报告，但不得写入 state、JSON 或 artifact。
+实际是否隔离，不要求某个具体机制。对 SLOT00 和 generated body visual，可在会话级 transient review
+中观察 `baoyu-infographic` 实际选择的 style、layout、backend 是否来自其项目配置；这些观察不是
+Parent contract，不得写入 state、JSON 或 artifact。机制可在会话复盘中临时报告，但不得写入 state、
+JSON 或 artifact。
 
 完成后回答：
 
@@ -245,7 +251,7 @@ Research 是否隔离执行？ YES / NO；mechanism:
 Draft 是否隔离执行？ YES / NO；mechanism:
 Humanization 是否由隔离 Executor → humanizer-zh？ YES / NO
 Cover 是否由隔离 Executor → baoyu-cover-image？ YES / NO
-SLOT00 是否由隔离 Executor → baoyu-xhs-images？ YES / NO
+SLOT00 是否由隔离 Executor → baoyu-infographic？ YES / NO
 Generated body visual 是否由隔离 Executor → baoyu-infographic？ YES / NO / NOT NEEDED
 Hosting 是否由隔离 Executor → github-image-hosting？ YES / NO
 WeChat layout 是否由隔离 Executor → gzh-design？ YES / NO

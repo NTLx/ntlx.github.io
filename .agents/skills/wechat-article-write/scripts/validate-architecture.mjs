@@ -54,7 +54,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.8.1") errors.push("SKILL.md must declare metadata.version=2.8.1");
+if (fm["metadata.version"] !== "2.9.0") errors.push("SKILL.md must declare metadata.version=2.9.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const phrase of [
@@ -73,14 +73,13 @@ const legacyWorkerModel = ["Worker", "Subagent"].join(" ");
 if (skillText.includes(legacyWorkerModel)) errors.push("SKILL.md retains the retired delegated execution model");
 
 for (const name of [
-  "humanizer-zh", "baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic",
+  "humanizer-zh", "baoyu-cover-image", "baoyu-infographic",
   "baoyu-diagram", "baoyu-image-gen", "github-image-hosting", "gzh-design", "baoyu-post-to-wechat",
 ]) {
   if (!existsSync(resolve(skillsRoot, name, "SKILL.md"))) errors.push(`required Skill missing: ${name}`);
 }
 
 const coverConfig = readProjectExtend(".baoyu-skills/baoyu-cover-image/EXTEND.md");
-const xhsConfig = readProjectExtend(".baoyu-skills/baoyu-xhs-images/EXTEND.md");
 const infographicConfig = readProjectExtend(".baoyu-skills/baoyu-infographic/EXTEND.md");
 const imageGenConfig = readProjectExtend(".baoyu-skills/baoyu-image-gen/EXTEND.md");
 const parentExtendPath = file("EXTEND.md");
@@ -88,9 +87,6 @@ const postExtendPath = resolve(repoRoot, ".baoyu-skills/baoyu-post-to-wechat/EXT
 if (!existsSync(postExtendPath)) errors.push("missing project config: .baoyu-skills/baoyu-post-to-wechat/EXTEND.md");
 if (coverConfig && (coverConfig.version !== 3 || coverConfig.default_aspect !== "2.35:1" || coverConfig.quick_mode !== true || coverConfig.preferred_image_backend !== "baoyu-image-gen")) {
   errors.push("baoyu-cover-image project config must use v3, 2.35:1, quick mode, and baoyu-image-gen");
-}
-if (xhsConfig && (xhsConfig.version !== 1 || xhsConfig.language !== "zh" || xhsConfig.preferred_image_backend !== "baoyu-image-gen" || xhsConfig.generation_batch_size !== 1)) {
-  errors.push("baoyu-xhs-images project config must use v1, zh, batch size 1, and baoyu-image-gen");
 }
 if (infographicConfig && (infographicConfig.version !== 1 || infographicConfig.language !== "zh" || infographicConfig.preferred_image_backend !== "baoyu-image-gen")) {
   errors.push("baoyu-infographic project config must use v1, zh, and baoyu-image-gen");
@@ -164,12 +160,16 @@ for (const rel of activeFiles) {
 const mapping = [
   ["Step 3", "humanizer-zh"], ["Step 5A hosting", "github-image-hosting"],
   ["Step 5B HTML", "gzh-design"], ["Step 6 WeChat draft", "baoyu-post-to-wechat"],
-  ["cover", "baoyu-cover-image"], ["SLOT_IMG_00", "baoyu-xhs-images"],
-  ["正文生成图", "baoyu-infographic"], ["humanizer-zh", "humanizer-zh"],
+  ["humanizer-zh", "humanizer-zh"],
   ["gzh-design", "gzh-design"], ["github-image-hosting", "github-image-hosting"],
   ["微信草稿", "baoyu-post-to-wechat"],
 ];
 for (const [left, right] of mapping) if (!skillText.includes(left) || !skillText.includes(right)) errors.push(`native delegation mapping missing: ${left} -> ${right}`);
+for (const line of [
+  "| cover | `cover` → `baoyu-cover-image` |",
+  "| SLOT00 | `SLOT00` → `baoyu-infographic` |",
+  "| 正文生成图 / generated body visual | `generated body visual` → `baoyu-infographic` |",
+]) if (!skillText.includes(line)) errors.push(`native delegation mapping missing: ${line}`);
 
 const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");

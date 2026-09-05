@@ -29,7 +29,7 @@ const requireCodexImageConfig = () => {
 const warnPath = (rel) => { if (!existsSync(resolve(root, rel))) warnings.push(`missing optional config: ${rel}`); };
 const stageSkills = {
   writing: ["humanizer-zh"],
-  images: ["baoyu-cover-image", "baoyu-xhs-images", "baoyu-infographic", "baoyu-image-gen"],
+  images: ["baoyu-cover-image", "baoyu-infographic", "baoyu-image-gen"],
   build: ["github-image-hosting", "gzh-design"],
   publish: ["baoyu-post-to-wechat"],
 };

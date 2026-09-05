@@ -17,7 +17,6 @@ function readExtend(name) {
 describe("project-level image Skill preferences", () => {
   test("uses native schemas and pins the Codex image chain", () => {
     const cover = readExtend("baoyu-cover-image");
-    const xhs = readExtend("baoyu-xhs-images");
     const infographic = readExtend("baoyu-infographic");
     const imageGen = readExtend("baoyu-image-gen");
 
@@ -29,21 +28,13 @@ describe("project-level image Skill preferences", () => {
     expect(cover.preferred_image_backend).toBe("baoyu-image-gen");
     expect(cover.custom_palettes.some(({ name }) => name === "bright-vivid-warm")).toBe(true);
 
-    expect(xhs.version).toBe(1);
-    expect(xhs.watermark.enabled).toBe(false);
-    expect(xhs.language).toBe("zh");
-    expect(xhs.preferred_image_backend).toBe("baoyu-image-gen");
-    expect(xhs.generation_batch_size).toBe(1);
-    expect(xhs.preferred_layout).toBeNull();
-    expect(xhs.preferred_style.name).toBe("bright-vivid-warm");
-    expect(xhs.custom_styles.some(({ name }) => name === "bright-vivid-warm")).toBe(true);
-
     expect(infographic.version).toBe(1);
     expect(infographic.language).toBe("zh");
     expect(infographic.preferred_image_backend).toBe("baoyu-image-gen");
     expect(infographic.preferred_layout).toBeNull();
-    expect(infographic.preferred_style).toBe("bright-vivid-warm");
-    expect(infographic.custom_styles.some(({ name }) => name === "bright-vivid-warm")).toBe(true);
+    expect(Object.hasOwn(infographic, "preferred_style")).toBe(true);
+    expect(typeof infographic.preferred_style).toBe("string");
+    expect(Array.isArray(infographic.custom_styles)).toBe(true);
 
     expect(imageGen.version).toBe(1);
     expect(imageGen.default_provider).toBe("codex-cli");

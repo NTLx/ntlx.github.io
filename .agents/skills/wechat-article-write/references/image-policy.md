@@ -7,34 +7,44 @@
 | 资产 | Skill | 输出 |
 |---|---|---|
 | cover | `baoyu-cover-image` | post 根目录唯一 `cover.png` 或 `cover.jpg`，比例 `2.35:1` |
-| `SLOT_IMG_00` | `baoyu-xhs-images` | 唯一 `imgs/00-infographic-core-summary.png` |
+| `SLOT_IMG_00` | `baoyu-infographic` | 唯一 `imgs/00-infographic-core-summary.png` |
 | 正文 visual `SLOT_IMG_01+`（`kind: generated`） | `baoyu-infographic` | 对应 `imgs/NN-<desc>.png` |
 | architecture / flow / sequence / state / data flow / topology | 按需 `baoyu-diagram` | 结构辅助；最终 raster 仍由正文图片 Skill 产出 |
 
-各视觉 Skill 的项目级长期偏好由其自己的配置提供：
+各 Baoyu Skill 的视觉和 backend preference 由其自己的
+`.baoyu-skills/<skill>/EXTEND.md` 提供。`wechat-article-write` 不复制、解释或覆盖 child
+preference。
+
+wechat-article-write 负责：
 
 ```text
-baoyu-cover-image  → .baoyu-skills/baoyu-cover-image/EXTEND.md
-baoyu-xhs-images   → .baoyu-skills/baoyu-xhs-images/EXTEND.md
-baoyu-infographic  → .baoyu-skills/baoyu-infographic/EXTEND.md
-baoyu-image-gen    → .baoyu-skills/baoyu-image-gen/EXTEND.md
+- source vs generated
+- semantic SLOT
+- output filename
+- visual coverage
+- serial review
 ```
 
-Agent 每次委托都把当前 draft 语境、输出路径、子 Skill 原生的非交互参数和
-`baoyu-image-gen --provider codex-cli` backend override 传入。cover 使用等价于
-`--quick --aspect 2.35:1 --no-title` 的参数，SLOT00 使用 `--yes --batch-size 1`，正文图使用
-`--no-confirm`。专业 Skill 自己完成分析、style/layout/preset、prompt、raster 和报告；父 Skill
-不重建 prompt、不集中渲染。通用 `image_gen`、直接调用 `baoyu-image-gen` 或父层自写脚本
-都不能替代 mandatory 的 `baoyu-cover-image`、`baoyu-xhs-images` 和 `baoyu-infographic`。
+child Skill 负责：
+
+```text
+- style
+- layout
+- palette
+- aspect preference
+- backend preference
+- prompt
+- raster generation
+```
+
+Agent 每次委托都把当前 draft 语境、输出路径和子 Skill 原生的非交互参数传入。cover 使用等价于
+`--quick --aspect 2.35:1 --no-title` 的参数，generated visual 使用 `--no-confirm`。专业 Skill
+自己完成分析、选择、prompt、raster 和报告；Parent 不重建 prompt、不集中渲染。通用 `image_gen`、
+直接调用 `baoyu-image-gen` 或父层自写脚本都不能替代 mandatory 的 `baoyu-cover-image` 和
+`baoyu-infographic`。
 
 mandatory child 不可发现、依赖缺失或执行失败时，图片阶段 fail closed 并停留在当前 Step；
 按对应 child 的反馈重新委托，不切换到父 Agent 的通用图像工具。
-
-## Project preference
-
-`wechat-article-write/EXTEND.md` 只提供 `prefer-reuse` 原图策略；bright、vivid、high
-saturation、high contrast、clean、crisp、warm-positive 等视觉偏好由上述各视觉 Skill
-自己的 `EXTEND.md` 提供。具体 style、layout、palette、preset 只由被委托 Skill 决定。
 
 ## Source reuse
 
@@ -88,7 +98,7 @@ cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
 cover、SLOT00、每个 body visual 按 workflow 顺序一次处理；通过后才处理下一张。
 
 - `kind: source`：实际查看是否对应当前论点、是否清晰完整、是否需要裁切，以及是否含过期或误导信息、是否值得复用；不创建 receipt。
-- `kind: generated`：实际查看 semantic match、visual hierarchy、Chinese text correctness、legibility、text density 和 XHS character。
+- `kind: generated`：实际查看 semantic match、visual hierarchy、Chinese text correctness、legibility 和 text density。
 
 - `kind: source` 审核失败时，换用另一张合适的 source image；如果没有合适原图，将该 SLOT 改为 `kind: generated`，再委托 `baoyu-infographic`。
 - `kind: generated` 审核失败时，回到 `baoyu-infographic` 重新生成。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。

@@ -28,7 +28,7 @@ describe("thin orchestrator architecture", () => {
     ]) expect(skill).toContain(phrase);
     expect(skill).not.toContain(["native", "Subagent", "capability unavailable"].join(" "));
     expect(skill).not.toContain(["Worker", "Subagent"].join(" "));
-    expect(skill).toContain('version: "2.8.1"');
+    expect(skill).toContain('version: "2.9.0"');
     expect(skill).toContain("Primary Source Uniqueness");
     expect(skill).toContain("primarySourceUrls");
 
@@ -43,7 +43,7 @@ describe("thin orchestrator architecture", () => {
   test("keeps the fixed native delegation mapping in the active instructions", () => {
     for (const [asset, delegatedSkill] of [
       ["cover", "baoyu-cover-image"],
-      ["SLOT_IMG_00", "baoyu-xhs-images"],
+      ["SLOT_IMG_00", "baoyu-infographic"],
       ["正文生成图", "baoyu-infographic"],
       ["humanize", "humanizer-zh"],
       ["gzh-design", "gzh-design"],
@@ -53,12 +53,18 @@ describe("thin orchestrator architecture", () => {
       expect(skill).toContain(asset);
       expect(skill).toContain(delegatedSkill);
     }
+    expect(skill).toContain("| SLOT00 | `SLOT00` → `baoyu-infographic` |");
     expect(skill).toContain("--quick");
     expect(skill).toContain("--aspect 2.35:1");
     expect(skill).toContain("--no-title");
-    expect(skill).toContain("--yes");
-    expect(skill).toContain("--batch-size 1");
     expect(skill).toContain("--no-confirm");
+  });
+
+  test("leaves visual preferences to child Skills", () => {
+    const imagePolicy = readFileSync(resolve(skillDir, "references", "image-policy.md"), "utf8");
+    for (const forbidden of ["hand-drawn-edu", "bright-vivid-warm", "--style", "preferred_style"]) {
+      expect(imagePolicy).not.toContain(forbidden);
+    }
   });
 
   test("keeps child-owned validators, uploaders, and publishers out of parent production code", () => {
