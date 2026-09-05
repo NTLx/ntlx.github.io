@@ -12,6 +12,8 @@
 `primarySourceUrls` 是本文直接原始写作材料的 provenance，用于跨文章 exact identity 去重。两者
 不能互换。`primarySourceUrls` 不是 `## 参考资料` 的全部 URL：背景资料、站内文章、补充 benchmark、
 图片 URL 和其它 supporting references 不得放入该字段。
+该字段为 optional；字段存在时必须至少包含一个合法 URL。没有 URL 类型 primary source 时应省略字段，
+而不是写空数组。
 
 `publish-blog.mjs` 仍按现有规则从公开博客 Markdown 删除 `sourceUrl`、`blogSlug`、`coverImage`；
 `primarySourceUrls` 必须持久化在公开 Markdown 中。

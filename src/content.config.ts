@@ -25,7 +25,7 @@ export const collections = {
 				// 标签：未来可用于 tag 索引或 SEO，本期 schema 仅声明，不强制使用。
 				tags: z.array(z.string()).optional(),
 				// 原始写作材料的 canonical URL，用于 provenance 与跨文章去重；非所有文档都有。
-				primarySourceUrls: z.array(z.string().url()).optional(),
+				primarySourceUrls: z.array(z.string().url()).min(1).optional(),
 			}),
 		}),
 	}),

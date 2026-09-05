@@ -52,6 +52,23 @@ export function normalizeSourceUrl(value) {
   return `https://${parsed.host}${pathname}${search ? `?${search}` : ""}`;
 }
 
+/** Normalize, discard invalid values, deduplicate, and sort a source set. */
+export function normalizeSourceUrlSet(values) {
+  return [...new Set(
+    (Array.isArray(values) ? values : [])
+      .map((value) => normalizeSourceUrl(value))
+      .filter(Boolean),
+  )].sort();
+}
+
+/** Compare source identities without considering input order. */
+export function sameNormalizedSourceSet(left, right) {
+  const normalizedLeft = normalizeSourceUrlSet(left);
+  const normalizedRight = normalizeSourceUrlSet(right);
+  return normalizedLeft.length === normalizedRight.length
+    && normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
 /** Return typed entries from the dedicated 原始来源 section. */
 export function extractPrimarySourceEntriesFromMaterials(materials) {
   const lines = sectionLines(materials, "原始来源");
@@ -86,6 +103,9 @@ export function parsePrimarySourceUrlsValue(rawValue) {
   }
   if (!Array.isArray(parsed)) {
     throw new Error("primarySourceUrls must be an inline JSON array");
+  }
+  if (parsed.length === 0) {
+    throw new Error("primarySourceUrls must contain at least one URL when present");
   }
   const normalized = [];
   for (const value of parsed) {

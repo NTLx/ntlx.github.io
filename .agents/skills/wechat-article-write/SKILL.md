@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.8.0"
+  version: "2.8.1"
 ---
 
 # 微信公众号文章写作
@@ -138,8 +138,8 @@ visual target、用户要求），委托写作，不亲自写句子。
 planning capsule → `draft.md`。
 
 **Success**：frontmatter、summary、blogSlug、sourceUrl、`primarySourceUrls`（适用时）、H2、引用、
-互动、站内联动和 strategy 约束通过 `step2-write.mjs <date-slug>`；`primarySourceUrls` 与
-`materials.md` 的 URL provenance 一致，且 source uniqueness 已通过；`SLOT_IMG_00` 恰好一次、在
+互动、站内联动和 strategy 约束通过 `step2-write.mjs <date-slug>`；`materials.md`、`blog-memory.json`
+与 draft 的 normalized primary-source provenance 一致，且 source uniqueness 已通过；`SLOT_IMG_00` 恰好一次、在
 第一个 substantive H2 前，正文视觉 topology 正确；Step 2 不生成最终 `image-plan.json`。Step 2
 读取 `blog-memory.json` 作为 resume backstop，不能由 `--allow-no-related` 绕过同源阻断。
 

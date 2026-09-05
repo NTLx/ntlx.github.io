@@ -29,7 +29,12 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, bodyVisualMinimum } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
-import { extractPrimarySourceUrlsFromMaterials, parsePrimarySourceUrlsFrontmatter } from "./source-provenance-lib.mjs";
+import {
+  extractPrimarySourceUrlsFromMaterials,
+  normalizeSourceUrlSet,
+  parsePrimarySourceUrlsFrontmatter,
+  sameNormalizedSourceSet,
+} from "./source-provenance-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -119,12 +124,15 @@ if (!targetPath) {
 // Draft provenance must exactly match the URL set recorded by Research.
 // Supporting/background URLs are intentionally excluded by the helper.
 const materialsPath = resolve(postsRoot(), slug, "materials.md");
+const materialPrimarySourceUrls = existsSync(materialsPath)
+  ? extractPrimarySourceUrlsFromMaterials(readFileSync(materialsPath, "utf8"))
+  : [];
 if (existsSync(materialsPath)) {
-  const materialsContent = readFileSync(materialsPath, "utf8");
-  const materialPrimarySourceUrls = extractPrimarySourceUrlsFromMaterials(materialsContent);
-  const missingFromDraft = materialPrimarySourceUrls.filter((url) => !primarySourceUrls.includes(url));
-  const extraInDraft = primarySourceUrls.filter((url) => !materialPrimarySourceUrls.includes(url));
-  if (missingFromDraft.length > 0 || extraInDraft.length > 0) {
+  const normalizedMaterialPrimarySourceUrls = normalizeSourceUrlSet(materialPrimarySourceUrls);
+  const normalizedDraftPrimarySourceUrls = normalizeSourceUrlSet(primarySourceUrls);
+  if (!sameNormalizedSourceSet(normalizedMaterialPrimarySourceUrls, normalizedDraftPrimarySourceUrls)) {
+    const missingFromDraft = normalizedMaterialPrimarySourceUrls.filter((url) => !normalizedDraftPrimarySourceUrls.includes(url));
+    const extraInDraft = normalizedDraftPrimarySourceUrls.filter((url) => !normalizedMaterialPrimarySourceUrls.includes(url));
     fail(2, `draft.md primarySourceUrls 必须与 materials.md 原始来源 URL 一致（缺少: ${missingFromDraft.join(", ") || "无"}；多出: ${extraInDraft.join(", ") || "无"}）`);
   }
 }
@@ -226,10 +234,19 @@ if (existsSync(blogMemoryPath)) {
   try {
     const memory = JSON.parse(readFileSync(blogMemoryPath, "utf8"));
     const sameSourceMatches = memory.same_source_matches;
+    const currentPrimarySourceUrls = existsSync(materialsPath) ? materialPrimarySourceUrls : primarySourceUrls;
+    if (currentPrimarySourceUrls.length > 0) {
+      if (!Array.isArray(memory.primary_source_urls)) {
+        fail(4, "source uniqueness was not verified; blog-memory.json lacks primary_source_urls");
+      }
+      if (!sameNormalizedSourceSet(memory.primary_source_urls, currentPrimarySourceUrls)) {
+        fail(4, "source uniqueness result is stale; blog-memory.json was generated for different primary source URLs. Rerun Step 1.5");
+      }
+    }
     if (Array.isArray(sameSourceMatches) && sameSourceMatches.length > 0) {
       fail(4, "primary source already has published article(s); do not create another article. Review blog-memory.md");
     }
-    if (primarySourceUrls.length > 0 && !Array.isArray(sameSourceMatches)) {
+    if (currentPrimarySourceUrls.length > 0 && !Array.isArray(sameSourceMatches)) {
       fail(4, "source uniqueness was not verified; blog-memory.json lacks same_source_matches");
     }
     const highConfidence = (memory.candidates ?? []).filter((c) => c.high_confidence === true || Number(c.score ?? 0) >= 6);
@@ -244,7 +261,7 @@ if (existsSync(blogMemoryPath)) {
     fail(4, `blog-memory.json 解析失败: ${err.message}`);
   }
 } else {
-  if (primarySourceUrls.length > 0) {
+  if ((existsSync(materialsPath) ? materialPrimarySourceUrls : primarySourceUrls).length > 0) {
     fail(4, "source uniqueness was not verified; blog-memory.json is missing");
   }
   process.stderr.write("step2: WARNING 未找到 blog-memory.json；Step 1.5 站内记忆检索可能未执行\n");

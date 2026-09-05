@@ -47,6 +47,12 @@ describe("source provenance", () => {
     expect(() => parsePrimarySourceUrlsFrontmatter('["file:paper.pdf"]')).toThrow();
   });
 
+  test("rejects explicit empty provenance but keeps absent metadata as empty", () => {
+    expect(parsePrimarySourceUrlsFrontmatter(undefined)).toEqual([]);
+    expect(parsePrimarySourceUrlsFrontmatter(null)).toEqual([]);
+    expect(() => parsePrimarySourceUrlsFrontmatter("[]")).toThrow();
+  });
+
   test("infers only the first legacy reference item", () => {
     const article = [
       "## 参考资料",

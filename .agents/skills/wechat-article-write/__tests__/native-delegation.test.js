@@ -28,7 +28,7 @@ describe("thin orchestrator architecture", () => {
     ]) expect(skill).toContain(phrase);
     expect(skill).not.toContain(["native", "Subagent", "capability unavailable"].join(" "));
     expect(skill).not.toContain(["Worker", "Subagent"].join(" "));
-    expect(skill).toContain('version: "2.8.0"');
+    expect(skill).toContain('version: "2.8.1"');
     expect(skill).toContain("Primary Source Uniqueness");
     expect(skill).toContain("primarySourceUrls");
 
