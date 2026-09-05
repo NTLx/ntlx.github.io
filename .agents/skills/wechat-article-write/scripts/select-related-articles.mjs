@@ -4,6 +4,12 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { basename, resolve } from "node:path";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
+import {
+  extractPrimarySourceUrlsFromMaterials,
+  findSameSourceMatches,
+  inferLegacyPrimarySource,
+  parsePrimarySourceUrlsFrontmatter,
+} from "./source-provenance-lib.mjs";
 
 const DEFAULT_LIMIT = 8;
 const HIGH_CONFIDENCE_SCORE = 6;
@@ -37,6 +43,23 @@ export function loadPublishedArticles(rootDir) {
       const raw = readFileSync(fullPath, "utf8");
       const fm = parseFrontmatter(raw) ?? {};
       const body = extractBody(raw);
+      const hasExplicitProvenance = Object.prototype.hasOwnProperty.call(fm, "primarySourceUrls");
+      let primarySourceUrls = [];
+      let primarySourceProvenance = null;
+      if (hasExplicitProvenance) {
+        try {
+          primarySourceUrls = parsePrimarySourceUrlsFrontmatter(fm.primarySourceUrls);
+          primarySourceProvenance = "frontmatter";
+        } catch (error) {
+          throw new Error(`${file}: ${error.message}`);
+        }
+      } else {
+        const inferred = inferLegacyPrimarySource(body);
+        if (inferred) {
+          primarySourceUrls = [inferred.normalizedUrl];
+          primarySourceProvenance = inferred.provenance;
+        }
+      }
       const slug = basename(file, ".md");
       return {
         slug,
@@ -45,6 +68,8 @@ export function loadPublishedArticles(rootDir) {
         date: fm.date ?? "",
         category: fm.category ?? "",
         tags: fm.tags ?? "",
+        primarySourceUrls,
+        primarySourceProvenance,
         body,
       };
     })
@@ -71,6 +96,7 @@ export function scoreArticle(queryTokens, article) {
 }
 
 export function selectRelated({ materials, articles, limit = DEFAULT_LIMIT }) {
+  const primarySourceUrls = extractPrimarySourceUrlsFromMaterials(materials);
   const queryTokens = tokenize(materials).slice(0, 80);
   const candidates = articles
     .map((article) => {
@@ -92,11 +118,30 @@ export function selectRelated({ materials, articles, limit = DEFAULT_LIMIT }) {
     .sort((a, b) => b.score - a.score || String(b.date).localeCompare(String(a.date)))
     .slice(0, limit);
 
-  return { queryTokens, candidates };
+  return {
+    queryTokens,
+    candidates,
+    primarySourceUrls,
+    sameSourceMatches: findSameSourceMatches(primarySourceUrls, articles),
+  };
 }
 
 export function renderMemoryMarkdown(data) {
   const lines = ["# 站内记忆包", ""];
+  lines.push("## Primary Source Uniqueness", "");
+  if (data.same_source_matches.length === 0) {
+    lines.push("未发现同源已发布文章。", "");
+  } else {
+    lines.push("发现当前 primary source 已经用于以下已发布文章：", "");
+    for (const [index, item] of data.same_source_matches.entries()) {
+      lines.push(`${index + 1}. 《${item.title}》`);
+      lines.push(`   URL: ${item.url}`);
+      lines.push(`   Primary Source: ${item.source}`);
+      lines.push(`   Provenance: ${item.provenance}`);
+      lines.push("");
+    }
+    lines.push("结论：不得创建新的独立文章。", "");
+  }
   if (data.candidates.length === 0) {
     lines.push("未找到明显相关的站内旧文。写作时可以跳过站内联动。");
     return lines.join("\n") + "\n";
@@ -137,6 +182,8 @@ if (import.meta.main) {
   const data = {
     slug: opts.slug,
     generated_at: new Date().toISOString(),
+    primary_source_urls: selected.primarySourceUrls,
+    same_source_matches: selected.sameSourceMatches,
     query_terms: selected.queryTokens.slice(0, 20),
     candidates: selected.candidates,
   };
@@ -146,9 +193,20 @@ if (import.meta.main) {
   writeFileSync(resolve(base, "blog-memory.md"), renderMemoryMarkdown(data));
   process.stdout.write(JSON.stringify({
     slug: opts.slug,
+    primary_source_urls: data.primary_source_urls.length,
+    same_source_matches: data.same_source_matches.length,
     candidates: data.candidates.length,
     high_confidence: data.candidates.filter((c) => c.high_confidence).length,
     blog_memory_json: "blog-memory.json",
     blog_memory_md: "blog-memory.md",
   }) + "\n");
+  if (data.same_source_matches.length > 0) {
+    process.stderr.write(
+      "select-related-articles: BLOCKED - primary source already has published article(s); do not create another article. Review blog-memory.md.\n",
+    );
+    for (const item of data.same_source_matches) {
+      process.stderr.write(`  - 《${item.title}》: ${item.url} (${item.provenance})\n`);
+    }
+    process.exit(4);
+  }
 }

@@ -2,6 +2,18 @@
 
 平台推荐标准青睐提供信息增量或情绪价值的内容；低创作度内容（同质化、搬运洗稿、低信息量、低价值 AIGC）不适合推荐。本文件是原创度契约的单一事实源；SKILL.md 与各策略文件只指向它，不复述。
 
+## Primary Source Uniqueness
+
+同一个 primary source 不应产生第二篇新的博客文章。Step 1.5 只对 `materials.md` 的
+`## 原始来源` 中 `- url:` 项与已发布文章的 `primarySourceUrls`（旧文章则使用
+`legacy-first-reference` compatibility fallback）做 normalized source identity exact match；
+不做语义相似度判断，也不把 `## 背景调研` 或 `## 参考资料` 的 supporting references 纳入比较。
+
+发现重复后必须停止创建新文章：已有文章仍有效则不再写；有重要新信息则更新已有文章；多来源任务
+则删除已覆盖 source 后重跑 Step 1 / 1.5；全部核心来源都已覆盖则停止。不同 source 即使主题相近，
+仍按本文件后续的增量契约判断；同一 source 即使有三条原创增量，也不能建立第二个 URL。没有普通
+override/escape hatch。
+
 ## 增量契约
 
 `understanding-brief.md` 的 `## 写作契约` 必须列出 ≥3 条增量承诺，从以下四类选取：

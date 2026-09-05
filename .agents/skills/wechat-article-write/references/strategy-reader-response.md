@@ -29,6 +29,18 @@ applies_when: 用户提供一篇或多篇原始材料，要求写读后感、深
 posts/{date-slug}/materials.md
 ```
 
+必须在材料中单独识别直接定义本文写作对象的 primary source，并写入：
+
+```text
+## 原始来源
+
+- url: https://primary.example.com/article
+```
+
+`## 背景调研` 只放 supporting evidence。进入 Step 1.5 后，必须先通过 Primary Source
+Uniqueness；同一 normalized primary source 已有已发布文章时 STOP，不进入 Understanding，
+不因换标题、opening、thesis 或 visual 而创建第二篇文章。
+
 至少包含 `## 背景调研` 和可追溯 URL，然后运行：
 
 ```bash

@@ -4,6 +4,7 @@
  *
  * 校验 draft.md：
  *   - frontmatter 完整（title / date / summary / category / blogSlug / coverImage / sourceUrl）
+ *   - 有外部 primary source 时，primarySourceUrls 与 materials.md provenance 完全一致
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
  *   - SLOT_IMG_00 信息图恰好存在一次，正文 SLOT 编号不重复
@@ -28,6 +29,7 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, bodyVisualMinimum } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
+import { extractPrimarySourceUrlsFromMaterials, parsePrimarySourceUrlsFrontmatter } from "./source-provenance-lib.mjs";
 import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
@@ -73,6 +75,16 @@ const blogSlug = readFmValue(content, "blogSlug");
 const coverImage = readFmValue(content, "coverImage");
 const sourceUrl = readFmValue(content, "sourceUrl");
 const targetPath = readFmValue(content, "targetPath");
+const frontmatterBlock = content.match(/^---\r?\n([\s\S]*?)\r?\n---/u)?.[1] ?? "";
+const hasPrimarySourceUrls = /^primarySourceUrls\s*:/mu.test(frontmatterBlock);
+let primarySourceUrls = [];
+if (hasPrimarySourceUrls) {
+  try {
+    primarySourceUrls = parsePrimarySourceUrlsFrontmatter(readFmValue(content, "primarySourceUrls"));
+  } catch (error) {
+    fail(2, error.message);
+  }
+}
 
 if (!title) fail(2, "frontmatter.title 缺失");
 if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(2, `frontmatter.date 不合法: ${date}`);
@@ -102,6 +114,19 @@ if (!targetPath) {
 } else {
   // 有 targetPath 时只验证 sourceUrl 是合法的 https URL
   if (!/^https?:\/\/.+/.test(sourceUrl)) fail(2, `frontmatter.sourceUrl 不合法（需为合法 URL）: ${sourceUrl}`);
+}
+
+// Draft provenance must exactly match the URL set recorded by Research.
+// Supporting/background URLs are intentionally excluded by the helper.
+const materialsPath = resolve(postsRoot(), slug, "materials.md");
+if (existsSync(materialsPath)) {
+  const materialsContent = readFileSync(materialsPath, "utf8");
+  const materialPrimarySourceUrls = extractPrimarySourceUrlsFromMaterials(materialsContent);
+  const missingFromDraft = materialPrimarySourceUrls.filter((url) => !primarySourceUrls.includes(url));
+  const extraInDraft = primarySourceUrls.filter((url) => !materialPrimarySourceUrls.includes(url));
+  if (missingFromDraft.length > 0 || extraInDraft.length > 0) {
+    fail(2, `draft.md primarySourceUrls 必须与 materials.md 原始来源 URL 一致（缺少: ${missingFromDraft.join(", ") || "无"}；多出: ${extraInDraft.join(", ") || "无"}）`);
+  }
 }
 
 // 2. Preserve full-body word_count for existing state consumers; coverage uses
@@ -182,7 +207,6 @@ if (hasRefSection) {
 }
 
 // 5b. Cross-check materials.md URLs against draft body
-const materialsPath = resolve(postsRoot(), slug, "materials.md");
 if (existsSync(materialsPath)) {
   const materialsContent = readFileSync(materialsPath, "utf8");
   const materialUrls = materialsContent.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
@@ -201,6 +225,13 @@ let blogMemoryCandidates = 0;
 if (existsSync(blogMemoryPath)) {
   try {
     const memory = JSON.parse(readFileSync(blogMemoryPath, "utf8"));
+    const sameSourceMatches = memory.same_source_matches;
+    if (Array.isArray(sameSourceMatches) && sameSourceMatches.length > 0) {
+      fail(4, "primary source already has published article(s); do not create another article. Review blog-memory.md");
+    }
+    if (primarySourceUrls.length > 0 && !Array.isArray(sameSourceMatches)) {
+      fail(4, "source uniqueness was not verified; blog-memory.json lacks same_source_matches");
+    }
     const highConfidence = (memory.candidates ?? []).filter((c) => c.high_confidence === true || Number(c.score ?? 0) >= 6);
     blogMemoryCandidates = highConfidence.length;
     blogMemoryUsed = highConfidence.some((c) => {
@@ -213,6 +244,9 @@ if (existsSync(blogMemoryPath)) {
     fail(4, `blog-memory.json 解析失败: ${err.message}`);
   }
 } else {
+  if (primarySourceUrls.length > 0) {
+    fail(4, "source uniqueness was not verified; blog-memory.json is missing");
+  }
   process.stderr.write("step2: WARNING 未找到 blog-memory.json；Step 1.5 站内记忆检索可能未执行\n");
 }
 
@@ -222,6 +256,7 @@ const stateExtra = {
   category,
   blog_slug: blogSlug,
   source_url: sourceUrl,
+  primary_source_urls: primarySourceUrls,
   word_count: wordCount,
   allow_no_references: allowNoReferences,
   allow_no_interaction: allowNoInteraction,
@@ -230,4 +265,4 @@ const stateExtra = {
   blog_memory_used: blogMemoryUsed,
 };
 markStepDone(slug, 2, stateExtra);
-process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, word_count: wordCount }) + "\n");
+process.stdout.write(JSON.stringify({ slug, step: 2, title, date, category, blogSlug, sourceUrl, primarySourceUrls, word_count: wordCount }) + "\n");

@@ -28,7 +28,9 @@ describe("thin orchestrator architecture", () => {
     ]) expect(skill).toContain(phrase);
     expect(skill).not.toContain(["native", "Subagent", "capability unavailable"].join(" "));
     expect(skill).not.toContain(["Worker", "Subagent"].join(" "));
-    expect(skill).toContain('version: "2.7.0"');
+    expect(skill).toContain('version: "2.8.0"');
+    expect(skill).toContain("Primary Source Uniqueness");
+    expect(skill).toContain("primarySourceUrls");
 
     const reference = readFileSync(resolve(skillDir, "references", "delegated-execution.md"), "utf8");
     expect(reference).toContain("Delegated Executor capability contract");

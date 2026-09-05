@@ -11,8 +11,13 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { markStepDone } from "./state-lib.mjs";
+import { loadState, markStepDone } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
+import {
+  extractPrimarySourceEntriesFromMaterials,
+  extractPrimarySourceUrlsFromMaterials,
+  normalizeSourceUrl,
+} from "./source-provenance-lib.mjs";
 
 const args = process.argv.slice(2);
 let slug = null, sources = null, failed = null;
@@ -33,6 +38,13 @@ const content = readFileSync(materialsPath, "utf8");
 const charCount = content.replace(/\s+/g, "").length;
 
 const lines = content.split(/\r?\n/);
+const state = loadState(slug);
+const strategy = state?.strategy ?? null;
+const primaryHeadingIndex = lines.findIndex((line) => /^##\s+原始来源\s*$/.test(line));
+const primaryEntries = extractPrimarySourceEntriesFromMaterials(content);
+const primarySourceUrls = extractPrimarySourceUrlsFromMaterials(content);
+const primarySourceRequired = strategy === "reader-response" || strategy === "news-digest";
+
 const headingIndex = lines.findIndex((line) => /^##\s+背景调研\s*$/.test(line));
 if (headingIndex === -1) {
   process.stderr.write("step1: FAIL materials.md 缺少 `## 背景调研` 章节。每次写作前必须联网查询相关人物/组织/概念/事件/评论等背景资料\n");
@@ -50,13 +62,33 @@ if (!/https?:\/\//.test(backgroundSection)) {
   process.exit(3);
 }
 
+if (primarySourceRequired && primaryHeadingIndex === -1) {
+  process.stderr.write("step1: FAIL materials.md 缺少 `## 原始来源` 章节。reader-response/news-digest 必须明确记录原始写作材料\n");
+  process.exit(3);
+}
+if (primaryHeadingIndex !== -1 && primaryEntries.length === 0) {
+  process.stderr.write("step1: FAIL `## 原始来源` 章节至少需要一条 `- url:`, `- file:` 或 `- pasted:` 来源记录\n");
+  process.exit(3);
+}
+for (const entry of primaryEntries) {
+  if (entry.type === "url" && !normalizeSourceUrl(entry.value)) {
+    process.stderr.write(`step1: FAIL \`## 原始来源\` 中的 URL 无效: ${entry.value}\n`);
+    process.exit(3);
+  }
+}
+
 if (charCount < 200) {
   process.stderr.write(`step1: WARNING materials.md 仅 ${charCount} 字（非空白），材料可能偏少，写作深度可能受限\n`);
   // 非阻塞，继续
 }
 
 const backgroundUrls = backgroundSection.match(/https?:\/\/[^\s)\]>"']+/g) ?? [];
-const info = { materials_path: materialsPath, char_count: charCount, background_urls: backgroundUrls.length };
+const info = {
+  materials_path: materialsPath,
+  char_count: charCount,
+  background_urls: backgroundUrls.length,
+  primary_source_urls: primarySourceUrls.length,
+};
 if (sources !== null) info.sources = sources;
 if (failed !== null) info.failed = failed;
 

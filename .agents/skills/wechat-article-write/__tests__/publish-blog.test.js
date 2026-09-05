@@ -37,7 +37,7 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
   };
   const lines = Object.entries(fm)
     .filter(([, v]) => v !== undefined)
-    .map(([k, v]) => `${k}: ${v}`);
+    .map(([k, v]) => `${k}: ${Array.isArray(v) ? JSON.stringify(v) : v}`);
   writeFileSync(join(dir, "article.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n内容。`);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n内容。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
@@ -82,6 +82,24 @@ describe("publish-blog", () => {
     expect(r.stdout).not.toContain("blogSlug:");
     expect(r.stdout).not.toContain("sourceUrl:");
     expect(r.stdout).not.toContain("coverImage:");
+  });
+
+  test("preserves primary source provenance in the public blog frontmatter", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-中文标题";
+    writeArticle(fx.postsRoot, dateSlug, {
+      primarySourceUrls: ["https://example.com/a"],
+    });
+
+    const r = runPublish([dateSlug, "--no-push", "--no-build"], fx);
+    expect(r.status).toBe(0);
+    const target = join(fx.repoRoot, "src/content/docs/articles/frontmatter-blog-slug.md");
+    const published = readFileSync(target, "utf8");
+    expect(published).toContain('primarySourceUrls: ["https://example.com/a"]');
+    expect(published).not.toContain("sourceUrl:");
+    expect(published).not.toContain("blogSlug:");
+    expect(published).not.toContain("coverImage:");
   });
 
   test("fails when sourceUrl does not match effective blog slug", () => {

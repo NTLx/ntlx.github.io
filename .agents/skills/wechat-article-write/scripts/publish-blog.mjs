@@ -26,6 +26,7 @@ import { markBlogDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
+import { parsePrimarySourceUrlsFrontmatter } from "./source-provenance-lib.mjs";
 import { assertFinalizedArtifactFreshness } from "./artifact-integrity-lib.mjs";
 
 
@@ -108,7 +109,7 @@ function buildBlogFm(fm) {
   const excluded = ["coverImage", "sourceUrl", "blogSlug", "targetPath"];
   for (const k of excluded) delete fm[k];
 
-  // 字段顺序：$schema -> title -> description -> date -> category -> tags?
+  // 字段顺序：$schema -> title -> description -> date -> category -> tags? -> primarySourceUrls?
   const lines = [];
   lines.push(`$schema: starlight`);
   lines.push(`title: ${quote(fm.title)}`);
@@ -116,6 +117,7 @@ function buildBlogFm(fm) {
   lines.push(`date: ${fm.date}`);
   lines.push(`category: ${fm.category}`);
   if (fm.tags) lines.push(`tags: ${fm.tags}`);
+  if (fm.primarySourceUrls) lines.push(`primarySourceUrls: ${fm.primarySourceUrls}`);
   return "---\n" + lines.join("\n") + "\n---\n";
 }
 function quote(v) {
@@ -224,6 +226,14 @@ for (const k of ["title", "date", "summary", "category"]) {
 if (!VALID_CATEGORIES.includes(fm.category)) {
   process.stderr.write(`publish-blog: category=${fm.category} 不在白名单 ${VALID_CATEGORIES.join(",")}\n`);
   process.exit(2);
+}
+if (Object.prototype.hasOwnProperty.call(fm, "primarySourceUrls")) {
+  try {
+    parsePrimarySourceUrlsFrontmatter(fm.primarySourceUrls);
+  } catch (error) {
+    process.stderr.write(`publish-blog: ${error.message}\n`);
+    process.exit(2);
+  }
 }
 
 const slug = resolveBlogSlug(dateSlug, opts.blogSlug, fm.blogSlug);

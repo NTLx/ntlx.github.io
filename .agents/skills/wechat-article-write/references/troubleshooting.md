@@ -18,5 +18,6 @@
 | Step 5 structural/integrity 失败 | 保持 child HTML 不变，将 Gate diagnostics 传回 `gzh-design`，从冻结 source 重新生成；禁止 patch HTML |
 | 图床网络失败 | 重新委托 `github-image-hosting` 并按其规则恢复；不要调用 `upload.ts` 或复制外层重试 |
 | 微信发布失败 | 重新委托 `baoyu-post-to-wechat`；不要直接调用 `wechat-api.ts` 或由 Parent 自己创建草稿 |
+| primary source already has published article | 打开 `blog-memory.md` 阅读已有文章；不要创建新 slug。需要新信息就更新已有文章；多源任务删除已覆盖 source 后重新运行 Step 1.5；全部来源已覆盖则停止 |
 | child artifact 被 Parent 修改 | child completion 失效；恢复干净输入并重新委托原 child，再运行同一 Gate |
 | 发布失败 | `state.mjs next` 只恢复失败子状态；博客 push、Pages deploy、微信 prepare、child draft 分开判断 |

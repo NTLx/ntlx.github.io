@@ -5,6 +5,7 @@ description: AI Agent 的成本不在某次输出有多长，而在完成任务�
 date: 2026-09-04
 category: ai-coding
 tags: [AI Agent, GitHub Copilot, cost, harness, context engineering]
+primarySourceUrls: ["https://github.blog/ai-and-ml/github-copilot/how-we-make-ai-coding-more-cost-efficient-without-sacrificing-task-quality/"]
 ---
 
 有一种降本很容易让人产生错觉：把某个工具的输出砍掉一半，仪表盘上的 token 立刻好看起来。

@@ -54,7 +54,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const fm = parseFrontmatter(skillText);
 if (fm.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (fm["metadata.author"] !== "NTLx") errors.push("SKILL.md must declare metadata.author=NTLx");
-if (fm["metadata.version"] !== "2.7.0") errors.push("SKILL.md must declare metadata.version=2.7.0");
+if (fm["metadata.version"] !== "2.8.0") errors.push("SKILL.md must declare metadata.version=2.8.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const phrase of [
@@ -119,7 +119,14 @@ for (const rel of [
   "scripts/step1-collect.mjs", "scripts/step2-write.mjs", "scripts/step3-polish.mjs",
   "scripts/step4-images.mjs", "scripts/step5-build.mjs", "scripts/state.mjs",
   "scripts/pipeline.mjs", "scripts/image-plan-lib.mjs", "scripts/markdown-structure-lib.mjs",
+  "scripts/source-provenance-lib.mjs",
 ]) requireFile(rel);
+
+for (const phrase of ["Primary Source Uniqueness", "primarySourceUrls", "same_source_matches"]) {
+  if (!skillText.includes(phrase) && !readFileSync(file("references/originality-policy.md"), "utf8").includes(phrase)) {
+    errors.push(`source uniqueness contract missing: ${phrase}`);
+  }
+}
 
 for (const retired of [
   "skill-catalog.mjs", "orchestration-trace.mjs", "workflow.mjs", "generate-image-prompts.mjs",

@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.7.0"
+  version: "2.8.0"
 ---
 
 # 微信公众号文章写作
@@ -87,23 +87,32 @@ Executor 连续完成多个紧密、低风险动作，但 Main 永远不直接�
 **Main decision**：传递用户 URL、原始材料、目标读者、strategy 和研究缺口；只消费 handoff，不读完整
 网页或亲自补背景事实。
 
+**Research Executor owns primary-source identification.** 对 `reader-response` 与 `news-digest`，必须
+在 `materials.md` 的 `## 原始来源` 中记录直接构成本篇写作对象的 `url`、`file` 或 `pasted` 材料；
+`## 背景调研` 只记录 supporting evidence。Tutorial 只有在确有明确外部原始来源时记录 provenance。
+
 **Execution Unit**：`research`；动态选择最匹配的 1–2 个 research Skill，或 `none`。
 
 **Input / Output**：用户材料 → `posts/<date-slug>/materials.md`，必要时写 `source-media/*`。
 
 **Success**：区分 fact、inference、author judgement；外部事实有可追溯 URL；隔离 Executor 运行
-`step1-collect.mjs <date-slug>` 并通过 Step 1 Gate。
+`step1-collect.mjs <date-slug>` 并通过 Step 1 Gate。Step 1 输出 `primary_source_urls` 摘要，
+但不把 supporting references 当作 primary source。
 
 ### Step 1.5 — Blog memory
 
-**Main decision**：委托站内相关性筛选，不亲自搜索站内文章。
+**Main decision**：委托站内相关性筛选，不亲自搜索站内文章。先执行 Primary Source Uniqueness，
+再做 lexical site memory。
 
 **Execution Unit**：`blog-memory`；无需固定 Skill。
 
 **Input / Output**：`materials.md` 和站内文章 → `blog-memory.md`（可有 `blog-memory.json`）。
 
-**Success**：记录真正相关的已发布文章，或明确记录没有合适关联内容；通过
-`select-related-articles.mjs <date-slug>`。
+**Success**：Primary Source Uniqueness PASS + related memory ready；记录真正相关的已发布文章，或
+明确记录没有合适关联内容；通过 `select-related-articles.mjs <date-slug>`。发现同一 normalized
+primary source 已用于已发布文章时，Step 1.5 `BLOCKED`，正常写出 `blog-memory.json` 与
+`blog-memory.md`（其中 `same_source_matches` 保存具体诊断）后返回 non-zero；Main 只能决定不再写、更新旧文或移除多来源任务中已覆盖的 source。
+没有普通 bypass flag。
 
 ### Step 1.8 — Understanding
 
@@ -128,9 +137,11 @@ visual target、用户要求），委托写作，不亲自写句子。
 **Input / Output**：brief、materials、blog memory、strategy reference、content invariants 和
 planning capsule → `draft.md`。
 
-**Success**：frontmatter、summary、blogSlug、sourceUrl、H2、引用、互动、站内联动和 strategy
-约束通过 `step2-write.mjs <date-slug>`；`SLOT_IMG_00` 恰好一次、在第一个 substantive H2 前，
-正文视觉 topology 正确；Step 2 不生成最终 `image-plan.json`。
+**Success**：frontmatter、summary、blogSlug、sourceUrl、`primarySourceUrls`（适用时）、H2、引用、
+互动、站内联动和 strategy 约束通过 `step2-write.mjs <date-slug>`；`primarySourceUrls` 与
+`materials.md` 的 URL provenance 一致，且 source uniqueness 已通过；`SLOT_IMG_00` 恰好一次、在
+第一个 substantive H2 前，正文视觉 topology 正确；Step 2 不生成最终 `image-plan.json`。Step 2
+读取 `blog-memory.json` 作为 resume backstop，不能由 `--allow-no-related` 绕过同源阻断。
 
 ### Step 3 — Humanization
 
@@ -257,6 +268,7 @@ WeChat publish。Main 只读取 checklist，不亲自执行 web、curl、shell�
 - strategy → `references/strategy-reader-response.md`、`references/strategy-tutorial.md`、`references/strategy-news-digest.md`
 - understanding brief → `references/material-understanding.md`
 - source reuse、SLOT 命名和视觉验收 → `references/image-policy.md`
+- primary source provenance 与 exact identity → `scripts/source-provenance-lib.mjs`
 - WeChat HTML → `references/adapter-gzh-design.md`
 - 发布 → `references/publishing.md`
 - 原创增量 → `references/originality-policy.md`

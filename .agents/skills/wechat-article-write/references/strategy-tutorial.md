@@ -31,6 +31,9 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
 - 写入金句式 `summary`，选择分类、`blogSlug`、`targetPath` 和 canonical
   `sourceUrl`。
 
+教程若有明确外部原始写作材料，应在 `materials.md` 写入 `## 原始来源`，最终 draft 保留
+`primarySourceUrls`；只有本站文档、本地文件或用户粘贴内容时，不要为了满足字段而编造外部 URL。
+
 Agent 可读取 `blog-memory.md` 并选择是否联动旧文；如果不适合，使用
 `--allow-no-related` 说明理由。教程默认允许没有互动和参考资料，但如果
 原文有来源信息，应保留它们。

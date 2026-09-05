@@ -2,10 +2,19 @@
 
 ## Frontmatter
 
-`draft.md` 与博客 `article.md` 保留 `title`、`date`、`summary`、`category`、
-`blogSlug`、`coverImage`、`sourceUrl`。`summary` 是微信 digest 唯一来源，控制在 120 字内；
+`draft.md` 与博客发布前的 `article.md` 保留 `title`、`date`、`summary`、`category`、
+`blogSlug`、`coverImage`、`sourceUrl`；存在外部原始来源时保留 inline array 字段
+`primarySourceUrls`。`summary` 是微信 digest 唯一来源，控制在 120 字内；
 `blogSlug` 为 ASCII kebab-case；默认 `sourceUrl` 是
 `https://ntlx.github.io/articles/{blogSlug}`。教程可有 `targetPath`，但 sourceUrl 仍须是合法公网 URL。
+
+`sourceUrl` 是本站 article canonical URL，供 pipeline / WeChat publishing 使用；
+`primarySourceUrls` 是本文直接原始写作材料的 provenance，用于跨文章 exact identity 去重。两者
+不能互换。`primarySourceUrls` 不是 `## 参考资料` 的全部 URL：背景资料、站内文章、补充 benchmark、
+图片 URL 和其它 supporting references 不得放入该字段。
+
+`publish-blog.mjs` 仍按现有规则从公开博客 Markdown 删除 `sourceUrl`、`blogSlug`、`coverImage`；
+`primarySourceUrls` 必须持久化在公开 Markdown 中。
 
 正文不写 H1；Markdown 链接使用 inline 形式。博客轨保留可点击链接，微信 source 将链接转为可见纯文本 URL。
 正文代码围栏及 whitespace-sensitive code 的内容和行序保持不变；博客构建遵守 MDX 安全，正文避免裸 `<` / `>`。

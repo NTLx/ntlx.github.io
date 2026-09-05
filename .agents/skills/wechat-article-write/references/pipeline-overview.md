@@ -6,7 +6,7 @@
 |---|---|---|---|
 | 0 | 用户目标、已有 state | strategy、post 目录、state v2 | `bootstrap/resume` / `state.mjs` |
 | 1 | 原始材料、研究结果 | `materials.md` | `research` / `step1-collect.mjs` |
-| 1.5 | 已发布文章 | `blog-memory.md/json` | `blog-memory` / `select-related-articles.mjs` |
+| 1.5 | materials primary sources、已发布文章 | Primary Source Uniqueness → `blog-memory.md/json` | `blog-memory` / `select-related-articles.mjs`；同源即 BLOCKED |
 | 1.8 | materials、blog memory | `understanding-brief.md`（按需） | `understanding` / `validate-understanding.mjs` |
 | 2 | 上述材料、写作目标 | `draft.md` + visual SLOT topology | `draft` / `step2-write.mjs` |
 | 3 | Step 2 draft | 更新后的 `draft.md`、`step3_draft_sha256` | `humanization` → `humanizer-zh` / `step3-polish.mjs` |
@@ -16,6 +16,12 @@
 
 Step 2 只产出 `draft.md` 及其 visual SLOT topology；Step 4 完成 source/generated resolution
 后，才产出 `cover.*`、`imgs/*` 和最终 `image-plan.json`。
+
+Step 1.5 的内部顺序固定为：
+
+```text
+Materials → Primary Source Uniqueness → Site Memory → Understanding
+```
 
 ## State v2
 

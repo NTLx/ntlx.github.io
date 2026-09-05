@@ -20,6 +20,7 @@ sidebar:
 - **MDX JSX 中文引号**：`<LinkCard title="…" />` 内含中文引号 / `<` / `>` 会触发 MDX 解析错误，改用模板字符串 `` title={`…`} ``
 - **Sidebar autogenerate v0.39+**：`autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性
 - `src/content/docs/guides/` 下的 `.md` 是知识库页面（带 frontmatter）；本文件（`sidebar.hidden: true`）不进入可见页面
+- 通过 `wechat-article-write` 发布、且存在外部 primary source 的文章，应保留 `primarySourceUrls`，用于来源 provenance 与跨文章去重；具体政策见 [`wechat-article-write/references/originality-policy.md`](../../.agents/skills/wechat-article-write/references/originality-policy.md)
 
 ## category 与 URL 稳定性
 

@@ -21,6 +21,19 @@ applies_when: 用户要求汇总 AI 资讯、行业动态、新闻简报或热�
 将每条候选事件的发生时间、主体、事实来源、影响对象、可信度和作者判断
 写入 `materials.md`，并通过：
 
+每个正式纳入事件的直接原始来源都必须进入单独的 `## 原始来源`，例如：
+
+```text
+## 原始来源
+
+- url: https://official.example.com/event-a
+- url: https://official.example.com/event-b
+```
+
+`## 背景调研` 只记录 supporting evidence。Step 1.5 先执行 Primary Source Uniqueness；
+如果某个 source 已被覆盖，从材料中剔除该事件并重新整理后再跑 Step 1 / 1.5；全部核心来源
+均已覆盖时 STOP，不再次摘要或创建新文章。
+
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
