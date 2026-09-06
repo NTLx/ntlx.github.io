@@ -3,11 +3,52 @@ import { collectMarkdownImages, collectSubstantiveSections, normalizeSourceImage
 
 const IMAGE_RENDERED_FENCES = new Set(["mermaid", "plantuml"]);
 
+function findClosingBracket(value, start) {
+  let depth = 0;
+  for (let index = start; index < value.length; index += 1) {
+    if (value[index] === "\\") {
+      index += 1;
+      continue;
+    }
+    if (value[index] === "[") depth += 1;
+    if (value[index] === "]") {
+      depth -= 1;
+      if (depth === 0) return index;
+    }
+  }
+  return -1;
+}
+
+function replaceMarkdownLinks(value) {
+  let output = "";
+  let index = 0;
+  while (index < value.length) {
+    if (value[index] !== "[") {
+      output += value[index];
+      index += 1;
+      continue;
+    }
+    const labelEnd = findClosingBracket(value, index);
+    const destinationStart = labelEnd + 1;
+    const destinationEnd = value[destinationStart] === "("
+      ? value.indexOf(")", destinationStart + 1)
+      : -1;
+    if (labelEnd !== -1 && destinationEnd !== -1) {
+      output += `${value.slice(index + 1, labelEnd)} ${value.slice(destinationStart + 1, destinationEnd)}`;
+      index = destinationEnd + 1;
+      continue;
+    }
+    output += value[index];
+    index += 1;
+  }
+  return output;
+}
+
 function normalizeText(value) {
-  return String(value ?? "")
+  const text = String(value ?? "")
     .replace(/<!--[^]*?-->/gu, "")
-    .replace(/!\[[^\]]*\]\([^)]*\)/gu, "")
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/gu, "$1 $2")
+    .replace(/!\[[^\]]*\]\([^)]*\)/gu, "");
+  return replaceMarkdownLinks(text)
     .replace(/<[^>]+>/gu, "")
     .replace(/[\*_~`]/gu, "")
     .replace(/\\(?=\s|$)/gu, "")
