@@ -105,6 +105,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续工程阶段
 
-Step 4-6 遵循 `pipeline-overview.md`：先定义视觉意图，图片统一经项目
-配置的 `baoyu-image-gen → codex-cli`，然后构建双轨产物并按博客、微信顺序
-发布。任何 Gate 失败都回到编排闭环改道，不跳过验证。
+Step 4-6 遵循主 `SKILL.md` 与 `image-policy.md`：先定义视觉意图并决定 source reuse 或
+generated visual，再构建双轨产物并按博客、微信顺序发布。任何 Gate 失败都回到编排闭环改道，
+不跳过验证。

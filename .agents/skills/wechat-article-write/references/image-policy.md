@@ -1,110 +1,49 @@
 # 图片策略
 
-## Native delegation
-
-固定业务映射：
-
-| 资产 | Skill | 输出 |
-|---|---|---|
-| cover | `baoyu-cover-image` | post 根目录唯一 `cover.png` 或 `cover.jpg`，比例 `2.35:1` |
-| `SLOT_IMG_00` | `baoyu-infographic` | 唯一 `imgs/00-infographic-core-summary.png` |
-| 正文 visual `SLOT_IMG_01+`（`kind: generated`） | `baoyu-infographic` | 对应 `imgs/NN-<desc>.png` |
-| architecture / flow / sequence / state / data flow / topology | 按需 `baoyu-diagram` | 结构辅助；最终 raster 仍由正文图片 Skill 产出 |
-
-各 Baoyu Skill 的视觉和 backend preference 由其自己的
-`.baoyu-skills/<skill>/EXTEND.md` 提供。`wechat-article-write` 不复制、解释或覆盖 child
-preference。
-
-wechat-article-write 负责：
-
-```text
-- source vs generated
-- semantic SLOT
-- output filename
-- visual coverage
-- serial review
-```
-
-child Skill 负责：
-
-```text
-- style
-- layout
-- palette
-- aspect preference
-- backend preference
-- prompt
-- raster generation
-```
-
-Agent 每次委托都把当前 draft 语境、输出路径和子 Skill 原生的非交互参数传入。cover 使用等价于
-`--quick --aspect 2.35:1 --no-title` 的参数，generated visual 使用 `--no-confirm`。专业 Skill
-自己完成分析、选择、prompt、raster 和报告；Parent 不重建 prompt、不集中渲染。通用 `image_gen`、
-直接调用 `baoyu-image-gen` 或父层自写脚本都不能替代 mandatory 的 `baoyu-cover-image` 和
-`baoyu-infographic`。
-
-mandatory child 不可发现、依赖缺失或执行失败时，图片阶段 fail closed 并停留在当前 Step；
-按对应 child 的反馈重新委托，不切换到父 Agent 的通用图像工具。
-
 ## Source reuse
 
-在生成正文图前检查材料中的可用原图。`prefer-reuse` 且原图直接承载讨论结果时优先复用，
-把最终 `kind: source`、本地 file、source URL 和 reason 写入 `image-plan.json`。只记录最终资产事实。
+正文视觉节点先检查材料中的可用原图。固定规则是 `prefer-reuse`：原图直接承载当前讨论结果时，
+优先复用，并在 `image-plan.json` 记录最终 `kind: source`、本地 file、source URL 和 reason。
 
-source reuse 决定的是某个视觉节点用什么图，不是决定这个视觉节点要不要存在。
+Source reuse changes visual origin, not whether a semantic visual node exists。高价值原图不能绕过
+正文 SLOT：若原图承担正式正文视觉节点，必须规划 `SLOT_IMG_01+`、落盘到 `imgs/`、记录为
+`kind: source`，并保留 source URL 与 reason。普通 Markdown 图片不自动满足 Visual Coverage。
 
 ## Source provenance review
 
-如果正文显式引用 `Figure N`、`Fig. N`、`图 N`、`Table N` 或 `表 N`，Parent 必须逐项核对：
+如果正文显式引用 `Figure N`、`Fig. N`、`图 N`、`Table N` 或 `表 N`，assigned visual Executor
+必须逐项核对以下四项：
 
-- 原 source figure/table number；
+- source figure/table number；
 - source caption；
-- 正文描述；
+- 正文 body claim；
 - 本地复用图片。
 
-四者必须指向同一个 source asset。复用审核仍由 Parent 负责，不新增调用证明或机器 Gate。
-
-高价值 source image 不直接绕过 SLOT 插入正文。如果原图承担一个正式正文视觉节点：
-
-1. 为该节点规划有语义的 `SLOT_IMG_01+`；
-2. 下载或落盘到 `imgs/`；
-3. 在 Step 4 的 `image-plan.json` 中将该 SLOT 记为 `kind: source`；
-4. 保留 source URL 与 reason。
-
-这使 source reuse 与生成图片共享同一正文语义位置；普通 Markdown 图片不自动满足覆盖。
+四者必须指向同一个 source asset，并检查清晰度、完整性、裁切、时效性和误导风险。审核失败时，
+换用合适原图；没有合适原图则把该节点改为 `kind: generated`，保留同一语义节点。
 
 ## Visual coverage
 
 cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
 
-正常长文（substantive H2 至少 3 个，或正文达到约 1400 字的正常长文级别）必须至少
-有两个 `SLOT_IMG_01+`。典型 3-6 H2 的 reader-response 在 2-4 个 body visuals 之间按
-语义判断自由选择。未达到 normal long-form 阈值的短文可以为 0 个；normal long-form
-不能因没有合适的 source image 或判断视觉信息增益不足而豁免，仍应寻找有价值的视觉化
-节点，必要时使用 `kind: generated` 委托生成信息图。
+normal long-form 的条件是 substantive H2 >= 3，或 substantive body >= 1400。normal long-form
+的 body visual minimum = 2；typical reader-response = 2–4。短文可以为 0 个 body visual，
+但 normal long-form 不能因没有合适原图或视觉信息增益判断困难而豁免。
 
-优先视觉化：
+优先视觉化对比、流程、机制、层级、状态变化、决策框架、指标体系、因果关系、复杂 checklist 和
+文章的关键原创增量；避免装饰图、重复 SLOT00，或按每个 H2 机械配图。没有合适 source image
+只能改变视觉来源，不能删除仍然需要的 body visual SLOT。
 
-- 对比、流程、机制、层级、状态变化；
-- 决策框架、指标体系、因果关系、复杂 checklist；
-- 文章的关键原创增量。
+## Review and machine Gate
 
-避免装饰图、重复 SLOT00，或按每个 H2 机械配图。没有合适 source image 只能改变
-视觉来源：该节点仍需要视觉化时，使用 `kind: generated` 并委托 `baoyu-infographic`，
-不能因此删除 body visual SLOT。
+semantic review 由 assigned visual Executor 完成：source asset 检查论点对应、编号、caption、
+清晰度、完整性和时效性；generated asset 检查 semantic match、visual hierarchy、中文文本正确性、
+legibility 和 text density。
 
-## Serial review
+cover、SLOT00 和 body visuals 按 workflow 顺序 serial review；当前资产通过后才处理下一张。review
+失败只改变该节点的 source 或生成结果，不删除语义节点，也不以装饰性评分替代 deterministic Gate。
 
-cover、SLOT00、每个 body visual 按 workflow 顺序一次处理；通过后才处理下一张。
-
-- `kind: source`：实际查看是否对应当前论点、是否清晰完整、是否需要裁切，以及是否含过期或误导信息、是否值得复用；不创建 receipt。
-- `kind: generated`：实际查看 semantic match、visual hierarchy、Chinese text correctness、legibility 和 text density。
-
-- `kind: source` 审核失败时，换用另一张合适的 source image；如果没有合适原图，将该 SLOT 改为 `kind: generated`，再委托 `baoyu-infographic`。
-- `kind: generated` 审核失败时，回到 `baoyu-infographic` 重新生成。Codex CLI 不可用或失败时图片任务阻塞，不切换 provider。
-
-## Machine Gate
-
-`step4-images.mjs` 只检查：root cover uniqueness、MIME/扩展名、cover ratio、SLOT00 basename、
-normal long-form minimum body visual coverage、body SLOT ↔ `image-plan.json` ↔ local file topology、
-图片文件存在。它不检查视觉美学评分，也不读取或要求 prompt、producer、receipt 等控制层产物。
+`step4-images.mjs` 只做 deterministic machine Gate：root cover uniqueness、MIME/扩展名、cover
+ratio、SLOT00 basename、normal long-form minimum body visual coverage、body SLOT ↔
+`image-plan.json` ↔ local file topology，以及图片文件存在性。它不做 style scoring，也不读取或要求
+prompt、producer、receipt 等控制层产物。

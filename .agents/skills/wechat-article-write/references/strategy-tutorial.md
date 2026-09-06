@@ -72,6 +72,5 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续阶段
 
-Step 4 先判断视觉意图，再选择能解释该意图的能力；所有
-raster 生成统一收束到 `baoyu-image-gen → codex-cli`。Step 5/6 继续遵循
-通用双轨构建、finalize 和发布顺序。
+Step 4 先判断视觉意图，再选择能解释该意图的 source 或 generated visual。Step 5/6 继续遵循
+主 `SKILL.md` 的双轨构建、finalize 和发布顺序。

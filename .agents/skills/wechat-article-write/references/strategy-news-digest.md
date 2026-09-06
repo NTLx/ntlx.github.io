@@ -78,6 +78,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ## 后续阶段
 
 Step 4 先从新闻的共同趋势或影响关系中定义视觉意图，再动态选择视觉
-能力；raster 只能经 `baoyu-image-gen → codex-cli`。Step 5/6 使用通用的
+能力，并按 source reuse 或 generated visual 规则落地。Step 5/6 使用主 `SKILL.md` 的
 双轨构建、HTML finalize 和发布顺序。首次采用新的数据源或能力时，遵守
 其 setup 要求；不可用时如实记录覆盖差异。

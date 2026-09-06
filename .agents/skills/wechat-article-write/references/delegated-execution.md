@@ -1,64 +1,46 @@
 # Delegated execution
 
-本 reference 定义 `wechat-article-write` 的 runtime-neutral execution contract。它规定能力、边界、
-输入输出和 handoff，不规定某个产品 API，也不创建 state schema、receipt、trace、registry 或
-执行证明。
+本 reference 定义 `wechat-article-write` 的 runtime-neutral execution protocol：隔离边界、能力契约、
+capsule、handoff、retry 和 E2E。它不定义 workflow routing，不创建 state schema、receipt、trace、
+registry 或执行证明。
 
 ## Main execution boundary
 
-Main Agent 是 Orchestrator，不是产物生产者。Main 负责：
+Main 是 Orchestrator，不是产物生产者。Main 负责理解目标、选择 strategy、读取 state summary 和
+brief、形成中心判断、选择当前 unit、dispatch 最小 capsule，并依据 Gate / handoff 决定
+`proceed`、`retry`、`reroute` 或 `blocked`。
 
-- 理解用户目标，选择 strategy，读取 state summary 和 understanding brief；
-- 形成中心判断、编辑方向、semantic visual nodes 和当前 Execution Unit；
-- 选择并调用满足 contract 的隔离执行机制，传递最小 capsule，读取 bounded handoff；
-- 根据 Gate 和 handoff 决定 proceed、retry、reroute 或 blocked，并向用户汇报结果。
+Main 不直接执行实际工作；所有工具、专业 Skill、deterministic command、artifact production、
+upload、publish、build 和 repository mutation 都必须进入 isolated execution context。Executor
+failure never expands Main execution authority。
 
-Main 仍负责理解：Understanding Executor 先把原始材料压缩为 `understanding-brief.md`，Main 再据此
-形成中心判断和文章方向。Main 不需要把完整材料搬入自己的上下文。
+## What counts as isolated execution
 
-Main 不直接执行实际工作：抓取网页、下载媒体、写 `materials.md` / `draft.md` / HTML、修改文风、
-生成或审阅图片、上传、发布、commit/push、build、pipeline scripts、child Skill 内部脚本和专业
-Skill 调用，都必须进入隔离 execution context。Executor failure never expands Main execution authority。
+Execution Unit 是一个逻辑责任边界。Delegated Executor 是完成该边界的实际隔离上下文，不等于固定
+的 Agent 数量，也不要求每个 unit 单独创建上下文。
 
-## Execution Unit and Delegated Executor
-
-Execution Unit 是一个逻辑责任边界，例如 research、understanding、draft、humanization、cover、
-SLOT00、body visual、hosting、wechat layout、publishing 或 verification。它不是 Agent 数量，也不
-要求“一 unit = 一个上下文”。
-
-Delegated Executor 是完成一个或多个边界清晰 Execution Unit 的实际隔离执行上下文。
-
-### Delegated Executor capability contract
-
-一个机制只有
-同时满足以下条件才算有效：
+有效隔离必须同时满足：
 
 1. 执行上下文与 Main 有实际隔离；
-2. 能独立读取任务所需文件；
-3. 能独立调用所需工具和 Skill；
-4. 工具轨迹和长上下文不需要完整返回 Main；
-5. 能输出 bounded handoff；
-6. 失败后能重新创建 fresh execution context；
-7. 能限制在当前 unit，并不要求 Main 继续亲自执行专业工作。
+2. Executor 能独立读取任务所需文件并调用所需工具、Skill；
+3. 长上下文和工具轨迹不需要完整返回 Main；
+4. Executor 能输出 bounded handoff；
+5. 失败后能创建 fresh execution context；
+6. Executor 能限制在当前 unit，不要求 Main 接管专业工作。
 
-可用机制的非规范性示例包括：subagent、child agent、task、child thread、forked context、
-isolated session、delegated worker、separate agent process 或其它等价 runtime-native mechanism。
-These are examples, not required implementations.
-
-以下不算隔离：Main 在同一上下文中自称“Research executor”后继续搜索和写材料，或 Main 读取 child
-Skill 后自行模仿其专业流程。
+Main 在同一上下文中自称 Executor 后继续实际操作，或读取 child Skill 后自行模仿其专业流程，均不
+算隔离。固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic tool 或其它 Skill
+替代 mandatory owner。
 
 ## Mechanism selection
 
-每个 unit 开始前，Main 根据以下事实自行选择 runtime-native isolation mechanism：任务上下文大小、
-专业性、是否需要 Skill 和工具、是否需要 fresh context、是否可安全合并、是否可并行，以及失败恢复
-成本。Main 不固定整次 run 的机制。
+Main 为每个 unit 动态选择满足本 contract 的 runtime-native isolation mechanism，依据上下文大小、
+专业性、工具与 Skill 需求、fresh-context 需求、可并行性、合并安全性和恢复成本。紧密的低风险
+deterministic units 可以合并；合并不得破坏 ownership、Gate、context isolation 或 recovery。
 
-高上下文任务通常 SHOULD 使用独立 fresh execution context：research、understanding、draft、
-humanization、复杂视觉设计、WeChat layout 和复杂故障恢复。轻量 deterministic units（例如 state
-preflight、build prepare/finalize、publish prepare、simple verification）可以在同一 isolated
-Executor 中连续完成。合并不得破坏 artifact ownership、Skill ownership、fresh recovery、context
-isolation、Gate boundary 或 scope discipline。
+没有某一种具体机制不构成失败；只要另一种机制满足本 contract，Main 即可继续。
+
+## Fail closed
 
 没有合适的 isolated delegated-execution mechanism 时：
 
@@ -70,25 +52,26 @@ current execution unit BLOCKED
 Main MUST NOT fallback to direct execution
 ```
 
-没有某一种具体 subagent 工具本身不构成失败；只要其它机制满足本 contract，Main 即可继续。
+mandatory Specialist 不可发现、依赖缺失或执行失败时同样停留在当前 unit；Main 不得用通用能力绕过
+ownership 或 Gate。
 
 ## Execution capsule
 
-Main 只传递当前 unit 所需的最小 capsule，并在重试时附上 frozen input 与上一 Gate 的实际诊断。
-不传完整网页、完整历史日志、其它阶段 prompt、token 或无关 artifact。文本结构如下：
+Main 只传当前 unit 所需的最小输入；retry 额外携带 frozen input 和上一 Gate 的实际 diagnostic。
+不传完整网页、完整历史日志、其它阶段 prompt、token 或无关 artifact。
 
 ```text
 ROLE
 你是当前 execution unit 的 delegated executor。
 
 GOAL
-本次唯一需要完成的目标。
+本次唯一目标。
 
 INPUTS
-只列文件路径和必要用户要求。
+文件路径和必要用户要求。
 
 REQUIRED SKILL
-必须执行的 Skill；没有则写 none。
+必须执行的 Specialist Skill；没有则写 none。
 
 PROJECT CONTRACT
 本阶段必须保持的仓库边界。
@@ -97,13 +80,13 @@ OUTPUT
 需要写入的 artifact。
 
 GATE
-完成后必须运行的 deterministic check；child validator 也在此说明。
+deterministic check，以及 child validator（如有）。
 
 FORBIDDEN
-明确不能做的替代行为。
+不能做的替代行为。
 
 FAILURE
-失败时停止并报告，不扩大任务范围。
+失败时停止并报告，不扩大范围。
 
 RETURN
 只返回状态、artifact 路径、Gate 结果和最多 3 条关键说明。
@@ -134,131 +117,37 @@ NEXT:
 Executor 不返回完整研究报告、全文、HTML、image prompt、API token、上传轨迹或长日志。机制名称、
 thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化业务状态。
 
-## Execution-unit matrix
+## Fresh-context retry and artifact ownership
 
-| Unit | Required Skill | Artifact / Gate |
-|---|---|---|
-| Bootstrap / resume | none | state v2 summary |
-| Research | dynamic research Skill or none | `materials.md` / `step1-collect.mjs` |
-| Blog memory | none | `blog-memory.md` / `select-related-articles.mjs` |
-| Understanding | dynamic understanding Skill or none | `understanding-brief.md` / `validate-understanding.mjs` |
-| Draft | dynamic writing Skill or none | `draft.md` / `step2-write.mjs` |
-| Humanization | `humanizer-zh` | updated `draft.md` / `step3-polish.mjs` |
-| Cover | `baoyu-cover-image` | root cover / Step 4 Gate |
-| SLOT00 | `baoyu-infographic` | `imgs/00-infographic-core-summary.png` |
-| Source body visual | none or dynamic helper | source asset or generated-required decision |
-| Generated body visual | `baoyu-infographic` | one body SLOT raster / Step 4 Gate |
-| Visual finalization | none | `image-plan.json` / `step4-images.mjs` |
-| Hosting | `github-image-hosting` | `image-map.json` |
-| Build prepare | none | `article.md`, `article-wechat-source.md` |
-| WeChat layout | `gzh-design` | `article-wechat.html` / child + parent Gate |
-| Build finalize | none | Step 5 structural/integrity Gate |
-| Blog publish | none | blog state / `publish-blog.mjs` |
-| WeChat prepare | none | publish capsule / `publish-wechat.mjs` |
-| WeChat publish | `baoyu-post-to-wechat` | draft/media_id/state |
-| Verification | none | test/check/build/publish summary |
+Gate failure → Main identifies the declared artifact owner → selects a suitable isolated mechanism →
+creates a fresh Delegated Executor → passes frozen input + Gate diagnostic → reruns the required Skill or
+mechanic → runs the Gate again。语义变化才允许 reroute；同一 owner 优先从冻结输入重试。
 
-`SLOT00` 与 `Generated body visual` 即使都由 `baoyu-infographic` 执行，仍保持为两个独立
-Execution Unit：前者是全文视觉摘要，后者是局部机制、比较、流程或框架等正文信息节点。
+An artifact produced by a Specialist owner cannot be professionally modified by Main or a different
+Executor. Retry goes back to the declared owner with frozen input and Gate diagnostic. GZH 或其它 child
+artifact 的失败输出保持 disposable；Main 不 patch、绕过 Gate 或接管其生产。
 
-## Skill-via-Executor
-
-Skill-via-Executor 成立的条件是：Executor 读取 required child Skill 的 `SKILL.md`，完整执行其
-分析、选择、生成、validator 或发布流程，并写入约定 artifact。Executor 可以按 child Skill 文档
-调用它自己的内部 scripts；Main 不得调用这些 scripts，也不得读取 Skill 后自行复刻实现。
-
-固定业务 ownership：
-
-| Capability | Executor → Skill |
-|---|---|
-| 文本人性化 | Humanization → `humanizer-zh` |
-| 微信封面 | Cover → `baoyu-cover-image` |
-| 头部摘要卡 | SLOT00 → `baoyu-infographic` |
-| 正文生成图 | Generated body visual → `baoyu-infographic` |
-| 图片托管/CDN | Hosting → `github-image-hosting` |
-| 微信 HTML | WeChat layout → `gzh-design` |
-| 微信草稿 | WeChat publish → `baoyu-post-to-wechat` |
-
-Research、Understanding、Draft 和辅助分析能力按实际缺口动态选择最匹配的 1–2 个 Skill；不建立
-research、ljg 或 writing catalog。
-
-mandatory child Skill 不可用、依赖缺失或执行失败时必须 fail closed，停留在当前 unit；不得由
-Main、generic tool 或其它 Skill 替代 fixed ownership。
-
-## Artifact ownership
-
-每个 Executor 只能写自己负责的 artifact。child-owned artifact 一旦被 Main 或其它 Executor 做
-了专业内容修改，必须从 frozen input 重新交给原 owner；不能用 patch、通用工具或另一个阶段绕过
-Gate。state、parity 和其它 deterministic artifact 由对应 unit 的 Executor 运行仓库脚本生成。
-
-| Artifact | Owner |
-|---|---|
-| humanized `draft.md` | Humanization → `humanizer-zh` |
-| cover | Cover → `baoyu-cover-image` |
-| SLOT00 | SLOT00 → `baoyu-infographic` |
-| generated body image | Generated body visual → `baoyu-infographic` |
-| `image-map.json` | Hosting → `github-image-hosting` |
-| `article-wechat.html` | WeChat layout → `gzh-design` |
-| WeChat draft | WeChat publish → `baoyu-post-to-wechat` |
-| state / parity / deterministic artifacts | corresponding deterministic unit |
-
-## Failure recovery
-
-```text
-Executor output
-   ↓
-Gate failure
-   ↓
-Main identifies artifact owner
-   ↓
-Main selects a suitable isolated execution mechanism
-   ↓
-fresh Delegated Executor
-   ↓
-frozen input + diagnostic
-   ↓
-re-execute required Skill or mechanic
-   ↓
-Gate again
-```
-
-同一 owner 优先从冻结输入重试；只有语义变化时才 reroute。GZH structural/integrity 失败时保持旧
-HTML 不变，重新生成后再由新的 deterministic finalize unit 校验。图片失败回到对应 visual owner；
-发布失败只恢复对应 blog 或 WeChat 子状态。Main 永远不能因失败接管产物生产。
+发布失败只恢复对应 publish 子状态；其它已完成轨道不被覆盖。state、parity 和其它 deterministic
+artifact 由对应 unit 的 Executor 运行仓库脚本生成。
 
 ## Deterministic boundary
 
-Script owns deterministic mechanics。Executor 运行当前 unit 合同要求的 deterministic command，Main 只消费结果。
-保持 state v2、Step Gate、hash、SLOT topology、image plan、parity、publish state 和 build 机制；
+Script owns deterministic mechanics；Executor 运行当前 unit 合同要求的 command，Main 只消费结果。
+保持 state v2、Step Gates、hash、SLOT topology、image plan、parity、publish state 和 build 机制，
 不新增 execution trace、agent id、execution proof 或其它编排观察产物。
 
 ## Delegated Execution Fidelity E2E
 
-行为版本升级后运行一次真实 E2E，覆盖适用的 Research、Understanding、Draft、Humanization、Cover、
-SLOT00、generated body visual、Hosting、WeChat layout、Blog publish 和 WeChat publish。E2E 关注
-实际是否隔离，不要求某个具体机制。对 SLOT00 和 generated body visual，可在会话级 transient review
-中观察 `baoyu-infographic` 实际选择的 style、layout、backend 是否来自其项目配置；这些观察不是
-Parent contract，不得写入 state、JSON 或 artifact。机制可在会话复盘中临时报告，但不得写入 state、
-JSON 或 artifact。
+版本升级后，由隔离 verification unit 对当前 workflow 中适用的每个 execution unit 做真实复盘；
+具体适用范围由 `SKILL.md` 的 workflow 决定。对每个 applicable unit，检查：
 
-完成后回答：
+- actual work 是否离开 Main principal context；
+- workflow 声明的 Specialist ownership 是否被遵守；
+- Main direct execution 是否为 `NO`；
+- retry 需要时是否使用 fresh context；
+- 是否创建 runtime-specific workflow config；
+- 是否持久化 receipt、agent ID、spawn ID 或 trace。
 
-```text
-Main 是否直接执行过实际工作？ YES / NO
-Main 是否直接调用过专业 Skill？ YES / NO
-实际执行是否被委托到隔离 execution context？ YES / NO
-Research 是否隔离执行？ YES / NO；mechanism:
-Draft 是否隔离执行？ YES / NO；mechanism:
-Humanization 是否由隔离 Executor → humanizer-zh？ YES / NO
-Cover 是否由隔离 Executor → baoyu-cover-image？ YES / NO
-SLOT00 是否由隔离 Executor → baoyu-infographic？ YES / NO
-Generated body visual 是否由隔离 Executor → baoyu-infographic？ YES / NO / NOT NEEDED
-Hosting 是否由隔离 Executor → github-image-hosting？ YES / NO
-WeChat layout 是否由隔离 Executor → gzh-design？ YES / NO
-WeChat publish 是否由隔离 Executor → baoyu-post-to-wechat？ YES / NO
-是否因某种特定 runtime 不支持某一种机制而错误退回 Main 执行？ YES / NO
-是否创建了 runtime-specific workflow config？ YES / NO
-```
-
-理想终态是 Main direct execution = NO，所有 applicable delegated execution = YES，且没有
-runtime-specific workflow config。
+verification 只返回短 checklist 和 Gate 结果，不把完整执行轨迹写入 state、JSON 或 artifact。理想
+终态是 Main direct actual work = `NO`、所有 applicable delegated execution = `YES`、无
+runtime-specific workflow config、无持久化 execution proof。
