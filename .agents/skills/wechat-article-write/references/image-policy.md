@@ -22,6 +22,16 @@ Source reuse changes visual origin, not whether a semantic visual node exists。
 四者必须指向同一个 source asset，并检查清晰度、完整性、裁切、时效性和误导风险。审核失败时，
 换用合适原图；没有合适原图则把该节点改为 `kind: generated`，保留同一语义节点。
 
+source reuse 还必须检查最终会被下游消费的本地 raster，而不是只检查 source page 或原始远程图片：
+
+```text
+source page → identify correct figure → local final raster → actual inspection → PASS
+```
+
+下载、转换或裁剪可能造成错图、裁切、分辨率下降、文件损坏或 caption 不匹配。source original 与
+`imgs/<file>` 不同时，审阅对象是 `imgs/<file>`；高价值 screenshot 以 source fidelity 优先，不能
+伪造“高清重绘版”原始证据。
+
 ## Visual coverage
 
 cover 不计入正文视觉，`SLOT_IMG_00` 也不计入正文视觉。
@@ -36,12 +46,25 @@ normal long-form 的条件是 substantive H2 >= 3，或 substantive body >= 1400
 
 ## Review and machine Gate
 
-semantic review 由 assigned visual Executor 完成：source asset 检查论点对应、编号、caption、
-清晰度、完整性和时效性；generated asset 检查 semantic match、visual hierarchy、中文文本正确性、
-legibility 和 text density。
+semantic review 由 assigned visual Executor 完成。对 cover、SLOT00 和每个 body visual，Executor
+MUST actual open/render the exact final raster file that downstream will consume before returning
+`GATE: PASS`。final raster 是 `cover.png` / `cover.jpg` 以及 `imgs/` 中最终的 SLOT 文件，不是
+generator preview、prompt、source webpage thumbnail、intermediate file、filename 或 metadata。
+文件存在、MIME/尺寸正确、生成命令成功、source URL 可访问或 `image-plan.json` 正确，都只能证明
+artifact exists，不能替代 visual review。
+
+source asset 检查最终本地 raster 是否对应正确论点、编号和 caption，以及清晰度、完整性、裁切、
+时效性和误导风险；generated asset 检查 semantic match、visual hierarchy、中文文本正确性、
+legibility、text density、明显生成瑕疵、裁切和关键信息是否被截断，并判断视觉是否增加信息而非仅作装饰。
+包含大量文字的信息图还要在缩放到典型微信公众号正文显示宽度后判断核心文字是否可读：不能把大量小字
+塞进图，也不能要求读者必须放大才能理解核心信息。source screenshot 若文字偏小但仍有证据价值，
+保留 source image，并在正文指出应关注的局部；只有核心证据无法读清时才换更高清 source 或放弃该 visual。
 
 cover、SLOT00 和 body visuals 按 workflow 顺序 serial review；当前资产通过后才处理下一张。review
 失败只改变该节点的 source 或生成结果，不删除语义节点，也不以装饰性评分替代 deterministic Gate。
+如果当前 delegated visual execution context 无法实际 render/view 最终 raster，该 visual unit 必须
+`BLOCKED`，不得标记 `PASS`；应 reroute 到具备视觉能力的 isolated Executor。可返回的短 handoff
+例如：`GATE: PASS — final raster visually inspected`。无需持久化 review receipt、截图日志或其它新 artifact。
 
 `step4-images.mjs` 只做 deterministic machine Gate：root cover uniqueness、MIME/扩展名、cover
 ratio、SLOT00 basename、normal long-form minimum body visual coverage、body SLOT ↔

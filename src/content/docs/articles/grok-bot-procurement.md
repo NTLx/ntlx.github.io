@@ -13,7 +13,6 @@ primarySourceUrls: ["https://x.ai/news/grok-bot-procurement"]
 
 我的判断是，采购 Agent 的企业级增量，不是替人承担最终采购承诺，而是把“发现机会—补齐证据—推进协调—准备决定”变成一项长期工作。它扩大的是被看见、被跟进的机会数；花钱、接受条款和对外承诺，仍然应该停在责任人那里。
 
-<!-- VISUAL_TOPOLOGY: slot=00; kind=generated; node=全文速读; purpose=压缩“持续工作+证据链+权限线+人工承诺”的中心判断; do-not-repeat=不做单一节省数字海报 -->
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-06-grok-bot-procurement-img-00-infographic-core-summary.png)
 
 ## 被放弃的不是大项目，而是没有人继续追的小问题
@@ -26,7 +25,6 @@ primarySourceUrls: ["https://x.ai/news/grok-bot-procurement"]
 
 一次性分析最后给你一份报告。长期工作要回答的是，下一步推进到了哪里：谁确认了使用情况，哪份合同快到期，替代报价是否拿到，建议能不能进入人的决定队列。对低单笔价值、但数量很多的机会来说，降低协调成本，可能比让模型在一次谈判里更会说话更重要。
 
-<!-- VISUAL_TOPOLOGY: slot=01; kind=generated; node=一次性任务到长期工作的状态变化; purpose=展示目标标准→跨系统取证→主动追问→建议→人工批准→长期记录; do-not-repeat=不复刻原文界面，不把流程画成无人监督自动下单 -->
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-06-grok-bot-procurement-img-01-long-running-workflow.png)
 
 ## Agent 交付的是决定前的证据，不是决定本身
@@ -39,10 +37,8 @@ primarySourceUrls: ["https://x.ai/news/grok-bot-procurement"]
 
 页面还报告其中一笔 tech order 从 14,629 美元降到 6,143 美元，标为 58% reduction。这个案例说明的是“比价—准备沟通—等待批准—继续执行”的流程，但不能把它改写成 Bot 独立完成了采购：原文同时说团队仍会修改邮件的语气和信息披露，且发送和承诺在 permission lines 之外。
 
-<!-- VISUAL_TOPOLOGY: slot=02; kind=generated; node=证据链与权限线双层图; purpose=上层连接支出/合同/使用量/替代报价/建议，下层区分 Bot 可自动推进与必须交还人的承诺动作; do-not-repeat=不把审批节点画成消除全部风险 -->
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-06-grok-bot-procurement-img-02-evidence-permission-boundary.png)
 
-<!-- VISUAL_TOPOLOGY: slot=03; kind=source-reuse-candidate; node=续约报价与当前支出对照; source=https://media.x.ai/v1/website/haggle-bot-image1-75f1097a.png; source_page=https://x.ai/news/grok-bot-procurement; reason=原图直接展示 Haggle Bot 审阅续约 proposal、拆解报价并推荐更便宜选项，作为局部原始证据而非独立审计; fallback=若版权或语义复核不通过，改为原创解释图 -->
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-06-grok-bot-procurement-img-03-renewal-evidence-screen.png)
 
 ## 权限线不是安全文档的附录，而是长期工作的成立条件

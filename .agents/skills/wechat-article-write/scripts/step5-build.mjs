@@ -12,7 +12,7 @@ import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
-import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
+import { assertNoInternalPlanningComments, buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
 import { assertFinalizeInputsFresh, sha256File, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
@@ -170,7 +170,17 @@ function finalize() {
   try {
     assertFinalizeInputsFresh(base);
     const imageMap = loadImageMap();
-    assertMarkdownParity(readFileSync(articlePath, "utf8"), readFileSync(wechatSourcePath, "utf8"), imageMap);
+    const article = readFileSync(articlePath, "utf8");
+    const wechatSource = readFileSync(wechatSourcePath, "utf8");
+    const wechatHtml = readFileSync(wechatHtmlPath, "utf8");
+    validateBlogArtifact(article);
+    assertNoInternalPlanningComments(wechatSource, "article-wechat-source.md");
+    try {
+      assertNoInternalPlanningComments(wechatHtml, "article-wechat.html");
+    } catch (error) {
+      throw new Error(`${error.message}; return to gzh-design and regenerate the child output`);
+    }
+    assertMarkdownParity(article, wechatSource, imageMap);
   } catch (error) {
     fail(4, error.message);
   }
@@ -273,6 +283,7 @@ writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 
 try {
   validateBlogArtifact(readFileSync(articlePath, "utf8"));
+  assertNoInternalPlanningComments(readFileSync(wechatSourcePath, "utf8"), "article-wechat-source.md");
 } catch (error) {
   fail(4, error.message);
 }

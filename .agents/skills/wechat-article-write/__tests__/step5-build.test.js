@@ -40,6 +40,14 @@ coverImage: cover.png
 sourceUrl: https://ntlx.github.io/articles/step5-native
 ---
 
+<!-- KEEP_THIS_COMMENT -->
+<!-- VISUAL_TOPOLOGY: slot=00; kind=generated; purpose=test -->
+<!-- VISUAL_TOPOLOGY:
+slot=01;
+kind=generated;
+purpose=test
+-->
+
 <!-- SLOT_IMG_00_INFOGRAPHIC -->
 
 ## 机制
@@ -97,7 +105,15 @@ describe("step5-build", () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(existsSync(join(fixture.postDir, "article.md"))).toBe(true);
     expect(existsSync(join(fixture.postDir, "article-wechat-source.md"))).toBe(true);
-    expect(readFileSync(join(fixture.postDir, "article.md"), "utf8")).toContain("https://cdn.example.test/00-infographic-core-summary.png");
+    const article = readFileSync(join(fixture.postDir, "article.md"), "utf8");
+    const wechatSource = readFileSync(join(fixture.postDir, "article-wechat-source.md"), "utf8");
+    expect(article).toContain("https://cdn.example.test/00-infographic-core-summary.png");
+    expect(article).not.toContain("VISUAL_TOPOLOGY");
+    expect(wechatSource).not.toContain("VISUAL_TOPOLOGY");
+    expect(article).toContain("KEEP_THIS_COMMENT");
+    expect(wechatSource).toContain("KEEP_THIS_COMMENT");
+    expect(wechatSource).toContain("![](imgs/00-infographic-core-summary.png)");
+    expect(wechatSource).not.toContain("SLOT_IMG_00_INFOGRAPHIC");
   });
 
   test("fails closed when a local image has no CDN mapping", () => {
@@ -140,6 +156,11 @@ describe("step5-build", () => {
 
     expect(finalized.status, finalized.stderr || finalized.stdout).toBe(0);
     expect(createHash("sha256").update(readFileSync(htmlPath)).digest("hex")).toBe(before);
+
+    writeFileSync(htmlPath, "<!-- VISUAL_TOPOLOGY: leaked -->\n<section><h2>机制</h2><p>正文内容。</p></section>\n");
+    const leaked = run(fixture, "--finalize-only");
+    expect(leaked.status).toBe(4);
+    expect(leaked.stderr).toContain("gzh-design");
 
     writeFileSync(htmlPath, "<section><a href=\"https://example.com\"><h2>机制</h2></a><p>正文内容。</p></section>\n");
     const anchorBefore = readFileSync(htmlPath, "utf8");
