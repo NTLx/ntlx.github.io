@@ -6,6 +6,7 @@ const skillDir = resolve(import.meta.dir, "..");
 const skill = readFileSync(resolve(skillDir, "SKILL.md"), "utf8");
 const delegated = readFileSync(resolve(skillDir, "references", "delegated-execution.md"), "utf8");
 const imagePolicy = readFileSync(resolve(skillDir, "references", "image-policy.md"), "utf8");
+const gzhAdapter = readFileSync(resolve(skillDir, "references", "adapter-gzh-design.md"), "utf8");
 const parentExtend = readFileSync(resolve(skillDir, "EXTEND.md"), "utf8");
 const checkDeps = readFileSync(resolve(skillDir, "scripts", "check-deps.mjs"), "utf8");
 const architectureValidator = readFileSync(resolve(skillDir, "scripts", "validate-architecture.mjs"), "utf8");
@@ -15,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.11.0"');
+    expect(skill).toContain('version: "2.12.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
@@ -31,6 +32,15 @@ describe("orchestration contract", () => {
     expect(delegated).not.toContain("workflow-specific");
     expect(skill).not.toContain("PIPELINE_AUTO");
     expect(skill).not.toContain("agent-id");
+  });
+
+  test("requires mandatory Specialist invocation and gzh-design guardrails", () => {
+    expect(delegated).toContain("Mandatory Specialist invocation");
+    expect(delegated).toContain("不得跳过它自行设计流程");
+    expect(skill).toContain("Main 按 handoff 的 `SKILL:` 行核验");
+    expect(gzhAdapter).toContain("只加载不交付视为未完成");
+    expect(gzhAdapter).toContain("不得丢弃归因句");
+    expect(gzhAdapter).toContain("不得做字符级替换");
   });
 
   test("keeps fixed direct Specialist routing in the Parent workflow", () => {

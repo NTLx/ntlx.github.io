@@ -35,6 +35,13 @@ HTML body images must preserve the same local `imgs/<basename>` used by
 `SLOT_IMG_00` 继续是 lead visual。封面只作为微信缩略图，不重复嵌入正文。微信正文链接使用可见纯文本 URL，
 HTML 不使用普通 `<a href>`。作者事实从本技能 `EXTEND.md` 读取：`NTLx`、`热衷于分享 AI 观察与干货`。
 
+实测高频失败点（capsule 必须写明）：
+
+- 加载技能后必须继续执行到产出 `article-wechat.html`；只加载不交付视为未完成。
+- source 的可见文字逐字保留：整段改造成引用卡片或金句卡时，不得丢弃归因句、引导句。
+- 不得做字符级替换：不把 `'` 转成 `’`，不做全角/半角转换。gzh-design 自身对半角标点的 WARNING 在
+  英文专名（如 `Lenny's`）处按本仓库 parity 契约保留原样，不要为消除 WARNING 改写字符。
+
 排版完成后运行：
 
 ```bash

@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.11.0"
+  version: "2.12.0"
 ---
 
 # 微信公众号文章写作
@@ -36,7 +36,8 @@ Main 不把完整网页、研究笔记、HTML、image prompt、API 或上传日�
 
 Each actual execution unit must leave Main's principal context. Main dynamically chooses any
 runtime-native isolated execution mechanism that satisfies the capability contract. 如果没有合适的隔离
-机制，当前 unit 必须 `BLOCKED`；Main MUST NOT fallback to direct execution。
+机制，当前 unit 必须 `BLOCKED`；Main MUST NOT fallback to direct execution。声明 `REQUIRED SKILL` 的
+unit 必须真实执行该 Skill 的 workflow，Main 按 handoff 的 `SKILL:` 行核验。
 
 完整 isolation、capsule、handoff、retry、ownership 和 E2E protocol 见
 `references/delegated-execution.md`。

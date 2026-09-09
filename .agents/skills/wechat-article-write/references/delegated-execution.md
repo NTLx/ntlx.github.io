@@ -29,7 +29,8 @@ Execution Unit 是一个逻辑责任边界。Delegated Executor 是完成该边�
 6. Executor 能限制在当前 unit，不要求 Main 接管专业工作。
 
 Main 在同一上下文中自称 Executor 后继续实际操作，或读取 child Skill 后自行模仿其专业流程，均不
-算隔离。固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic tool 或其它 Skill
+算隔离。Main MAY 加载 Skill 以理解其契约、正确派发，但加载后自行执行该 Skill 的工作仍不算隔离。
+固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic tool 或其它 Skill
 替代 mandatory owner。
 
 ## Mechanism selection
@@ -71,7 +72,8 @@ INPUTS
 文件路径和必要用户要求。
 
 REQUIRED SKILL
-必须执行的 Specialist Skill；没有则写 none。
+必须执行的 Specialist Skill；没有则写 none。声明时 Executor 必须真实执行该 Skill 的 workflow：
+运行时提供独立加载入口（如 Skill 工具）就通过它加载，并继续执行到 OUTPUT；加载完成不等于交付。
 
 PROJECT CONTRACT
 本阶段必须保持的仓库边界。
@@ -100,6 +102,9 @@ handoff 是会话内的短交接，不是 persistent receipt：
 STATUS: DONE | BLOCKED | RETRY_REQUIRED
 UNIT: <execution unit>
 
+SKILL:
+- <实际加载的 Skill 与加载方式；未声明或未加载时写 none>
+
 ARTIFACTS:
 - path
 
@@ -116,6 +121,14 @@ NEXT:
 
 Executor 不返回完整研究报告、全文、HTML、image prompt、API token、上传轨迹或长日志。机制名称、
 thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化业务状态。
+
+## Mandatory Specialist invocation
+
+声明 REQUIRED SKILL 的 unit，Executor 必须真实执行该 Skill 的 workflow，不得跳过它自行设计流程。
+运行时提供独立加载入口（如 Skill 工具）时必须通过它加载；仅把 Skill 当普通文档读取、跳过其步骤
+自行发挥，视为未遵循。handoff 的 `SKILL:` 行是自证；Main 必须核验它与 REQUIRED SKILL 一致，
+运行时可读取执行记录时以记录为准。缺失或不一致 → `RETRY_REQUIRED`：fresh context + frozen input +
+明确「必须真实执行该 Skill workflow」的 retry capsule；同一 unit 重复失败 → `BLOCKED`，不使用 fallback。
 
 ## Fresh-context retry and artifact ownership
 
