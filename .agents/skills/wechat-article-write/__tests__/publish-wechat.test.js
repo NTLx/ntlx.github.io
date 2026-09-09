@@ -25,6 +25,7 @@ function writePost(postsRoot, slug, {
 } = {}) {
   const dir = join(postsRoot, slug);
   mkdirSync(dir, { recursive: true });
+  mkdirSync(join(dir, "imgs"), { recursive: true });
   writeFileSync(join(dir, "cover.png"), "cover");
   writeFileSync(join(dir, "article-wechat.html"), html);
   const article = `---

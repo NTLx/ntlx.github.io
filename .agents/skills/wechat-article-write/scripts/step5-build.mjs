@@ -14,7 +14,7 @@ import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { assertNoInternalPlanningComments, buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
-import { assertFinalizeInputsFresh, sha256File, validateFinalizedArtifactFreshness, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
+import { assertFinalizeInputsFresh, readArtifactManifest, sha256File, upstreamIdentityMatches, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
@@ -25,10 +25,12 @@ let slug = null;
 let dryRun = false;
 let prepareOnly = false;
 let finalizeOnly = false;
+let hostingStatus = false;
 for (let i = 0; i < args.length; i += 1) {
   if (args[i] === "--dry-run") dryRun = true;
   else if (args[i] === "--prepare-only") prepareOnly = true;
   else if (args[i] === "--finalize-only") finalizeOnly = true;
+  else if (args[i] === "--hosting-status") hostingStatus = true;
   else if (args[i].startsWith("--")) {
     process.stderr.write(`step5: unknown flag ${args[i]}\n`);
     process.exit(1);
@@ -36,7 +38,7 @@ for (let i = 0; i < args.length; i += 1) {
 }
 
 if (!slug) {
-  process.stderr.write("usage: step5-build.mjs <date-slug> [--dry-run] [--prepare-only] [--finalize-only]\n");
+  process.stderr.write("usage: step5-build.mjs <date-slug> [--dry-run] [--prepare-only] [--finalize-only] [--hosting-status]\n");
   process.exit(1);
 }
 if (prepareOnly && finalizeOnly) {
@@ -58,6 +60,11 @@ const wechatHtmlPath = resolve(base, "article-wechat.html");
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 const WECHAT_IMAGE_FOLDER = "wechat-articles";
+
+if (hostingStatus) {
+  process.stdout.write(`${hostingStatusFor(base)}\n`);
+  process.exit(0);
+}
 
 function fail(code, message) {
   process.stderr.write(`step5: FAIL - ${message}\n`);
@@ -89,6 +96,16 @@ function readStateWithoutMigration() {
     return JSON.parse(readFileSync(statePath, "utf8"));
   } catch {
     return null;
+  }
+}
+
+/** Deterministic preflight for the hosting dispatch boundary. */
+function hostingStatusFor(baseDir) {
+  try {
+    const manifest = readArtifactManifest(baseDir);
+    return manifest && upstreamIdentityMatches(baseDir, manifest) ? "FROZEN" : "NEEDED";
+  } catch {
+    return "NEEDED";
   }
 }
 
@@ -164,11 +181,13 @@ function assertStep3Fresh() {
 }
 
 function assertPrepareNotFrozen() {
-  // A finalized Step 5 freezes image-map.json and both track artifacts. Only a real
-  // rollback to Step 3/4 (which makes the manifest stale) may rebuild them, so a
-  // WeChat-only recovery can never re-upload images or rewrite the blog mapping.
-  if (validateFinalizedArtifactFreshness(base).length > 0) return;
-  fail(2, "Step 5 is already finalized and its inputs are unchanged; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
+  // image-map.json and both track artifacts stay frozen while the upstream visual
+  // inputs (draft, image-plan, local imgs) are unchanged, so a WeChat-only recovery
+  // can never re-upload images or rewrite the blog mapping. Only a real rollback to
+  // Step 3/4 changes that identity.
+  const manifest = readArtifactManifest(base);
+  if (!manifest || !upstreamIdentityMatches(base, manifest)) return;
+  fail(2, "Step 5 upstream visuals are unchanged and already mapped; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
 }
 
 function finalize() {

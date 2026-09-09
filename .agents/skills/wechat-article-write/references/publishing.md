@@ -2,6 +2,15 @@
 
 ## Build
 
+dispatch `github-image-hosting` 前先运行确定性 preflight：
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
+```
+
+`FROZEN`（已有 manifest，且 draft / image-plan / imgs 未变）时不得 dispatch hosting；只有 `NEEDED`
+（无 manifest，或上游视觉输入已变）才重新委托。Step 5B 重试只重做 `gzh-design` 与 finalize。
+
 Step 5 先由 Agent 原生委托 `github-image-hosting`，将 `imgs/`、业务 folder
 `wechat-articles`、稳定命名前缀和 `image-map.json` 输出路径传入其当前 SKILL.md 契约，
 由该 Skill 生成 `image-map.json`。它负责 repo 配置、远端状态、冲突、重试和 CDN URL。

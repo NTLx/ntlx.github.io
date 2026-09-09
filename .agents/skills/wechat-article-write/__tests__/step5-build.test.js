@@ -170,6 +170,44 @@ describe("step5-build", () => {
     expect(readFileSync(htmlPath, "utf8")).toBe(anchorBefore);
   });
 
+  test("freezes hosting dispatch once upstream visuals are already mapped", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
+
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    // prepared is already enough: a gzh-design retry must not re-upload images.
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
+
+    writeFileSync(
+      join(fixture.postDir, "article-wechat.html"),
+      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
+    );
+    expect(run(fixture, "--finalize-only").status).toBe(0);
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
+
+    // A real upstream change reopens hosting.
+    const draftPath = join(fixture.postDir, "draft.md");
+    writeFileSync(draftPath, readFileSync(draftPath, "utf8").replace("正文内容。", "正文内容改了。"));
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
+  });
+
+  test("keeps prepare frozen even when only a downstream artifact changed", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const htmlPath = join(fixture.postDir, "article-wechat.html");
+    writeFileSync(htmlPath, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
+    expect(run(fixture, "--finalize-only").status).toBe(0);
+
+    // A WeChat-only retry rewrites the HTML; that must not unfreeze hosting/prepare.
+    writeFileSync(htmlPath, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p><p>追加。</p></section>\n");
+    const rerun = run(fixture, "--prepare-only");
+    expect(rerun.status).toBe(2);
+    expect(rerun.stderr).toContain("frozen");
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
+  });
+
   test("refuses to rebuild artifacts once Step 5 is finalized", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);

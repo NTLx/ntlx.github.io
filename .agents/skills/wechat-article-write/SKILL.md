@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.13.0"
+  version: "2.14.0"
 ---
 
 # 微信公众号文章写作
@@ -95,8 +95,9 @@ source body visual 优先复用合适原图。Visual Coverage、source/generated
 本地文件 Gate 以 `references/image-policy.md` 为准；cover 必须唯一，SLOT00 basename 固定，每个
 body SLOT 恰有一个最终文件；`baoyu-diagram` 仅是按需的 semantic helper。
 
-**Step 5**：严格按 `hosting → build-prepare → gzh-design → build-finalize`。缺少 image map 时 fail
-closed；依次产出 `image-map.json`、`article.md` / `article-wechat-source.md` 和
+**Step 5**：严格按 `hosting → build-prepare → gzh-design → build-finalize`。dispatch hosting 前先跑
+`step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托 `github-image-hosting`。缺少
+image map 时 fail closed；依次产出 `image-map.json`、`article.md` / `article-wechat-source.md` 和
 `article-wechat.html`，finalize 只读检查 parity 与 structural/integrity；失败回到 `gzh-design`，
 Main 不读取并手改 child HTML。
 

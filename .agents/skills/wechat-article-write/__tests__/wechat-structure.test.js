@@ -362,5 +362,19 @@ title: 强调测试
     const rendered = '<section><p><span leaf="">A</span></p>'
       + "<p>这一段有 斜体 和 粗体 和 下划线斜体。</p></section>";
     expect(validateWechatStructuralParity(emphasisSource, rendered).ok).toBe(true);
+
+    // GFM strikethrough uses `~~`; a single `~` is a visible literal character.
+    const strikeSource = `---
+title: 波浪号测试
+---
+
+## A
+
+大约 ~300 人，这一段有 ~~删除线~~ 文字。
+`;
+    const strikeRendered = '<section><p><span leaf="">A</span></p>'
+      + "<p>大约 ~300 人，这一段有 删除线 文字。</p></section>";
+    expect(validateWechatStructuralParity(strikeSource, strikeRendered).ok).toBe(true);
+    expect(validateWechatStructuralParity(strikeSource, strikeRendered.replace("~300", "300")).ok).toBe(false);
   });
 });

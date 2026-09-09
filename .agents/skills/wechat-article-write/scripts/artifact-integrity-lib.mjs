@@ -1,17 +1,52 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const MANIFEST_NAME = ".step5-artifacts.json";
-const INPUT_FILES = Object.freeze([
+const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|webp|gif)$/iu;
+// Upstream visual identity decides whether image hosting may run again. The other
+// files are downstream outputs derived from that identity plus image-map.json.
+const UPSTREAM_FILES = Object.freeze([
   ["draft_sha256", "draft.md"],
   ["image_plan_sha256", "image-plan.json"],
+]);
+const INPUT_FILES = Object.freeze([
+  ...UPSTREAM_FILES,
   ["article_sha256", "article.md"],
   ["wechat_source_sha256", "article-wechat-source.md"],
 ]);
+const UPSTREAM_FIELDS = Object.freeze([...UPSTREAM_FILES.map(([field]) => field), "imgs_sha256"]);
 
 export function sha256File(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function imgsSha256(postDir) {
+  const dir = resolve(postDir, "imgs");
+  if (!existsSync(dir)) throw new Error("imgs/ missing; cannot establish Step 5 artifact integrity");
+  const digest = createHash("sha256");
+  for (const name of readdirSync(dir).filter((file) => IMAGE_EXTENSIONS.test(file)).sort()) {
+    digest.update(`${name}:${sha256File(resolve(dir, name))}\n`);
+  }
+  return digest.digest("hex");
+}
+
+/** The upstream visual inputs that decide whether hosting must run again. */
+export function upstreamIdentity(postDir) {
+  const identity = { imgs_sha256: imgsSha256(postDir) };
+  for (const [field, filename] of UPSTREAM_FILES) identity[field] = sha256File(resolve(postDir, filename));
+  return identity;
+}
+
+export function upstreamIdentityMatches(postDir, manifest) {
+  if (!manifest) return false;
+  const current = upstreamIdentity(postDir);
+  return UPSTREAM_FIELDS.every((field) => manifest[field] === current[field]);
+}
+
+/** Read the manifest when present; a missing or invalid manifest returns null. */
+export function readArtifactManifest(postDir) {
+  try { return readManifest(postDir); } catch { return null; }
 }
 
 function manifestPath(postDir) {
@@ -58,7 +93,7 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
 }
 
 export function writePreparedArtifactManifest(postDir) {
-  const manifest = { version: 1, phase: "prepared", ...currentHashes(postDir) };
+  const manifest = { version: 2, phase: "prepared", ...currentHashes(postDir), imgs_sha256: imgsSha256(postDir) };
   writeFileSync(manifestPath(postDir), JSON.stringify(manifest, null, 2) + "\n");
   return manifest;
 }

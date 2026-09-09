@@ -25,6 +25,7 @@ function makeFixture() {
 function writeArticle(postsRoot, slug, fmOverrides = {}) {
   const dir = join(postsRoot, slug);
   mkdirSync(dir, { recursive: true });
+  mkdirSync(join(dir, "imgs"), { recursive: true });
   const fm = {
     title: "测试发布文章",
     date: "2026-05-17",
