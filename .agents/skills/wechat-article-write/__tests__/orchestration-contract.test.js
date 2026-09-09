@@ -16,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.14.0"');
+    expect(skill).toContain('version: "2.15.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");

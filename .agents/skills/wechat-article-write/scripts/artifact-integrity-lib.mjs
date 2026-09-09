@@ -31,6 +31,19 @@ function imgsSha256(postDir) {
   return digest.digest("hex");
 }
 
+function imageMapSha256(postDir) {
+  const path = resolve(postDir, "image-map.json");
+  if (!existsSync(path)) throw new Error("image-map.json missing; cannot establish Step 5 artifact integrity");
+  return sha256File(path);
+}
+
+// Manifest v2 hashes that are verified whenever the manifest records them. v1
+// manifests simply lack the fields, so legacy posts keep their old behavior.
+const AUX_HASHES = Object.freeze([
+  ["imgs_sha256", "imgs/", imgsSha256],
+  ["image_map_sha256", "image-map.json", imageMapSha256],
+]);
+
 /** The upstream visual inputs that decide whether hosting must run again. */
 export function upstreamIdentity(postDir) {
   const identity = { imgs_sha256: imgsSha256(postDir) };
@@ -86,6 +99,10 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
   for (const [field, filename] of INPUT_FILES) {
     if (manifest[field] !== current[field]) errors.push(`${filename} SHA256 does not match manifest; rerun Step 5`);
   }
+  for (const [field, label, compute] of AUX_HASHES) {
+    if (manifest[field] === undefined) continue;
+    if (manifest[field] !== compute(postDir)) errors.push(`${label} SHA256 does not match manifest; rerun Step 5`);
+  }
   if (finalized && manifest.wechat_html_sha256 !== current.wechat_html_sha256) {
     errors.push("article-wechat.html SHA256 does not match manifest; rerun Step 5 finalize");
   }
@@ -93,7 +110,13 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
 }
 
 export function writePreparedArtifactManifest(postDir) {
-  const manifest = { version: 2, phase: "prepared", ...currentHashes(postDir), imgs_sha256: imgsSha256(postDir) };
+  const manifest = {
+    version: 2,
+    phase: "prepared",
+    ...currentHashes(postDir),
+    imgs_sha256: imgsSha256(postDir),
+    image_map_sha256: imageMapSha256(postDir),
+  };
   writeFileSync(manifestPath(postDir), JSON.stringify(manifest, null, 2) + "\n");
   return manifest;
 }

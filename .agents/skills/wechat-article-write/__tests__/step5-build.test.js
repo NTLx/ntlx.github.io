@@ -170,6 +170,37 @@ describe("step5-build", () => {
     expect(readFileSync(htmlPath, "utf8")).toBe(anchorBefore);
   });
 
+  test("fails finalize when a local image changed after prepare", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    writeFileSync(join(fixture.postDir, "imgs/00-infographic-core-summary.png"), "changed");
+    writeFileSync(
+      join(fixture.postDir, "article-wechat.html"),
+      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
+    );
+    const finalized = run(fixture, "--finalize-only");
+    expect(finalized.status).toBe(4);
+    expect(finalized.stderr).toContain("imgs/");
+  });
+
+  test("fails finalize when image-map.json changed after prepare", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    writeFileSync(
+      join(fixture.postDir, "image-map.json"),
+      JSON.stringify({ "00-infographic-core-summary.png": "https://cdn.example.test/other.png" }) + "\n",
+    );
+    writeFileSync(
+      join(fixture.postDir, "article-wechat.html"),
+      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
+    );
+    const finalized = run(fixture, "--finalize-only");
+    expect(finalized.status).toBe(4);
+    expect(finalized.stderr).toContain("image-map.json");
+  });
+
   test("freezes hosting dispatch once upstream visuals are already mapped", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);

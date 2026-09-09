@@ -10,7 +10,7 @@ import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
-import { writePreparedArtifactManifest, writeFinalizedArtifactManifest } from "../scripts/artifact-integrity-lib.mjs";
+import { writePreparedArtifactManifest, writeFinalizedArtifactManifest, validateFinalizedArtifactFreshness } from "../scripts/artifact-integrity-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/publish-blog.mjs");
 
@@ -42,6 +42,8 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
   writeFileSync(join(dir, "article.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n内容。`);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n内容。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
+  writeFileSync(join(dir, "image-map.json"), "{}\n");
+  writeFileSync(join(dir, "imgs/00-infographic-core-summary.png"), "png");
   writeFileSync(join(dir, "article-wechat-source.md"), "## 正文\n\n内容。\n");
   writeFileSync(join(dir, "article-wechat.html"), "<section><p>内容。</p></section>\n");
   writePreparedArtifactManifest(dir);
@@ -83,6 +85,18 @@ describe("publish-blog", () => {
     expect(r.stdout).not.toContain("blogSlug:");
     expect(r.stdout).not.toContain("sourceUrl:");
     expect(r.stdout).not.toContain("coverImage:");
+  });
+
+  test("publish freshness rejects a changed local image", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-中文标题";
+    writeArticle(fx.postsRoot, dateSlug);
+
+    const postDir = join(fx.postsRoot, dateSlug);
+    expect(validateFinalizedArtifactFreshness(postDir)).toEqual([]);
+    writeFileSync(join(postDir, "imgs/00-infographic-core-summary.png"), "changed");
+    expect(validateFinalizedArtifactFreshness(postDir).join("\n")).toContain("imgs/");
   });
 
   test("preserves primary source provenance in the public blog frontmatter", () => {

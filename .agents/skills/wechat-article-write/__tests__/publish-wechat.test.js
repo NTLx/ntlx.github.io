@@ -40,6 +40,7 @@ sourceUrl: ${sourceUrl}
   writeFileSync(join(dir, "article.md"), article);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n正文。\n");
   writeFileSync(join(dir, "image-plan.json"), "{}\n");
+  writeFileSync(join(dir, "image-map.json"), "{}\n");
   writeFileSync(join(dir, "article-wechat-source.md"), "正文。\n");
   writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
     slug,
