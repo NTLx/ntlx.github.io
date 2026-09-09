@@ -1,7 +1,7 @@
 ---
 $schema: starlight
 title: 答案在贬值，地图用一次就没了
-description: 答案正在贬值，而地图是用一次就毁掉的资产：88 小时、约 1500 万美元量级的算力买到的不是理解，是一份还没人看过的证明。
+description: 答案正在贬值，而地图是用一次就毁掉的资产：88 小时、约 1500 万美元量级的算力买到的不是理解，是一份还没经过独立评审的证明。
 date: 2026-09-09
 category: ai-industry
 primarySourceUrls: ["https://simonwillison.net/2026/Sep/8/on-navier-stokes/"]
@@ -25,7 +25,7 @@ Clay 数学研究所的官方表述把这个大问题拆成四个可接受命题
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-cheap-answers-precious-maps-img-01-openai-vortex-source.png)
 
-用词得守住：**只能说「OpenAI 声称解决」**。证明没有公开，数学界没有评审，Clay 研究所所长 Martin Bridson 对评估流程的描述是「deliberately unhurried」——这个细节来自[New Scientist 的报道](https://www.newscientist.com/article/2588063-openai-has-solved-the-navier-stokes-millennium-problem-using-15m-of-ai-effort/)，属二手转述。
+用词得守住：**只能说「OpenAI 声称解决」**。证明本身是公开的——公告页当天就挂出了 166 页的[《Finite Time Blowup for Navier–Stokes》](https://cdn.openai.com/pdf/32d9f210-8b73-45e0-91bc-82a30aef8a9a/navier-stokes.pdf)和 [openai/NavierStokesAndEuler](https://github.com/openai/NavierStokesAndEuler) 的 Lean 形式化；没有的是独立同行评审，Clay 研究所所长 Martin Bridson 对评估流程的描述是「deliberately unhurried」——这个细节来自[New Scientist 的报道](https://www.newscientist.com/article/2588063-openai-has-solved-the-navier-stokes-millennium-problem-using-15m-of-ai-effort/)，属二手转述。
 
 ## 两队证明的不是同一个东西
 
@@ -47,7 +47,7 @@ Buckmaster 追问过两件事：OpenAI 发出的第一个 prompt 是什么时候
 
 OpenAI 的回应是：研究者与 agent 在对方公开发布前没有以任何方式看到其工作，没有访问任何特定用户数据；紧接着承认「虽然不太可能，我们无法排除由他们使用我们产品所产生的去标识化数据帮助改进了我们的模型」（[数据使用政策见此处](https://openai.com/policies/how-your-data-is-used-to-improve-model-performance/)，其全文我本次未能读取）。Bubeck 在 X 上称指控为「false and inflammatory allegations」，并称没有用对方的 prompt 或证明来驱动模型与 agent，这一段我是通过[Fortune 的报道](https://fortune.com/2026/09/08/openai-says-it-cracked-navier-stokes-math-grand-challenge-buckmaster-accusation-cheating-intimidation-tao-lament/)看到的二手转述，他的原帖我没有直接打开核实。
 
-所以数据使用问题只能写成**悬而未决**：不能写成「OpenAI 偷了数据」，也不能写成「OpenAI 已澄清」。三个理由：证明未公开（Buckmaster 说约一百页，他也没看过）；训练数据不进公开日志，外部无法审计；双方都只在陈述「自己被告知了什么」。至于「针对性抢发」，属于推断：OpenAI 自认 9 月 1 日因传闻启动，但「传闻指向 Alpöge 与 Buckmaster」是它的事后判断（原文是 "which we later realized"）。
+所以数据使用问题只能写成**悬而未决**：不能写成「OpenAI 偷了数据」，也不能写成「OpenAI 已澄清」。两个理由：训练数据不进公开日志，外部无法审计；双方都只在陈述「自己被告知了什么」。至于「针对性抢发」，属于推断：OpenAI 自认 9 月 1 日因传闻启动，但「传闻指向 Alpöge 与 Buckmaster」是它的事后判断（原文是 "which we later realized"）。
 
 那句「无法排除去标识化数据」，功能上是一句不可证伪的声明。它既不是承认也不是否认，效果是让责任无法被追究。
 
@@ -79,7 +79,7 @@ OpenAI 的回应是：研究者与 agent 在对方公开发布前没有以任何
 
 还有一个诚实的边界：本文判断只在「地图比答案更稀缺」这一前提下成立。如果模型很快能自主提出值得问的问题，而不只是解决被提出的问题，那么地图也会被自动化，这个判断随之失效。
 
-站内旧文里，《[AI 生产力幻觉：当产出量暴涨而价值纹丝不动](https://ntlx.github.io/articles/ai-productivity-illusion-slop)》写的是同一件事的日常版本：1300 亿输出 token 换一份还没人看过的证明，就是「产出量暴涨、可验证价值纹丝不动」的极端案例。更早的《[AI 的期末考试：OpenAI 用 750 道真题考出了什么](https://ntlx.github.io/articles/ai-exam-lifescibench)》则是同一个结构——用答案替代理解。
+站内旧文里，《[AI 生产力幻觉：当产出量暴涨而价值纹丝不动](https://ntlx.github.io/articles/ai-productivity-illusion-slop)》写的是同一件事的日常版本：1300 亿输出 token 换一份还没经过独立评审的证明，就是「产出量暴涨、可验证价值纹丝不动」的极端案例。更早的《[AI 的期末考试：OpenAI 用 750 道真题考出了什么](https://ntlx.github.io/articles/ai-exam-lifescibench)》则是同一个结构——用答案替代理解。
 
 ## 我在这套结构里的位置，和一件今天能改的事
 
