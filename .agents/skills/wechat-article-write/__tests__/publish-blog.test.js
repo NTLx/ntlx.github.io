@@ -50,6 +50,23 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
   writeFinalizedArtifactManifest(dir);
 }
 
+// 仅用于 guard 回归用例：在 fixture repo 里初始化 git 并播种一条 tracked 的管线文件
+function initPipelineGitRepo(repoRoot) {
+  expect(spawnSync("git", ["init", "-b", "main"], { cwd: repoRoot }).status).toBe(0);
+  expect(spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: repoRoot }).status).toBe(0);
+  expect(spawnSync("git", ["config", "user.name", "Test User"], { cwd: repoRoot }).status).toBe(0);
+}
+
+function seedTrackedPipelineFile(repoRoot, content) {
+  const dir = join(repoRoot, ".agents/skills/wechat-article-write/scripts");
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, "guard-probe.mjs");
+  writeFileSync(file, content);
+  expect(spawnSync("git", ["add", "--", ".agents"], { cwd: repoRoot }).status).toBe(0);
+  expect(spawnSync("git", ["commit", "-m", "chore: seed pipeline code"], { cwd: repoRoot }).status).toBe(0);
+  return file;
+}
+
 function runPublish(args, fixture) {
   return spawnSync("bun", ["run", SCRIPT, ...args], {
     cwd: resolve(import.meta.dir, "../../../.."),
@@ -187,6 +204,38 @@ describe("publish-blog", () => {
       encoding: "utf8",
     });
     expect(show.status).not.toBe(0);
+  });
+
+  test("refuses publish when tracked pipeline implementation is modified", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-中文标题";
+    writeArticle(fx.postsRoot, dateSlug);
+    initPipelineGitRepo(fx.repoRoot);
+    const pipelineFile = seedTrackedPipelineFile(fx.repoRoot, "export const version = 1;\n");
+    writeFileSync(pipelineFile, "export const version = 2;\n");
+
+    const r = runPublish([dateSlug, "--no-push", "--no-build"], fx);
+
+    expect(r.status).toBe(7);
+    expect(r.stderr).toContain("pipeline implementation changed during this run");
+    const target = join(fx.repoRoot, "src/content/docs/articles/frontmatter-blog-slug.md");
+    expect(existsSync(target)).toBe(false);
+  });
+
+  test("publishes when tracked pipeline implementation is clean", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-中文标题";
+    writeArticle(fx.postsRoot, dateSlug);
+    initPipelineGitRepo(fx.repoRoot);
+    seedTrackedPipelineFile(fx.repoRoot, "export const version = 1;\n");
+
+    const r = runPublish([dateSlug, "--no-push", "--no-build"], fx);
+
+    expect(r.status).toBe(0);
+    const target = join(fx.repoRoot, "src/content/docs/articles/frontmatter-blog-slug.md");
+    expect(existsSync(target)).toBe(true);
   });
 
   test("does not contain git add force overrides", () => {

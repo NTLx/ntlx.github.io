@@ -17,6 +17,7 @@
  * 退出码:
  *   0 成功（--no-push 或 push 失败时也返回 0，并把博客发布状态标记为 blocked）
  *   1 参数错误 / 未知 flag；2 frontmatter 校验失败；3 构建失败；4 git add/commit 失败；5 目标文件已存在；6 非 main 分支
+ *   7 管线实现（.agents/skills/wechat-article-write）存在 tracked modification
  */
 
 import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
@@ -164,6 +165,28 @@ function assertMainBranchIfNeeded(opts) {
   }
 }
 
+// 窄 guard：仅当本 Skill 的 tracked 实现文件在工作区被修改时拒绝发布。
+// 动机：发布时若管线代码仍在工作区未提交，checkout 文章 commit 时无法自洽复现其发布路径。
+// 只检查 .agents/skills/wechat-article-write 这一个路径的 tracked modification（-uno 忽略 untracked），
+// 不看整个 repo 的 dirty 状态，避免误伤无关改动；无 bypass flag。
+function assertPipelineImplementationClean(opts) {
+  if (opts.dryRun) return; // dry-run 不发布，跳过
+  const root = repoRoot();
+  const r = spawnSync("git", ["status", "--porcelain", "-uno", "--", ".agents/skills/wechat-article-write"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  // 非 git 仓库 / git 不可用（status 非 0）时无法判定，保守放行，不改变原有行为。
+  if (r.status !== 0) return;
+  const dirty = (r.stdout ?? "").trim();
+  if (!dirty) return;
+  process.stderr.write(
+    "publish-blog: pipeline implementation changed during this run; commit or resolve the maintenance fix before publishing the article.\n"
+  );
+  for (const line of dirty.split("\n")) process.stderr.write(`publish-blog:   ${line}\n`);
+  process.exit(7);
+}
+
 function assertTargetNotIgnored(targetPath) {
   const root = repoRoot();
   const relPath = relative(root, targetPath);
@@ -259,6 +282,7 @@ if (opts.dryRun) {
 }
 
 assertMainBranchIfNeeded(opts);
+assertPipelineImplementationClean(opts);
 
 if (existsSync(targetPath) && !opts.overwrite) {
   process.stderr.write(`publish-blog: ${targetPath} 已存在（使用 --overwrite 强制覆盖）\n`);
