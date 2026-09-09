@@ -170,6 +170,21 @@ describe("step5-build", () => {
     expect(readFileSync(htmlPath, "utf8")).toBe(anchorBefore);
   });
 
+  test("refuses to rebuild artifacts once Step 5 is finalized", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    writeFileSync(
+      join(fixture.postDir, "article-wechat.html"),
+      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
+    );
+    expect(run(fixture, "--finalize-only").status).toBe(0);
+
+    const rerun = run(fixture, "--prepare-only");
+    expect(rerun.status).toBe(2);
+    expect(rerun.stderr).toContain("frozen");
+  });
+
   test("does not contain the removed uploader bridge", () => {
     const source = readFileSync(SCRIPT, "utf8");
     expect(source).not.toContain("spawnSync");

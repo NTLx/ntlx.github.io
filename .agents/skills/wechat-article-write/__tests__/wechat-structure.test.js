@@ -317,4 +317,50 @@ title: 下划线链接测试
     expect(result.errors.join("\n")).toBe("");
     expect(result.ok).toBe(true);
   });
+
+  test("fails when the HTML track loses an underscore inside a URL", () => {
+    const underscoreSource = `---
+title: 下划线丢失测试
+---
+
+## A
+
+这个项目已经 90% there（原帖（链接：https://x.com/romanugarte_/status/2087344044435505175））。
+`;
+    const rendered = '<section><p><span leaf="">A</span></p>'
+      + "<p>这个项目已经 90% there（原帖（链接：https://x.com/romanugarte/status/2087344044435505175））。</p></section>";
+    expect(validateWechatStructuralParity(underscoreSource, rendered).ok).toBe(false);
+  });
+
+  test("keeps literal underscores in identifiers and prose", () => {
+    const literalSource = `---
+title: 字面下划线测试
+---
+
+## A
+
+环境变量 OPENAI_API_KEY 需要保留，代码里叫 foo_bar。
+`;
+    const rendered = '<section><p><span leaf="">A</span></p>'
+      + "<p>环境变量 OPENAI_API_KEY 需要保留，代码里叫 foo_bar。</p></section>";
+    expect(validateWechatStructuralParity(literalSource, rendered).ok).toBe(true);
+
+    // Losing the underscore in the HTML track is content loss, not normalization.
+    const dropped = rendered.replace("OPENAI_API_KEY", "OPENAIAPIKEY").replace("foo_bar", "foobar");
+    expect(validateWechatStructuralParity(literalSource, dropped).ok).toBe(false);
+  });
+
+  test("still treats real Markdown emphasis as presentation", () => {
+    const emphasisSource = `---
+title: 强调测试
+---
+
+## A
+
+这一段有 *斜体* 和 **粗体** 和 _下划线斜体_。
+`;
+    const rendered = '<section><p><span leaf="">A</span></p>'
+      + "<p>这一段有 斜体 和 粗体 和 下划线斜体。</p></section>";
+    expect(validateWechatStructuralParity(emphasisSource, rendered).ok).toBe(true);
+  });
 });

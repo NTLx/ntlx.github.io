@@ -14,7 +14,7 @@ import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
 import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
 import { assertNoInternalPlanningComments, buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
-import { assertFinalizeInputsFresh, sha256File, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
+import { assertFinalizeInputsFresh, sha256File, validateFinalizedArtifactFreshness, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
@@ -163,6 +163,14 @@ function assertStep3Fresh() {
   }
 }
 
+function assertPrepareNotFrozen() {
+  // A finalized Step 5 freezes image-map.json and both track artifacts. Only a real
+  // rollback to Step 3/4 (which makes the manifest stale) may rebuild them, so a
+  // WeChat-only recovery can never re-upload images or rewrite the blog mapping.
+  if (validateFinalizedArtifactFreshness(base).length > 0) return;
+  fail(2, "Step 5 is already finalized and its inputs are unchanged; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
+}
+
 function finalize() {
   if (!existsSync(articlePath)) fail(4, "article.md missing; cannot finalize Step 5");
   if (!existsSync(wechatSourcePath)) fail(4, "article-wechat-source.md missing; cannot finalize Step 5");
@@ -265,6 +273,7 @@ if (dryRun) {
   process.exit(0);
 }
 
+assertPrepareNotFrozen();
 const imageMap = loadImageMap();
 const coverage = validateImageMapCoverage(draft, imgs, imageMap);
 

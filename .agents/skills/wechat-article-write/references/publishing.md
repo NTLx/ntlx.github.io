@@ -24,6 +24,10 @@ finalize 只做 repository-specific structural/integrity Gate，不修改 child 
 纯文本 URL）、`article-wechat.html`（gzh-design HTML）。Step 5 记录 deterministic artifact
 hash；draft 改变时必须回到 Step 3。
 
+Step 5 finalize 后 `image-map.json` 与双轨产物即冻结：manifest 仍新鲜时 `--prepare-only` fail
+closed。微信轨恢复只能重新委托 `gzh-design` 并运行 `--finalize-only`，不得重跑
+`github-image-hosting` 或 prepare；只有回退到 Step 3/4 让 manifest 变旧，才允许重建。
+
 ## Publish
 
 博客先运行 `publish-blog.mjs`，它负责 Astro build、commit/push 与状态记录；push 不代表 GitHub Pages 已 deploy。

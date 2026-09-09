@@ -44,14 +44,37 @@ function replaceMarkdownLinks(value) {
   return output;
 }
 
+// Inline code spans and URLs carry literal `_`, `*`, `~` and backtick characters.
+// They are protected before emphasis stripping so only real Markdown markup is removed.
+const PROTECTED_SPAN_RE = /`([^`\n]*)`|(https?:\/\/[^\s)\]>"']+)/giu;
+const PROTECTED_PLACEHOLDER_RE = /\u0000P(\d+)\u0000/gu;
+
+/** Remove Markdown emphasis/strikethrough markup, keep literal characters. */
+function stripEmphasisMarkup(text) {
+  return text
+    .replace(/\*\*\*(?=\S)([\s\S]*?\S)\*\*\*/gu, "$1")
+    .replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/gu, "$1")
+    .replace(/___(?=\S)([\s\S]*?\S)___/gu, "$1")
+    .replace(/__(?=\S)([\s\S]*?\S)__/gu, "$1")
+    .replace(/~~(?=\S)([\s\S]*?\S)~~/gu, "$1")
+    .replace(/(^|[\s(（\[【"'“‘<])_(?=\S)([^_\n]*?\S)_(?=[\s)）\]】"'”’>.,;:!?。，；：！？]|$)/gu, "$1$2")
+    .replace(/(^|[\s(（\[【"'“‘<])\*(?=\S)([^*\n]*?\S)\*(?=[\s)）\]】"'”’>.,;:!?。，；：！？]|$)/gu, "$1$2")
+    .replace(/(^|[\s(（\[【"'“‘<])~(?=\S)([^~\n]*?\S)~(?=[\s)）\]】"'”’>.,;:!?。，；：！？]|$)/gu, "$1$2");
+}
+
 function normalizeText(value) {
   const text = String(value ?? "")
     .replace(/<!--[^]*?-->/gu, "")
     .replace(/!\[[^\]]*\]\([^)]*\)/gu, "");
-  return replaceMarkdownLinks(text)
+  const protectedSpans = [];
+  const withPlaceholders = text.replace(PROTECTED_SPAN_RE, (_match, code, url) => {
+    protectedSpans.push(code ?? url);
+    return `\u0000P${protectedSpans.length - 1}\u0000`;
+  });
+  return stripEmphasisMarkup(replaceMarkdownLinks(withPlaceholders))
     .replace(/<[^>]+>/gu, "")
-    .replace(/[\*_~`]/gu, "")
     .replace(/\\(?=\s|$)/gu, "")
+    .replace(PROTECTED_PLACEHOLDER_RE, (_match, index) => protectedSpans[Number(index)])
     .replace(/\s+/gu, " ")
     .trim();
 }

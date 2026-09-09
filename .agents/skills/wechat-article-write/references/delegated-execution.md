@@ -29,9 +29,9 @@ Execution Unit 是一个逻辑责任边界。Delegated Executor 是完成该边�
 6. Executor 能限制在当前 unit，不要求 Main 接管专业工作。
 
 Main 在同一上下文中自称 Executor 后继续实际操作，或读取 child Skill 后自行模仿其专业流程，均不
-算隔离。Main MAY 加载 Skill 以理解其契约、正确派发，但加载后自行执行该 Skill 的工作仍不算隔离。
-固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic tool 或其它 Skill
-替代 mandatory owner。
+算隔离。Main 只读取路由所需的最小 capability metadata（名称与可用性）；child Skill 的加载和执行
+由 Delegated Executor 承担。固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic
+tool 或其它 Skill 替代 mandatory owner。
 
 ## Mechanism selection
 
@@ -103,7 +103,7 @@ STATUS: DONE | BLOCKED | RETRY_REQUIRED
 UNIT: <execution unit>
 
 SKILL:
-- <实际加载的 Skill 与加载方式；未声明或未加载时写 none>
+- <执行的 Skill 名 + completed；未声明或未执行时写 none>
 
 ARTIFACTS:
 - path
