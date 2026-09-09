@@ -13,7 +13,7 @@ primarySourceUrls: ["https://simonwillison.net/2026/Sep/8/on-navier-stokes/"]
 
 先把误读清掉，再说为什么这场争议在事实层面结不了案，最后说我自己的位置：我就在同一套结构里。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-cheap-answers-precious-maps-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-cheap-answers-precious-maps-img-00-infographic-core-summary-1.png)
 
 ## 先看清楚：这份「解」证的是什么
 
@@ -59,7 +59,7 @@ OpenAI 的回应是：研究者与 agent 在对方公开发布前没有以任何
 
 把这个机制和另外三处独立信号并排看，就串成一条闭环：Simon 的第三个思想实验（我用 ChatGPT 部分解决了一个千禧年难题，我的工作影响训练、以至于后来某个模型帮**别人**抢先解决，概率有多大？）；Tao 的[「难度地形图被压平」](https://mathstodon.xyz/@tao/117237320796901560)（好问题稀缺且不可再生，激励会转向不再分享有前途的方向，将逆转数百年的开放传统）；以及 Anil Madhavapeddy 的[「bug 的传闻足以催生 exploit」](https://anil.recoil.org/notes/rumour-is-the-exploit)，他引用的数据是安全领域平均「利用时间」已经是 **-7 天**，攻击代码先于补丁出现。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-cheap-answers-precious-maps-img-03-rumor-to-flattened-map-loop.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-cheap-answers-precious-maps-img-03-rumor-to-flattened-map-loop-1.png)
 
 材料里没人做过这个对照：安全领域的 exploit 有**补丁时效**，洞见没有回收期。一个被抢先的问题会永久失去「第一个解决它」的位置，而它本可以持续几十年的理解价值不会因此回来。所以「传闻即算力」在数学里造成的损失，比在安全领域更不可逆。
 
