@@ -25,4 +25,25 @@ title: parity test
 
     expect(validateMarkdownParity(article, wechatSource).ok).toBe(true);
   });
+
+  test("stops URL protection at fullwidth parens so following emphasis survives", () => {
+    const article = `---
+title: parity test
+---
+
+## 正文
+
+OpenAI 在[公告](https://openai.com/index/navier-stokes-solution/)里说得很明确：它声称证明的是**命题 C（并同时给出 D）**，方向是「证明方程会崩溃」。
+`;
+    const wechatSource = `---
+title: parity test
+---
+
+## 正文
+
+OpenAI 在公告（链接：https://openai.com/index/navier-stokes-solution/）里说得很明确：它声称证明的是**命题 C（并同时给出 D）**，方向是「证明方程会崩溃」。
+`;
+
+    expect(validateMarkdownParity(article, wechatSource).ok).toBe(true);
+  });
 });

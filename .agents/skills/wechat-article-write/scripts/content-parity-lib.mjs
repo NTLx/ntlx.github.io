@@ -46,7 +46,10 @@ function replaceMarkdownLinks(value) {
 
 // Inline code spans and URLs carry literal `_`, `*`, `~` and backtick characters.
 // They are protected before emphasis stripping so only real Markdown markup is removed.
-const PROTECTED_SPAN_RE = /`([^`\n]*)`|(https?:\/\/[^\s)\]>"']+)/giu;
+// The URL branch must stop at CJK/fullwidth punctuation and ideographs: the WeChat
+// track renders `label（链接：url）`, so without those exclusions a URL swallows the
+// following prose (including `**` emphasis) and the two tracks diverge.
+const PROTECTED_SPAN_RE = /`([^`\n]*)`|(https?:\/\/[^\s)\]>"'\u3000-\u303f\uff00-\uffef\u4e00-\u9fff]+)/giu;
 const PROTECTED_PLACEHOLDER_RE = /\u0000P(\d+)\u0000/gu;
 
 /** Remove Markdown emphasis/strikethrough markup, keep literal characters. */
