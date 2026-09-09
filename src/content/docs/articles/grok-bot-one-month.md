@@ -11,7 +11,7 @@ primarySourceUrls: ["https://www.lennysnewsletter.com/p/how-we-built-grok-bot-in
 
 所以读完 Roman Ugarte 在 Lenny's Podcast 上讲 Grok Bot 的七周（[原访谈](https://www.lennysnewsletter.com/p/how-we-built-grok-bot-in-a-month?showTranscript=true)）之后，我想弄清楚的不是他们怎么写得这么快。材料里几乎没有“写得更快”的动作，加速全发生在动手之前：谁有权拍板、证据多久到决策者手里、删掉一个已经做出来的东西要说服多少人。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-00-infographic-core-summary.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-00-infographic-core-summary-1.png)
 
 ## 七周的时间线，压缩的是回路长度
 
@@ -21,7 +21,7 @@ primarySourceUrls: ["https://www.lennysnewsletter.com/p/how-we-built-grok-bot-in
 
 把这件事说直白一点：一个产品决定从“有人看见问题”到“问题被改掉”，中间的时间由两样东西决定：经过多少个人，以及证据要转几手。七周压缩的是这个量，不是键盘的速度。同一件事在两种结构里走法完全不同：一端是发现、当天判断、第二天拿新证据回来；另一端是问题先被汇总，进排期，过评审，上线，再等反馈回到最初看见它的人手上。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-01-short-vs-hierarchical-decision-loop.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-01-short-vs-hierarchical-decision-loop-1.png)
 
 那为什么“隔离”能加速？常见的答案是保密，但 Roman 给的理由是共识成本：如果每个微决策都要向五层人解释一遍上下文，做判断的人会先被说服工作吃掉。隔离买到的，是让一个决定只需要说服五个手里有完整上下文的人。
 
@@ -49,7 +49,7 @@ Roman 说，不把 Grok Bot 做进 Cursor 这个决定“当时一点都不显�
 
 把前面三件事放在一起，结构就出来了：一个只需说服少数人的隔离团队、一条不过滤的证据通道、一份可以自由删除的权力。缺任何一根，加速都会变形：有速度没证据是猜得更快，有证据没删除权只能继续加功能，有删除权但不隔离，每次删除都要开三次会。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-02-three-pillars-short-loop.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-02-three-pillars-short-loop-1.png)
 
 ## 90% 的委派，注意力并没有被交出去
 
@@ -57,7 +57,7 @@ Roman 有一条推文：An AI that does 100% of the job feels categorically diff
 
 所以“just works”根本不是功能问题。那几周他们主要爬的是后端五个硬问题，多数用户根本看不见，但你会在 bot 点不到按钮、登不进网站、任务卡死的时候完整地感受到它们。用户对“看不到内部机制”的反馈也印证了方向：有人想看 bot 的待办列表和大致优先级，但没有人想要那一长串思维链文字流。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-03-delegation-threshold-90-vs-100.png)
+![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-09-grok-bot-one-month-img-03-delegation-threshold-90-vs-100-1.png)
 
 这条线往外延伸，能接上站内两篇旧文。一篇是[《当 AI 开始记住工作，人还要做什么？》](https://ntlx.github.io/articles/persistent-ai-coworkers)：长期记忆让 bot 有连续性，而连续性的意义在于你不用每次重新交代上下文；但记忆要真的变成委派，前提仍是监督成本足够低，否则你只是把“重新交代”换成了“反复检查”。另一篇是[《为什么聪明的 Agent 活不过 24 小时？》](https://ntlx.github.io/articles/how-long-should-an-agent-live)：长寿命 agent 的边界不在它能活多久，而在它失败一次的代价是否低到你可以不看。Roman 也承认长期记忆在组织层面的形态还没有答案——工作与个人要不要分成两套 bot，他给的是直觉，不是验证。
 
