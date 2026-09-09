@@ -86,6 +86,22 @@ describe("publish-wechat", () => {
     expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).publish.wechat).toBe("pending");
   });
 
+  test("prepare refuses a changed image-map at the boundary", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-wechat-stale-map";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(
+      join(dir, "image-map.json"),
+      JSON.stringify({ "00-infographic-core-summary.png": "https://cdn.example.test/other.png" }) + "\n",
+    );
+
+    const result = runPublish([slug, "--prepare-only"], fx);
+
+    expect(result.status).not.toBe(0);
+    expect(`${result.stderr}${result.stdout}`).toContain("image-map.json");
+  });
+
   test("finalize records success and optional media_id without invoking a child script", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);

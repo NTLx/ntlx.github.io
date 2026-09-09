@@ -100,7 +100,12 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
     if (manifest[field] !== current[field]) errors.push(`${filename} SHA256 does not match manifest; rerun Step 5`);
   }
   for (const [field, label, compute] of AUX_HASHES) {
-    if (manifest[field] === undefined) continue;
+    if (manifest[field] === undefined) {
+      // v2 records the full visual identity; a missing field means the manifest was
+      // truncated or hand-edited, so it must not silently pass the Gate.
+      if (Number(manifest.version ?? 0) >= 2) errors.push(`${field} missing from manifest v2`);
+      continue;
+    }
     if (manifest[field] !== compute(postDir)) errors.push(`${label} SHA256 does not match manifest; rerun Step 5`);
   }
   if (finalized && manifest.wechat_html_sha256 !== current.wechat_html_sha256) {

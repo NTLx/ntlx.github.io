@@ -99,6 +99,19 @@ describe("publish-blog", () => {
     expect(validateFinalizedArtifactFreshness(postDir).join("\n")).toContain("imgs/");
   });
 
+  test("publish refuses stale local images at the boundary", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-中文标题";
+    writeArticle(fx.postsRoot, dateSlug);
+    writeFileSync(join(fx.postsRoot, dateSlug, "imgs/00-infographic-core-summary.png"), "changed");
+
+    const r = runPublish([dateSlug, "--dry-run"], fx);
+
+    expect(r.status).toBe(5);
+    expect(r.stderr).toContain("stale");
+  });
+
   test("preserves primary source provenance in the public blog frontmatter", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
