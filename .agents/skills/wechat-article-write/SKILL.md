@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.10.1"
+  version: "2.11.0"
 ---
 
 # 微信公众号文章写作

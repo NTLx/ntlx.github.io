@@ -299,4 +299,22 @@ title: 引用测试
     const lost = cited.replace("<p>https://example.com/guide</p>", "");
     expect(validateWechatStructuralParity(linkSource, lost).errors.join("\n")).toContain("substantive block");
   });
+
+  test("matches an underlined URL wrapped in nested parentheses", () => {
+    const underscoreSource = `---
+title: 下划线链接测试
+---
+
+## A
+
+这个项目已经 90% there（原帖（链接：https://x.com/romanugarte_/status/2087344044435505175））。
+`;
+    // The HTML track keeps the same paragraph verbatim, so the underscore in the
+    // URL must not survive normalization on only one side.
+    const rendered = '<section><p><span leaf="">A</span></p>'
+      + "<p>这个项目已经 90% there（原帖（链接：https://x.com/romanugarte_/status/2087344044435505175））。</p></section>";
+    const result = validateWechatStructuralParity(underscoreSource, rendered);
+    expect(result.errors.join("\n")).toBe("");
+    expect(result.ok).toBe(true);
+  });
 });

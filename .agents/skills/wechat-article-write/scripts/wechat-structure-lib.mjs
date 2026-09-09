@@ -135,8 +135,15 @@ function flattenHtml(html) {
   const images = [];
   const tagRe = /<!--[\s\S]*?-->|<img\b[^>]*>|<[^>]+>/giu;
   let cursor = 0;
+  // Mirror content-parity-lib.normalizeText: emphasis markers are presentation,
+  // so an underlined URL such as `romanugarte_` must fold identically on both
+  // sides instead of surviving only in the HTML track. Masked code-block markers
+  // (\u0000CODE_0\u0000) pass through here too, so they are preserved verbatim to
+  // keep their positions resolvable.
   const appendText = (text) => {
-    normalized += decodeHtmlEntities(text).replace(/\s+/gu, "");
+    normalized += decodeHtmlEntities(text)
+      .replace(/\u0000[^\u0000]*\u0000|[\*_~`]/gu, (match) => (match.startsWith("\u0000") ? match : ""))
+      .replace(/\s+/gu, "");
   };
   let match;
   while ((match = tagRe.exec(source)) !== null) {
