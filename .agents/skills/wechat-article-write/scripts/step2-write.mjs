@@ -14,6 +14,7 @@
  *   - 参考资料区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
  *   - 正常长文至少有一个 SLOT_IMG_01+ 正文视觉
+ *   - 高相关站内旧文未联动时给出 advisory warning，不阻断写作
  *
  * 字数用于判断是否触发正常长文的最低正文视觉覆盖门控。
  *
@@ -38,7 +39,7 @@ import {
 import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
-const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction", "--allow-no-related"]);
+const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction"]);
 const unknownFlag = args.find((arg) => arg.startsWith("--") && !allowedFlags.has(arg));
 if (unknownFlag) {
   process.stderr.write(`step2: FAIL - unknown flag ${unknownFlag}\n`);
@@ -46,7 +47,6 @@ if (unknownFlag) {
 }
 const allowNoReferences = args.includes("--allow-no-references");
 const allowNoInteraction = args.includes("--allow-no-interaction");
-const allowNoRelated = args.includes("--allow-no-related");
 // Exactly one positional slug is accepted; do not silently ignore extra args.
 const positional = args.filter((arg) => !arg.startsWith("--"));
 if (positional.length > 1) {
@@ -54,7 +54,7 @@ if (positional.length > 1) {
   process.exit(1);
 }
 const slug = positional[0] ?? null;
-if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction] [--allow-no-related]\n"); process.exit(1); }
+if (!slug) { process.stderr.write("usage: step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction]\n"); process.exit(1); }
 
 const draftPath = resolve(postsRoot(), slug, "draft.md");
 if (!existsSync(draftPath)) {
@@ -254,8 +254,8 @@ if (existsSync(blogMemoryPath)) {
     blogMemoryUsed = highConfidence.some((c) => {
       return (c.url && body.includes(c.url)) || (c.title && body.includes(c.title));
     });
-    if (highConfidence.length > 0 && !blogMemoryUsed && !allowNoRelated) {
-      fail(4, "站内记忆包中存在高相关旧文，但 draft.md 未提及任何候选标题或 URL；如确实不适合联动，使用 --allow-no-related");
+    if (highConfidence.length > 0 && !blogMemoryUsed) {
+      process.stderr.write("step2: WARNING 站内记忆包中存在高相关旧文，但 draft.md 未提及候选标题或 URL；由 Main 在 Understanding 阶段判断是否联动\n");
     }
   } catch (err) {
     fail(4, `blog-memory.json 解析失败: ${err.message}`);
@@ -277,7 +277,6 @@ const stateExtra = {
   word_count: wordCount,
   allow_no_references: allowNoReferences,
   allow_no_interaction: allowNoInteraction,
-  allow_no_related: allowNoRelated,
   blog_memory_candidates: blogMemoryCandidates,
   blog_memory_used: blogMemoryUsed,
 };

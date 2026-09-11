@@ -40,6 +40,10 @@ normal long-form 的条件是 substantive H2 >= 3，或 substantive body >= 1400
 的 body visual minimum = 2；typical reader-response = 2–4。短文可以为 0 个 body visual，
 但 normal long-form 不能因没有合适原图或视觉信息增益判断困难而豁免。
 
+reader-response 默认先寻找两个真正独立的 body visual nodes。generated body visual 以约两张为
+成本基准；只有第 3/4 个节点带来无法并入已有视觉的独立信息增益时才增加。source evidence image
+不受这个 generated 成本基准机械限制：有多个高价值 source figures 时仍可全部复用并逐一审阅。
+
 优先视觉化对比、流程、机制、层级、状态变化、决策框架、指标体系、因果关系、复杂 checklist 和
 文章的关键原创增量；避免装饰图、重复 SLOT00，或按每个 H2 机械配图。没有合适 source image
 只能改变视觉来源，不能删除仍然需要的 body visual SLOT。
@@ -60,7 +64,8 @@ legibility、text density、明显生成瑕疵、裁切和关键信息是否被�
 塞进图，也不能要求读者必须放大才能理解核心信息。source screenshot 若文字偏小但仍有证据价值，
 保留 source image，并在正文指出应关注的局部；只有核心证据无法读清时才换更高清 source 或放弃该 visual。
 
-cover、SLOT00 和 body visuals 按 workflow 顺序 serial review；当前资产通过后才处理下一张。review
+cover、SLOT00 和 body visuals 在同一个 Visual phase Executor 内按 workflow 顺序 serial review；
+serial review 不等于 serial spawn。当前资产通过后才处理下一张。review
 失败只改变该节点的 source 或生成结果，不删除语义节点，也不以装饰性评分替代 deterministic Gate。
 如果当前 delegated visual execution context 无法实际 render/view 最终 raster，该 visual unit 必须
 `BLOCKED`，不得标记 `PASS`；应 reroute 到具备视觉能力的 isolated Executor。可返回的短 handoff

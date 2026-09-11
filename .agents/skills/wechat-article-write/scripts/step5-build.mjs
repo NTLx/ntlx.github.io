@@ -18,7 +18,7 @@ import { assertFinalizeInputsFresh, readArtifactManifest, sha256File, upstreamId
 import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
-import { replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
+import { assertNoAuthorPlaceholders, replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
 const args = process.argv.slice(2);
 let slug = null;
@@ -311,7 +311,10 @@ writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 
 try {
   validateBlogArtifact(readFileSync(articlePath, "utf8"));
-  assertNoInternalPlanningComments(readFileSync(wechatSourcePath, "utf8"), "article-wechat-source.md");
+  const wechatSource = readFileSync(wechatSourcePath, "utf8");
+  assertNoInternalPlanningComments(wechatSource, "article-wechat-source.md");
+  const authorErrors = assertNoAuthorPlaceholders(wechatSource);
+  if (authorErrors.length > 0) throw new Error(authorErrors.join("; "));
 } catch (error) {
   fail(4, error.message);
 }

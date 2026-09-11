@@ -15,6 +15,9 @@ Step 5 先由 Agent 原生委托 `github-image-hosting`，将 `imgs/`、业务 f
 `wechat-articles`、稳定命名前缀和 `image-map.json` 输出路径传入其当前 SKILL.md 契约，
 由该 Skill 生成 `image-map.json`。它负责 repo 配置、远端状态、冲突、重试和 CDN URL。
 
+Build phase 默认由一个 isolated Executor 按顺序完成以下 units；deterministic Gate 不单独创建
+Executor，失败时才带 diagnostic 回到对应 owner：
+
 先运行：
 
 ```bash
@@ -39,7 +42,8 @@ closed。微信轨恢复只能重新委托 `gzh-design` 并运行 `--finalize-on
 
 ## Publish
 
-博客先运行 `publish-blog.mjs`，它负责 Astro build、commit/push 与状态记录；push 不代表 GitHub Pages 已 deploy。
+Publish phase 默认由一个 isolated Executor 按 blog-first 顺序完成 blog publish、WeChat prepare、
+`baoyu-post-to-wechat` 和 finalize。博客先运行 `publish-blog.mjs`，它负责 Astro build、commit/push 与状态记录；push 不代表 GitHub Pages 已 deploy。
 博客状态完成或明确 blocked 后，才构建微信 capsule。`publish-wechat.mjs` 只消费
 `article-wechat.html` 并生成 canonical `sourceUrl` 的 UTM；实际草稿由 Agent 原生委托
 `baoyu-post-to-wechat` 创建。`baoyu-post-to-wechat` owns the publishing implementation：它

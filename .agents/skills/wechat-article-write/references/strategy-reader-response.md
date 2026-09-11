@@ -89,8 +89,8 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 
 Step 4 完成 source reuse 或生成后，才创建最终 `image-plan.json`，再进入后续图片校验。
 
-若没有合适的站内文章，使用 `--allow-no-related` 并记录理由；不要为了
-满足数量强行联动。
+站内相关文章是否适合联动属于 editorial judgement：高相关候选未被引用时 Step 2 只给 warning，
+由 Main 在 Understanding 阶段判断是否纳入；不要为了满足数量强行联动。
 
 ## Step 3：按实际问题 refine
 

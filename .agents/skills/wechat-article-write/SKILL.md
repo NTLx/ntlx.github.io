@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.18.0"
+  version: "2.19.0"
 ---
 
 # 微信公众号文章写作
@@ -31,6 +31,8 @@ Main MUST NOT directly execute actual work，包括：
 - child Skill 内部脚本或 Specialist Skill 调用。
 
 Main 不把完整网页、研究笔记、HTML、image prompt、API 或上传日志带回自己的上下文。
+Main 也不默认把自己的完整 conversation history、commentary、其它 Executor handoff 或完整用户
+原始 prompt 复制给 Executor；context inheritance is opt-in, not default。
 
 ## Delegated execution principle
 
@@ -41,6 +43,12 @@ unit 必须真实执行该 Skill 的 workflow，Main 按 handoff 的 `SKILL:` �
 
 完整 isolation、capsule、handoff、retry、ownership 和 E2E protocol 见
 `references/delegated-execution.md`。
+
+### Progressive disclosure
+
+Main 启动时只读取本文件、state summary 和当前 strategy。需要中央判断时再读取
+`understanding-brief.md`；其它 reference 由对应 phase Executor 按需加载。Main 不预加载所有
+reference，也不把 reference 全文放入每个 capsule。
 
 ## Start / Resume
 
@@ -53,9 +61,11 @@ state 始终为 v2；`publish.blog` 与 `publish.wechat` 可独立恢复。成�
 
 ## Workflow
 
-每个 unit 使用 `ROLE / GOAL / INPUTS / REQUIRED SKILL / PROJECT CONTRACT / OUTPUT / GATE /
-FORBIDDEN / FAILURE / RETURN` capsule，并只返回短 handoff。低风险、紧密的 deterministic units
-可以在同一个 isolated Executor 中连续完成，但不得跨越 ownership、Gate 或 recovery boundary。
+逻辑 unit 是责任边界，不是固定 Agent 数量。默认按 phase 创建一个 isolated Executor，在同一
+phase 内按顺序连续完成紧密 unit；producer 在返回 Main 前运行紧随其后的 deterministic Gate。
+Gate 仍然保留，Gate 不等于新 Agent。只有 ownership、context domain 或 recovery boundary 真的
+不同，才创建新的 Executor；失败重试仍使用 fresh context。每个 unit 使用精简 capsule，并只
+返回短 handoff。
 
 | Step | Main decides | Execution Unit / Skill | Output | Gate |
 |---|---|---|---|---|
@@ -66,8 +76,8 @@ FORBIDDEN / FAILURE / RETURN` capsule，并只返回短 handoff。低风险、�
 | 2 | thesis、strategy、planning capsule | `draft` / dynamic | `draft.md` | Step 2 |
 | 3 | accept、retry 或 reroute | `humanization` → `humanizer-zh` | updated `draft.md` | Step 3 + hash |
 | 4 | semantic visual nodes、serial order | visual units / fixed ownership | cover、body images、`image-plan.json` | Step 4 |
-| 5 | build progression | hosting、prepare、`gzh-design`、finalize | three tracks | Step 5 parity/structure |
-| 6 | publish progression | blog publish、WeChat publish | publish states | blog first、state |
+| 5 | build progression | 一个 Build phase Executor：hosting、prepare、`gzh-design`、finalize | three tracks | Step 5 parity/structure |
+| 6 | publish progression | 一个 Publish phase Executor：blog、WeChat prepare/publish/finalize | publish states | blog first、state |
 
 ### Step-specific rules
 
@@ -77,13 +87,14 @@ FORBIDDEN / FAILURE / RETURN` capsule，并只返回短 handoff。低风险、�
 
 **Step 1.5**：先做 Primary Source Uniqueness，再做 lexical site memory。same normalized primary
 source 已用于已发布文章时必须 `BLOCKED`，并正常写出 memory diagnostics；没有 bypass flag。Main
-只能停止、更新已有文章，或从多来源任务移除已覆盖 source。
+只能停止、更新已有文章，或从多来源任务移除已覆盖 source。高相关站内旧文未被 draft 引用时只
+输出 advisory warning，由 Main 在 Understanding 阶段决定是否联动，不触发 retry。
 
 **Step 1.8**：brief 必须包含核心问题、判断候选、生成机制、约束、反方、边界、可写判断、可视觉化
 节点和至少三条可检查原创增量；通过 `validate-understanding.mjs`。
 
 **Step 2**：`materials` = blog-memory checked source set = `draft` `primarySourceUrls`。同源阻断
-不能被 `--allow-no-related` 绕过；`SLOT_IMG_00` 恰好一次，且位于第一个 substantive H2 前。Step 2
+不能被 editorial advisory 绕过；`SLOT_IMG_00` 恰好一次，且位于第一个 substantive H2 前。Step 2
 只产生 draft 和 visual topology，不产生最终 `image-plan.json`。
 
 **Step 3**：事实、数字、术语、URL、引语、代码、frontmatter、H2 顺序和 SLOT topology 不得改变；
@@ -95,11 +106,12 @@ source body visual 优先复用合适原图。Visual Coverage、source/generated
 本地文件 Gate 以 `references/image-policy.md` 为准；cover 必须唯一，SLOT00 basename 固定，每个
 body SLOT 恰有一个最终文件；`baoyu-diagram` 仅是按需的 semantic helper。
 
-**Step 5**：严格按 `hosting → build-prepare → gzh-design → build-finalize`。dispatch hosting 前先跑
-`step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托 `github-image-hosting`。缺少
-image map 时 fail closed；依次产出 `image-map.json`、`article.md` / `article-wechat-source.md` 和
-`article-wechat.html`，finalize 只读检查 parity 与 structural/integrity；失败回到 `gzh-design`，
-Main 不读取并手改 child HTML。
+**Step 5**：一个 Build phase Executor 严格按 `hosting → prepare → gzh-design → finalize`。dispatch
+hosting 前先跑 `step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托
+`github-image-hosting`。缺少 image map 时 fail closed；依次产出 `image-map.json`、`article.md` /
+`article-wechat-source.md` 和 `article-wechat.html`，gzh-design 自己运行 validator/preview，随后
+由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity；失败回到
+gzh-design，Main 不读取并手改 child HTML。
 
 **Step 6**：严格先 blog，再 WeChat。`blog-publish` 消费 `article.md`；WeChat prepare、child publish
 和 finalize 消费 `article-wechat.html`。push 不等于 Pages deploy，创建草稿不等于群发；两条轨道按
@@ -120,19 +132,21 @@ state v2 独立恢复。
 | WeChat layout / Step 5B | `wechat-layout` → `gzh-design` |
 | WeChat publish | `wechat-publish` → `baoyu-post-to-wechat` |
 
-Research、Understanding、Draft、source visual 和 `baoyu-diagram` 按实际缺口动态选择最多 1–2 个匹配
-Skill；不建立 catalog。Specialist-specific preferences are owned by the Specialist Skill and its own
-configuration。
+Research、Understanding、Draft、source visual 和 `baoyu-diagram` 默认不调用 optional Skill；只有
+Main 能明确命名当前缺口时，才按实际缺口选择匹配 Skill。不建立 catalog。Specialist-specific
+preferences are owned by the Specialist Skill and its own configuration。
 
 ## References
 
-- isolation、capsule、handoff、retry、artifact immutability 和 E2E → `references/delegated-execution.md`
-- frontmatter、SLOT、链接、MDX 和双轨不变量 → `references/content-invariants.md`
-- source reuse、provenance review、Visual Coverage 和 machine Gate → `references/image-policy.md`
-- strategy → `references/strategy-reader-response.md`、`references/strategy-tutorial.md`、`references/strategy-news-digest.md`
-- understanding brief → `references/material-understanding.md`
-- primary source identity → `scripts/source-provenance-lib.mjs`
-- WeChat HTML → `references/adapter-gzh-design.md`
-- build / publish → `references/publishing.md`
-- 原创增量 → `references/originality-policy.md`
-- Gate、路径、图片和发布故障 → `references/troubleshooting.md`
+按需加载，不预读全部 reference：
+
+| Phase | 主要 reference |
+|---|---|
+| Main / routing | `delegated-execution.md`、当前 strategy |
+| Understanding | `material-understanding.md`、`originality-policy.md` |
+| Draft / Build | `content-invariants.md`、`publishing.md` |
+| Visual | `image-policy.md` |
+| WeChat layout | `adapter-gzh-design.md` |
+| Recovery | `troubleshooting.md` |
+
+`scripts/source-provenance-lib.mjs` 只在需要核对 primary source identity 时加载。

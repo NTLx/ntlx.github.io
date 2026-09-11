@@ -23,19 +23,19 @@ if (step === "done") {
 }
 
 if (step === 5) {
-  process.stdout.write(`Next execution units:
-1. hosting
-   required skill: github-image-hosting
-   output: image-map.json
-2. build-prepare
+  process.stdout.write(`Build phase executor (default: one isolated context):
+1. hosting-status
+   deterministic action: step5-build --hosting-status
+2. hosting if needed
+   required skill: github-image-hosting; output: image-map.json
+3. prepare
    deterministic action: step5-build --prepare-only
-3. wechat-layout
-   required skill: gzh-design
-   output: article-wechat.html (including its validator and preview)
-4. build-finalize
+4. gzh-design
+   required skill: gzh-design; output: article-wechat.html (including validator and preview)
+5. finalize
    deterministic action: step5-build --finalize-only
 
-Main chooses an available isolated execution mechanism for each unit.
+Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
 `);
   process.exit(0);
 }
@@ -43,27 +43,17 @@ Main chooses an available isolated execution mechanism for each unit.
 if ([6, 6.1, 6.2].includes(step)) {
   const publish = getPublishState(slug);
   process.stdout.write(`Publish states: blog=${publish.blog}, wechat=${publish.wechat}\n`);
-  if (publish.blog === "pending" || publish.blog === "failed") process.stdout.write(`Next execution units:
-1. blog-publish
-   deterministic action: publish-blog.mjs ${slug}
-2. wechat-publish-prepare
+  process.stdout.write(`Publish phase executor (default: one isolated context):
+1. blog publish if pending/failed
+   deterministic action: publish-blog.mjs ${slug}; blog first
+2. WeChat prepare
    deterministic action: publish-wechat.mjs ${slug} --prepare-only
-3. wechat-publish
+3. WeChat publish
    required skill: baoyu-post-to-wechat
-4. wechat-publish-finalize
+4. WeChat finalize
    deterministic action: publish-wechat.mjs ${slug} --finalize-only after child success
 
-Main chooses an available isolated execution mechanism for each unit.
-`);
-  else process.stdout.write(`Next execution units:
-1. wechat-publish-prepare
-   deterministic action: publish-wechat.mjs ${slug} --prepare-only
-2. wechat-publish
-   required skill: baoyu-post-to-wechat
-3. wechat-publish-finalize
-   deterministic action: publish-wechat.mjs ${slug} --finalize-only after child success
-
-Main chooses an available isolated execution mechanism for each unit.
+Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
 `);
   process.exit(0);
 }

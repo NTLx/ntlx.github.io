@@ -34,8 +34,8 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
 教程若有明确外部原始写作材料，应在 `materials.md` 写入 `## 原始来源`，最终 draft 保留
 `primarySourceUrls`；只有本站文档、本地文件或用户粘贴内容时，不要为了满足字段而编造外部 URL。
 
-Agent 可读取 `blog-memory.md` 并选择是否联动旧文；如果不适合，使用
-`--allow-no-related` 说明理由。教程默认允许没有互动和参考资料，但如果
+Agent 可读取 `blog-memory.md` 并选择是否联动旧文；是否联动由 Main 在 Understanding 阶段作
+editorial judgement，不适合时不触发 retry。教程默认允许没有互动和参考资料，但如果
 原文有来源信息，应保留它们。
 
 Step 2 产物：
@@ -54,7 +54,7 @@ source reuse 或生成后，才创建 `image-plan.json`，记录每个最终资�
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
-  --allow-no-references --allow-no-interaction --allow-no-related
+  --allow-no-references --allow-no-interaction
 ```
 
 这些 flag 表示本策略的内容例外，不代表跳过 frontmatter、SLOT、链接和

@@ -28,6 +28,14 @@ Execution Unit 是一个逻辑责任边界。Delegated Executor 是完成该边�
 5. 失败后能创建 fresh execution context；
 6. Executor 能限制在当前 unit，不要求 Main 接管专业工作。
 
+### Fresh minimal context by default
+
+Executor 默认只接收当前 phase/unit 的 capsule、必要 artifact 路径，以及该 unit 所需的
+Specialist Skill/reference。不得默认继承 Main 的完整 conversation history、此前 commentary、其它
+Executor handoff、已完成 phase 的过程记录或完整用户原始 prompt；context inheritance is opt-in, not default。
+只有当前 unit 依赖尚未物化到 artifact、且无法用短 capsule 表达的对话信息时，才允许
+继承明确限定的一部分 context，并在 capsule 中说明原因。
+
 Main 在同一上下文中自称 Executor 后继续实际操作，或读取 child Skill 后自行模仿其专业流程，均不
 算隔离。Main 只读取路由所需的最小 capability metadata（名称与可用性）；child Skill 的加载和执行
 由 Delegated Executor 承担。固定 ownership 由 workflow 声明，Executor 必须遵守；不得用 generic
@@ -35,9 +43,13 @@ tool 或其它 Skill 替代 mandatory owner。
 
 ## Mechanism selection
 
-Main 为每个 unit 动态选择满足本 contract 的 runtime-native isolation mechanism，依据上下文大小、
+Main 为每个 phase 默认选择一个满足本 contract 的 runtime-native isolation mechanism，依据上下文大小、
 专业性、工具与 Skill 需求、fresh-context 需求、可并行性、合并安全性和恢复成本。紧密的低风险
-deterministic units 可以合并；合并不得破坏 ownership、Gate、context isolation 或 recovery。
+deterministic units 可以在同一 Executor 中合并；合并不得破坏 ownership、Gate、context isolation
+或 recovery。逻辑 unit 与 physical Executor context 不等价；Gate 不单独创建 Executor。
+
+同一 phase 内，producer 应在 handoff 前运行紧随其后的 deterministic Gate。只有 phase 完成或需要
+fresh retry 时才返回/释放 Executor；不要为了单个脚本或一个 Gate 创建新的 LLM context。
 
 没有某一种具体机制不构成失败；只要另一种机制满足本 contract，Main 即可继续。
 
@@ -61,38 +73,31 @@ ownership 或 Gate。
 Main 只传当前 unit 所需的最小输入；retry 额外携带 frozen input 和上一 Gate 的实际 diagnostic。
 不传完整网页、完整历史日志、其它阶段 prompt、token 或无关 artifact。
 
-```text
-ROLE
-你是当前 execution unit 的 delegated executor。
+默认 capsule 只保留以下字段；公共约束由本 reference 提供，不要每次重复发送：
 
-GOAL
-本次唯一目标。
+```text
+UNIT
+当前逻辑 unit 或 phase。
 
 INPUTS
 文件路径和必要用户要求。
 
-REQUIRED SKILL
+SKILL
 必须执行的 Specialist Skill；没有则写 none。声明时 Executor 必须真实执行该 Skill 的 workflow：
 运行时提供独立加载入口（如 Skill 工具）就通过它加载，并继续执行到 OUTPUT；加载完成不等于交付。
 
-PROJECT CONTRACT
-本阶段必须保持的仓库边界。
+TASK
+本次唯一目标。
 
 OUTPUT
 需要写入的 artifact。
 
 GATE
 deterministic check，以及 child validator（如有）。
-
-FORBIDDEN
-不能做的替代行为。
-
-FAILURE
-失败时停止并报告，不扩大范围。
-
-RETURN
-只返回状态、artifact 路径、Gate 结果和最多 3 条关键说明。
 ```
+
+只有当前 phase 有特殊边界时，再增加 `CONSTRAINTS`。Executor 不越界；失败即返回；只返回短
+handoff；不得替代 mandatory Skill。这些是默认 contract，不必在每个 capsule 重复。
 
 ## Bounded handoff
 
@@ -121,6 +126,14 @@ NEXT:
 
 Executor 不返回完整研究报告、全文、HTML、image prompt、API token、上传轨迹或长日志。机制名称、
 thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化业务状态。
+
+Completed or abandoned execution contexts should be released before opening additional independent
+contexts when the runtime supports lifecycle management。不要保留已完成 phase 的 Executor 以备“可能
+会再用”；同一 phase 正常继续时也不要关闭后重开。普通等待不需要高频 commentary 或 polling，只有
+phase 完成、Gate failure with diagnostic、或需要用户决策时才向 Main 报进度。
+
+wechat-article-write 不选择 model ID，也不写入 runtime-specific model 配置；模型由 runtime 自行
+选择，除非被调用的 Specialist Skill 自己明确要求。
 
 ## Mandatory Specialist invocation
 

@@ -16,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.18.0"');
+    expect(skill).toContain('version: "2.19.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
@@ -28,6 +28,8 @@ describe("orchestration contract", () => {
     expect(delegated).toContain("Execution capsule");
     expect(delegated).toContain("Bounded handoff");
     expect(delegated).toContain("fresh execution context");
+    expect(delegated).toContain("context inheritance is opt-in, not default");
+    expect(delegated).toContain("Gate 不单独创建 Executor");
     expect(delegated).not.toContain("Execution-unit matrix");
     expect(delegated).not.toContain("workflow-specific");
     expect(skill).not.toContain("PIPELINE_AUTO");

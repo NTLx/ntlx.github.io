@@ -11,6 +11,7 @@ const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
 
 function makeFixture({
   memory = true,
+  candidates = [],
   draftSources = ["https://example.com/source"],
   materialSources = ["https://example.com/source"],
   memorySources = materialSources,
@@ -45,7 +46,7 @@ function makeFixture({
     ].join("\n"));
   }
   if (memory) writeFileSync(join(postDir, "blog-memory.json"), JSON.stringify({
-    candidates: [],
+    candidates,
     primary_source_urls: memorySources,
     same_source_matches: sameSourceMatches,
   }) + "\n");
@@ -67,10 +68,10 @@ describe("step2 source uniqueness backstop", () => {
     while (cleanup.length > 0) rmSync(cleanup.pop(), { recursive: true, force: true });
   });
 
-  test("fails on same_source_matches even with --allow-no-related", () => {
+  test("fails on same_source_matches without an editorial bypass flag", () => {
     const fixture = makeFixture();
     cleanup.push(fixture.root);
-    const result = run(fixture, "--allow-no-related");
+    const result = run(fixture);
     expect(result.status).toBe(4);
     expect(result.stderr).toContain("primary source already has published article");
   });
@@ -81,6 +82,22 @@ describe("step2 source uniqueness backstop", () => {
     const result = run(fixture);
     expect(result.status).toBe(4);
     expect(result.stderr).toContain("source uniqueness");
+  });
+
+  test("warns instead of failing when a high-confidence related article is not used", () => {
+    const fixture = makeFixture({
+      sameSourceMatches: [],
+      candidates: [{ title: "相关旧文", url: "https://ntlx.github.io/articles/related", score: 8, high_confidence: true }],
+    });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain("WARNING");
+    expect(result.stderr).toContain("Understanding");
+    const state = JSON.parse(readFileSync(join(fixture.postDir, ".pipeline-state.json"), "utf8"));
+    expect(state.blog_memory_candidates).toBe(1);
+    expect(state.blog_memory_used).toBe(false);
+    expect(state.allow_no_related).toBeUndefined();
   });
 
   test("fails closed when blog memory lacks its checked primary source set", () => {

@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 const SCRIPT = resolve(import.meta.dir, "../scripts/pipeline.mjs");
 const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
 
-function makeFixture(lastCompleteStep) {
+function makeFixture(lastCompleteStep, publish = { blog: "done", wechat: "pending" }) {
   const root = join(tmpdir(), `pipeline-advisory-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const postsRoot = join(root, "posts");
   const slug = "2026-09-03-pipeline-advisory";
@@ -16,7 +16,7 @@ function makeFixture(lastCompleteStep) {
   writeFileSync(join(postDir, ".pipeline-state.json"), JSON.stringify({
     slug,
     last_complete_step: lastCompleteStep,
-    publish: { blog: "done", wechat: "pending" },
+    publish,
     failed_step: null,
   }, null, 2) + "\n");
   return { root, postsRoot, postDir, slug };
@@ -46,9 +46,24 @@ describe("pipeline advisory CLI", () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain("baoyu-post-to-wechat");
     expect(result.stdout).toContain("--prepare-only");
-    expect(result.stdout).toContain("Main chooses an available isolated execution mechanism for each unit.");
+    expect(result.stdout).toContain("Publish phase executor (default: one isolated context):");
+    expect(result.stdout).toContain("Run these ordered units in one phase executor by default.");
     expect(result.stdout).not.toContain("Worker");
     expect(readFileSync(join(fixture.postDir, ".pipeline-state.json"), "utf8")).toBe(before);
+  });
+
+  test("groups build units into one phase executor", () => {
+    const fixture = makeFixture(4, { blog: "pending", wechat: "pending" });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.stdout).toContain("Build phase executor (default: one isolated context):");
+    expect(result.stdout).toContain("github-image-hosting");
+    expect(result.stdout).toContain("gzh-design");
+    expect(result.stdout).toContain("step5-build --finalize-only");
+    expect(result.stdout).not.toContain("build-prepare");
+    expect(result.stdout).not.toContain("wechat-layout");
   });
 
   test("does not retain the removed auto orchestration mode", () => {
