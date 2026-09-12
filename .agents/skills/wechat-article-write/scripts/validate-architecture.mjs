@@ -36,7 +36,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const frontmatter = parseFrontmatter(skillText);
 if (frontmatter.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (frontmatter["metadata.author"] !== "NTLx") errors.push("SKILL.md metadata.author must be NTLx");
-if (frontmatter["metadata.version"] !== "2.20.0") errors.push("SKILL.md metadata.version must be 2.20.0");
+if (frontmatter["metadata.version"] !== "2.21.0") errors.push("SKILL.md metadata.version must be 2.21.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const rel of [
@@ -69,6 +69,24 @@ for (const rel of [
 const delegatedText = readFileSync(file("references/delegated-execution.md"), "utf8");
 if (!delegatedText.includes("runtime-neutral")) errors.push("delegated reference must remain runtime-neutral");
 if (!delegatedText.includes("Main MUST NOT fallback to direct execution")) errors.push("delegated reference must fail closed");
+for (const contract of [
+  "Subthread Admission Gate",
+  "Full tool catalog enumeration is forbidden",
+  "completion notification",
+  "same Runtime Mechanism",
+  "diagnostic samples <= 3",
+  "BLOCKED",
+]) {
+  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.21 contract: ${contract}`);
+}
+for (const contract of [
+  "Model Context Budget",
+  "Research + Understanding",
+  "Draft + Humanizer",
+  "Gate does not justify a new model context",
+]) {
+  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.21 contract: ${contract}`);
+}
 
 const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
@@ -79,6 +97,9 @@ for (const rel of ["scripts/workflow.mjs", "scripts/orchestration-trace.mjs", "s
 for (const rel of [
   "worker-trace.json", "orchestration-trace.json", "execution-receipt.json", "spawn-log.json", "agent-id.json",
 ]) if (existsSync(file(rel))) errors.push(`retired orchestration artifact remains: ${rel}`);
+for (const rel of ["parity-debug.json", "execution-trace.json", "gzh-debug.log", "execution-plan.json", "agent-budget.json", "thread-registry.json", "token-budget.json"]) {
+  if (existsSync(file(rel))) errors.push(`persistent execution diagnostic remains: ${rel}`);
+}
 
 const governancePath = resolve(repoRoot, "AGENTS.md");
 const claudeAdapterPath = resolve(repoRoot, "CLAUDE.md");

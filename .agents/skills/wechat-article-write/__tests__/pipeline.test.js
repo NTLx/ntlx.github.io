@@ -66,6 +66,26 @@ describe("pipeline advisory CLI", () => {
     expect(result.stdout).not.toContain("wechat-layout");
   });
 
+  test("reports the five logical phases without one context per unit", () => {
+    const cases = [
+      [0, "Research", ["source acquisition", "understanding brief"]],
+      [2, "Writing", ["draft", "humanizer-zh"]],
+      [3, "Visual", ["cover", "image-plan.json"]],
+    ];
+    for (const [lastCompleteStep, phase, units] of cases) {
+      const fixture = makeFixture(lastCompleteStep, { blog: "pending", wechat: "pending" });
+      cleanup.push(fixture.root);
+      const result = run(fixture);
+
+      expect(result.status, result.stderr || result.stdout).toBe(0);
+      expect(result.stdout).toContain(`NEXT PHASE: ${phase}`);
+      expect(result.stdout).toContain(`${phase} phase executor (default: one isolated context):`);
+      for (const unit of units) expect(result.stdout).toContain(unit);
+      expect(result.stdout).toContain("NEW CHILD THREADS:");
+      expect(result.stdout).toContain("deterministic units");
+    }
+  });
+
   test("does not retain the removed auto orchestration mode", () => {
     const fixture = makeFixture(6);
     cleanup.push(fixture.root);

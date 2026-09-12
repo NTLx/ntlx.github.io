@@ -34,6 +34,11 @@ finalize 只做 repository-specific structural/integrity Gate，不修改 child 
 `github-image-hosting`；Step 5B 失败时把 Gate diagnostics 传回 fresh `gzh-design` Executor，
 从干净 source 重新生成，不在父层 patch HTML。
 
+Step 5B 的 retry budget 是每个 `phase + failure class` 最多一次 fresh retry。第一次 structural
+failure 只重做 `gzh-design → finalize`，不重跑 hosting 或 prepare；fresh retry 后同一 failure class
+再次失败即 `BLOCKED`，禁止第三次自动 theme retry，也不进入 theme roulette。Transient 网络/API/rate
+limit 由 Specialist 自己处理，不升级为 parent-level LLM context。
+
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、
 纯文本 URL）、`article-wechat.html`（gzh-design HTML）。Step 5 记录 deterministic artifact
 hash；draft 改变时必须回到 Step 3。
@@ -61,3 +66,6 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 ```
 
 失败时查看 `state.mjs next`，只恢复失败的博客或微信子状态。
+
+Publish phase 不创建 blog prepare、WeChat prepare 或 finalize Agent；这些 deterministic action 在同一
+Publish phase Executor 内完成。Main 只消费 bounded handoff，不读取 child Skill 或完整失败 HTML。

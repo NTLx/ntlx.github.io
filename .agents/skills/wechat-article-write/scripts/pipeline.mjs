@@ -22,8 +22,59 @@ if (step === "done") {
   process.exit(0);
 }
 
+function printPhase(name, units) {
+  process.stdout.write(`NEXT PHASE: ${name}\n`);
+  process.stdout.write(`${name} phase executor (default: one isolated context):\n`);
+  process.stdout.write("MODEL CONTEXT: reuse one phase context; do not create one per unit\n");
+  process.stdout.write("UNITS:\n");
+  units.forEach((unit, index) => process.stdout.write(`${index + 1}. ${unit}\n`));
+  process.stdout.write("NEW CHILD THREADS:\n");
+  process.stdout.write("do not create for deterministic units, Gates, waits, or diagnostics\n");
+  process.stdout.write("Run these ordered units in one phase executor by default. Stop and return only on Gate failure.\n");
+}
+
+if (step === 1) {
+  printPhase("Research", [
+    "state preflight: state.mjs init/next",
+    "source acquisition and supporting research",
+    "media extraction",
+    "materials.md",
+    "Step 1 Gate",
+    "Primary Source Uniqueness and site memory",
+    "understanding brief",
+    "understanding validator (Step 1.8)",
+  ]);
+  process.exit(0);
+}
+
+if (step === 2 || step === 3) {
+  printPhase("Writing", [
+    "draft",
+    "Step 2 Gate",
+    "humanizer-zh (mandatory Specialist workflow)",
+    "Step 3 Gate and draft hash",
+    "handoff",
+  ]);
+  process.exit(0);
+}
+
+if (step === 4) {
+  printPhase("Visual", [
+    "cover → inspect",
+    "SLOT00 → inspect",
+    "source body review",
+    "generated body visuals → inspect",
+    "image-plan.json",
+    "Step 4 Gate",
+  ]);
+  process.exit(0);
+}
+
 if (step === 5) {
-  process.stdout.write(`Build phase executor (default: one isolated context):
+  process.stdout.write(`NEXT PHASE: Build
+Build phase executor (default: one isolated context):
+MODEL CONTEXT: reuse one Build Executor
+UNITS:
 1. hosting-status
    deterministic action: step5-build --hosting-status
 2. hosting if needed
@@ -35,6 +86,8 @@ if (step === 5) {
 5. finalize
    deterministic action: step5-build --finalize-only
 
+NEW CHILD THREADS:
+do not create for deterministic units, Gates, waits, or diagnostics
 Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
 `);
   process.exit(0);
@@ -42,8 +95,11 @@ Run these ordered units in one phase executor by default. Stop and return only o
 
 if ([6, 6.1, 6.2].includes(step)) {
   const publish = getPublishState(slug);
+  process.stdout.write(`NEXT PHASE: Publish\n`);
   process.stdout.write(`Publish states: blog=${publish.blog}, wechat=${publish.wechat}\n`);
   process.stdout.write(`Publish phase executor (default: one isolated context):
+MODEL CONTEXT: reuse one Publish Executor
+UNITS:
 1. blog publish if pending/failed
    deterministic action: publish-blog.mjs ${slug}; blog first
 2. WeChat prepare
@@ -53,6 +109,8 @@ if ([6, 6.1, 6.2].includes(step)) {
 4. WeChat finalize
    deterministic action: publish-wechat.mjs ${slug} --finalize-only after child success
 
+NEW CHILD THREADS:
+do not create for deterministic units, Gates, waits, or diagnostics
 Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
 `);
   process.exit(0);

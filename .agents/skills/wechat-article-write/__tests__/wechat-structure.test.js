@@ -2,7 +2,7 @@
 /** Structural parity tests for the gzh-design adapter boundary. */
 
 import { describe, expect, test } from "bun:test";
-import { validateWechatStructuralParity } from "../scripts/wechat-structure-lib.mjs";
+import { summarizeStructuralErrors, validateWechatStructuralParity } from "../scripts/wechat-structure-lib.mjs";
 
 const source = `---
 title: 结构测试
@@ -31,6 +31,24 @@ function html(images, headings = ["A", "B"]) {
 }
 
 describe("validateWechatStructuralParity", () => {
+  test("bounds large structural diagnostics without weakening parity", () => {
+    const manyMissing = Array.from({ length: 29 }, (_, index) => `substantive block ${index + 1} missing from HTML`);
+    const diagnostic = summarizeStructuralErrors(manyMissing);
+    expect(diagnostic.counts.missing_blocks).toBe(29);
+    expect(diagnostic.samples.length).toBeLessThanOrEqual(3);
+    expect(diagnostic.samples.every(sample => sample.length <= 160)).toBe(true);
+    expect(diagnostic.message).toContain("missing_blocks: 29");
+
+    const result = validateWechatStructuralParity(
+      `---\ntitle: 多块\n---\n\n## A\n\n${Array.from({ length: 29 }, (_, index) => `第${index + 1}段内容。`).join("\n\n")}`,
+      "<section><p><span>A</span></p></section>",
+    );
+    expect(result.ok).toBe(false);
+    expect(result.diagnostic.counts.missing_blocks).toBe(29);
+    expect(result.diagnostic.samples.length).toBeLessThanOrEqual(3);
+    expect(result.errors.length).toBeLessThanOrEqual(8);
+  });
+
   test("accepts equivalent topology with arbitrary presentation wrappers", () => {
     const result = validateWechatStructuralParity(
       source,
@@ -41,6 +59,15 @@ describe("validateWechatStructuralParity", () => {
       ]),
     );
     expect(result.ok).toBe(true);
+  });
+
+  test("rejects theme placeholder text replacing source-visible content", () => {
+    const sourceMarkdown = `---\ntitle: 正文保护\n---\n\n## A\n\n真实正文必须保留。`;
+    const themedHtml = '<section><p><span leaf="">A</span></p><p>关键词占位符</p></section>';
+    const result = validateWechatStructuralParity(sourceMarkdown, themedHtml);
+    expect(result.ok).toBe(false);
+    expect(result.diagnostic.failure_class).toBe("structural-parity");
+    expect(result.diagnostic.samples.join("\n")).toContain("substantive block");
   });
 
   test("rejects missing, duplicate, and reordered images", () => {

@@ -16,10 +16,28 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.20.0"');
+    expect(skill).toContain('version: "2.21.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
+  });
+
+  test("budgets happy-path model contexts and consolidates phases", () => {
+    expect(skill).toContain("Model Context Budget");
+    expect(skill).toContain("happy path <= 5");
+    expect(skill).toContain("Research + Understanding");
+    expect(skill).toContain("Draft + Humanizer");
+    expect(skill).toContain("Writing phase Executor");
+    expect(skill).toContain("Visual phase Executor");
+    expect(skill).toContain("Build phase Executor");
+    expect(skill).toContain("Publish phase Executor");
+    expect(skill).toContain("Gate does not justify a new model context");
+    expect(delegated).toContain("Subthread Admission Gate");
+    expect(delegated).toContain("Context-heavy");
+    expect(delegated).toContain("Semantic production");
+    expect(delegated).toContain("Visual / design judgement");
+    expect(delegated).toContain("Fresh semantic retry");
+    expect(delegated).toContain("DO NOT SPAWN");
   });
 
   test("keeps execution runtime-neutral and isolated", () => {
@@ -30,6 +48,11 @@ describe("orchestration contract", () => {
     expect(delegated).toContain("fresh execution context");
     expect(delegated).toContain("context inheritance is opt-in, not default");
     expect(delegated).toContain("Gate 不单独创建 Executor");
+    expect(delegated).toContain("Full tool catalog enumeration is forbidden");
+    expect(delegated).toContain("Targeted Tool Discovery");
+    expect(delegated).toContain("completion notification");
+    expect(delegated).toContain("same Runtime Mechanism");
+    expect(delegated).toContain("poll loop");
     expect(delegated).not.toContain("Execution-unit matrix");
     expect(delegated).not.toContain("workflow-specific");
     expect(skill).not.toContain("PIPELINE_AUTO");
@@ -43,11 +66,36 @@ describe("orchestration contract", () => {
     expect(skill).toContain("不是 standalone execution context");
     expect(skill).toContain("同一 Research phase Executor");
     expect(skill).toContain("fresh Build phase Executor");
+    expect(skill).toContain("Main MUST NOT load child Skill");
+    expect(skill).toContain("Main MUST NOT read full failed HTML");
     expect(skill).not.toContain("隔离 `bootstrap/resume` Executor");
     expect(delegated).toContain("全部 mandatory Specialist");
     expect(gzhAdapter).toContain("只加载不交付视为未完成");
     expect(gzhAdapter).toContain("不得丢弃归因句");
     expect(gzhAdapter).toContain("不得做字符级替换");
+    expect(gzhAdapter).toContain("visible article content may not");
+    expect(gzhAdapter).toContain("不得注入正文可见占位文字");
+  });
+
+  test("caps retries and keeps deterministic work out of model contexts", () => {
+    expect(delegated).toContain("same phase + failure class");
+    expect(delegated).toContain("最多 1 次 fresh retry");
+    expect(delegated).toContain("第二次同类失败 → BLOCKED");
+    for (const reason of [
+      "state init / next", "Gate command", "hash comparison", "file existence check",
+      "grep / rg", "tool discovery", "poll / wait", "deterministic validator",
+    ]) expect(delegated).toContain(reason);
+    expect(skill).toContain("不估算");
+    expect(skill).not.toContain("execution-plan.json");
+    expect(skill).not.toContain("agent-budget.json");
+  });
+
+  test("keeps Main away from child internals", () => {
+    expect(delegated).toContain("Main只消费 bounded handoff");
+    expect(delegated).toContain("Main 不读取 child Skill");
+    expect(delegated).toContain("Main 不读取失败 HTML");
+    expect(delegated).toContain("diagnostic samples <= 3");
+    expect(delegated).toContain("每个 sample <= 160 chars");
   });
 
   test("keeps fixed direct Specialist routing in the Parent workflow", () => {

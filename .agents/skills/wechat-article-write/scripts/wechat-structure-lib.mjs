@@ -204,6 +204,63 @@ function formatSection(sectionIndex) {
   return sectionIndex === 0 ? "lead section" : `section ${sectionIndex}`;
 }
 
+const DIAGNOSTIC_SAMPLE_LIMIT = 3;
+const DIAGNOSTIC_SAMPLE_LENGTH = 160;
+
+function truncateDiagnostic(value) {
+  const compact = String(value ?? "").replace(/\s+/gu, " ").trim();
+  if (compact.length <= DIAGNOSTIC_SAMPLE_LENGTH) return compact;
+  return `${compact.slice(0, DIAGNOSTIC_SAMPLE_LENGTH - 3)}...`;
+}
+
+/**
+ * Keep parity diagnostics useful to the parent without returning the full error set.
+ * The validator still computes every error before this presentation boundary.
+ */
+export function summarizeStructuralErrors(errors, sampleLimit = DIAGNOSTIC_SAMPLE_LIMIT) {
+  const all = Array.from(errors ?? [], error => String(error));
+  const counts = {
+    missing_blocks: all.filter(error => /^substantive block \d+(?: \([^)]*\))? missing/iu.test(error)).length,
+    moved_blocks: all.filter(error => /\bmoved\b|搬移/iu.test(error)).length,
+    heading_mismatch: all.filter(error => /heading|H2|structural position/iu.test(error)).length,
+    image_mismatch: all.filter(error => /image|图片/iu.test(error)).length,
+    unexpected_text_replacement: all.filter(error => /replacement|placeholder|替换|占位/iu.test(error)).length,
+  };
+  const categoryOf = (error) => {
+    if (/image|图片/iu.test(error)) return "image";
+    if (/heading|H2|structural position/iu.test(error)) return "heading";
+    if (/\bmoved\b|搬移/iu.test(error)) return "moved";
+    if (/^substantive block \d+(?: \([^)]*\))? missing/iu.test(error)) return "missing";
+    if (/replacement|placeholder|替换|占位/iu.test(error)) return "replacement";
+    return "other";
+  };
+  const candidates = [];
+  for (const category of ["image", "heading", "moved", "missing", "replacement", "other"]) {
+    const candidate = all.find(error => categoryOf(error) === category);
+    if (candidate) {
+      candidates.push(candidate);
+    }
+  }
+  for (const error of all) {
+    if (!candidates.includes(error)) candidates.push(error);
+  }
+  const samples = candidates
+    .slice(0, Math.max(0, sampleLimit))
+    .map(truncateDiagnostic)
+    .filter(Boolean);
+  const lines = [
+    "WECHAT_STRUCTURAL_PARITY_FAIL",
+    `missing_blocks: ${counts.missing_blocks}`,
+    `moved_blocks: ${counts.moved_blocks}`,
+    `heading_mismatch: ${counts.heading_mismatch}`,
+    `image_mismatch: ${counts.image_mismatch}`,
+    `unexpected_text_replacement: ${counts.unexpected_text_replacement}`,
+    "samples:",
+    ...samples.map(sample => `- ${sample}`),
+  ];
+  return { failure_class: "structural-parity", counts, samples, message: lines.join("\n") };
+}
+
 /** Turn HTML heading positions into per-section text windows; index 0 is the lead area. */
 function sectionWindows(totalLength, headingPositions) {
   if (!headingPositions) return null;
@@ -375,9 +432,13 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
     errors.push(`${LEAD_INFOGRAPHIC} expected in lead section but found after section ${htmlHeadInfo[0].section_index}`);
   }
 
+  const diagnostic = errors.length > 0 ? summarizeStructuralErrors(errors) : null;
   return {
     ok: errors.length === 0,
-    errors,
+    // Keep the public error surface bounded. The complete `errors` array is
+    // intentionally not returned across the parent/child boundary.
+    errors: errors.length > 0 ? [diagnostic.message] : [],
+    diagnostic,
     source: {
       headings: source.headings,
       images: source.images.map(({ basename, section_index }) => ({ basename, section_index })),

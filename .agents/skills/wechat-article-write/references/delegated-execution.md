@@ -13,6 +13,8 @@ brief、形成中心判断、选择当前 unit、dispatch 最小 capsule，并�
 Main 不直接执行实际工作；所有工具、专业 Skill、deterministic command、artifact production、
 upload、publish、build 和 repository mutation 都必须进入 isolated execution context。Executor
 failure never expands Main execution authority。
+Main只消费 bounded handoff。Main 不读取 child Skill，Main 不读取失败 HTML；child 内部规则与原始产物由
+对应 owner Executor 处理，Gate 只返回 bounded diagnostic。
 
 ## What counts as isolated execution
 
@@ -52,6 +54,55 @@ deterministic units 可以在同一 Executor 中合并；合并不得破坏 owne
 fresh retry 时才返回/释放 Executor；不要为了单个脚本或一个 Gate 创建新的 LLM context。
 
 没有某一种具体机制不构成失败；只要另一种机制满足本 contract，Main 即可继续。
+
+## Subthread Admission Gate
+
+创建任何新的 model-backed Executor 前，Main 必须先做 admission decision。至少满足一个条件才允许
+创建新 context：
+
+- **Context-heavy**：大型论文、网页、研究材料或媒体会明显污染 Main context；
+- **Semantic production**：写作、重写、结构理解或复杂编辑判断；
+- **Visual / design judgement**：图片生成、视觉审核、HTML layout 或其它设计判断；
+- **Mandatory Specialist needs model context**：指定 Specialist 无法由 native action 或非模型
+  worker 完成；
+- **Fresh semantic retry**：前一 Executor 的 Gate 真实失败，且 recovery contract 明确要求 fresh
+  context + frozen input。
+
+如果以上条件全部不满足，`DO NOT SPAWN`。下列原因永远不足以创建新的 LLM context：
+
+```text
+state init / next
+Gate command
+hash comparison
+file existence check
+grep / rg
+small JSON parsing
+tool discovery
+poll / wait
+deterministic validator
+prepare / finalize
+```
+
+Gate 不单独创建 Executor；deterministic unit 也不单独创建 Executor。Model-backed context budget 的
+happy path 目标是 `<= 5`，对应 Research + Understanding、Draft + Humanizer、Visual、Build、Publish
+五个 phase。native Skill action、non-model isolated execution 和 command runner 优先复用，不把 Main
+变成实际产物生产者。
+
+## Tool Discovery Budget
+
+**Full tool catalog enumeration is forbidden.** Main 不得 dump 全部工具、schema 或 capability catalog
+来寻找 delegation capability。确需发现时，只做一次 **Targeted Tool Discovery**：按精确 capability
+关键词搜索（如 delegation、agent spawn、wait），只返回名称与简短描述，并限制为完成当前决策所需
+的最少结果。确定 delegation、wait、lifecycle mechanism 后，同一会话直接复用，不按 phase 重复搜索。
+
+## Wait and lifecycle budget
+
+优先使用 completion notification；没有 notification 时使用一次最长合理的 blocking wait。禁止
+`wait 30s → check file → wait 30s` 这类 poll loop；没有新 evidence 时不得反复 polling。
+
+创建、wait、status、close 必须属于同一 Runtime Mechanism（same Runtime Mechanism）。不得用一种机制创建 Executor，再用另一
+个 agent manager 查询生命周期。phase 进入 `DONE`、`BLOCKED` 或 `RETRY_REQUIRED` 并完成 handoff 后，
+在 runtime 支持时立即 release context；正常继续同一 phase 时不关闭后重开。
 
 ## Fail closed
 
@@ -125,6 +176,9 @@ NEXT:
 - recommended next unit
 ```
 
+约束：KEY NOTES <= 3，diagnostic samples <= 3，每个 sample <= 160 chars。handoff 必须是
+summary，不得返回完整 HTML、完整 tool schema、完整 JSON、全文 grep line 或完整 logs。
+
 Executor 不返回完整研究报告、全文、HTML、image prompt、API token、上传轨迹或长日志。机制名称、
 thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化业务状态。
 
@@ -161,6 +215,18 @@ artifact 的失败输出保持 disposable；Main 不 patch、绕过 Gate 或接�
 发布失败只恢复对应 publish 子状态；其它已完成轨道不被覆盖。state、parity 和其它 deterministic
 artifact 由对应 unit 的 Executor 运行仓库脚本生成。
 
+For the same phase + failure class, allow at most one fresh retry。Retry capsule 只携带 frozen source path、
+每个 phase 默认最多 1 次 fresh retry。
+failure class、counts、最多 3 个 samples、required Specialist、target output 和 Gate command；不
+复制完整 workflow、完整 Skill、project rules、HTML 或上一 handoff。第一次真实 Gate failure 返回
+`RETRY_REQUIRED`；fresh retry 后若仍是同一 failure class，返回 `BLOCKED`，不得进行第三次自动 retry。
+第二次同类失败 → BLOCKED。
+Transient network/API/rate-limit failure 由 Specialist 自身 policy 处理，不自动产生 parent-level
+LLM context。
+
+gzh-design 的主题不是搜索空间：一次 fresh、content-preserving retry 后仍失败即停止，禁止 theme
+roulette。presentation 可以变化，但 source-visible article content 必须保持不变。
+
 ## Deterministic boundary
 
 Script owns deterministic mechanics；Executor 运行当前 unit 合同要求的 command，Main 只消费结果。
@@ -182,3 +248,6 @@ Script owns deterministic mechanics；Executor 运行当前 unit 合同要求的
 verification 只返回短 checklist 和 Gate 结果，不把完整执行轨迹写入 state、JSON 或 artifact。理想
 终态是 Main direct actual work = `NO`、所有 applicable delegated execution = `YES`、无
 runtime-specific workflow config、无持久化 execution proof。
+
+该 E2E 仅用于 workflow version upgrade、用户明确要求 audit 或 architecture development task；普通
+文章生产不额外创建 verification context。
