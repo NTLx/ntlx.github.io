@@ -83,8 +83,9 @@ INPUTS
 文件路径和必要用户要求。
 
 SKILL
-必须执行的 Specialist Skill；没有则写 none。声明时 Executor 必须真实执行该 Skill 的 workflow：
-运行时提供独立加载入口（如 Skill 工具）就通过它加载，并继续执行到 OUTPUT；加载完成不等于交付。
+必须执行的 Specialist Skill；phase 可以列出多个，每个占一行；没有则写 none。声明时 Executor
+必须真实执行每个 Skill 的 workflow：运行时提供独立加载入口（如 Skill 工具）就通过它加载，并继续
+执行到 OUTPUT；加载完成不等于交付。
 
 TASK
 本次唯一目标。
@@ -105,10 +106,10 @@ handoff 是会话内的短交接，不是 persistent receipt：
 
 ```text
 STATUS: DONE | BLOCKED | RETRY_REQUIRED
-UNIT: <execution unit>
+UNIT: <execution unit or phase>
 
 SKILL:
-- <执行的 Skill 名 + completed；未声明或未执行时写 none>
+- <每个实际执行的 mandatory Specialist，各占一行；没有则写 none>
 
 ARTIFACTS:
 - path
@@ -127,6 +128,9 @@ NEXT:
 Executor 不返回完整研究报告、全文、HTML、image prompt、API token、上传轨迹或长日志。机制名称、
 thread id、agent id、spawn id、producer 和调用 receipt 不属于持久化业务状态。
 
+Phase handoff 的 `SKILL` section 必须列出本 phase 实际执行的全部 mandatory Specialist，每个一行；
+Main 核验整个 section，不把单数的 `SKILL:` 行理解为只能执行一个 Specialist。
+
 Completed or abandoned execution contexts should be released before opening additional independent
 contexts when the runtime supports lifecycle management。不要保留已完成 phase 的 Executor 以备“可能
 会再用”；同一 phase 正常继续时也不要关闭后重开。普通等待不需要高频 commentary 或 polling，只有
@@ -137,11 +141,12 @@ wechat-article-write 不选择 model ID，也不写入 runtime-specific model �
 
 ## Mandatory Specialist invocation
 
-声明 REQUIRED SKILL 的 unit，Executor 必须真实执行该 Skill 的 workflow，不得跳过它自行设计流程。
-运行时提供独立加载入口（如 Skill 工具）时必须通过它加载；仅把 Skill 当普通文档读取、跳过其步骤
-自行发挥，视为未遵循。handoff 的 `SKILL:` 行是自证；Main 必须核验它与 REQUIRED SKILL 一致，
-运行时可读取执行记录时以记录为准。缺失或不一致 → `RETRY_REQUIRED`：fresh context + frozen input +
-明确「必须真实执行该 Skill workflow」的 retry capsule；同一 unit 重复失败 → `BLOCKED`，不使用 fallback。
+声明 mandatory Specialist 的 unit/phase，Executor 必须真实执行每个对应 Skill 的 workflow，不得跳过它自行设计流程。
+运行时提供独立加载入口（如 Skill 工具）时必须通过它加载；仅把 Skill 当普通文档
+读取、跳过其步骤自行发挥，视为未遵循。handoff 的 `SKILL` section 是自证；Main 必须核验每个声明的
+Specialist 都已执行，运行时可读取执行记录时以记录为准。缺失或不一致 → `RETRY_REQUIRED`：fresh
+context + frozen input + 明确「必须真实执行这些 Skill workflows」的 retry capsule；同一 unit 重复
+失败 → `BLOCKED`，不使用 fallback。
 
 ## Fresh-context retry and artifact ownership
 

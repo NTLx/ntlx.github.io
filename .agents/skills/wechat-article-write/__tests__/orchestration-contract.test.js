@@ -16,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.19.0"');
+    expect(skill).toContain('version: "2.20.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
@@ -39,7 +39,12 @@ describe("orchestration contract", () => {
   test("requires mandatory Specialist invocation and gzh-design guardrails", () => {
     expect(delegated).toContain("Mandatory Specialist invocation");
     expect(delegated).toContain("不得跳过它自行设计流程");
-    expect(skill).toContain("Main 按 handoff 的 `SKILL:` 行核验");
+    expect(skill).toContain("Main 按 handoff 的 `SKILL` section 核验");
+    expect(skill).toContain("不是 standalone execution context");
+    expect(skill).toContain("同一 Research phase Executor");
+    expect(skill).toContain("fresh Build phase Executor");
+    expect(skill).not.toContain("隔离 `bootstrap/resume` Executor");
+    expect(delegated).toContain("全部 mandatory Specialist");
     expect(gzhAdapter).toContain("只加载不交付视为未完成");
     expect(gzhAdapter).toContain("不得丢弃归因句");
     expect(gzhAdapter).toContain("不得做字符级替换");

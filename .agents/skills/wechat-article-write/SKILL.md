@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.19.0"
+  version: "2.20.0"
 ---
 
 # 微信公众号文章写作
@@ -38,8 +38,8 @@ Main 也不默认把自己的完整 conversation history、commentary、其它 E
 
 Each actual execution unit must leave Main's principal context. Main dynamically chooses any
 runtime-native isolated execution mechanism that satisfies the capability contract. 如果没有合适的隔离
-机制，当前 unit 必须 `BLOCKED`；Main MUST NOT fallback to direct execution。声明 `REQUIRED SKILL` 的
-unit 必须真实执行该 Skill 的 workflow，Main 按 handoff 的 `SKILL:` 行核验。
+机制，当前 unit 必须 `BLOCKED`；Main MUST NOT fallback to direct execution。声明 mandatory Specialist 的
+unit/phase 必须真实执行对应 Skill 的 workflow，Main 按 handoff 的 `SKILL` section 核验。
 
 完整 isolation、capsule、handoff、retry、ownership 和 E2E protocol 见
 `references/delegated-execution.md`。
@@ -53,10 +53,12 @@ reference，也不把 reference 全文放入每个 capsule。
 ## Start / Resume
 
 Main 确定日期、ASCII `date-slug`、strategy（`reader-response`、`tutorial` 或 `news-digest`），读取
-state summary，决定新建或恢复。隔离 `bootstrap/resume` Executor 运行 `state.mjs init <date-slug>`
-或 `state.mjs next <date-slug>`。
+state summary，决定新建或恢复。Main 不为 state 初始化或读取单独创建 bootstrap/resume Executor；
+选定的第一个或恢复中的 phase Executor 以 `state.mjs init <date-slug>` 或
+`state.mjs next <date-slug>` 作为第一个 deterministic action。
 
-state 始终为 v2；`publish.blog` 与 `publish.wechat` 可独立恢复。成功条件是 state 存在或可读取，
+state 始终为 v2；`publish.blog` 与 `publish.wechat` 可独立恢复。Step 0 是 Main 的 planning
+checkpoint，不是 standalone execution context；成功条件是 phase Executor 让 state 存在或可读取，
 并返回唯一下一 unit。
 
 ## Workflow
@@ -69,9 +71,9 @@ Gate 仍然保留，Gate 不等于新 Agent。只有 ownership、context domain 
 
 | Step | Main decides | Execution Unit / Skill | Output | Gate |
 |---|---|---|---|---|
-| 0 | strategy、新建或恢复 | `bootstrap/resume` | state v2 | state readable、唯一 next unit |
-| 1 | research scope、研究缺口 | `research` / dynamic | `materials.md` | Step 1 |
-| 1.5 | continue、update、remove source 或 block | `blog-memory` | memory artifacts | source uniqueness |
+| 0 | strategy、新建或恢复 | planning checkpoint；由第一个 phase Executor 承担 state preflight | state v2 | state readable、唯一 next unit |
+| 1 | research scope、研究缺口 | Research phase Executor：`research` / dynamic | `materials.md` | Step 1 |
+| 1.5 | continue、update、remove source 或 block | 同一 Research phase Executor：`blog-memory` | memory artifacts | source uniqueness |
 | 1.8 | central judgement、编辑方向 | `understanding` / dynamic | `understanding-brief.md` | understanding validator |
 | 2 | thesis、strategy、planning capsule | `draft` / dynamic | `draft.md` | Step 2 |
 | 3 | accept、retry 或 reroute | `humanization` → `humanizer-zh` | updated `draft.md` | Step 3 + hash |
@@ -110,8 +112,9 @@ body SLOT 恰有一个最终文件；`baoyu-diagram` 仅是按需的 semantic he
 hosting 前先跑 `step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托
 `github-image-hosting`。缺少 image map 时 fail closed；依次产出 `image-map.json`、`article.md` /
 `article-wechat-source.md` 和 `article-wechat.html`，gzh-design 自己运行 validator/preview，随后
-由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity；失败回到
-gzh-design，Main 不读取并手改 child HTML。
+由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity；失败时返回
+`RETRY_REQUIRED`，Main 用 frozen source 创建 fresh Build phase Executor，从 `gzh-design` 重新开始；
+Main 不读取并手改 child HTML。
 
 **Step 6**：严格先 blog，再 WeChat。`blog-publish` 消费 `article.md`；WeChat prepare、child publish
 和 finalize 消费 `article-wechat.html`。push 不等于 Pages deploy，创建草稿不等于群发；两条轨道按

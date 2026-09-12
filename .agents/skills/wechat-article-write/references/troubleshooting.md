@@ -10,9 +10,9 @@
 | Step 3 hash 不新鲜 | `humanizer-zh` owner → frozen draft → Step 3 Gate |
 | Step 4 缺图、比例或 source 不一致 | 对应 visual owner → `image-plan.json` / 本地文件 → Step 4 Gate |
 | mandatory child unavailable | declared Specialist owner → 当前 unit `BLOCKED`，不使用 fallback |
-| Step 5 prepared | same Build phase Executor: `gzh-design` owner → HTML validator/preview → build-finalize Gate |
-| gzh 或 Step 5 structural/integrity 失败 | same Build phase Executor 回到 `gzh-design` owner → frozen source → 同一 Gate |
-| 图床网络失败 | `github-image-hosting` owner → Step 5A Gate |
+| Step 5 prepared | Build phase Executor: `gzh-design` owner → HTML validator/preview → build-finalize Gate |
+| gzh 或 Step 5 structural/integrity 失败 | `RETRY_REQUIRED` → fresh Build phase Executor → frozen source → `gzh-design` → 同一 Gate |
+| 图床网络失败 | `RETRY_REQUIRED` → fresh Build phase Executor → `github-image-hosting` owner → Step 5A Gate |
 | primary source already published | blog-memory owner → update/remove source 或停止 → Step 1.5 Gate |
 | child artifact 被 Parent 修改 | 原 Specialist owner → frozen input → 原 Gate |
 | 发布失败 | 对应 blog/WeChat owner → `state.mjs next` → 对应 publish Gate |

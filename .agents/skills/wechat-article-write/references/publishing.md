@@ -9,7 +9,8 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 ```
 
 `FROZEN`（已有 manifest，且 draft / image-plan / imgs 未变）时不得 dispatch hosting；只有 `NEEDED`
-（无 manifest，或上游视觉输入已变）才重新委托。Step 5B 重试只重做 `gzh-design` 与 finalize。
+（无 manifest，或上游视觉输入已变）才重新委托。Step 5B retry 在 fresh Build phase Executor 内只重做
+`gzh-design` 与 finalize，不重跑 hosting 或 prepare。
 
 Step 5 先由 Agent 原生委托 `github-image-hosting`，将 `imgs/`、业务 folder
 `wechat-articles`、稳定命名前缀和 `image-map.json` 输出路径传入其当前 SKILL.md 契约，
@@ -29,8 +30,9 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 完成 `github-image-hosting` 原生委托。然后由 Agent 原生委托 `gzh-design` 生成
 `article-wechat.html`；child 自己完成主题选择、validator 和 preview，再运行 `--finalize-only`。
 finalize 只做 repository-specific structural/integrity Gate，不修改 child HTML。Step 5A 失败
-时保持在 Step 5A 并重新委托 `github-image-hosting`；Step 5B 失败时把 Gate diagnostics
-传回 `gzh-design`，从干净 source 重新生成，不在父层 patch HTML。
+时返回 `RETRY_REQUIRED`，由 Main 创建 fresh Build phase Executor 并重新委托
+`github-image-hosting`；Step 5B 失败时把 Gate diagnostics 传回 fresh `gzh-design` Executor，
+从干净 source 重新生成，不在父层 patch HTML。
 
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、
 纯文本 URL）、`article-wechat.html`（gzh-design HTML）。Step 5 记录 deterministic artifact
