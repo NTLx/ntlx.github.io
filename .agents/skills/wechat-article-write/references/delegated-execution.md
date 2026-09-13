@@ -55,6 +55,24 @@ fresh retry 时才返回/释放 Executor；不要为了单个脚本或一个 Gat
 
 没有某一种具体机制不构成失败；只要另一种机制满足本 contract，Main 即可继续。
 
+## Context reuse vs compaction
+
+默认复用 context，但只有当下游仍依赖其 active semantic state 时才继续携带它。开启 fresh minimal
+context 的合法理由是 **Compaction Boundary**：required information 已经落盘；这个 materialized compact artifact
+明显更小，上游 raw context materially larger，下游不再需要大部分 raw tool history，且不需要重新
+获取原始材料；Specialist ownership 和 Gate 仍保持不变。
+
+允许的两个边界示例：
+
+```text
+Research → materials → Understanding
+Draft → draft.md → humanizer
+```
+
+Compaction context 只接收 artifact paths、current objective、mandatory Specialist、Gate 和 minimal
+immutable constraints；不复制 upstream conversation、full tool logs 或 previous context summary dump。
+fresh context 只在真实 artifact compaction boundary 使用，不得退化为 unit-per-agent 或 Gate-per-agent。
+
 ## Subthread Admission Gate
 
 创建任何新的 model-backed Executor 前，Main 必须先做 admission decision。至少满足一个条件才允许
@@ -65,6 +83,8 @@ fresh retry 时才返回/释放 Executor；不要为了单个脚本或一个 Gat
 - **Visual / design judgement**：图片生成、视觉审核、HTML layout 或其它设计判断；
 - **Mandatory Specialist needs model context**：指定 Specialist 无法由 native action 或非模型
   worker 完成；
+- **Compaction Boundary**：下游所需信息已经 materialized 为更小的 compact artifact，继续携带上游历史
+  的 aggregate token cost 明显更高；
 - **Fresh semantic retry**：前一 Executor 的 Gate 真实失败，且 recovery contract 明确要求 fresh
   context + frozen input。
 
@@ -83,10 +103,9 @@ deterministic validator
 prepare / finalize
 ```
 
-Gate 不单独创建 Executor；deterministic unit 也不单独创建 Executor。Model-backed context budget 的
-happy path 目标是 `<= 5`，对应 Research + Understanding、Draft + Humanizer、Visual、Build、Publish
-五个 phase。native Skill action、non-model isolated execution 和 command runner 优先复用，不把 Main
-变成实际产物生产者。
+Gate 不单独创建 Executor；deterministic unit 也不单独创建 Executor。五个 logical phases 仍是 workflow
+骨架；physical context 以 aggregate token cost 为目标，而不是硬性 context count。native Skill action、
+non-model isolated execution 和 command runner 优先复用，不把 Main 变成实际产物生产者。
 
 ## Tool Discovery Budget
 

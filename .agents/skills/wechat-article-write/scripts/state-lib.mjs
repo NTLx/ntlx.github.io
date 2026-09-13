@@ -5,7 +5,7 @@
  * 状态结构:
  *   {
  *     slug, started_at,
- *     last_complete_step: number,   // 1-6（Step 6 表示至少一项发布完成）
+ *     last_complete_step: number,   // phase-level durable checkpoint; 1-6（Step 6 表示至少一项发布完成）
  *     publish: {
  *       blog: "done" | "blocked" | "failed" | "pending",
  *       wechat: "done" | "failed" | "pending"
@@ -13,7 +13,8 @@
  *     failed_step: { step, error, at } | null
  *   }
  *
- * Step 0: 尚未开始；Step 1-5: 对应流水线步骤；Step 6: 发布（至少一项完成）
+ * Step 0: 尚未开始；Step 1: Research + Understanding 完成；Step 2: Draft checkpoint；
+ * Step 3-5: 对应完成 phase；Step 6: 发布（至少一项完成）
  * nextStep() 在全部完成（博客 done + 微信 done）时返回 "done"
  */
 

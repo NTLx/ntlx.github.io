@@ -224,18 +224,30 @@ export function summarizeStructuralErrors(errors, sampleLimit = DIAGNOSTIC_SAMPL
     moved_blocks: all.filter(error => /\bmoved\b|搬移/iu.test(error)).length,
     heading_mismatch: all.filter(error => /heading|H2|structural position/iu.test(error)).length,
     image_mismatch: all.filter(error => /image|图片/iu.test(error)).length,
-    unexpected_text_replacement: all.filter(error => /replacement|placeholder|替换|占位/iu.test(error)).length,
   };
   const categoryOf = (error) => {
     if (/image|图片/iu.test(error)) return "image";
     if (/heading|H2|structural position/iu.test(error)) return "heading";
     if (/\bmoved\b|搬移/iu.test(error)) return "moved";
     if (/^substantive block \d+(?: \([^)]*\))? missing/iu.test(error)) return "missing";
-    if (/replacement|placeholder|替换|占位/iu.test(error)) return "replacement";
     return "other";
   };
+  const categoryCounts = {
+    missing: counts.missing_blocks,
+    moved: counts.moved_blocks,
+    heading: counts.heading_mismatch,
+    image: counts.image_mismatch,
+  };
+  const activeCategories = Object.entries(categoryCounts)
+    .filter(([, count]) => count > 0)
+    .map(([category]) => category);
+  const failureClass = activeCategories.length === 1
+    ? `structural-parity/${activeCategories[0]}`
+    : activeCategories.length > 1
+      ? "structural-parity/mixed"
+      : "structural-parity/other";
   const candidates = [];
-  for (const category of ["image", "heading", "moved", "missing", "replacement", "other"]) {
+  for (const category of ["image", "heading", "moved", "missing", "other"]) {
     const candidate = all.find(error => categoryOf(error) === category);
     if (candidate) {
       candidates.push(candidate);
@@ -250,15 +262,15 @@ export function summarizeStructuralErrors(errors, sampleLimit = DIAGNOSTIC_SAMPL
     .filter(Boolean);
   const lines = [
     "WECHAT_STRUCTURAL_PARITY_FAIL",
+    `failure_class: ${failureClass}`,
     `missing_blocks: ${counts.missing_blocks}`,
     `moved_blocks: ${counts.moved_blocks}`,
     `heading_mismatch: ${counts.heading_mismatch}`,
     `image_mismatch: ${counts.image_mismatch}`,
-    `unexpected_text_replacement: ${counts.unexpected_text_replacement}`,
     "samples:",
     ...samples.map(sample => `- ${sample}`),
   ];
-  return { failure_class: "structural-parity", counts, samples, message: lines.join("\n") };
+  return { failure_class: failureClass, counts, samples, message: lines.join("\n") };
 }
 
 /** Turn HTML heading positions into per-section text windows; index 0 is the lead area. */

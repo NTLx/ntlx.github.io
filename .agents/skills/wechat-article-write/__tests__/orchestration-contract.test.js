@@ -16,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.21.0"');
+    expect(skill).toContain('version: "2.22.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
@@ -24,7 +24,8 @@ describe("orchestration contract", () => {
 
   test("budgets happy-path model contexts and consolidates phases", () => {
     expect(skill).toContain("Model Context Budget");
-    expect(skill).toContain("happy path <= 5");
+    expect(skill).toContain("5 logical phases");
+    expect(skill).toContain("minimum aggregate token cost");
     expect(skill).toContain("Research + Understanding");
     expect(skill).toContain("Draft + Humanizer");
     expect(skill).toContain("Writing phase Executor");
@@ -38,6 +39,11 @@ describe("orchestration contract", () => {
     expect(delegated).toContain("Visual / design judgement");
     expect(delegated).toContain("Fresh semantic retry");
     expect(delegated).toContain("DO NOT SPAWN");
+    expect(delegated).toContain("Compaction Boundary");
+    expect(delegated).toContain("materialized compact artifact");
+    expect(delegated).toContain("Research → materials → Understanding");
+    expect(delegated).toContain("Draft → draft.md → humanizer");
+    expect(delegated).not.toContain("happy path 目标是 `<= 5`");
   });
 
   test("keeps execution runtime-neutral and isolated", () => {
@@ -64,7 +70,8 @@ describe("orchestration contract", () => {
     expect(delegated).toContain("不得跳过它自行设计流程");
     expect(skill).toContain("Main 按 handoff 的 `SKILL` section 核验");
     expect(skill).toContain("不是 standalone execution context");
-    expect(skill).toContain("同一 Research phase Executor");
+    expect(skill).toContain("fresh minimal Understanding context");
+    expect(skill).not.toContain("同一 context 连续完成");
     expect(skill).toContain("fresh Build phase Executor");
     expect(skill).toContain("Main MUST NOT load child Skill");
     expect(skill).toContain("Main MUST NOT read full failed HTML");

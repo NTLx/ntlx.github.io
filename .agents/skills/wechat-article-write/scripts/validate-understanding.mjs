@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { markStepFailed } from "./state-lib.mjs";
+import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postDir } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
@@ -44,7 +44,7 @@ function sectionBody(text, heading) {
 }
 
 function fail(message) {
-  markStepFailed(slug, 2, message);
+  markStepFailed(slug, 1, message);
   if (json) process.stdout.write(JSON.stringify({ slug, ok: false, errors: [message] }) + "\n");
   else process.stderr.write(`validate-understanding: FAIL - ${message}\n`);
   process.exit(2);
@@ -67,5 +67,9 @@ if (commitments < 3) {
 }
 
 const result = { slug, ok: true, brief: briefPath, sections: requiredSections.length };
+markStepDone(slug, 1, {
+  understanding_brief: briefPath,
+  understanding_sections: requiredSections.length,
+});
 if (json) process.stdout.write(JSON.stringify(result) + "\n");
 else process.stdout.write(`validate-understanding: OK (${briefPath})\n`);

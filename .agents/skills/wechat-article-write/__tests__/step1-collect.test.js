@@ -73,14 +73,39 @@ describe("step1-collect background research gate", () => {
 - 相关公司背景：https://example.com/company
 - 相关评论：https://example.com/discussion
 `);
+    writeState(fx.postsRoot, slug, "reader-response");
 
     const r = runStep1(slug, fx.postsRoot);
     expect(r.status).toBe(0);
 
     const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
-    expect(state.last_complete_step).toBe(1);
-    expect(state.background_urls).toBe(2);
-    expect(state.primary_source_urls).toBe(1);
+    expect(state.last_complete_step).toBe(0);
+    const result = JSON.parse(r.stdout);
+    expect(result.background_urls).toBe(2);
+    expect(result.primary_source_urls).toBe(1);
+    expect(state.background_urls).toBeUndefined();
+    expect(state.primary_source_urls).toBeUndefined();
+  });
+
+  test("collector success leaves Research phase incomplete until Understanding passes", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-24-research-interruption";
+    const dir = writeMaterials(fx.postsRoot, slug, `
+## 原始来源
+
+- url: https://example.com/primary
+
+## 背景调研
+
+- supporting evidence: https://example.com/context
+`);
+    writeState(fx.postsRoot, slug, "reader-response");
+
+    const r = runStep1(slug, fx.postsRoot);
+    expect(r.status, r.stderr || r.stdout).toBe(0);
+    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
+    expect(state.last_complete_step).toBe(0);
   });
 
   test("missing background research section fails", () => {
@@ -136,7 +161,6 @@ describe("step1-collect background research gate", () => {
 
     const r = runStep1(slug, fx.postsRoot);
     expect(r.status, r.stderr || r.stdout).toBe(0);
-    const state = JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8"));
-    expect(state.primary_source_urls).toBe(0);
+    expect(JSON.parse(r.stdout).primary_source_urls).toBe(0);
   });
 });

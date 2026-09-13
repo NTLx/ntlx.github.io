@@ -66,8 +66,28 @@ describe("validateWechatStructuralParity", () => {
     const themedHtml = '<section><p><span leaf="">A</span></p><p>关键词占位符</p></section>';
     const result = validateWechatStructuralParity(sourceMarkdown, themedHtml);
     expect(result.ok).toBe(false);
-    expect(result.diagnostic.failure_class).toBe("structural-parity");
+    expect(result.diagnostic.failure_class).toBe("structural-parity/missing");
     expect(result.diagnostic.samples.join("\n")).toContain("substantive block");
+  });
+
+  test("classifies structural parity failures by their dominant count", () => {
+    expect(summarizeStructuralErrors(["substantive block 1 missing from HTML"]).failure_class)
+      .toBe("structural-parity/missing");
+    expect(summarizeStructuralErrors(["body image count mismatch"]).failure_class)
+      .toBe("structural-parity/image");
+    expect(summarizeStructuralErrors(["substantive heading sequence mismatch"]).failure_class)
+      .toBe("structural-parity/heading");
+    expect(summarizeStructuralErrors([
+      "substantive block 1 missing from HTML",
+      "body image count mismatch",
+    ]).failure_class).toBe("structural-parity/mixed");
+  });
+
+  test("does not report misleading text replacement metrics", () => {
+    const diagnostic = summarizeStructuralErrors(["substantive block 1 missing from HTML"]);
+    expect(diagnostic.counts).not.toHaveProperty("unexpected_text_replacement");
+    expect(diagnostic.message).toContain("failure_class: structural-parity/missing");
+    expect(diagnostic.message).not.toContain("unexpected_text_replacement");
   });
 
   test("rejects missing, duplicate, and reordered images", () => {

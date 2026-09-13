@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 const SCRIPT = resolve(import.meta.dir, "../scripts/pipeline.mjs");
 const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
 
-function makeFixture(lastCompleteStep, publish = { blog: "done", wechat: "pending" }) {
+function makeFixture(lastCompleteStep, publish = { blog: "done", wechat: "pending" }, failedStep = null) {
   const root = join(tmpdir(), `pipeline-advisory-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   const postsRoot = join(root, "posts");
   const slug = "2026-09-03-pipeline-advisory";
@@ -17,7 +17,7 @@ function makeFixture(lastCompleteStep, publish = { blog: "done", wechat: "pendin
     slug,
     last_complete_step: lastCompleteStep,
     publish,
-    failed_step: null,
+    failed_step: failedStep,
   }, null, 2) + "\n");
   return { root, postsRoot, postDir, slug };
 }
@@ -69,7 +69,8 @@ describe("pipeline advisory CLI", () => {
   test("reports the five logical phases without one context per unit", () => {
     const cases = [
       [0, "Research", ["source acquisition", "understanding brief"]],
-      [2, "Writing", ["draft", "humanizer-zh"]],
+      [1, "Writing", ["MODE: full", "draft", "humanizer-zh"]],
+      [2, "Writing", ["MODE: humanization recovery", "reuse frozen draft.md", "humanizer-zh"]],
       [3, "Visual", ["cover", "image-plan.json"]],
     ];
     for (const [lastCompleteStep, phase, units] of cases) {
@@ -84,6 +85,47 @@ describe("pipeline advisory CLI", () => {
       expect(result.stdout).toContain("NEW CHILD THREADS:");
       expect(result.stdout).toContain("deterministic units");
     }
+  });
+
+  test("resumes Step 3 with frozen draft and skips draft generation", () => {
+    const fixture = makeFixture(2, { blog: "pending", wechat: "pending" });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.stdout).toContain("MODE: humanization recovery");
+    expect(result.stdout).toContain("reuse frozen draft.md");
+    expect(result.stdout).toContain("humanizer-zh");
+    expect(result.stdout).not.toContain("1. draft");
+    expect(result.stdout).not.toContain("Step 2 Gate");
+  });
+
+  test("failed Understanding resumes Research rather than Writing", () => {
+    const fixture = makeFixture(0, { blog: "pending", wechat: "pending" }, {
+      step: 1,
+      error: "missing or empty sections",
+      at: new Date().toISOString(),
+    });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.stdout).toContain("NEXT PHASE: Research");
+    expect(result.stdout).not.toContain("NEXT PHASE: Writing");
+  });
+
+  test("failed Step 3 also resumes humanization recovery", () => {
+    const fixture = makeFixture(2, { blog: "pending", wechat: "pending" }, {
+      step: 3,
+      error: "semantic drift",
+      at: new Date().toISOString(),
+    });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(result.stdout).toContain("MODE: humanization recovery");
+    expect(result.stdout).not.toContain("1. draft");
   });
 
   test("does not retain the removed auto orchestration mode", () => {

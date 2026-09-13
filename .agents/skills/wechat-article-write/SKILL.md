@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.21.0"
+  version: "2.22.0"
 ---
 
 # 微信公众号文章写作
@@ -51,7 +51,8 @@ unit/phase 必须真实执行对应 Skill 的 workflow，Main 按 handoff 的 `S
 `Logical Unit ≠ Phase ≠ Model-backed Context`。Logical Unit 是责任边界，Phase 是可以共享上下文的
 连续 units，Model-backed Context 是必须证明值得创建的昂贵资源。
 
-正常 reader-response happy path <= 5 个 model-backed contexts：
+5 logical phases 是 workflow 骨架；physical model-backed contexts 按 minimum aggregate token cost 选择。
+正常 happy path 通常是 5–7 个 contexts，但不是硬 Gate，也不以 context count 作为 KPI：
 
 1. Research + Understanding
 2. Draft + Humanizer
@@ -59,8 +60,9 @@ unit/phase 必须真实执行对应 Skill 的 workflow，Main 按 handoff 的 `S
 4. Build
 5. Publish
 
-这是 execution contract，不是 runtime agent 数量硬编码。native Skill action、non-model isolated
-execution 或 command runner 能完成的工作优先不创建新的模型上下文。
+这是 phase contract，不是 runtime agent 数量硬编码。默认复用 phase context；当上游历史明显膨胀、
+下游所需信息已经物化为更小的 artifact 时，允许在真实 compaction boundary 建立 fresh minimal context。
+native Skill action、non-model isolated execution 或 command runner 能完成的工作优先不创建新的模型上下文。
 
 ### Subthread admission
 
@@ -70,6 +72,7 @@ execution 或 command runner 能完成的工作优先不创建新的模型上下
 - semantic production：写作、重写、结构理解或复杂编辑判断；
 - visual / design judgement：图片生成、视觉审核、HTML layout 或设计判断；
 - mandatory Specialist genuinely requires a separate model context；
+- compaction boundary：下游所需信息已物化为明显更小的 artifact，继续携带上游历史反而更贵；
 - fresh semantic retry：前一个 Executor 的 Gate failure 且 recovery contract 要求 fresh context + frozen input。
 
 如果条件都不满足，`DO NOT SPAWN`。Gate、脚本、状态、hash、文件检查、grep、诊断、等待、工具
@@ -100,6 +103,13 @@ state 始终为 v2；`publish.blog` 与 `publish.wechat` 可独立恢复。Step 
 checkpoint，不是 standalone execution context；成功条件是 phase Executor 让 state 存在或可读取，
 并返回唯一下一 unit。
 
+### Durable checkpoints
+
+`last_complete_step` 是 phase-level durable checkpoint。Step 1 只有在 materials、Primary Source
+Uniqueness、site memory、understanding brief 和 understanding validator 全部通过后才完成；Step 1
+collector 只返回 Gate result，不推进 durable state。Step 2 保留为 Draft 的 intermediate checkpoint，
+Step 3 才表示 Writing phase 完成。
+
 ## Workflow
 
 逻辑 unit 是责任边界，不是固定 Agent 数量。默认按 phase 创建一个 isolated Executor，在同一
@@ -111,8 +121,8 @@ Gate 仍然保留，Gate 不等于新 Agent。只有 ownership、context domain 
 | Step | Main decides | Execution Unit / Skill | Output | Gate |
 |---|---|---|---|---|
 | 0 | strategy、新建或恢复 | planning checkpoint；由第一个 phase Executor 承担 state preflight | state v2 | state readable、唯一 next unit |
-| 1–1.8 | research scope、source uniqueness、central judgement | **Research + Understanding phase Executor**：`research` / `blog-memory` / `understanding`；同一 context 连续完成 | `materials.md`、memory artifacts、`understanding-brief.md` | Step 1、source uniqueness、understanding validator |
-| 2–3 | thesis、draft、humanization | **Writing phase Executor**：`draft` → mandatory `humanizer-zh`；同一 context 连续完成 | `draft.md` | Step 2、Step 3 + hash |
+| 1–1.8 | research scope、source uniqueness、central judgement | **Research + Understanding phase Executor**：`research` / `blog-memory` / `understanding`；默认复用 context，允许 compaction rehydration | `materials.md`、memory artifacts、`understanding-brief.md` | Step 1、source uniqueness、understanding validator |
+| 2–3 | thesis、draft、humanization | **Writing phase Executor**：`draft` → mandatory `humanizer-zh`；默认复用 context，允许 compaction rehydration | `draft.md` | Step 2、Step 3 + hash |
 | 4 | semantic visual nodes、serial order | **Visual phase Executor**：fixed ownership，serial review ≠ serial spawn | cover、body images、`image-plan.json` | Step 4 |
 | 5 | build progression | 一个 Build phase Executor：hosting、prepare、`gzh-design`、finalize | three tracks | Step 5 parity/structure |
 | 6 | publish progression | 一个 Publish phase Executor：blog、WeChat prepare/publish/finalize | publish states | blog first、state |
@@ -131,17 +141,20 @@ source 已用于已发布文章时必须 `BLOCKED`，并正常写出 memory diag
 **Step 1.8**：brief 必须包含核心问题、判断候选、生成机制、约束、反方、边界、可写判断、可视觉化
 节点和至少三条可检查原创增量；通过 `validate-understanding.mjs`。
 
-Research 与 Understanding 必须共享同一 Research phase Executor context。`ljg-structure` 默认不调用；只有 Main
-能用一句话命名结构缺口（例如“论文同时包含三层反馈回路，当前 brief 无法形成清晰因果结构”）时
-才允许调用。
+Research 与 Understanding 属于同一 logical phase。默认复用 context；若 Research 已形成明显的
+compaction boundary，允许 fresh minimal Understanding context，只读取必要 artifacts，不重新获取原始材料。
+`ljg-structure` 默认不调用；只有 Main 能用一句话命名结构缺口（例如“论文同时包含三层反馈回路，当前 brief
+无法形成清晰因果结构”）时才允许调用。
 
 **Step 2**：`materials` = blog-memory checked source set = `draft` `primarySourceUrls`。同源阻断
 不能被 editorial advisory 绕过；`SLOT_IMG_00` 恰好一次，且位于第一个 substantive H2 前。Step 2
 只产生 draft 和 visual topology，不产生最终 `image-plan.json`。
 
 **Step 2–3**：Writing phase 先生成 draft，通过 Step 2，再真实执行 mandatory `humanizer-zh`，通过
-Step 3 和 hash。事实、数字、术语、URL、引语、代码、frontmatter、H2 顺序和 SLOT topology 不得改变；
-semantic drift 必须用 frozen input 重派，并通过 `step3-polish.mjs`，记录 `step3_draft_sha256`。
+Step 3 和 hash。Step 2 是 Draft 的 intermediate durable checkpoint；恢复到 Step 3 时，`draft.md` 是 frozen input，只执行 humanization recovery，
+不重新生成 Draft，除非 Step 3 diagnostic 明确 reroute 到 Draft owner。
+事实、数字、术语、URL、引语、代码、frontmatter、H2 顺序和 SLOT topology 不得改变；semantic drift 必须用
+frozen input 重派，并通过 `step3-polish.mjs`，记录 `step3_draft_sha256`。
 
 **Step 4**：cover 使用 `baoyu-cover-image` 的等价 `--quick --aspect 2.35:1 --no-title` 参数；SLOT00
 和 generated body visual 使用 `baoyu-infographic` 的等价 `--no-confirm` 参数，每次只处理一个 SLOT。

@@ -16,6 +16,15 @@ function fixture() {
   return { root, slug, dir: join(root, slug) };
 }
 
+function writeState(dir, lastCompleteStep = 0) {
+  writeFileSync(join(dir, ".pipeline-state.json"), JSON.stringify({
+    slug: "2026-08-30-understanding-gate",
+    last_complete_step: lastCompleteStep,
+    publish: { blog: "pending", wechat: "pending" },
+    failed_step: null,
+  }) + "\n");
+}
+
 const validBrief = `# Understanding Brief
 
 ## 原始材料结构
@@ -61,6 +70,7 @@ describe("understanding brief Gate", () => {
     const fx = fixture();
     cleanup.push(fx.root);
     writeFileSync(join(fx.dir, "understanding-brief.md"), validBrief);
+    writeState(fx.dir);
     const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
       cwd: REPO_ROOT,
       env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root },
@@ -68,6 +78,7 @@ describe("understanding brief Gate", () => {
     });
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout).ok).toBe(true);
+    expect(JSON.parse(readFileSync(join(fx.dir, ".pipeline-state.json"), "utf8")).last_complete_step).toBe(1);
     expect(readFileSync(join(fx.dir, "understanding-brief.md"), "utf8")).toBe(validBrief);
   });
 
@@ -75,6 +86,7 @@ describe("understanding brief Gate", () => {
     const fx = fixture();
     cleanup.push(fx.root);
     writeFileSync(join(fx.dir, "understanding-brief.md"), validBrief.replace("- 逐条落实一个作者的独立判断。\n- 连接一条外部证据与材料。\n- 给出一个读者可执行的后续行动。", ""));
+    writeState(fx.dir);
     const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
       cwd: REPO_ROOT,
       env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root },
@@ -82,5 +94,21 @@ describe("understanding brief Gate", () => {
     });
     expect(result.status).toBe(2);
     expect(JSON.parse(result.stdout).errors[0]).toMatch(/missing or empty sections|至少需要 3 条/);
+    expect(JSON.parse(readFileSync(join(fx.dir, ".pipeline-state.json"), "utf8")).failed_step.step).toBe(1);
+  });
+
+  test("understanding failure resumes the Research phase", () => {
+    const fx = fixture();
+    cleanup.push(fx.root);
+    writeFileSync(join(fx.dir, "understanding-brief.md"), "# Understanding Brief\n\n## 写作契约\n- only one commitment\n");
+    writeState(fx.dir);
+
+    const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
+      cwd: REPO_ROOT,
+      env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root },
+      encoding: "utf8",
+    });
+    expect(result.status).toBe(2);
+    expect(JSON.parse(readFileSync(join(fx.dir, ".pipeline-state.json"), "utf8")).failed_step.step).toBe(1);
   });
 });

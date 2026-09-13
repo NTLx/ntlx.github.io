@@ -11,7 +11,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadState, markStepDone } from "./state-lib.mjs";
+import { loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import {
   extractPrimarySourceEntriesFromMaterials,
@@ -92,5 +92,4 @@ const info = {
 if (sources !== null) info.sources = sources;
 if (failed !== null) info.failed = failed;
 
-markStepDone(slug, 1, info);
 process.stdout.write(JSON.stringify({ slug, step: 1, ...info }) + "\n");

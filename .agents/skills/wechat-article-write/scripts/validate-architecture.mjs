@@ -36,7 +36,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const frontmatter = parseFrontmatter(skillText);
 if (frontmatter.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (frontmatter["metadata.author"] !== "NTLx") errors.push("SKILL.md metadata.author must be NTLx");
-if (frontmatter["metadata.version"] !== "2.21.0") errors.push("SKILL.md metadata.version must be 2.21.0");
+if (frontmatter["metadata.version"] !== "2.22.0") errors.push("SKILL.md metadata.version must be 2.22.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const rel of [
@@ -71,25 +71,39 @@ if (!delegatedText.includes("runtime-neutral")) errors.push("delegated reference
 if (!delegatedText.includes("Main MUST NOT fallback to direct execution")) errors.push("delegated reference must fail closed");
 for (const contract of [
   "Subthread Admission Gate",
+  "Compaction Boundary",
+  "materialized compact artifact",
+  "Research → materials → Understanding",
+  "Draft → draft.md → humanizer",
   "Full tool catalog enumeration is forbidden",
   "completion notification",
   "same Runtime Mechanism",
   "diagnostic samples <= 3",
   "BLOCKED",
 ]) {
-  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.21 contract: ${contract}`);
+  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.22 contract: ${contract}`);
 }
 for (const contract of [
   "Model Context Budget",
+  "5 logical phases",
+  "minimum aggregate token cost",
   "Research + Understanding",
   "Draft + Humanizer",
   "Gate does not justify a new model context",
+  "fresh minimal Understanding context",
+  "frozen input，只执行 humanization recovery",
+  "phase-level durable checkpoint",
+  "Step 1 只有在 materials",
+  "Step 2 保留为 Draft 的 intermediate checkpoint",
 ]) {
-  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.21 contract: ${contract}`);
+  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.22 contract: ${contract}`);
 }
 
 const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
+const structureText = readFileSync(file("scripts/wechat-structure-lib.mjs"), "utf8");
+if (!structureText.includes("structural-parity/mixed")) errors.push("structural parity must expose subclass failure classes");
+if (structureText.includes("unexpected_text_replacement")) errors.push("structural parity must not expose misleading replacement metric");
 
 for (const rel of ["scripts/workflow.mjs", "scripts/orchestration-trace.mjs", "scripts/render-images-serial.mjs"]) {
   if (existsSync(file(rel))) errors.push(`retired script remains: ${rel}`);

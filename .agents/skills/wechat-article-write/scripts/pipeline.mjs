@@ -22,12 +22,17 @@ if (step === "done") {
   process.exit(0);
 }
 
-function printPhase(name, units) {
+function printPhase(name, units, { context = "reuse one phase context when cheap; compact rehydration is allowed at a real artifact boundary", mode = null, doNot = [] } = {}) {
   process.stdout.write(`NEXT PHASE: ${name}\n`);
   process.stdout.write(`${name} phase executor (default: one isolated context):\n`);
-  process.stdout.write("MODEL CONTEXT: reuse one phase context; do not create one per unit\n");
+  process.stdout.write(`MODEL CONTEXT: ${context}\n`);
+  if (mode) process.stdout.write(`MODE: ${mode}\n`);
   process.stdout.write("UNITS:\n");
   units.forEach((unit, index) => process.stdout.write(`${index + 1}. ${unit}\n`));
+  if (doNot.length > 0) {
+    process.stdout.write("DO NOT:\n");
+    doNot.forEach((item) => process.stdout.write(`${item}\n`));
+  }
   process.stdout.write("NEW CHILD THREADS:\n");
   process.stdout.write("do not create for deterministic units, Gates, waits, or diagnostics\n");
   process.stdout.write("Run these ordered units in one phase executor by default. Stop and return only on Gate failure.\n");
@@ -43,18 +48,42 @@ if (step === 1) {
     "Primary Source Uniqueness and site memory",
     "understanding brief",
     "understanding validator (Step 1.8)",
-  ]);
+    "Step 1 phase completion",
+  ], {
+    context: "reuse Research context by default; fresh Understanding context only at a real compaction boundary",
+  });
+  process.stdout.write("RESUME: reuse valid existing phase artifacts; do not repeat completed expensive acquisition merely because durable Step 1 is incomplete\n");
   process.exit(0);
 }
 
-if (step === 2 || step === 3) {
+if (step === 2) {
   printPhase("Writing", [
     "draft",
     "Step 2 Gate",
     "humanizer-zh (mandatory Specialist workflow)",
     "Step 3 Gate and draft hash",
     "handoff",
-  ]);
+  ], {
+    mode: "full",
+    context: "reuse Writing context by default; fresh Humanizer context allowed after Step 2 at a real compaction boundary",
+  });
+  process.exit(0);
+}
+
+if (step === 3) {
+  printPhase("Writing", [
+    "reuse frozen draft.md",
+    "humanizer-zh (mandatory Specialist workflow)",
+    "Step 3 Gate and draft hash",
+    "handoff",
+  ], {
+    mode: "humanization recovery",
+    context: "reuse Writing context when cheap; fresh minimal Humanizer context may read only frozen draft.md",
+    doNot: [
+      "regenerate draft",
+      "rerun Step 2 production",
+    ],
+  });
   process.exit(0);
 }
 

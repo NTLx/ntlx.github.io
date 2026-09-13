@@ -29,11 +29,11 @@ Specialist、target output 和 Gate command。
 
 ```text
 WECHAT_STRUCTURAL_PARITY_FAIL
+failure_class: structural-parity/<missing|moved|heading|image|mixed>
 missing_blocks: <count>
 moved_blocks: <count>
 heading_mismatch: <count>
 image_mismatch: <count>
-unexpected_text_replacement: <count>
 samples:
 - <sample 1>
 - <sample 2>
