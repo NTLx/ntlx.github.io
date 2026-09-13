@@ -62,3 +62,43 @@ test("legacy checkpoint remains readable without rewriting during next", () => {
   expect(run(f, "next").stdout.trim()).toBe("5");
   expect(readFileSync(f.path, "utf8")).toBe(raw);
 });
+
+test("publication activity before build completion blocks without rewriting state", () => {
+  for (const [blog, wechat, step] of [
+    ["done", "pending", null], ["pending", "failed", null], ["failed", "pending", null],
+    ["pending", "pending", 6.1], ["pending", "pending", 6.2], ["pending", "pending", 6],
+  ]) {
+    const raw = JSON.stringify({ last_complete_step: 2, publish: { blog, wechat }, failed_step: step == null ? null : { step } });
+    const f = fixture(raw);
+    for (const command of ["next", "init", "dump"]) {
+      const result = run(f, command);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("STATE_INVALID");
+      expect(readFileSync(f.path, "utf8")).toBe(raw);
+    }
+  }
+});
+
+test("completed or blocked publication requires the Step 6 checkpoint", () => {
+  for (const [blog, wechat] of [["done", "pending"], ["blocked", "pending"], ["pending", "done"]]) {
+    const raw = JSON.stringify({ last_complete_step: 5, publish: { blog, wechat } });
+    const f = fixture(raw);
+    for (const command of ["next", "init", "dump"]) {
+      const result = run(f, command);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("STATE_INVALID");
+      expect(readFileSync(f.path, "utf8")).toBe(raw);
+    }
+  }
+});
+
+test("publication failures after build completion remain resumable", () => {
+  for (const [blog, wechat, step] of [["failed", "pending", 6.1], ["pending", "failed", 6.2], ["pending", "pending", 6]]) {
+    const raw = JSON.stringify({ last_complete_step: 5, publish: { blog, wechat }, failed_step: { step } });
+    const f = fixture(raw);
+    const result = run(f, "next");
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe(String(step));
+    expect(readFileSync(f.path, "utf8")).toBe(raw);
+  }
+});

@@ -97,7 +97,7 @@ describe("understanding brief Gate", () => {
     expect(JSON.parse(readFileSync(join(fx.dir, ".pipeline-state.json"), "utf8")).failed_step.step).toBe(1);
   });
 
-  test("understanding failure resumes the Research phase", () => {
+  test("understanding failure resumes Step 1 workflow", () => {
     const fx = fixture();
     cleanup.push(fx.root);
     writeFileSync(join(fx.dir, "understanding-brief.md"), "# Understanding Brief\n\n## 写作契约\n- only one commitment\n");

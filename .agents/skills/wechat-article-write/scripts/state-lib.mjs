@@ -79,6 +79,15 @@ function readState(slug) {
       || (state.failed_step != null && ![1, 2, 3, 4, 5, 6, 6.1, 6.2].includes(state.failed_step.step))) {
       throw new Error("invalid business checkpoint");
     }
+    const publish = state.publish ?? DEFAULT_PUBLISH;
+    if (state.last_complete_step < 5 && (publish.blog !== "pending"
+      || publish.wechat !== "pending" || state.failed_step?.step >= 6)) {
+      throw new Error("publication activity requires completed Step 5");
+    }
+    if (state.last_complete_step !== 6 && (["done", "blocked"].includes(publish.blog)
+      || publish.wechat === "done")) {
+      throw new Error("completed or blocked publication requires Step 6 checkpoint");
+    }
     return state;
   } catch (error) {
     throw new Error(`STATE_INVALID: ${p}: ${error.message}; restore the last valid state before resuming; existing artifacts must be preserved`);

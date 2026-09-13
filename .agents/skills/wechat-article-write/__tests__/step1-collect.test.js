@@ -87,7 +87,7 @@ describe("step1-collect background research gate", () => {
     expect(state.primary_source_urls).toBeUndefined();
   });
 
-  test("collector success leaves Research phase incomplete until Understanding passes", () => {
+  test("collector success leaves Step 1 workflow incomplete until Understanding passes", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-24-research-interruption";

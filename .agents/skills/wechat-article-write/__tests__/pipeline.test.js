@@ -103,7 +103,7 @@ describe("pipeline advisory CLI", () => {
     expect(result.stdout).not.toContain("Step 2 Gate");
   });
 
-  test("failed Understanding resumes Research rather than Writing", () => {
+  test("failed Understanding resumes Step 1 workflow rather than drafting", () => {
     const fixture = makeFixture(0, { blog: "pending", wechat: "pending" }, {
       step: 1,
       error: "missing or empty sections",
