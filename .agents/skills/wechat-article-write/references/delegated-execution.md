@@ -221,11 +221,39 @@ Specialist 都已执行，运行时可读取执行记录时以记录为准。缺
 context + frozen input + 明确「必须真实执行这些 Skill workflows」的 retry capsule；同一 unit 重复
 失败 → `BLOCKED`，不使用 fallback。
 
+## Owner-local repair boundary
+
+Gate failure does not automatically imply fresh context。若当前 artifact owner 仍在当前 Executor 中，
+且 failure 是它刚刚产出的 artifact 上一个 bounded、局部、可修复的 child-owned defect，先在原上下文
+执行一次 owner-local repair，再跨 context boundary。
+
+一个 failure 只有同时满足以下条件才适合 local repair：
+
+1. artifact owner 仍是当前 Specialist；
+2. frozen upstream input 没有变化；
+3. current failed artifact 可读取；
+4. diagnostic 指向局部 child-owned defect；
+5. 修复不需要修改上游 semantic artifact；
+6. current context 没有明显污染或不可恢复。
+
+满足时：
+
+```text
+DO NOT SPAWN
+same Executor → same Specialist owner → surgical repair → rerun Gate
+```
+
+owner-local repair 可以读取当前失败 artifact 与完整 local diagnostic，但只能修改该 Specialist
+拥有的 child artifact 和其 preview；不得修改 frozen source、draft、image map、image plan 或其它
+上游 artifact。若 diagnostic 指向上游，必须 `REROUTE` 到真正 owner。
+
 ## Fresh-context retry and artifact ownership
 
-Gate failure → Main identifies the declared artifact owner → selects a suitable isolated mechanism →
-creates a fresh Delegated Executor → passes frozen input + Gate diagnostic → reruns the required Skill or
-mechanic → runs the Gate again。语义变化才允许 reroute；同一 owner 优先从冻结输入重试。
+owner-local repair 失败，或 context 已 poisoned / unusable，才由 Main 识别 declared artifact owner、
+选择合适的 isolated mechanism、创建 fresh Delegated Executor，并传入 frozen input + bounded Gate
+diagnostic，重跑 required Skill 或 mechanic，再运行 Gate。Fresh retry 也可用于明确需要 fresh context
+的 semantic recovery，或 recovery contract 明确要求 fresh execution。语义变化才允许 reroute；同一
+owner 优先从冻结输入重试。
 
 An artifact produced by a Specialist owner cannot be professionally modified by Main or a different
 Executor. Retry goes back to the declared owner with frozen input and Gate diagnostic. GZH 或其它 child
@@ -243,8 +271,9 @@ failure class、counts、最多 3 个 samples、required Specialist、target out
 Transient network/API/rate-limit failure 由 Specialist 自身 policy 处理，不自动产生 parent-level
 LLM context。
 
-gzh-design 的主题不是搜索空间：一次 fresh、content-preserving retry 后仍失败即停止，禁止 theme
-roulette。presentation 可以变化，但 source-visible article content 必须保持不变。
+gzh-design 的主题不是搜索空间：owner-local repair 原则上保持当前主题；一次 fresh、content-preserving
+retry 后仍失败即停止，禁止 theme roulette。presentation 可以变化，但 source-visible article content
+必须保持不变。
 
 ## Deterministic boundary
 

@@ -206,6 +206,19 @@ function formatSection(sectionIndex) {
 
 const DIAGNOSTIC_SAMPLE_LIMIT = 3;
 const DIAGNOSTIC_SAMPLE_LENGTH = 160;
+const STRUCTURAL_FRAGMENT_LENGTH = 80;
+
+function truncateFragment(value) {
+  const compact = String(value ?? "").replace(/\s+/gu, " ").trim();
+  if (compact.length <= STRUCTURAL_FRAGMENT_LENGTH) return compact;
+  return `${compact.slice(0, STRUCTURAL_FRAGMENT_LENGTH - 3)}...`;
+}
+
+function diagnosticFragment(entry, normalizedFragment) {
+  const displayFragments = splitBlockFragments(entry.display_text ?? "");
+  return displayFragments.find((fragment) => normalizeVisibleText(fragment) === normalizedFragment)
+    ?? normalizedFragment;
+}
 
 function truncateDiagnostic(value) {
   const compact = String(value ?? "").replace(/\s+/gu, " ").trim();
@@ -346,8 +359,11 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
     const label = `substantive block ${index + 1}`;
     // Separate "lost" from "moved into another section" so the failure is actionable.
     const moved = scope ? missing.filter((fragment) => flattened.normalized.includes(fragment)) : [];
-    if (moved.length > 0) errors.push(`${label} moved outside ${formatSection(entry.section_index)}: ${moved[0].slice(0, 40)}`);
-    else errors.push(`${label} missing from HTML`);
+    if (moved.length > 0) {
+      errors.push(`${label} moved outside ${formatSection(entry.section_index)}: "${truncateFragment(diagnosticFragment(entry, moved[0]))}"`);
+    } else {
+      errors.push(`${label} missing from HTML: "${truncateFragment(diagnosticFragment(entry, missing[0]))}"`);
+    }
   }
 
   if (source.images.length !== flattened.images.length) {

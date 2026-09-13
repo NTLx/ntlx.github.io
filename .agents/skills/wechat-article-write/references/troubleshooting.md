@@ -6,10 +6,11 @@
 所有 diagnostic 都必须收敛为 summary：counts + 最多 3 个 samples，每个 sample 不超过 160 chars。
 Step 5 structural parity 的完整错误集只在 validator 内存中计算，不持久化 debug JSON、trace 或完整 log。
 
-同一 `phase + failure class` 最多一次 fresh retry。gzh-design 第一次 structural failure 只回到
-`gzh-design → finalize`；fresh retry 后同类 failure 再次出现即 `BLOCKED`，禁止第三次自动重试和
-theme roulette。Retry capsule 只带 frozen source path、failure class、counts、samples、required
-Specialist、target output 和 Gate command。
+同一 `phase + failure class` 最多一次 fresh retry。gzh-design 第一次 child-owned structural failure
+先留在当前 Build Executor，回到同一 owner 做 owner-local repair；只有 repair 仍失败才回到 Main，
+进入一次 fresh retry。fresh retry 后同类 failure 再次出现即 `BLOCKED`，禁止第三次自动重试和 theme
+roulette。owner-local repair 不计入 fresh retry。Retry capsule 只带 frozen source path、failure class、
+counts、samples、required Specialist、target output 和 Gate command。
 
 | 症状 | 处理 |
 |---|---|
@@ -19,7 +20,8 @@ Specialist、target output 和 Gate command。
 | Step 4 缺图、比例或 source 不一致 | 对应 visual owner → `image-plan.json` / 本地文件 → Step 4 Gate |
 | mandatory child unavailable | declared Specialist owner → 当前 unit `BLOCKED`，不使用 fallback |
 | Step 5 prepared | Build phase Executor: `gzh-design` owner → HTML validator/preview → build-finalize Gate |
-| gzh 或 Step 5 structural/integrity 失败 | `RETRY_REQUIRED` → fresh Build phase Executor → frozen source → `gzh-design` → 同一 Gate |
+| gzh 或 Step 5 child-owned structural/integrity 失败 | current Build Executor → same `gzh-design` owner → owner-local repair → native validator/preview → finalize |
+| owner-local repair 仍失败 | `RETRY_REQUIRED` → fresh Build phase Executor → frozen source → bounded diagnostic → `gzh-design` → 同一 Gate；同类 failure → `BLOCKED` |
 | 图床网络失败 | `RETRY_REQUIRED` → fresh Build phase Executor → `github-image-hosting` owner → Step 5A Gate |
 | primary source already published | blog-memory owner → update/remove source 或停止 → Step 1.5 Gate |
 | child artifact 被 Parent 修改 | 原 Specialist owner → frozen input → 原 Gate |

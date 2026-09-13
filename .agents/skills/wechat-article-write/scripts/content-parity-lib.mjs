@@ -123,8 +123,13 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
   let codeStart = 0;
   let offset = 0;
   const flush = () => {
-    const text = normalizeVisibleText(paragraph.join("\n"));
-    if (text) entries.push({ text, section_index: sectionIndexAt(paragraphStart) });
+    const rawText = paragraph.join("\n");
+    const text = normalizeVisibleText(rawText);
+    if (text) entries.push({
+      text,
+      display_text: rawText.replace(/\s+/gu, " ").trim(),
+      section_index: sectionIndexAt(paragraphStart),
+    });
     paragraph = [];
   };
   const flushCode = () => {
@@ -165,7 +170,11 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
     if (/^[-*+]\s+/u.test(line) || /^\d+[.)]\s+/u.test(line)) {
       flush();
       const item = normalizeVisibleText(line.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/u, ""));
-      if (item) entries.push({ text: item, section_index: sectionIndexAt(lineStart) });
+      if (item) entries.push({
+        text: item,
+        display_text: line.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/u, "").trim(),
+        section_index: sectionIndexAt(lineStart),
+      });
       continue;
     }
     if (paragraph.length === 0) paragraphStart = lineStart;

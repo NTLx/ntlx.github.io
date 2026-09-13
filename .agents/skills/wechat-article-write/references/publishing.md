@@ -9,8 +9,9 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 ```
 
 `FROZEN`（已有 manifest，且 draft / image-plan / imgs 未变）时不得 dispatch hosting；只有 `NEEDED`
-（无 manifest，或上游视觉输入已变）才重新委托。Step 5B retry 在 fresh Build phase Executor 内只重做
-`gzh-design` 与 finalize，不重跑 hosting 或 prepare。
+（无 manifest，或上游视觉输入已变）才重新委托。Step 5B 的 child-owned 局部 failure 先在当前
+Build Executor 做 owner-local repair；repair 失败后的 fresh retry 只重做 `gzh-design` 与 finalize，
+不重跑 hosting 或 prepare。
 
 Step 5 先由 Agent 原生委托 `github-image-hosting`，将 `imgs/`、业务 folder
 `wechat-articles`、稳定命名前缀和 `image-map.json` 输出路径传入其当前 SKILL.md 契约，
@@ -32,11 +33,14 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 finalize 只做 repository-specific structural/integrity Gate，不修改 child HTML。Step 5A 失败
 时返回 `RETRY_REQUIRED`，由 Main 创建 fresh Build phase Executor 并重新委托
 `github-image-hosting`；Step 5B 失败时把 Gate diagnostics 传回 fresh `gzh-design` Executor，
-从干净 source 重新生成，不在父层 patch HTML。
+但 child-owned 的局部 structural/integrity failure 必须先在当前 Build Executor 由同一 gzh-design
+owner 对现有 HTML 做 owner-local repair，再重跑 validator、preview 和 finalize；只有 repair 仍失败
+才创建 fresh Executor。从 frozen source 重新生成，不在父层 patch HTML。
 
-Step 5B 的 retry budget 是每个 `phase + failure class` 最多一次 fresh retry。第一次 structural
-failure 只重做 `gzh-design → finalize`，不重跑 hosting 或 prepare；fresh retry 后同一 failure class
-再次失败即 `BLOCKED`，禁止第三次自动 theme retry，也不进入 theme roulette。Transient 网络/API/rate
+Step 5B 的 retry budget 是每个 `phase + failure class` 最多一次 fresh retry。第一次 child-owned structural
+failure 先做一次 owner-local repair，不计入 fresh retry；repair 仍失败后才 fresh 重做
+`gzh-design → finalize`，不重跑 hosting 或 prepare；fresh retry 后同一 failure class 再次失败即
+`BLOCKED`，禁止第三次自动 theme retry，也不进入 theme roulette。Transient 网络/API/rate
 limit 由 Specialist 自己处理，不升级为 parent-level LLM context。
 
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、

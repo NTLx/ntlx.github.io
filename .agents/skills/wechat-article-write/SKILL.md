@@ -7,7 +7,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.22.0"
+  version: "2.23.0"
 ---
 
 # 微信公众号文章写作
@@ -115,8 +115,8 @@ Step 3 才表示 Writing phase 完成。
 逻辑 unit 是责任边界，不是固定 Agent 数量。默认按 phase 创建一个 isolated Executor，在同一
 phase 内按顺序连续完成紧密 unit；producer 在返回 Main 前运行紧随其后的 deterministic Gate。
 Gate 仍然保留，Gate 不等于新 Agent。只有 ownership、context domain 或 recovery boundary 真的
-不同，才创建新的 Executor；失败重试仍使用 fresh context。每个 unit 使用精简 capsule，并只
-返回短 handoff。
+不同，才创建新的 Executor；失败重试仍遵守 delegated-execution 中的 local repair / fresh retry
+边界。每个 unit 使用精简 capsule，并只返回短 handoff。
 
 | Step | Main decides | Execution Unit / Skill | Output | Gate |
 |---|---|---|---|---|
@@ -162,14 +162,32 @@ source body visual 优先复用合适原图。Visual Coverage、source/generated
 本地文件 Gate 以 `references/image-policy.md` 为准；cover 必须唯一，SLOT00 basename 固定，每个
 body SLOT 恰有一个最终文件；`baoyu-diagram` 仅是按需的 semantic helper。
 
-**Step 5**：一个 Build phase Executor 严格按 `hosting → prepare → gzh-design → finalize`。dispatch
-hosting 前先跑 `step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托
+**Step 5**：Build phase Executor 严格按 `hosting → prepare → gzh-design → finalize`。
+dispatch hosting 前先跑 `step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托
 `github-image-hosting`。缺少 image map 时 fail closed；依次产出 `image-map.json`、`article.md` /
-`article-wechat-source.md` 和 `article-wechat.html`，gzh-design 自己运行 validator/preview，随后
-由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity；失败时返回
-`RETRY_REQUIRED`，Main 用 frozen source 创建 fresh Build phase Executor，从 `gzh-design` 重新开始一次；
-若 retry 后仍为同一 failure class 则 `BLOCKED`，禁止第三次自动 theme retry；
-Main 不读取并手改 child HTML。
+`article-wechat-source.md` 和 `article-wechat.html`，gzh-design 自己运行 native validator/preview，随后
+由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity。
+
+如果 finalize 首次报告的是 child-owned structural/integrity failure，当前 Build phase Executor
+不得立即结束；它必须把当前 `article-wechat.html`、冻结的 `article-wechat-source.md` 和完整的
+local diagnostic 交回同一 `gzh-design` owner，执行一次 content-preserving owner-local repair，
+再运行 child validator、preview 和 finalize。owner-local repair 不计入 fresh retry。
+The repair inputs include current `article-wechat.html`, frozen source and the full local diagnostic.
+
+只有 owner-local repair 仍失败，才返回 `RETRY_REQUIRED`；Main 随后最多创建一次 fresh Build phase Executor，
+使用 frozen source 和 bounded diagnostic 从 `gzh-design` 重试。fresh retry 后仍为
+同一 failure class 则 `BLOCKED`，禁止第三次自动 retry 或 theme roulette。若 diagnostic 明确指向
+`article-wechat-source.md`、`draft.md`、`image-plan.json`、上游图片或 freshness 的错误，必须
+`REROUTE` 到真正 owner，不得由 gzh-design 伪造或偷偷修上游 artifact。Main 不读取并手改 child HTML，
+也不加载 child Skill 进行调试。
+
+Recovery contract：
+
+```text
+first child-owned Step 5 failure → current Build Executor → same gzh-design owner → owner-local repair
+failed owner-local repair → RETRY_REQUIRED → fresh Build phase Executor
+fresh retry + same failure class → BLOCKED
+```
 
 **Step 6**：严格先 blog，再 WeChat。`blog-publish` 消费 `article.md`；WeChat prepare、child publish
 和 finalize 消费 `article-wechat.html`。push 不等于 Pages deploy，创建草稿不等于群发；两条轨道按

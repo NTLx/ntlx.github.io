@@ -36,7 +36,7 @@ const skillText = readFileSync(file("SKILL.md"), "utf8");
 const frontmatter = parseFrontmatter(skillText);
 if (frontmatter.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (frontmatter["metadata.author"] !== "NTLx") errors.push("SKILL.md metadata.author must be NTLx");
-if (frontmatter["metadata.version"] !== "2.22.0") errors.push("SKILL.md metadata.version must be 2.22.0");
+if (frontmatter["metadata.version"] !== "2.23.0") errors.push("SKILL.md metadata.version must be 2.23.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const rel of [
@@ -81,7 +81,10 @@ for (const contract of [
   "diagnostic samples <= 3",
   "BLOCKED",
 ]) {
-  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.22 contract: ${contract}`);
+  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.23 contract: ${contract}`);
+}
+for (const contract of ["Owner-local repair boundary", "DO NOT SPAWN", "same Specialist owner", "frozen upstream input"]) {
+  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.23 recovery contract: ${contract}`);
 }
 for (const contract of [
   "Model Context Budget",
@@ -96,7 +99,10 @@ for (const contract of [
   "Step 1 只有在 materials",
   "Step 2 保留为 Draft 的 intermediate checkpoint",
 ]) {
-  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.22 contract: ${contract}`);
+  if (!skillText.includes(contract)) errors.push(`SKILL.md missing retained contract: ${contract}`);
+}
+for (const contract of ["owner-local repair", "current `article-wechat.html`", "fresh Build phase Executor", "same failure class"]) {
+  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.23 recovery contract: ${contract}`);
 }
 
 const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");

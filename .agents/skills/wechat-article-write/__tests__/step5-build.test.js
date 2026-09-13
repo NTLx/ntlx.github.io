@@ -170,6 +170,24 @@ describe("step5-build", () => {
     expect(readFileSync(htmlPath, "utf8")).toBe(anchorBefore);
   });
 
+  test("allows an existing child HTML artifact to be repaired and finalized", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const htmlPath = join(fixture.postDir, "article-wechat.html");
+    const failedHtml = "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p></p></section>\n";
+    writeFileSync(htmlPath, failedHtml);
+
+    const failed = run(fixture, "--finalize-only");
+    expect(failed.status).toBe(4);
+    expect(failed.stderr).toContain("substantive block");
+    expect(readFileSync(htmlPath, "utf8")).toBe(failedHtml);
+
+    // The artifact owner repairs the existing HTML in place; the parent Gate remains read-only.
+    writeFileSync(htmlPath, failedHtml.replace("<p></p>", "<p>正文内容。</p>"));
+    expect(run(fixture, "--finalize-only").status).toBe(0);
+  });
+
   test("fails finalize when a local image changed after prepare", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);

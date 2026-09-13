@@ -205,7 +205,7 @@ function finalize() {
     try {
       assertNoInternalPlanningComments(wechatHtml, "article-wechat.html");
     } catch (error) {
-      throw new Error(`${error.message}; return to gzh-design and regenerate the child output`);
+      throw new Error(`${error.message}; return to gzh-design for owner-local repair or regeneration`);
     }
     assertMarkdownParity(article, wechatSource, imageMap);
   } catch (error) {

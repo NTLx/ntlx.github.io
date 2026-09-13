@@ -16,7 +16,7 @@ describe("orchestration contract", () => {
   test("keeps Main planning-only", () => {
     expect(skill).toContain("Main MUST NOT directly execute actual work");
     expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.22.0"');
+    expect(skill).toContain('version: "2.23.0"');
     expect(skill).toContain("state v2");
     expect(stateLib).toContain("v2");
     expect(delegated).toContain("Main MUST NOT fallback to direct execution");
@@ -82,6 +82,27 @@ describe("orchestration contract", () => {
     expect(gzhAdapter).toContain("不得做字符级替换");
     expect(gzhAdapter).toContain("visible article content may not");
     expect(gzhAdapter).toContain("不得注入正文可见占位文字");
+  });
+
+  test("repairs the first child-owned Step 5 failure in the current owner context", () => {
+    expect(skill).toContain("owner-local repair");
+    expect(delegated).toContain("Owner-local repair boundary");
+    expect(gzhAdapter).toContain("Content preservation takes precedence");
+    expect(skill).toContain("fresh Build phase Executor");
+
+    const localRepair = skill.indexOf("owner-local repair");
+    const freshRetry = skill.indexOf("fresh Build phase Executor", localRepair);
+    expect(localRepair).toBeGreaterThanOrEqual(0);
+    expect(freshRetry).toBeGreaterThan(localRepair);
+    expect(delegated).toContain("DO NOT SPAWN");
+    expect(gzhAdapter).toContain("current `article-wechat.html`");
+  });
+
+  test("keeps native validator errors blocking and warnings advisory", () => {
+    expect(gzhAdapter).toContain("Native gzh-design ERROR count must be 0");
+    expect(gzhAdapter).toContain("Native WARNING is advisory");
+    expect(gzhAdapter).toContain("Do not mutate source-visible article text solely to eliminate a WARNING");
+    expect(gzhAdapter).toContain("Content preservation takes precedence over cosmetic warning cleanup");
   });
 
   test("caps retries and keeps deterministic work out of model contexts", () => {

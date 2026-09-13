@@ -70,6 +70,30 @@ describe("validateWechatStructuralParity", () => {
     expect(result.diagnostic.samples.join("\n")).toContain("substantive block");
   });
 
+  test("includes a bounded fragment in missing-block diagnostics", () => {
+    const sourceMarkdown = `---\ntitle: 缺失片段\n---\n
+## A\n\n只有 validation 分数不低于当前缓存分数，候选图才会 commit。\n`;
+    const result = validateWechatStructuralParity(
+      sourceMarkdown,
+      '<section><p><span leaf="">A</span></p></section>',
+    );
+    expect(result.ok).toBe(false);
+    expect(result.diagnostic.failure_class).toBe("structural-parity/missing");
+    expect(result.diagnostic.samples.join("\n")).toContain("候选图才会 commit");
+    expect(result.diagnostic.samples.every((sample) => sample.length <= 160)).toBe(true);
+  });
+
+  test("preserves source-visible apostrophes exactly", () => {
+    const sourceMarkdown = `---\ntitle: 撇号\n---\n\n## A\n\nLenny's newsletter\n`;
+    const preserved = '<section><p><span leaf="">A</span></p><p>Lenny\'s newsletter</p></section>';
+    expect(validateWechatStructuralParity(sourceMarkdown, preserved).ok).toBe(true);
+
+    const mutated = preserved.replace("Lenny's", "Lenny’s");
+    const result = validateWechatStructuralParity(sourceMarkdown, mutated);
+    expect(result.ok).toBe(false);
+    expect(result.errors.join("\n")).toContain("substantive block");
+  });
+
   test("classifies structural parity failures by their dominant count", () => {
     expect(summarizeStructuralErrors(["substantive block 1 missing from HTML"]).failure_class)
       .toBe("structural-parity/missing");
