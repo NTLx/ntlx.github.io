@@ -10,8 +10,8 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 
 `FROZEN`（已有 manifest，且 draft / image-plan / imgs 未变）时不得调用 hosting；只有 `NEEDED`
 （无 manifest，或上游视觉输入已变）才重新调用。Step 5B 的 child-owned 局部 failure 先由 Main
-将当前 HTML、frozen source 和 diagnostic 交给同一 `gzh-design` Skill 做 owner-local repair；仍失败
-时只从 frozen source 再调用一次 `gzh-design` 与 finalize，不重跑 hosting 或 prepare。
+将当前 HTML、frozen source 和 diagnostic 交给同一 `gzh-design` Skill；重试与停止条件统一见
+[adapter-gzh-design.md](adapter-gzh-design.md#owner-local-repair)，不重跑 hosting 或 prepare。
 
 Main 直接调用 `github-image-hosting`，将 `imgs/`、业务 folder `wechat-articles`、稳定命名前缀和
 `image-map.json` 输出路径传入其当前 SKILL.md 契约，由该 Skill 生成 manifest。它负责 repo 配置、远端

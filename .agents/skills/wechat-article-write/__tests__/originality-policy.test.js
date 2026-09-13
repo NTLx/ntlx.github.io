@@ -19,7 +19,7 @@ describe("originality policy", () => {
   });
 
   test("requires diverse title candidates without turning words into a blacklist", () => {
-    expect(policy).toContain("至少考虑 3 个不同修辞骨架");
+    expect(policy).toContain("尝试不同修辞骨架");
     expect(policy).toContain("不使用关键词黑名单");
   });
 });

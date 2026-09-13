@@ -55,6 +55,10 @@ Step 2 通过后，所有正常文章都实际执行 `humanizer-zh`。父 Agent 
 Step 3 Gate 将最终 draft SHA256 写入 state。当前 draft hash 改变就重新打开 Step 3，
 不得用任何 receipt 或“曾经调用过”的标记替代 fresh draft。
 
+调用前将当前 draft 的事实、数字、URL、专名、引用、代码、关键判断、H2 和 SLOT 作为保留合同
+交给 Humanizer；完成后 Main 对照调用前内容检查，漂移处交回同一 Skill 定点恢复。Step 3 hash
+只证明下游使用同一份最终 draft，不证明润色前后事实一致，也不替代这次内容审阅。
+
 ## Site memory and originality
 
 Step 1.5 必须执行站内检索。写作时自然消费相关旧文，若无合适内容明确说明。原创增量、近期文章形式差异和策略例外以 `references/originality-policy.md` 与 `references/strategy-*.md` 为准。

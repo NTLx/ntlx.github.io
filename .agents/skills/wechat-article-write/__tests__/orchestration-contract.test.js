@@ -15,7 +15,7 @@ const stateLib = readFileSync(resolve(skillDir, "scripts", "state-lib.mjs"), "ut
 
 describe("orchestration contract", () => {
   test("makes Main the default executor", () => {
-    expect(skill).toContain('version: "3.0.0"');
+    expect(skill).toMatch(/version: "\d+\.\d+\.\d+"/u);
     expect(skill).toContain("## Execution model");
     expect(skill).toContain("Main is the default executor");
     expect(skill).toContain("Main directly owns");

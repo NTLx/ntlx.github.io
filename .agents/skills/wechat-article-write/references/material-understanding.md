@@ -6,21 +6,20 @@
 
 ## 什么时候需要
 
-`reader-response` 默认需要完整的理解 brief。`tutorial` 通常已有结构，
-只有原文概念过密、边界不清或适配目标改变时才建立 brief。`news-digest`
-通常以事实核验和简报契约直接进入写作；需要深度复盘时再按本合同裁剪。
-这只是编辑判断，不是固定 Skill 触发器。
+所有策略在写作前保留 brief 并通过 Understanding Gate。`reader-response` 展开论证；
+`tutorial` 聚焦实际操作、验证与适用条件；`news-digest` 聚焦事实、事件关联和不确定性。
+深度随材料调整，保持必要小节，不能因体裁而跳过理解。
 
 ## 输入
 
+- Main 直接读过的 Primary Source 正文；不可用时说明缺失并阻断依赖该内容的判断；
 - `posts/{date-slug}/materials.md`；
 - `posts/{date-slug}/blog-memory.md` 或 `blog-memory.json`（若已生成）；
 - 用户要求、目标读者和限制；
 - 当前 strategy、已有 artifacts、上一 Gate 结果；
 - 当前任务实际可用的研究或理解能力；优先使用最匹配且能补齐缺口的能力。
 
-先回答“当前真正的认知缺口是什么”。Agent 可以原生完成，也可以从
-选择一个最匹配的能力，或组合少量互补能力。只有能改善某个
+先回答“当前真正的认知缺口是什么”。Main 可以原生完成，也可以选择一个最匹配的 Skill，或组合少量互补能力。只有能改善某个
 具体缺口的调用才保留。没有缺口时 `no-skill` 是合法结果。任何候选输出都必须经过二次判断，不因报告很长
 或命令成功就写入 brief。
 
@@ -137,4 +136,4 @@ bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <
 
 Gate 失败时先看具体缺哪一项：修材料、补证据、缩小中心判断、改变输出
 结构，或重新选择能力。不要无条件重复上一条调用，也不要因某个可选
-Skill 缺失不阻断整个工作流；只有当前 brief 满足合同，才进入写作。
+Skill 缺失而阻断整个工作流；只有当前 brief 满足合同，才进入写作。

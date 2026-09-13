@@ -83,16 +83,17 @@ Main 将以下输入交回同一 `gzh-design` Skill：
 
 - frozen `article-wechat-source.md`；
 - current `article-wechat.html`；
-- full local parent diagnostic。
+- bounded parent diagnostic（failure class、counts、samples）；需要更多上下文时按 section 查看本地 source/HTML。
 
 执行最小的 content-preserving repair，然后重新运行 native validator、preview 和 parent finalize。
 不得重新设计未受影响的 section，不得改变 theme；除非局部 defect 无法安全修复，否则不得整页重新
 生成。repair 不得修改 source、draft、image-map、image-plan 或 Step 3 / Step 4 artifact；若 diagnostic
 证明错误来自上游，必须回到真正 owner，不能由 gzh-design 补写内容。
 
-如果 local repair 仍失败，Main 可以从 frozen source 再调用一次 gzh-design；同一 failure class 再次
-失败即 `BLOCKED`。这是同一 workflow 中的 Skill 重试，不创建新的 Agent context。不得第三次自动 retry
-或轮换主题。Main 不得以脚本或手工编辑代替 gzh-design，也不得把微信 source 直接发布。
+首次失败后只做一次局部修复并重跑 Gate。同一 failure class 再次失败即 `BLOCKED`，
+报告 owner、原文片段和已尝试的修复，不继续盲目重做。只有诊断明确局部修复不可行、且已有不同
+修复依据时，才允许从 frozen source 重建一次；仍失败即 `BLOCKED`。这是同一 workflow 中的
+Skill 重试，不创建新的 Agent context，不轮换主题。Main 不得以脚本或手工编辑代替 gzh-design，也不得把微信 source 直接发布。
 
 ## Repair priority
 

@@ -1,16 +1,19 @@
 ---
 name: wechat-article-write
 description: >
-  Orchestrates this repository's WeChat + blog article workflow. Use when
-  creating or resuming an article, producing its required visuals, building
-  the dual blog/WeChat artifacts, or publishing the blog and WeChat draft.
+  Use when creating or resuming a blog and WeChat article, preparing its
+  visuals and platform editions, or publishing the finished article.
 license: MIT
 metadata:
   author: NTLx
-  version: "3.0.0"
+  version: "3.1.0"
 ---
 
 # 微信公众号文章写作
+
+Quality means reliable facts, a defensible original judgement, natural writing, and visuals that
+help readers understand. Passing scripts is necessary but does not establish editorial quality.
+Main reviews these qualities before freezing the draft; scripts verify deterministic invariants.
 
 ## Execution model
 
@@ -54,6 +57,11 @@ bun run .agents/skills/wechat-article-write/scripts/state.mjs init <date-slug>
 bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
 ```
 
+Run commands from the verified repository root; pass absolute paths across specialist/script
+boundaries. On resume, read existing artifacts for the indicated step and its failed input, not
+the entire workflow again. A corrupt state is blocking: preserve artifacts and restore a valid
+checkpoint rather than initialize over it.
+
 State remains v2. `.pipeline-state.json` is business state only: do not add agent, thread,
 context, token, handoff, or execution telemetry. `last_complete_step` remains the durable
 checkpoint; `publish.blog` and `publish.wechat` remain independently resumable.
@@ -92,6 +100,8 @@ primary-source duplication remains blocking.
 
 ### Step 1.8 — Understanding
 
+Before writing, read [references/material-understanding.md](references/material-understanding.md)
+and [references/originality-policy.md](references/originality-policy.md).
 Main creates or updates `understanding-brief.md` using the primary-source model, background evidence,
 blog memory, user intent, and the selected strategy. The brief must preserve the existing contract:
 core question, central judgement, mechanism, constraints, counterarguments, boundaries, writable
@@ -108,6 +118,7 @@ asking the research child for a targeted supplement.
 
 ### Step 2 — Draft
 
+Read the selected strategy and [references/content-invariants.md](references/content-invariants.md).
 Main directly creates `draft.md` from `materials.md`, `understanding-brief.md`, `blog-memory.md`,
 the selected strategy reference, and the content invariants. Preserve frontmatter, summary,
 `blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles, SLOT topology,
@@ -181,16 +192,16 @@ and preview. The input/output and content-preservation contract is in
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-The parent structural parity and integrity Gate remains read-only and blocking on errors. On the
-first child-owned structural failure, Main gives the current HTML, frozen source, and bounded
-diagnostic back to the same `gzh-design` Skill for surgical owner-local repair, then reruns native
-validation, preview, and finalize. If the same local failure persists, Main may call `gzh-design`
-once more from the frozen source; a repeated failure class is `BLOCKED`. This is a Skill retry,
-not a new Agent context. Upstream failures are routed back to the owner of the source, draft,
-image plan, image map, or freshness input; gzh-design must not fabricate or patch upstream artifacts.
+The parent structural parity and integrity Gate remains read-only and blocking on errors. Use
+owner-local repair with the current HTML and frozen source. The adapter owns the retry sequence
+and stopping condition: a repeated failure class is `BLOCKED`. This is a Skill retry,
+not a new Agent context. Route upstream defects to their artifact owner.
 
 ### Step 6 — Publish
 
+Read [references/publishing.md](references/publishing.md) for publish inputs and recovery.
+Execute only the channels authorized by the user; existing authorization persists on resume.
+Check independent publish states first and skip completed channels. For a new dual-track publish,
 Main directly runs blog publish first:
 
 ```bash
@@ -222,8 +233,7 @@ Retry locally before changing context:
 - Understanding and draft: Main repairs the artifact and reruns its Gate.
 - Humanization: Main invokes `humanizer-zh` again with the relevant frozen input.
 - Visuals: Main asks the same specialist Skill for targeted regeneration.
-- Step 5: Main uses `gzh-design` owner-local repair before any frozen-source rebuild; the same
-  failure class twice is `BLOCKED`.
+- Step 5: follow the owner-local repair contract in `references/adapter-gzh-design.md`.
 - Publish: Main retries only the failed blog or WeChat operation.
 - Research: Main asks the research child only for missing or conflicting evidence.
 

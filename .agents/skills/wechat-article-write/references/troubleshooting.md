@@ -9,8 +9,8 @@ Step 5 structural parity 的完整错误集只在 validator 内存中计算，�
 
 统一恢复原则是 `Retry locally before changing context`。普通失败由 Main 修复并重跑；Step 5 的首次
 gzh-design 局部 structural/integrity failure 必须先使用当前 HTML、frozen source 和 diagnostic 做
-owner-local repair。若局部修复仍失败，可从 frozen source 再调用一次同一 Skill；同一 failure class 再次
-出现即 `BLOCKED`，不得第三次自动重试或 theme roulette。只要 diagnostic 指向上游 artifact，必须回到真正
+owner-local repair。重试与停止条件统一见
+[adapter-gzh-design.md](adapter-gzh-design.md#owner-local-repair)。只要 diagnostic 指向上游 artifact，必须回到真正
 owner，不能让 gzh-design 或其它 Skill 代修。
 
 | 症状 | 处理 |
@@ -22,9 +22,9 @@ owner，不能让 gzh-design 或其它 Skill 代修。
 | mandatory Skill unavailable | 当前 unit `BLOCKED`，不使用 fallback |
 | Step 5 prepared | Main → `gzh-design` → HTML validator/preview → build-finalize Gate |
 | gzh 或 Step 5 child-owned structural/integrity 失败 | Main → same `gzh-design` Skill → owner-local repair → native validator/preview → finalize |
-| owner-local repair 仍失败 | frozen source → `gzh-design` 再调用一次 → 同一 Gate；同类 failure → `BLOCKED` |
+| owner-local repair 仍失败 | 按 gzh adapter 的停止条件处理，不自动整页重做 |
 | 图床网络失败 | Main 重试 `github-image-hosting` → Step 5A Gate |
-| primary source already published | Main 更新/移除 source 或停止 → Step 1.5 Gate |
+| primary source already published | 按 originality-policy 更新已有文章或停止；多来源任务仅在实际移除已覆盖写作对象后重跑，不能改 provenance 绕过去重 |
 | specialist artifact 需要修改 | 回到原 Skill owner，以 frozen input 重做 → 原 Gate |
 | 发布失败 | Main 读取 `state.mjs next` → 只恢复失败的 blog/WeChat 子状态 |
 

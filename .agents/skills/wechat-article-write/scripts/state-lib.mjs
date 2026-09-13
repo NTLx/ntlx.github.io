@@ -49,24 +49,19 @@ function applyExtra(state, extra = {}) {
 
 /** 加载已有状态，不存在则返回 null */
 export function loadState(slug) {
-  const p = statePath(slug);
-  if (!existsSync(p)) return null;
-  try {
-    const state = JSON.parse(readFileSync(p, "utf8"));
-    let changed = false;
-    if (state.slug !== slug) {
-      state.slug = slug;
-      changed = true;
-    }
-    if (!state.publish) {
-      state.publish = { ...DEFAULT_PUBLISH };
-      changed = true;
-    }
-    if (changed) saveState(slug, state);
-    return state;
-  } catch {
-    return null;
+  const state = readState(slug);
+  if (!state) return null;
+  let changed = false;
+  if (state.slug !== slug) {
+    state.slug = slug;
+    changed = true;
   }
+  if (!state.publish) {
+    state.publish = { ...DEFAULT_PUBLISH };
+    changed = true;
+  }
+  if (changed) saveState(slug, state);
+  return state;
 }
 
 /** Read existing state without performing the v1→v2 migration write. */
@@ -74,9 +69,19 @@ function readState(slug) {
   const p = statePath(slug);
   if (!existsSync(p)) return null;
   try {
-    return JSON.parse(readFileSync(p, "utf8"));
-  } catch {
-    return null;
+    const state = JSON.parse(readFileSync(p, "utf8"));
+    if (!state || typeof state !== "object" || Array.isArray(state)
+      || !Number.isInteger(state.last_complete_step)
+      || state.last_complete_step < 0 || state.last_complete_step > 6
+      || (state.publish !== undefined && (!state.publish
+        || !["pending", "done", "blocked", "failed"].includes(state.publish.blog)
+        || !["pending", "done", "failed"].includes(state.publish.wechat)))
+      || (state.failed_step != null && ![1, 2, 3, 4, 5, 6, 6.1, 6.2].includes(state.failed_step.step))) {
+      throw new Error("invalid business checkpoint");
+    }
+    return state;
+  } catch (error) {
+    throw new Error(`STATE_INVALID: ${p}: ${error.message}; restore the last valid state before resuming; existing artifacts must be preserved`);
   }
 }
 
@@ -93,7 +98,10 @@ export function initState(slug, strategy) {
   if (existing) {
     // v1→v2 迁移: 补 publish 字段
     if (!existing.publish) existing.publish = { ...DEFAULT_PUBLISH };
-    if (strategy && !existing.strategy) existing.strategy = strategy;
+    if (strategy && !existing.strategy) {
+      existing.strategy = strategy;
+      saveState(slug, existing);
+    }
     return existing;
   }
   const state = {

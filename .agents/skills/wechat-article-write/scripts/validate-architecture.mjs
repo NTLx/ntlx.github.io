@@ -36,7 +36,7 @@ const skillText = read("SKILL.md");
 const frontmatter = parseFrontmatter(skillText);
 if (frontmatter.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (frontmatter["metadata.author"] !== "NTLx") errors.push("SKILL.md metadata.author must be NTLx");
-if (frontmatter["metadata.version"] !== "3.0.0") errors.push("SKILL.md metadata.version must be 3.0.0");
+if (!/^\d+\.\d+\.\d+$/u.test(frontmatter["metadata.version"] ?? "")) errors.push("SKILL.md metadata.version must be semver");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const rel of [
