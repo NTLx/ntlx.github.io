@@ -4,7 +4,7 @@ description: Upload images to a configured GitHub repository for CDN-accessible 
 license: MIT
 metadata:
   author: NTLx
-  version: "1.5.0"
+  version: "1.5.1"
 ---
 
 # GitHub Image Hosting

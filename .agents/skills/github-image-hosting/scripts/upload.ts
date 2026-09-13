@@ -27,6 +27,7 @@ const DEFAULT_API_TIMEOUT = 30000;
 const TREE_FETCH_TIMEOUT = 60000;
 const POST_API_TIMEOUT = 300000;
 const PATCH_API_TIMEOUT = 60000;
+const GH_OUTPUT_MAX_BUFFER = 64 * 1024 * 1024;
 const NETWORK_RETRY_MAX = 2;
 const NETWORK_RETRY_BASE_MS = 2000;
 const REF_RETRY_MAX = 3;
@@ -179,6 +180,7 @@ function execWithNetworkRetry(args: string[], timeout: number, label: string): s
       return execFileSync("gh", args, {
         encoding: "utf8",
         timeout,
+        maxBuffer: GH_OUTPUT_MAX_BUFFER,
         stdio: ["pipe", "pipe", "pipe"],
       }).trim();
     } catch (error: any) {
