@@ -4,129 +4,63 @@ import { resolve } from "node:path";
 
 const skillDir = resolve(import.meta.dir, "..");
 const skill = readFileSync(resolve(skillDir, "SKILL.md"), "utf8");
-const delegated = readFileSync(resolve(skillDir, "references", "delegated-execution.md"), "utf8");
+const research = readFileSync(resolve(skillDir, "references", "research-delegation.md"), "utf8");
 const imagePolicy = readFileSync(resolve(skillDir, "references", "image-policy.md"), "utf8");
 const gzhAdapter = readFileSync(resolve(skillDir, "references", "adapter-gzh-design.md"), "utf8");
+const troubleshooting = readFileSync(resolve(skillDir, "references", "troubleshooting.md"), "utf8");
 const parentExtend = readFileSync(resolve(skillDir, "EXTEND.md"), "utf8");
 const checkDeps = readFileSync(resolve(skillDir, "scripts", "check-deps.mjs"), "utf8");
 const architectureValidator = readFileSync(resolve(skillDir, "scripts", "validate-architecture.mjs"), "utf8");
 const stateLib = readFileSync(resolve(skillDir, "scripts", "state-lib.mjs"), "utf8");
 
 describe("orchestration contract", () => {
-  test("keeps Main planning-only", () => {
-    expect(skill).toContain("Main MUST NOT directly execute actual work");
-    expect(skill).toContain("proceed/retry/reroute/blocked");
-    expect(skill).toContain('version: "2.23.0"');
-    expect(skill).toContain("state v2");
+  test("makes Main the default executor", () => {
+    expect(skill).toContain('version: "3.0.0"');
+    expect(skill).toContain("## Execution model");
+    expect(skill).toContain("Main is the default executor");
+    expect(skill).toContain("Main directly owns");
+    expect(skill).toContain("Main directly creates `draft.md`");
+    expect(skill).toContain("Main directly runs");
+    expect(skill).toContain("State remains v2");
     expect(stateLib).toContain("v2");
-    expect(delegated).toContain("Main MUST NOT fallback to direct execution");
+    expect(skill).not.toContain("Main MUST NOT directly execute actual work");
+    expect(skill).not.toContain("planning-only");
   });
 
-  test("budgets happy-path model contexts and consolidates phases", () => {
-    expect(skill).toContain("Model Context Budget");
-    expect(skill).toContain("5 logical phases");
-    expect(skill).toContain("minimum aggregate token cost");
-    expect(skill).toContain("Research + Understanding");
-    expect(skill).toContain("Draft + Humanizer");
-    expect(skill).toContain("Writing phase Executor");
-    expect(skill).toContain("Visual phase Executor");
-    expect(skill).toContain("Build phase Executor");
-    expect(skill).toContain("Publish phase Executor");
-    expect(skill).toContain("Gate does not justify a new model context");
-    expect(delegated).toContain("Subthread Admission Gate");
-    expect(delegated).toContain("Context-heavy");
-    expect(delegated).toContain("Semantic production");
-    expect(delegated).toContain("Visual / design judgement");
-    expect(delegated).toContain("Fresh semantic retry");
-    expect(delegated).toContain("DO NOT SPAWN");
-    expect(delegated).toContain("Compaction Boundary");
-    expect(delegated).toContain("materialized compact artifact");
-    expect(delegated).toContain("Research → materials → Understanding");
-    expect(delegated).toContain("Draft → draft.md → humanizer");
-    expect(delegated).not.toContain("happy path 目标是 `<= 5`");
+  test("delegates only context-heavy background research by default", () => {
+    expect(skill).toContain("Background research may be delegated");
+    expect(research).toContain("only normal Agent boundary");
+    expect(research).toContain("external\nretrieval");
+    expect(research).toContain("compact evidence summary");
+    expect(research).toContain("不生成 draft");
+    expect(research).not.toContain("生成整篇文章");
   });
 
-  test("keeps execution runtime-neutral and isolated", () => {
-    expect(skill).toContain("references/delegated-execution.md");
-    expect(delegated).toContain("runtime-neutral");
-    expect(delegated).toContain("Execution capsule");
-    expect(delegated).toContain("Bounded handoff");
-    expect(delegated).toContain("fresh execution context");
-    expect(delegated).toContain("context inheritance is opt-in, not default");
-    expect(delegated).toContain("Gate 不单独创建 Executor");
-    expect(delegated).toContain("Full tool catalog enumeration is forbidden");
-    expect(delegated).toContain("Targeted Tool Discovery");
-    expect(delegated).toContain("completion notification");
-    expect(delegated).toContain("same Runtime Mechanism");
-    expect(delegated).toContain("poll loop");
-    expect(delegated).not.toContain("Execution-unit matrix");
-    expect(delegated).not.toContain("workflow-specific");
-    expect(skill).not.toContain("PIPELINE_AUTO");
-    expect(skill).not.toContain("agent-id");
+  test("keeps primary-source understanding in Main", () => {
+    expect(skill).toContain("Main reads and understands the primary source directly");
+    expect(skill).toContain("must not replace Main's primary-source understanding");
+    expect(research).toContain("Primary sources supplied by the user");
+    expect(research).toContain("directly by Main");
   });
 
-  test("requires mandatory Specialist invocation and gzh-design guardrails", () => {
-    expect(delegated).toContain("Mandatory Specialist invocation");
-    expect(delegated).toContain("不得跳过它自行设计流程");
-    expect(skill).toContain("Main 按 handoff 的 `SKILL` section 核验");
-    expect(skill).toContain("不是 standalone execution context");
-    expect(skill).toContain("fresh minimal Understanding context");
-    expect(skill).not.toContain("同一 context 连续完成");
-    expect(skill).toContain("fresh Build phase Executor");
-    expect(skill).toContain("Main MUST NOT load child Skill");
-    expect(skill).toContain("Main MUST NOT read full failed HTML");
-    expect(skill).not.toContain("隔离 `bootstrap/resume` Executor");
-    expect(delegated).toContain("全部 mandatory Specialist");
-    expect(gzhAdapter).toContain("只加载不交付视为未完成");
-    expect(gzhAdapter).toContain("不得丢弃归因句");
-    expect(gzhAdapter).toContain("不得做字符级替换");
-    expect(gzhAdapter).toContain("visible article content may not");
-    expect(gzhAdapter).toContain("不得注入正文可见占位文字");
+  test("does not equate Specialist Skills with Agent contexts", () => {
+    expect(skill).toContain("Skill invocation does not imply an Agent context");
+    expect(skill).toContain("mandatory Skill does not mean mandatory child Agent");
+    expect(skill).toContain("This is a Skill retry");
+    expect(skill).toContain("not a new Agent context");
   });
 
-  test("repairs the first child-owned Step 5 failure in the current owner context", () => {
-    expect(skill).toContain("owner-local repair");
-    expect(delegated).toContain("Owner-local repair boundary");
-    expect(gzhAdapter).toContain("Content preservation takes precedence");
-    expect(skill).toContain("fresh Build phase Executor");
-
-    const localRepair = skill.indexOf("owner-local repair");
-    const freshRetry = skill.indexOf("fresh Build phase Executor", localRepair);
-    expect(localRepair).toBeGreaterThanOrEqual(0);
-    expect(freshRetry).toBeGreaterThan(localRepair);
-    expect(delegated).toContain("DO NOT SPAWN");
-    expect(gzhAdapter).toContain("current `article-wechat.html`");
+  test("lets Main run deterministic Gates and scripts", () => {
+    expect(skill).toContain("Main directly runs:");
+    for (const script of [
+      "state.mjs init", "step1-collect.mjs", "select-related-articles.mjs", "validate-understanding.mjs",
+      "step2-write.mjs", "step3-polish.mjs", "step4-images.mjs", "step5-build.mjs", "publish-blog.mjs",
+      "publish-wechat.mjs",
+    ]) expect(skill).toContain(script);
+    expect(architectureValidator).toContain("pipeline must remain advisory and non-orchestrating");
   });
 
-  test("keeps native validator errors blocking and warnings advisory", () => {
-    expect(gzhAdapter).toContain("Native gzh-design ERROR count must be 0");
-    expect(gzhAdapter).toContain("Native WARNING is advisory");
-    expect(gzhAdapter).toContain("Do not mutate source-visible article text solely to eliminate a WARNING");
-    expect(gzhAdapter).toContain("Content preservation takes precedence over cosmetic warning cleanup");
-  });
-
-  test("caps retries and keeps deterministic work out of model contexts", () => {
-    expect(delegated).toContain("same phase + failure class");
-    expect(delegated).toContain("最多 1 次 fresh retry");
-    expect(delegated).toContain("第二次同类失败 → BLOCKED");
-    for (const reason of [
-      "state init / next", "Gate command", "hash comparison", "file existence check",
-      "grep / rg", "tool discovery", "poll / wait", "deterministic validator",
-    ]) expect(delegated).toContain(reason);
-    expect(skill).toContain("不估算");
-    expect(skill).not.toContain("execution-plan.json");
-    expect(skill).not.toContain("agent-budget.json");
-  });
-
-  test("keeps Main away from child internals", () => {
-    expect(delegated).toContain("Main只消费 bounded handoff");
-    expect(delegated).toContain("Main 不读取 child Skill");
-    expect(delegated).toContain("Main 不读取失败 HTML");
-    expect(delegated).toContain("diagnostic samples <= 3");
-    expect(delegated).toContain("每个 sample <= 160 chars");
-  });
-
-  test("keeps fixed direct Specialist routing in the Parent workflow", () => {
+  test("keeps mandatory Specialist workflows without requiring isolated Executors", () => {
     for (const [unit, specialist] of [
       ["humanization / Step 3", "humanizer-zh"],
       ["cover", "baoyu-cover-image"],
@@ -139,46 +73,62 @@ describe("orchestration contract", () => {
       const route = skill.split("\n").find((line) => line.includes(`| ${unit} |`));
       expect(route).toContain(specialist);
     }
+    expect(checkDeps).toContain("humanizer-zh");
+    expect(checkDeps).toContain("gzh-design");
   });
 
-  test("keeps visual policy separate from Specialist implementation", () => {
+  test("repairs Step 5 locally before any frozen-source rebuild", () => {
+    const localRepair = skill.indexOf("owner-local repair");
+    const rebuild = skill.indexOf("a repeated failure class", localRepair);
+    expect(localRepair).toBeGreaterThanOrEqual(0);
+    expect(rebuild).toBeGreaterThan(localRepair);
+    expect(gzhAdapter).toContain("current `article-wechat.html`");
+    expect(gzhAdapter).toContain("frozen `article-wechat-source.md`");
+    expect(gzhAdapter).toContain("不创建新的 Agent context");
+    expect(troubleshooting).toContain("Retry locally before changing context");
+  });
+
+  test("keeps native validator errors blocking and warnings advisory", () => {
+    expect(gzhAdapter).toContain("Native gzh-design ERROR count must be 0");
+    expect(gzhAdapter).toContain("Native WARNING is advisory");
+    expect(gzhAdapter).toContain("Do not mutate source-visible article text solely to eliminate a WARNING");
+    expect(gzhAdapter).toContain("Content preservation takes precedence over cosmetic warning cleanup");
+  });
+
+  test("removes phase Executor and model-context budgeting contracts", () => {
+    for (const obsolete of [
+      "Model Context Budget", "5–7", "5-7 contexts", "Subthread Admission", "phase Executor",
+      "Writing phase", "Visual phase", "Build phase", "Publish phase", "RETRY_REQUIRED",
+      "fresh Build", "bounded handoff", "Main MUST NOT fallback to direct execution",
+    ]) {
+      expect(skill).not.toContain(obsolete);
+      expect(research).not.toContain(obsolete);
+      expect(gzhAdapter).not.toContain(obsolete);
+      expect(troubleshooting).not.toContain(obsolete);
+    }
+    expect(skill).toContain("An additional model context\nis exceptional");
+    expect(skill).not.toContain("context count");
+    expect(existsSync(resolve(skillDir, "references", "delegated-execution.md"))).toBe(false);
+  });
+
+  test("keeps deterministic quality Gates unchanged", () => {
+    for (const contract of [
+      "Primary Source provenance", "source uniqueness", "understanding-brief.md", "step3_draft_sha256",
+      "visual coverage", "image-plan.json", "structural parity", "publish freshness", "last_complete_step",
+      "publish.blog", "publish.wechat",
+    ]) expect(skill).toContain(contract);
+    expect(readFileSync(resolve(skillDir, "scripts", "wechat-structure-lib.mjs"), "utf8"))
+      .toContain("structural-parity/mixed");
+  });
+
+  test("keeps visual policy and Parent configuration boundaries", () => {
     expect(imagePolicy).toContain("prefer-reuse");
     expect(imagePolicy).toContain("Visual coverage");
     expect(imagePolicy).not.toContain(["baoyu", "image-gen"].join("-"));
     expect(imagePolicy).not.toContain("preferred_style");
-    expect(imagePolicy).not.toContain("default_provider");
-    expect(imagePolicy).not.toContain("固定业务映射");
-  });
-
-  test("limits Parent EXTEND to Parent-owned keys", () => {
     const keys = [...parentExtend.matchAll(/^([\w-]+):/gmu)].map((match) => match[1]);
     expect(keys).toEqual(["default_author", "default_author_bio"]);
-    for (const forbidden of ["preferred_style", "preferred_image_backend", "default_provider"]) {
-      expect(parentExtend).not.toContain(`${forbidden}:`);
-    }
-  });
-
-  test("removes duplicate workflow/config artifacts from the Parent", () => {
-    const removedOverview = ["pipeline", "overview.md"].join("-");
-    const oldContractTest = ["native", "delegation.test.js"].join("-");
-    expect(existsSync(resolve(skillDir, "references", removedOverview))).toBe(false);
-    expect(existsSync(resolve(skillDir, "__tests__", "project-config.test.js"))).toBe(false);
-    expect(existsSync(resolve(skillDir, "__tests__", oldContractTest))).toBe(false);
-    expect(skill).not.toContain(removedOverview);
-    expect(skill).not.toContain(["2", "9", "0"].join("."));
-  });
-
-  test("keeps dependency checks at the direct Specialist boundary", () => {
-    for (const name of [
-      "humanizer-zh", "baoyu-cover-image", "baoyu-infographic",
-      "github-image-hosting", "gzh-design", "baoyu-post-to-wechat",
-    ]) expect(checkDeps).toContain(name);
-    for (const detail of [["baoyu", "image-gen"].join("-"), "baoyu-diagram", "default_provider", "preferred_image_backend"]) {
-      expect(checkDeps).not.toContain(detail);
-      expect(architectureValidator).not.toContain(detail);
-    }
     expect(architectureValidator).not.toContain("readProjectExtend");
-    expect(architectureValidator).not.toContain('from "yaml"');
   });
 });
 

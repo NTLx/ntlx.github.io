@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-/** Static architecture checks for the thin article Skill. */
+/** Static architecture checks for the Main-first article Skill. */
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -10,8 +10,8 @@ const skillsRoot = resolve(repoRoot, ".agents/skills");
 const json = process.argv.includes("--json");
 const errors = [];
 const warnings = [];
-
 const file = (rel) => resolve(skillDir, rel);
+const read = (rel) => readFileSync(file(rel), "utf8");
 const requireFile = (rel) => {
   if (!existsSync(file(rel))) errors.push(`missing: ${rel}`);
 };
@@ -32,16 +32,16 @@ function parseFrontmatter(text) {
   return result;
 }
 
-const skillText = readFileSync(file("SKILL.md"), "utf8");
+const skillText = read("SKILL.md");
 const frontmatter = parseFrontmatter(skillText);
 if (frontmatter.name !== "wechat-article-write") errors.push("SKILL.md frontmatter name must be wechat-article-write");
 if (frontmatter["metadata.author"] !== "NTLx") errors.push("SKILL.md metadata.author must be NTLx");
-if (frontmatter["metadata.version"] !== "2.23.0") errors.push("SKILL.md metadata.version must be 2.23.0");
+if (frontmatter["metadata.version"] !== "3.0.0") errors.push("SKILL.md metadata.version must be 3.0.0");
 if (/disable-model-invocation\s*:/u.test(skillText)) errors.push("model invocation must remain enabled");
 
 for (const rel of [
   "EXTEND.md",
-  "references/delegated-execution.md",
+  "references/research-delegation.md",
   "references/content-invariants.md",
   "references/image-policy.md",
   "references/originality-policy.md",
@@ -53,6 +53,7 @@ for (const rel of [
   "references/strategy-tutorial.md",
   "references/strategy-news-digest.md",
 ]) requireFile(rel);
+if (existsSync(file("references/delegated-execution.md"))) errors.push("obsolete delegated-execution reference remains");
 
 for (const name of [
   "humanizer-zh", "baoyu-cover-image", "baoyu-infographic",
@@ -66,48 +67,103 @@ for (const rel of [
   "scripts/markdown-structure-lib.mjs", "scripts/source-provenance-lib.mjs",
 ]) requireFile(rel);
 
-const delegatedText = readFileSync(file("references/delegated-execution.md"), "utf8");
-if (!delegatedText.includes("runtime-neutral")) errors.push("delegated reference must remain runtime-neutral");
-if (!delegatedText.includes("Main MUST NOT fallback to direct execution")) errors.push("delegated reference must fail closed");
 for (const contract of [
-  "Subthread Admission Gate",
-  "Compaction Boundary",
-  "materialized compact artifact",
-  "Research → materials → Understanding",
-  "Draft → draft.md → humanizer",
-  "Full tool catalog enumeration is forbidden",
-  "completion notification",
-  "same Runtime Mechanism",
-  "diagnostic samples <= 3",
-  "BLOCKED",
-]) {
-  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.23 contract: ${contract}`);
-}
-for (const contract of ["Owner-local repair boundary", "DO NOT SPAWN", "same Specialist owner", "frozen upstream input"]) {
-  if (!delegatedText.includes(contract)) errors.push(`delegated reference missing 2.23 recovery contract: ${contract}`);
-}
+  "## Execution model",
+  "Main is the default executor",
+  "Main directly owns",
+  "primary-source reading and understanding",
+  "Main directly creates `draft.md`",
+  "Main directly runs",
+  "Skill invocation does not imply an Agent context",
+  "Background research may be delegated",
+  "State remains v2",
+  "owner-local repair",
+  "repeated failure class is `BLOCKED`",
+]) if (!skillText.includes(contract)) errors.push(`SKILL.md missing v3 contract: ${contract}`);
+
+const researchText = read("references/research-delegation.md");
 for (const contract of [
-  "Model Context Budget",
-  "5 logical phases",
-  "minimum aggregate token cost",
-  "Research + Understanding",
-  "Draft + Humanizer",
-  "Gate does not justify a new model context",
-  "fresh minimal Understanding context",
-  "frozen input，只执行 humanization recovery",
-  "phase-level durable checkpoint",
-  "Step 1 只有在 materials",
-  "Step 2 保留为 Draft 的 intermediate checkpoint",
-]) {
-  if (!skillText.includes(contract)) errors.push(`SKILL.md missing retained contract: ${contract}`);
-}
-for (const contract of ["owner-local repair", "current `article-wechat.html`", "fresh Build phase Executor", "same failure class"]) {
-  if (!skillText.includes(contract)) errors.push(`SKILL.md missing 2.23 recovery contract: ${contract}`);
+  "only normal Agent boundary",
+  "Primary sources",
+  "directly by Main",
+  "Research capsule",
+  "compact evidence summary",
+  "FACTS",
+  "CONFLICTS / UNCERTAINTY",
+  "不写文章",
+  "不生成 draft",
+  "does not add fields to `.pipeline-state.json`",
+]) if (!researchText.includes(contract)) errors.push(`research reference missing contract: ${contract}`);
+
+const directSkillRoutes = [
+  ["humanization / Step 3", "humanizer-zh"],
+  ["cover", "baoyu-cover-image"],
+  ["SLOT00", "baoyu-infographic"],
+  ["generated body visual", "baoyu-infographic"],
+  ["image hosting / Step 5A", "github-image-hosting"],
+  ["WeChat layout / Step 5B", "gzh-design"],
+  ["WeChat publish", "baoyu-post-to-wechat"],
+];
+for (const [unit, specialist] of directSkillRoutes) {
+  const route = skillText.split("\n").find((line) => line.includes(`| ${unit} |`));
+  if (!route || !route.includes(specialist)) errors.push(`Main route missing: ${unit} → ${specialist}`);
 }
 
-const stateLibText = readFileSync(file("scripts/state-lib.mjs"), "utf8");
+const contractFiles = [
+  "SKILL.md",
+  "references/research-delegation.md",
+  "references/adapter-gzh-design.md",
+  "references/troubleshooting.md",
+  "references/publishing.md",
+  "references/image-policy.md",
+  "references/originality-policy.md",
+  "scripts/pipeline.mjs",
+];
+const obsoleteContracts = [
+  "Main MUST NOT directly execute actual work",
+  "planning-only",
+  "Model Context Budget",
+  "5–7",
+  "5-7 contexts",
+  "Subthread Admission",
+  "phase Executor",
+  "Writing phase",
+  "Visual phase",
+  "Build phase",
+  "Publish phase",
+  "RETRY_REQUIRED",
+  "fresh Build",
+  "bounded handoff",
+  "context inheritance",
+  "Main MUST NOT fallback to direct execution",
+];
+for (const rel of contractFiles) {
+  const text = read(rel);
+  for (const obsolete of obsoleteContracts) {
+    if (text.includes(obsolete)) errors.push(`${rel} contains obsolete architecture contract: ${obsolete}`);
+  }
+}
+
+const adapterText = read("references/adapter-gzh-design.md");
+for (const contract of [
+  "Native gzh-design ERROR count must be 0",
+  "Native WARNING is advisory",
+  "current `article-wechat.html`",
+  "frozen `article-wechat-source.md`",
+  "Owner-local repair",
+  "failure class",
+  "不创建新的 Agent context",
+]) if (!adapterText.includes(contract)) errors.push(`gzh adapter missing v3 contract: ${contract}`);
+
+const pipelineText = read("scripts/pipeline.mjs");
+for (const contract of ["Main executes this workflow directly", "OPTIONAL DELEGATION", "REQUIRED SPECIALIST", "--prepare-only", "--finalize-only"]) {
+  if (!pipelineText.includes(contract)) errors.push(`pipeline missing v3 advisory contract: ${contract}`);
+}
+if (pipelineText.includes("spawnSync") || pipelineText.includes("PIPELINE_AUTO")) errors.push("pipeline must remain advisory and non-orchestrating");
+
+const stateLibText = read("scripts/state-lib.mjs");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
-const structureText = readFileSync(file("scripts/wechat-structure-lib.mjs"), "utf8");
+const structureText = read("scripts/wechat-structure-lib.mjs");
 if (!structureText.includes("structural-parity/mixed")) errors.push("structural parity must expose subclass failure classes");
 if (structureText.includes("unexpected_text_replacement")) errors.push("structural parity must not expose misleading replacement metric");
 
@@ -116,10 +172,9 @@ for (const rel of ["scripts/workflow.mjs", "scripts/orchestration-trace.mjs", "s
 }
 for (const rel of [
   "worker-trace.json", "orchestration-trace.json", "execution-receipt.json", "spawn-log.json", "agent-id.json",
+  "parity-debug.json", "execution-trace.json", "gzh-debug.log", "execution-plan.json", "agent-budget.json",
+  "thread-registry.json", "token-budget.json",
 ]) if (existsSync(file(rel))) errors.push(`retired orchestration artifact remains: ${rel}`);
-for (const rel of ["parity-debug.json", "execution-trace.json", "gzh-debug.log", "execution-plan.json", "agent-budget.json", "thread-registry.json", "token-budget.json"]) {
-  if (existsSync(file(rel))) errors.push(`persistent execution diagnostic remains: ${rel}`);
-}
 
 const governancePath = resolve(repoRoot, "AGENTS.md");
 const claudeAdapterPath = resolve(repoRoot, "CLAUDE.md");
@@ -143,7 +198,7 @@ const forbiddenCoupling = [
   "skill-catalog", "image-review receipt",
 ];
 for (const rel of productionFiles) {
-  const text = readFileSync(file(rel), "utf8");
+  const text = read(rel);
   for (const token of forbiddenCoupling) if (text.includes(token)) errors.push(`${rel} contains forbidden coupling: ${token}`);
 }
 

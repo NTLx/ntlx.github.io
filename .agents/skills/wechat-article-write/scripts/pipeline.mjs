@@ -22,126 +22,82 @@ if (step === "done") {
   process.exit(0);
 }
 
-function printPhase(name, units, { context = "reuse one phase context when cheap; compact rehydration is allowed at a real artifact boundary", mode = null, doNot = [] } = {}) {
-  process.stdout.write(`NEXT PHASE: ${name}\n`);
-  process.stdout.write(`${name} phase executor (default: one isolated context):\n`);
-  process.stdout.write(`MODEL CONTEXT: ${context}\n`);
+function printStep(title, actions, { mode = null, specialist = null, research = false } = {}) {
+  process.stdout.write(`NEXT STEP: ${title}\n`);
+  process.stdout.write("ACTION: Main executes this workflow directly.\n");
   if (mode) process.stdout.write(`MODE: ${mode}\n`);
-  process.stdout.write("UNITS:\n");
-  units.forEach((unit, index) => process.stdout.write(`${index + 1}. ${unit}\n`));
-  if (doNot.length > 0) {
-    process.stdout.write("DO NOT:\n");
-    doNot.forEach((item) => process.stdout.write(`${item}\n`));
-  }
-  process.stdout.write("NEW CHILD THREADS:\n");
-  process.stdout.write("do not create for deterministic units, Gates, waits, or diagnostics\n");
-  process.stdout.write("Run these ordered units in one phase executor by default. Stop and return only on Gate failure.\n");
+  if (specialist) process.stdout.write(`REQUIRED SPECIALIST: ${specialist}\n`);
+  if (research) process.stdout.write("OPTIONAL DELEGATION: background research child for external evidence only\n");
+  process.stdout.write("ACTIONS:\n");
+  actions.forEach((action, index) => process.stdout.write(`${index + 1}. ${action}\n`));
 }
 
 if (step === 1) {
-  printPhase("Research", [
+  printStep("Step 1 / 1.5 / 1.8 — research, memory, and understanding", [
     "state preflight: state.mjs init/next",
-    "source acquisition and supporting research",
-    "media extraction",
-    "materials.md",
-    "Step 1 Gate",
+    "Main reads the primary source directly",
+    "supporting research only when external evidence is needed",
+    "materials.md and Step 1 Gate",
     "Primary Source Uniqueness and site memory",
-    "understanding brief",
-    "understanding validator (Step 1.8)",
-    "Step 1 phase completion",
-  ], {
-    context: "reuse Research context by default; fresh Understanding context only at a real compaction boundary",
-  });
-  process.stdout.write("RESUME: reuse valid existing phase artifacts; do not repeat completed expensive acquisition merely because durable Step 1 is incomplete\n");
+    "understanding-brief.md and understanding validator",
+  ], { research: true });
+  process.stdout.write("RESUME: reuse valid existing artifacts; do not repeat completed acquisition merely because Step 1 is incomplete\n");
   process.exit(0);
 }
 
 if (step === 2) {
-  printPhase("Writing", [
-    "draft",
+  printStep("Step 2 / 3 — draft and humanization", [
+    "draft.md",
     "Step 2 Gate",
-    "humanizer-zh (mandatory Specialist workflow)",
+    "humanizer-zh",
     "Step 3 Gate and draft hash",
-    "handoff",
-  ], {
-    mode: "full",
-    context: "reuse Writing context by default; fresh Humanizer context allowed after Step 2 at a real compaction boundary",
-  });
+  ], { mode: "full", specialist: "humanizer-zh" });
   process.exit(0);
 }
 
 if (step === 3) {
-  printPhase("Writing", [
+  printStep("Step 3 — humanization recovery", [
     "reuse frozen draft.md",
-    "humanizer-zh (mandatory Specialist workflow)",
+    "humanizer-zh",
     "Step 3 Gate and draft hash",
-    "handoff",
-  ], {
-    mode: "humanization recovery",
-    context: "reuse Writing context when cheap; fresh minimal Humanizer context may read only frozen draft.md",
-    doNot: [
-      "regenerate draft",
-      "rerun Step 2 production",
-    ],
-  });
+    "do not regenerate draft or rerun Step 2 production",
+  ], { mode: "humanization recovery", specialist: "humanizer-zh" });
   process.exit(0);
 }
 
 if (step === 4) {
-  printPhase("Visual", [
+  printStep("Step 4 — visual planning and assets", [
     "cover → inspect",
     "SLOT00 → inspect",
     "source body review",
     "generated body visuals → inspect",
     "image-plan.json",
     "Step 4 Gate",
-  ]);
+  ], { specialist: "baoyu-cover-image / baoyu-infographic as required" });
   process.exit(0);
 }
 
 if (step === 5) {
-  process.stdout.write(`NEXT PHASE: Build
-Build phase executor (default: one isolated context):
-MODEL CONTEXT: reuse one Build Executor
-UNITS:
-1. hosting-status
-   deterministic action: step5-build --hosting-status
-2. hosting if needed
-   required skill: github-image-hosting; output: image-map.json
-3. prepare
-   deterministic action: step5-build --prepare-only
-4. gzh-design
-   required skill: gzh-design; output: article-wechat.html (including validator and preview)
-5. finalize
-   deterministic action: step5-build --finalize-only
-
-NEW CHILD THREADS:
-do not create for deterministic units, Gates, waits, or diagnostics
-Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
-`);
+  printStep("Step 5 — hosting, build, and WeChat layout", [
+    `hosting-status: step5-build.mjs ${slug} --hosting-status`,
+    "github-image-hosting if status is NEEDED → image-map.json",
+    `prepare: step5-build.mjs ${slug} --prepare-only`,
+    "gzh-design → article-wechat.html, native validator, and preview",
+    `finalize: step5-build.mjs ${slug} --finalize-only`,
+  ], { specialist: "github-image-hosting / gzh-design" });
   process.exit(0);
 }
 
 if ([6, 6.1, 6.2].includes(step)) {
   const publish = getPublishState(slug);
-  process.stdout.write(`NEXT PHASE: Publish\n`);
+  process.stdout.write("NEXT STEP: Step 6 — publish\n");
+  process.stdout.write("ACTION: Main executes publishing directly.\n");
   process.stdout.write(`Publish states: blog=${publish.blog}, wechat=${publish.wechat}\n`);
-  process.stdout.write(`Publish phase executor (default: one isolated context):
-MODEL CONTEXT: reuse one Publish Executor
-UNITS:
-1. blog publish if pending/failed
-   deterministic action: publish-blog.mjs ${slug}; blog first
-2. WeChat prepare
-   deterministic action: publish-wechat.mjs ${slug} --prepare-only
-3. WeChat publish
-   required skill: baoyu-post-to-wechat
-4. WeChat finalize
-   deterministic action: publish-wechat.mjs ${slug} --finalize-only after child success
-
-NEW CHILD THREADS:
-do not create for deterministic units, Gates, waits, or diagnostics
-Run these ordered units in one phase executor by default. Stop and return only on Gate failure.
-`);
+  process.stdout.write("ACTIONS:\n");
+  process.stdout.write(`1. blog publish if pending/failed: publish-blog.mjs ${slug}; blog first\n`);
+  process.stdout.write(`2. WeChat prepare: publish-wechat.mjs ${slug} --prepare-only\n`);
+  process.stdout.write("3. baoyu-post-to-wechat with article-wechat.html\n");
+  process.stdout.write(`4. WeChat finalize: publish-wechat.mjs ${slug} --finalize-only [--media-id <id>]\n`);
   process.exit(0);
 }
 

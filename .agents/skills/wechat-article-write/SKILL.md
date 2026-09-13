@@ -7,223 +7,261 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "2.23.0"
+  version: "3.0.0"
 ---
 
 # 微信公众号文章写作
 
-这是仓库级薄编排 Skill：Main Agent 负责理解、战略判断、路由、dispatch 和 Gate 决策；Delegated
-Executor 负责实际执行；Specialist Skill 负责专业能力；Script 负责确定性判断。所有实际产物、工具
-调用、专业 Skill 和 deterministic command 都必须在与 Main 隔离的 execution context 中完成。
+## Execution model
 
-## Main execution boundary
+Main is the default executor and owns the article workflow from start to finish.
+Main directly performs the semantic work, runs deterministic commands, reviews artifacts,
+repairs owned outputs, and coordinates publishing.
 
-Main owns understanding、strategy、routing、dispatch，以及 `proceed/retry/reroute/blocked` 决策。
-Main MAY 读取 `.pipeline-state.json`、`understanding-brief.md` 和少量目标 artifact 片段，形成
-中心判断并读取 bounded handoff。
+Main directly owns:
 
-Main MUST NOT directly execute actual work，包括：
+- primary-source reading and understanding;
+- materials synthesis and blog memory;
+- understanding, thesis, drafting, and review;
+- visual planning and final-raster review;
+- `humanizer-zh` and all required specialist Skill invocations;
+- deterministic scripts, Gates, build preparation, validation, repair, and publishing.
 
-- research、网页或媒体获取；
-- `materials.md`、`draft.md` 或 HTML 的生产与专业修改；
-- 图片生成、审阅或专业视觉处理；
-- upload、publish、commit/push、build 和 Step scripts；
-- child Skill 内部脚本或 Specialist Skill 调用。
+Background research may be delegated to one temporary research child when external retrieval,
+cross-source checking, or large web/PDF/media material would materially expand Main's context.
+Research delegation is optional. It supplies compact evidence; Main makes the final editorial
+judgement. Read [references/research-delegation.md](references/research-delegation.md) when
+external research is needed.
 
-Main 不把完整网页、研究笔记、HTML、image prompt、API 或上传日志带回自己的上下文。
-Main 也不默认把自己的完整 conversation history、commentary、其它 Executor handoff 或完整用户
-原始 prompt 复制给 Executor；context inheritance is opt-in, not default。
-Main MUST NOT load child Skill for debugging，Main MUST NOT read full failed HTML；这两类信息由对应
-phase Executor 和 deterministic Gate 收敛为 bounded handoff。
+Skill invocation does not imply an Agent context. Specialist ownership is a capability boundary,
+not an execution-isolation requirement:
 
-## Delegated execution principle
+```text
+Main → Specialist Skill → review result → continue workflow
+```
 
-Each actual execution unit must leave Main's principal context. Main dynamically chooses any
-runtime-native isolated execution mechanism that satisfies the capability contract. 如果没有合适的隔离
-机制，当前 unit 必须 `BLOCKED`；Main MUST NOT fallback to direct execution。声明 mandatory Specialist 的
-unit/phase 必须真实执行对应 Skill 的 workflow，Main 按 handoff 的 `SKILL` section 核验。
+Do not introduce a new Agent boundary merely to isolate responsibility. Use artifacts, Skills,
+deterministic scripts, and Gates as responsibility boundaries first. An additional model context
+is exceptional and is justified only by external retrieval or unusually large context volume.
 
-完整 isolation、capsule、handoff、retry、ownership 和 E2E protocol 见
-`references/delegated-execution.md`。
+## Start / resume
 
-## Model Context Budget
+Main reads the existing state, determines the ASCII `date-slug`, strategy (`reader-response`,
+`tutorial`, or `news-digest`), and next step. For a new task or resume, Main may directly run:
 
-`Logical Unit ≠ Phase ≠ Model-backed Context`。Logical Unit 是责任边界，Phase 是可以共享上下文的
-连续 units，Model-backed Context 是必须证明值得创建的昂贵资源。
+```bash
+bun run .agents/skills/wechat-article-write/scripts/state.mjs init <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/state.mjs next <date-slug>
+```
 
-5 logical phases 是 workflow 骨架；physical model-backed contexts 按 minimum aggregate token cost 选择。
-正常 happy path 通常是 5–7 个 contexts，但不是硬 Gate，也不以 context count 作为 KPI：
-
-1. Research + Understanding
-2. Draft + Humanizer
-3. Visual
-4. Build
-5. Publish
-
-这是 phase contract，不是 runtime agent 数量硬编码。默认复用 phase context；当上游历史明显膨胀、
-下游所需信息已经物化为更小的 artifact 时，允许在真实 compaction boundary 建立 fresh minimal context。
-native Skill action、non-model isolated execution 或 command runner 能完成的工作优先不创建新的模型上下文。
-
-### Subthread admission
-
-创建新的 model-backed Executor 前，Main 必须完成 admission decision。至少满足一个条件才允许：
-
-- context-heavy：大型论文、网页、研究材料或媒体带回 Main 会明显污染上下文；
-- semantic production：写作、重写、结构理解或复杂编辑判断；
-- visual / design judgement：图片生成、视觉审核、HTML layout 或设计判断；
-- mandatory Specialist genuinely requires a separate model context；
-- compaction boundary：下游所需信息已物化为明显更小的 artifact，继续携带上游历史反而更贵；
-- fresh semantic retry：前一个 Executor 的 Gate failure 且 recovery contract 要求 fresh context + frozen input。
-
-如果条件都不满足，`DO NOT SPAWN`。Gate、脚本、状态、hash、文件检查、grep、诊断、等待、工具
-发现、prepare/finalize 和 deterministic validator 不得单独创建 model-backed context。
-Gate does not justify a new model context。
-
-同一 phase + failure class 默认最多 1 次 fresh retry；第二次同类失败后 `BLOCKED`，不继续扩大上下文
-数量。完成 handoff 后释放已完成或放弃的 context；不为“以后也许还会用”保留 Executor。
-
-runtime 若提供 Token usage 可在最终 summary 报告；不可用时不估算，也不新增 budget/registry 状态。
-可选的 transient summary 只报告 model-backed context count、fresh retry count、optional Skill count
-和 generated visual count；不写入 state 或新建 execution registry。
-
-### Progressive disclosure
-
-Main 启动时只读取本文件、state summary 和当前 strategy。需要中央判断时再读取
-`understanding-brief.md`；其它 reference 由对应 phase Executor 按需加载。Main 不预加载所有
-reference，也不把 reference 全文放入每个 capsule。
-
-## Start / Resume
-
-Main 确定日期、ASCII `date-slug`、strategy（`reader-response`、`tutorial` 或 `news-digest`），读取
-state summary，决定新建或恢复。Main 不为 state 初始化或读取单独创建 bootstrap/resume Executor；
-选定的第一个或恢复中的 phase Executor 以 `state.mjs init <date-slug>` 或
-`state.mjs next <date-slug>` 作为第一个 deterministic action。
-
-state 始终为 v2；`publish.blog` 与 `publish.wechat` 可独立恢复。Step 0 是 Main 的 planning
-checkpoint，不是 standalone execution context；成功条件是 phase Executor 让 state 存在或可读取，
-并返回唯一下一 unit。
-
-### Durable checkpoints
-
-`last_complete_step` 是 phase-level durable checkpoint。Step 1 只有在 materials、Primary Source
-Uniqueness、site memory、understanding brief 和 understanding validator 全部通过后才完成；Step 1
-collector 只返回 Gate result，不推进 durable state。Step 2 保留为 Draft 的 intermediate checkpoint，
-Step 3 才表示 Writing phase 完成。
+State remains v2. `.pipeline-state.json` is business state only: do not add agent, thread,
+context, token, handoff, or execution telemetry. `last_complete_step` remains the durable
+checkpoint; `publish.blog` and `publish.wechat` remain independently resumable.
 
 ## Workflow
 
-逻辑 unit 是责任边界，不是固定 Agent 数量。默认按 phase 创建一个 isolated Executor，在同一
-phase 内按顺序连续完成紧密 unit；producer 在返回 Main 前运行紧随其后的 deterministic Gate。
-Gate 仍然保留，Gate 不等于新 Agent。只有 ownership、context domain 或 recovery boundary 真的
-不同，才创建新的 Executor；失败重试仍遵守 delegated-execution 中的 local repair / fresh retry
-边界。每个 unit 使用精简 capsule，并只返回短 handoff。
+### Step 1 — Primary source and background research
 
-| Step | Main decides | Execution Unit / Skill | Output | Gate |
-|---|---|---|---|---|
-| 0 | strategy、新建或恢复 | planning checkpoint；由第一个 phase Executor 承担 state preflight | state v2 | state readable、唯一 next unit |
-| 1–1.8 | research scope、source uniqueness、central judgement | **Research + Understanding phase Executor**：`research` / `blog-memory` / `understanding`；默认复用 context，允许 compaction rehydration | `materials.md`、memory artifacts、`understanding-brief.md` | Step 1、source uniqueness、understanding validator |
-| 2–3 | thesis、draft、humanization | **Writing phase Executor**：`draft` → mandatory `humanizer-zh`；默认复用 context，允许 compaction rehydration | `draft.md` | Step 2、Step 3 + hash |
-| 4 | semantic visual nodes、serial order | **Visual phase Executor**：fixed ownership，serial review ≠ serial spawn | cover、body images、`image-plan.json` | Step 4 |
-| 5 | build progression | 一个 Build phase Executor：hosting、prepare、`gzh-design`、finalize | three tracks | Step 5 parity/structure |
-| 6 | publish progression | 一个 Publish phase Executor：blog、WeChat prepare/publish/finalize | publish states | blog first、state |
+Main reads and understands the primary source directly: its claims, evidence, facts, interpretations,
+opinions, boundaries, and obvious problems. A research child may retrieve only supporting background
+evidence and must not replace Main's primary-source understanding.
 
-### Step-specific rules
+Main merges the evidence into `materials.md`, preserving Primary Source provenance and uniqueness.
+For `reader-response` and `news-digest`, `## 原始来源` records the direct writing object and
+`## 背景调研` records supporting evidence. `tutorial` records provenance when a clear external
+primary source exists. Then Main directly runs:
 
-**Step 1**：`reader-response` 与 `news-digest` 必须在 `materials.md` 的 `## 原始来源` 记录直接构成
-本文写作对象的 `url`、`file` 或 `pasted` 材料；`## 背景调研` 只记录 supporting evidence。Tutorial
-仅在确有明确外部原始来源时记录 provenance。Step 1 还必须输出 `primary_source_urls` 摘要。
-
-**Step 1.5**：先做 Primary Source Uniqueness，再做 lexical site memory。same normalized primary
-source 已用于已发布文章时必须 `BLOCKED`，并正常写出 memory diagnostics；没有 bypass flag。Main
-只能停止、更新已有文章，或从多来源任务移除已覆盖 source。高相关站内旧文未被 draft 引用时只
-输出 advisory warning，由 Main 在 Understanding 阶段决定是否联动，不触发 retry。
-
-**Step 1.8**：brief 必须包含核心问题、判断候选、生成机制、约束、反方、边界、可写判断、可视觉化
-节点和至少三条可检查原创增量；通过 `validate-understanding.mjs`。
-
-Research 与 Understanding 属于同一 logical phase。默认复用 context；若 Research 已形成明显的
-compaction boundary，允许 fresh minimal Understanding context，只读取必要 artifacts，不重新获取原始材料。
-`ljg-structure` 默认不调用；只有 Main 能用一句话命名结构缺口（例如“论文同时包含三层反馈回路，当前 brief
-无法形成清晰因果结构”）时才允许调用。
-
-**Step 2**：`materials` = blog-memory checked source set = `draft` `primarySourceUrls`。同源阻断
-不能被 editorial advisory 绕过；`SLOT_IMG_00` 恰好一次，且位于第一个 substantive H2 前。Step 2
-只产生 draft 和 visual topology，不产生最终 `image-plan.json`。
-
-**Step 2–3**：Writing phase 先生成 draft，通过 Step 2，再真实执行 mandatory `humanizer-zh`，通过
-Step 3 和 hash。Step 2 是 Draft 的 intermediate durable checkpoint；恢复到 Step 3 时，`draft.md` 是 frozen input，只执行 humanization recovery，
-不重新生成 Draft，除非 Step 3 diagnostic 明确 reroute 到 Draft owner。
-事实、数字、术语、URL、引语、代码、frontmatter、H2 顺序和 SLOT topology 不得改变；semantic drift 必须用
-frozen input 重派，并通过 `step3-polish.mjs`，记录 `step3_draft_sha256`。
-
-**Step 4**：cover 使用 `baoyu-cover-image` 的等价 `--quick --aspect 2.35:1 --no-title` 参数；SLOT00
-和 generated body visual 使用 `baoyu-infographic` 的等价 `--no-confirm` 参数，每次只处理一个 SLOT。
-source body visual 优先复用合适原图。Visual Coverage、source/generated 选择、SLOT topology 和
-本地文件 Gate 以 `references/image-policy.md` 为准；cover 必须唯一，SLOT00 basename 固定，每个
-body SLOT 恰有一个最终文件；`baoyu-diagram` 仅是按需的 semantic helper。
-
-**Step 5**：Build phase Executor 严格按 `hosting → prepare → gzh-design → finalize`。
-dispatch hosting 前先跑 `step5-build.mjs <slug> --hosting-status`，返回 `FROZEN` 时不得重新委托
-`github-image-hosting`。缺少 image map 时 fail closed；依次产出 `image-map.json`、`article.md` /
-`article-wechat-source.md` 和 `article-wechat.html`，gzh-design 自己运行 native validator/preview，随后
-由同一 Executor 运行 finalize。finalize 只读检查 parity 与 structural/integrity。
-
-如果 finalize 首次报告的是 child-owned structural/integrity failure，当前 Build phase Executor
-不得立即结束；它必须把当前 `article-wechat.html`、冻结的 `article-wechat-source.md` 和完整的
-local diagnostic 交回同一 `gzh-design` owner，执行一次 content-preserving owner-local repair，
-再运行 child validator、preview 和 finalize。owner-local repair 不计入 fresh retry。
-The repair inputs include current `article-wechat.html`, frozen source and the full local diagnostic.
-
-只有 owner-local repair 仍失败，才返回 `RETRY_REQUIRED`；Main 随后最多创建一次 fresh Build phase Executor，
-使用 frozen source 和 bounded diagnostic 从 `gzh-design` 重试。fresh retry 后仍为
-同一 failure class 则 `BLOCKED`，禁止第三次自动 retry 或 theme roulette。若 diagnostic 明确指向
-`article-wechat-source.md`、`draft.md`、`image-plan.json`、上游图片或 freshness 的错误，必须
-`REROUTE` 到真正 owner，不得由 gzh-design 伪造或偷偷修上游 artifact。Main 不读取并手改 child HTML，
-也不加载 child Skill 进行调试。
-
-Recovery contract：
-
-```text
-first child-owned Step 5 failure → current Build Executor → same gzh-design owner → owner-local repair
-failed owner-local repair → RETRY_REQUIRED → fresh Build phase Executor
-fresh retry + same failure class → BLOCKED
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 ```
 
-**Step 6**：严格先 blog，再 WeChat。`blog-publish` 消费 `article.md`；WeChat prepare、child publish
-和 finalize 消费 `article-wechat.html`。push 不等于 Pages deploy，创建草稿不等于群发；两条轨道按
-state v2 独立恢复。
+The collector Gate, source uniqueness, and provenance rules remain unchanged. A repeated primary
+source blocks a new article; supporting references do not count as primary-source matches.
+
+### Step 1.5 — Blog memory
+
+Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs <date-slug>
+```
+
+Main reads `blog-memory.md` and handles duplicate primary sources, related historical articles,
+internal-link opportunities, and recent rhetorical skeletons. Recent-site similarity is advisory;
+primary-source duplication remains blocking.
+
+### Step 1.8 — Understanding
+
+Main creates or updates `understanding-brief.md` using the primary-source model, background evidence,
+blog memory, user intent, and the selected strategy. The brief must preserve the existing contract:
+core question, central judgement, mechanism, constraints, counterarguments, boundaries, writable
+judgements, visualizable nodes, at least three originality increments, and the writing contract.
+
+Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <date-slug>
+```
+
+On failure Main repairs the brief and reruns the Gate. Only missing external evidence justifies
+asking the research child for a targeted supplement.
+
+### Step 2 — Draft
+
+Main directly creates `draft.md` from `materials.md`, `understanding-brief.md`, `blog-memory.md`,
+the selected strategy reference, and the content invariants. Preserve frontmatter, summary,
+`blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles, SLOT topology,
+strategy constraints, and originality requirements.
+
+Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
+```
+
+Gate failure means Main inspects the diagnostic, repairs the draft, and reruns the same Gate.
+
+### Step 3 — Humanization
+
+`humanizer-zh` remains mandatory, but mandatory Skill does not mean mandatory child Agent. Main
+passes the current `draft.md` to `humanizer-zh`, reviews the result, and checks semantic drift,
+facts, numbers, URLs, terminology, H2 order, and SLOT topology. Main may invoke the same Skill
+again for a targeted correction. Main then directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
+```
+
+The Step 3 `step3_draft_sha256` contract remains unchanged. Resuming at Step 3 uses the frozen
+`draft.md` and does not regenerate the draft unless the diagnostic explicitly identifies the draft
+as the owner.
+
+### Step 4 — Visuals
+
+Main plans the cover, `SLOT_IMG_00`, body visual nodes, source-image reuse, generated assets, and
+their semantic purposes from the understanding brief and final draft. Main directly invokes the
+required specialist Skills, inspects each exact final raster, and performs targeted regeneration
+when needed:
+
+- `baoyu-cover-image` for the cover, with the equivalent `--quick --aspect 2.35:1 --no-title` parameters;
+- `baoyu-infographic` for `SLOT_IMG_00` and generated body visuals, with the equivalent `--no-confirm` parameter;
+- `baoyu-diagram` only when a clearly named semantic gap needs it;
+- source images are reused when they are the right evidence and are recorded as `kind: source`.
+
+Main maintains `image-plan.json` and directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
+```
+
+The visual coverage, cover ratio, SLOT00 uniqueness, basename, source/generated facts, and local
+file Gates remain unchanged. See [references/image-policy.md](references/image-policy.md).
+
+### Step 5 — Build
+
+Main directly calls `github-image-hosting` after checking:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
+```
+
+`FROZEN` means the existing `image-map.json` is still valid and hosting must not be repeated.
+When hosting is needed, Main reviews the resulting map and then runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
+```
+
+This produces `article.md` and `article-wechat-source.md`. Main directly invokes `gzh-design` with
+the WeChat source and local `imgs/`; the Skill produces `article-wechat.html`, native validation,
+and preview. The input/output and content-preservation contract is in
+[references/adapter-gzh-design.md](references/adapter-gzh-design.md). Main then directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
+```
+
+The parent structural parity and integrity Gate remains read-only and blocking on errors. On the
+first child-owned structural failure, Main gives the current HTML, frozen source, and bounded
+diagnostic back to the same `gzh-design` Skill for surgical owner-local repair, then reruns native
+validation, preview, and finalize. If the same local failure persists, Main may call `gzh-design`
+once more from the frozen source; a repeated failure class is `BLOCKED`. This is a Skill retry,
+not a new Agent context. Upstream failures are routed back to the owner of the source, draft,
+image plan, image map, or freshness input; gzh-design must not fabricate or patch upstream artifacts.
+
+### Step 6 — Publish
+
+Main directly runs blog publish first:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
+```
+
+The blog track consumes `article.md` and preserves freshness, provenance, Git safety, tracked
+pipeline cleanliness, and publish state. Blog push is not a Pages deployment.
+
+For WeChat, Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --prepare-only
+```
+
+Main then invokes `baoyu-post-to-wechat` with `article-wechat.html`. The Skill owns cover upload,
+body image handling, draft creation, and its API/browser selection. After success Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --finalize-only [--media-id <id>]
+```
+
+Blog and WeChat publish state remain independent and resumable.
+
+## Retry and failure rules
+
+Retry locally before changing context:
+
+- Understanding and draft: Main repairs the artifact and reruns its Gate.
+- Humanization: Main invokes `humanizer-zh` again with the relevant frozen input.
+- Visuals: Main asks the same specialist Skill for targeted regeneration.
+- Step 5: Main uses `gzh-design` owner-local repair before any frozen-source rebuild; the same
+  failure class twice is `BLOCKED`.
+- Publish: Main retries only the failed blog or WeChat operation.
+- Research: Main asks the research child only for missing or conflicting evidence.
+
+Do not bypass a Gate, edit an owned specialist artifact to hide a failure, or introduce a new
+context merely because a Step changed, a Gate failed, a file was materialized, a deterministic
+script ran, a visual was generated, or a retry is needed. Runtime context recovery is an exceptional
+runtime concern, not a normal workflow contract.
 
 ## Fixed Specialist ownership
 
-以下 routing 是 workflow 的固定 ownership，不得由 Main、generic tool 或其它 Skill 替代；不可用、
-依赖缺失或失败时停留在当前 unit 并 fail closed。
+These Skills remain mandatory at their capability boundary; Main invokes and reviews them directly:
 
-| Capability | Delegated Executor → Specialist |
+| Capability | Main invokes |
 |---|---|
-| humanization / Step 3 | `humanization` → `humanizer-zh` |
-| cover | `cover` → `baoyu-cover-image` |
-| SLOT00 | `SLOT00` → `baoyu-infographic` |
-| generated body visual | `generated body visual` → `baoyu-infographic` |
-| image hosting / Step 5A | `hosting` → `github-image-hosting` |
-| WeChat layout / Step 5B | `wechat-layout` → `gzh-design` |
-| WeChat publish | `wechat-publish` → `baoyu-post-to-wechat` |
+| humanization / Step 3 | `humanizer-zh` |
+| cover | `baoyu-cover-image` |
+| SLOT00 | `baoyu-infographic` |
+| generated body visual | `baoyu-infographic` |
+| image hosting / Step 5A | `github-image-hosting` |
+| WeChat layout / Step 5B | `gzh-design` |
+| WeChat publish | `baoyu-post-to-wechat` |
 
-Research、Understanding、Draft、source visual 和 `baoyu-diagram` 默认不调用 optional Skill；只有
-Main 能用一句话命名当前缺口时，才按实际缺口选择匹配 Skill。每个 phase 默认 0 个 optional Skill，
-不建立 catalog。Specialist-specific
-preferences are owned by the Specialist Skill and its own configuration。
+Specialist Skills own their professional workflows and configuration. Main must not replace a
+mandatory Skill with a generic imitation, but Skill invocation still leaves Main as the workflow owner.
 
 ## References
 
-按需加载，不预读全部 reference：
+Read only the references needed for the current work:
 
-| Phase | 主要 reference |
+| Work | Reference |
 |---|---|
-| Main / routing | `delegated-execution.md`、当前 strategy |
-| Understanding | `material-understanding.md`、`originality-policy.md` |
-| Draft / Build | `content-invariants.md`、`publishing.md` |
-| Visual | `image-policy.md` |
-| WeChat layout | `adapter-gzh-design.md` |
-| Recovery | `troubleshooting.md` |
+| background research delegation | `research-delegation.md` |
+| understanding and originality | `material-understanding.md`, `originality-policy.md` |
+| draft/build invariants | `content-invariants.md`, `publishing.md` |
+| visual planning and review | `image-policy.md` |
+| WeChat layout and repair | `adapter-gzh-design.md` |
+| Gate recovery | `troubleshooting.md` |
+| strategy | the selected `strategy-*.md` |
 
-`scripts/source-provenance-lib.mjs` 只在需要核对 primary source identity 时加载。
+The deterministic scripts preserve state v2, provenance, source uniqueness, understanding and
+content Gates, Step 3 hash, visual coverage, Step 4, Step 5 parity/integrity, and publish freshness.

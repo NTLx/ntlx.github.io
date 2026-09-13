@@ -46,32 +46,35 @@ describe("pipeline advisory CLI", () => {
     expect(result.status, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain("baoyu-post-to-wechat");
     expect(result.stdout).toContain("--prepare-only");
-    expect(result.stdout).toContain("Publish phase executor (default: one isolated context):");
-    expect(result.stdout).toContain("Run these ordered units in one phase executor by default.");
-    expect(result.stdout).not.toContain("Worker");
+    expect(result.stdout).toContain("ACTION: Main executes publishing directly.");
+    expect(result.stdout).toContain("baoyu-post-to-wechat with article-wechat.html");
+    expect(result.stdout).not.toContain("phase executor");
+    expect(result.stdout).not.toContain("MODEL CONTEXT");
     expect(readFileSync(join(fixture.postDir, ".pipeline-state.json"), "utf8")).toBe(before);
   });
 
-  test("groups build units into one phase executor", () => {
+  test("reports direct Main build actions and required Specialists", () => {
     const fixture = makeFixture(4, { blog: "pending", wechat: "pending" });
     cleanup.push(fixture.root);
     const result = run(fixture);
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
-    expect(result.stdout).toContain("Build phase executor (default: one isolated context):");
+    expect(result.stdout).toContain("ACTION: Main executes this workflow directly.");
+    expect(result.stdout).toContain("REQUIRED SPECIALIST: github-image-hosting / gzh-design");
     expect(result.stdout).toContain("github-image-hosting");
     expect(result.stdout).toContain("gzh-design");
-    expect(result.stdout).toContain("step5-build --finalize-only");
+    expect(result.stdout).toContain("step5-build.mjs");
+    expect(result.stdout).toContain("--finalize-only");
     expect(result.stdout).not.toContain("build-prepare");
     expect(result.stdout).not.toContain("wechat-layout");
   });
 
-  test("reports the five logical phases without one context per unit", () => {
+  test("reports direct Main actions for each resumable step", () => {
     const cases = [
-      [0, "Research", ["source acquisition", "understanding brief"]],
-      [1, "Writing", ["MODE: full", "draft", "humanizer-zh"]],
-      [2, "Writing", ["MODE: humanization recovery", "reuse frozen draft.md", "humanizer-zh"]],
-      [3, "Visual", ["cover", "image-plan.json"]],
+      [0, "Step 1 / 1.5 / 1.8", ["Main reads the primary source directly", "understanding-brief.md"]],
+      [1, "Step 2 / 3", ["MODE: full", "draft.md", "humanizer-zh"]],
+      [2, "Step 3", ["MODE: humanization recovery", "reuse frozen draft.md", "humanizer-zh"]],
+      [3, "Step 4", ["cover", "image-plan.json"]],
     ];
     for (const [lastCompleteStep, phase, units] of cases) {
       const fixture = makeFixture(lastCompleteStep, { blog: "pending", wechat: "pending" });
@@ -79,11 +82,11 @@ describe("pipeline advisory CLI", () => {
       const result = run(fixture);
 
       expect(result.status, result.stderr || result.stdout).toBe(0);
-      expect(result.stdout).toContain(`NEXT PHASE: ${phase}`);
-      expect(result.stdout).toContain(`${phase} phase executor (default: one isolated context):`);
+      expect(result.stdout).toContain(`NEXT STEP: ${phase}`);
+      expect(result.stdout).toContain("ACTION: Main executes this workflow directly.");
       for (const unit of units) expect(result.stdout).toContain(unit);
-      expect(result.stdout).toContain("NEW CHILD THREADS:");
-      expect(result.stdout).toContain("deterministic units");
+      expect(result.stdout).not.toContain("phase executor");
+      expect(result.stdout).not.toContain("MODEL CONTEXT");
     }
   });
 
@@ -110,8 +113,8 @@ describe("pipeline advisory CLI", () => {
     const result = run(fixture);
 
     expect(result.status, result.stderr || result.stdout).toBe(0);
-    expect(result.stdout).toContain("NEXT PHASE: Research");
-    expect(result.stdout).not.toContain("NEXT PHASE: Writing");
+    expect(result.stdout).toContain("NEXT STEP: Step 1 / 1.5 / 1.8");
+    expect(result.stdout).not.toContain("NEXT STEP: Step 2 / 3");
   });
 
   test("failed Step 3 also resumes humanization recovery", () => {

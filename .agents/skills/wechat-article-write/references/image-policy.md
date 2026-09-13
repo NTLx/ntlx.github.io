@@ -11,7 +11,7 @@ Source reuse changes visual origin, not whether a semantic visual node exists。
 
 ## Source provenance review
 
-如果正文显式引用 `Figure N`、`Fig. N`、`图 N`、`Table N` 或 `表 N`，assigned visual Executor
+如果正文显式引用 `Figure N`、`Fig. N`、`图 N`、`Table N` 或 `表 N`，Main
 必须逐项核对以下四项：
 
 - source figure/table number；
@@ -50,7 +50,7 @@ reader-response 默认先寻找两个真正独立的 body visual nodes。generat
 
 ## Review and machine Gate
 
-semantic review 由 assigned visual Executor 完成。对 cover、SLOT00 和每个 body visual，Executor
+semantic review 由 Main 完成。对 cover、SLOT00 和每个 body visual，Main
 MUST actual open/render the exact final raster file that downstream will consume before returning
 `GATE: PASS`。final raster 是 `cover.png` / `cover.jpg` 以及 `imgs/` 中最终的 SLOT 文件，不是
 generator preview、prompt、source webpage thumbnail、intermediate file、filename 或 metadata。
@@ -64,12 +64,11 @@ legibility、text density、明显生成瑕疵、裁切和关键信息是否被�
 塞进图，也不能要求读者必须放大才能理解核心信息。source screenshot 若文字偏小但仍有证据价值，
 保留 source image，并在正文指出应关注的局部；只有核心证据无法读清时才换更高清 source 或放弃该 visual。
 
-cover、SLOT00 和 body visuals 在同一个 Visual phase Executor 内按 workflow 顺序 serial review；
-serial review 不等于 serial spawn。当前资产通过后才处理下一张。review
+cover、SLOT00 和 body visuals 由 Main 按 workflow 顺序 serial review；当前资产通过后才处理下一张。review
 失败只改变该节点的 source 或生成结果，不删除语义节点，也不以装饰性评分替代 deterministic Gate。
-如果当前 delegated visual execution context 无法实际 render/view 最终 raster，该 visual unit 必须
-`BLOCKED`，不得标记 `PASS`；应 reroute 到具备视觉能力的 isolated Executor。可返回的短 handoff
-例如：`GATE: PASS — final raster visually inspected`。无需持久化 review receipt、截图日志或其它新 artifact。
+如果 Main 无法实际 render/view 最终 raster，该 visual unit 必须 `BLOCKED`，不得标记 `PASS`。
+可记录的短结果例如：`GATE: PASS — final raster visually inspected`。无需持久化 review receipt、
+截图日志或其它新 artifact。
 
 `step4-images.mjs` 只做 deterministic machine Gate：root cover uniqueness、MIME/扩展名、cover
 ratio、SLOT00 basename、normal long-form minimum body visual coverage、body SLOT ↔
