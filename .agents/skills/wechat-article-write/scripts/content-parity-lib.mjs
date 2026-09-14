@@ -105,6 +105,54 @@ export function splitBlockFragments(block) {
 }
 
 /**
+ * Mask multiline HTML comments before Markdown block extraction while preserving
+ * offsets and fenced-code contents. Internal pipeline metadata such as
+ * ORIGINALITY_CHECK must not become publishable prose or parity requirements.
+ */
+function maskHtmlCommentsOutsideFences(body) {
+  const lines = String(body ?? "").match(/[^\r\n]*(?:\r?\n|$)/gu) ?? [];
+  let inFence = false;
+  let inComment = false;
+  return lines.map((rawLine) => {
+    const newline = rawLine.match(/\r?\n$/u)?.[0] ?? "";
+    const line = newline ? rawLine.slice(0, -newline.length) : rawLine;
+    if (!inComment && /^\s*```/u.test(line)) {
+      inFence = !inFence;
+      return rawLine;
+    }
+    if (inFence) return rawLine;
+
+    let masked = "";
+    let cursor = 0;
+    while (cursor < line.length) {
+      if (inComment) {
+        const close = line.indexOf("-->", cursor);
+        if (close < 0) {
+          masked += " ".repeat(line.length - cursor);
+          cursor = line.length;
+          continue;
+        }
+        masked += " ".repeat(close + 3 - cursor);
+        cursor = close + 3;
+        inComment = false;
+        continue;
+      }
+      const open = line.indexOf("<!--", cursor);
+      if (open < 0) {
+        masked += line.slice(cursor);
+        cursor = line.length;
+        continue;
+      }
+      masked += line.slice(cursor, open);
+      masked += " ".repeat(4);
+      cursor = open + 4;
+      inComment = true;
+    }
+    return masked + newline;
+  }).join("");
+}
+
+/**
  * Extract paragraphs, list items and code blocks together with the substantive
  * section each belongs to. Each protected code fence remains one literal
  * sequence so its syntax and line order are checked as a unit. Section indices
@@ -112,7 +160,7 @@ export function splitBlockFragments(block) {
  * substantive H2.
  */
 export function extractSubstantiveMarkdownBlockEntries(markdown) {
-  const body = extractBody(markdown);
+  const body = maskHtmlCommentsOutsideFences(extractBody(markdown));
   const sections = collectSubstantiveSections(body);
   const sectionIndexAt = (offset) => sections.filter((section) => section.start <= offset).length;
   const entries = [];

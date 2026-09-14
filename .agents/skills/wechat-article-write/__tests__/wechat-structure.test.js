@@ -61,6 +61,12 @@ describe("validateWechatStructuralParity", () => {
     expect(result.ok).toBe(true);
   });
 
+  test("ignores multiline HTML metadata comments while preserving fenced code", () => {
+    const sourceMarkdown = `---\ntitle: 注释测试\n---\n\n## A\n\n正文内容。\n\n<!-- ORIGINALITY_CHECK\n- 内部判断，不是正文。\n- 另一条内部判断。\n-->\n\n\`\`\`text\n<!-- 代码中的字面注释必须保留 -->\n\`\`\`\n`;
+    const rendered = '<section><h2>A</h2><p>正文内容。</p><pre><code>&lt;!-- 代码中的字面注释必须保留 --&gt;</code></pre></section>';
+    expect(validateWechatStructuralParity(sourceMarkdown, rendered).ok).toBe(true);
+  });
+
   test("rejects theme placeholder text replacing source-visible content", () => {
     const sourceMarkdown = `---\ntitle: 正文保护\n---\n\n## A\n\n真实正文必须保留。`;
     const themedHtml = '<section><p><span leaf="">A</span></p><p>关键词占位符</p></section>';
