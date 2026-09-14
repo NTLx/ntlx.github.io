@@ -69,6 +69,7 @@ for (const rel of [
   "scripts/step1-collect.mjs", "scripts/step2-write.mjs", "scripts/step3-polish.mjs",
   "scripts/step4-images.mjs", "scripts/step5-build.mjs", "scripts/state.mjs", "scripts/state-lib.mjs",
   "scripts/pipeline.mjs", "scripts/validate-understanding.mjs",
+  "scripts/validate-claims.mjs", "scripts/claim-ledger-lib.mjs",
   "scripts/markdown-structure-lib.mjs", "scripts/source-provenance-lib.mjs",
 ]) requireFile(rel);
 
@@ -93,6 +94,25 @@ const directSkillRoutes = [
 for (const [unit, specialist] of directSkillRoutes) {
   const route = skillText.split("\n").find((line) => line.includes(`| ${unit} |`));
   if (!route || !route.includes(specialist)) errors.push(`Main route missing: ${unit} → ${specialist}`);
+}
+
+// On-demand understanding candidates are a closed, validated list, deliberately absent from
+// Fixed Specialist ownership: that table means "mandatory unique owner", which optional
+// candidates must not claim. Adding them there would fake a hard dependency and contradict
+// AGENTS.md, which forbids research/writing catalogs while permitting this closed list.
+const understandingCandidates = ["ljg-structure", "ljg-paper", "ljg-constraint"];
+const understandingContract = read("references/material-understanding.md");
+if (!skillText.includes("on-demand understanding candidates")) {
+  errors.push("SKILL.md must name the closed on-demand understanding candidate list");
+}
+for (const candidate of understandingCandidates) {
+  if (!skillText.includes(candidate)) errors.push(`SKILL.md must name understanding candidate: ${candidate}`);
+  if (!understandingContract.includes(candidate)) {
+    errors.push(`material-understanding.md must name understanding candidate: ${candidate}`);
+  }
+  if (!existsSync(resolve(skillsRoot, candidate, "SKILL.md"))) {
+    warnings.push(`optional understanding candidate unavailable: ${candidate}`);
+  }
 }
 
 const baoyuSkillsRoot = resolve(repoRoot, ".baoyu-skills");
@@ -238,6 +258,11 @@ const contentClaudeAdapterPath = resolve(repoRoot, "src/content/CLAUDE.md");
 const legacyGovernancePath = resolve(repoRoot, ".agents", "AGENTS.md");
 if (!existsSync(governancePath) || !readFileSync(governancePath, "utf8").includes("唯一共享权威源")) {
   errors.push("AGENTS.md must be the shared canonical governance source");
+}
+// The closed understanding list is a governance rule, not a local preference; pin its wording so
+// the rule cannot be quietly dropped while the code check stays green.
+if (!existsSync(governancePath) || !readFileSync(governancePath, "utf8").includes("按需候选清单")) {
+  errors.push("AGENTS.md must pin the closed understanding candidate rule");
 }
 for (const [path, expected] of [[claudeAdapterPath, "@AGENTS.md"], [contentClaudeAdapterPath, "@AGENTS.md"]]) {
   if (!existsSync(path) || readFileSync(path, "utf8").trim() !== expected) errors.push(`thin governance adapter invalid: ${path}`);

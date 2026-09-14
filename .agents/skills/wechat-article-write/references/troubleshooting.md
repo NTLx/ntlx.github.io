@@ -18,6 +18,8 @@ owner，不能让 gzh-design 或其它 Skill 代修。
 | Step 1 证据缺口 | 按策略判断：tutorial 本地证据充分可继续；reader-response 缺背景是 warning；news-digest 补外部核验；需要时使用 research child |
 | Step 2 H2/frontmatter 失败 | Main 修复 draft/content invariants → Step 2 Gate |
 | Step 3 hash 不新鲜 | Main 调用 `humanizer-zh` → frozen draft → Step 3 Gate |
+| Step 3 账本覆盖失败 | 改写未覆盖的主张，或在 `understanding-brief.md` 账本登记来源片段 / derived / rhetoric → 只重跑 `validate-claims.mjs` → Step 3 Gate；不得重跑 Step 1.8 的 understanding Gate |
+| Step 3 账本缺失或行不合法 | 回 Step 1.8 补 `## 允许援引的事实`（每行必须带来源片段、derived 或 rhetoric）→ 仅在真正退回 Step 1.8 时才重跑 `validate-understanding.mjs` |
 | Step 4 缺图、比例或 source 不一致 | Main 调用对应 visual Skill → `visual-draft.md` / 最终本地 raster → Step 4 Gate |
 | Step 4 visual-draft 文字漂移 | 从冻结 `draft.md` 干净副本重新集成图片，交回同一视觉 Skill → Step 4 Gate |
 | Step 4 重复初始化 | ALREADY_INITIALIZED / RESUME_EXISTING 保留已有 artifact 与 state；核对 freshness 后继续 |

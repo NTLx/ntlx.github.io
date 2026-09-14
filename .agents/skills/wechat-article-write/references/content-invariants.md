@@ -53,6 +53,12 @@ Step 3 Gate 将最终 draft SHA256 写入 state。当前 draft hash 改变就重
 交给 Humanizer；完成后 Main 对照调用前内容检查，漂移处交回同一 Skill 定点恢复。Step 3 hash
 只证明下游使用同一份最终 draft，不证明润色前后事实一致，也不替代这次内容审阅。
 
+事实基线不在 draft 内部：漂移检查以润色前的 `draft.md` 为基准，因此无法发现「写进 draft 时
+就没有来源支持」的主张。冻结前必须把 `draft.md` 的正文、标题和 frontmatter `summary` 与
+`understanding-brief.md` 的事实账本对账，由 `validate-claims.mjs` 检查覆盖：账本之外的可证伪
+主张（数量、时长、倍数、时间线、状态承诺、反事实基线、跨源同一性）只能改写或先登记来源片段。
+该 Gate 证明覆盖、不证明真假，来源核对仍是 Main 的责任。
+
 ## Site memory and originality
 
 Step 1.5 必须执行站内检索。写作时自然消费相关旧文，若无合适内容明确说明。原创增量、近期文章形式差异和策略例外以 `references/originality-policy.md` 与 `references/strategy-*.md` 为准。

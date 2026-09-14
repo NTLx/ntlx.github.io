@@ -50,6 +50,7 @@ if (step === 2) {
     "draft.md: complete text without Markdown image nodes",
     "Step 2 Gate",
     "humanizer-zh",
+    "ledger coverage Gate: validate-claims.mjs before the draft hash",
     "Step 3 Gate and draft hash",
   ], { mode: "full", specialist: "humanizer-zh" });
   process.exit(0);
@@ -59,6 +60,7 @@ if (step === 3) {
   printStep("Step 3 — humanization recovery", [
     "reuse frozen draft.md",
     "humanizer-zh",
+    "validate-claims.mjs before the draft hash",
     "Step 3 Gate and draft hash",
     "do not regenerate draft or rerun Step 2 production",
   ], { mode: "humanization recovery", specialist: "humanizer-zh" });

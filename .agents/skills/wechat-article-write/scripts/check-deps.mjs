@@ -10,7 +10,7 @@ const args = process.argv.slice(2);
 const json = args.includes("--json");
 const stageIndex = args.indexOf("--stage");
 const stage = stageIndex >= 0 ? args[stageIndex + 1] ?? "all" : "all";
-const stages = new Set(["all", "architecture", "research", "writing", "images", "build", "publish"]);
+const stages = new Set(["all", "architecture", "research", "understanding", "writing", "images", "build", "publish"]);
 if (!stages.has(stage)) {
   process.stderr.write(`check-deps: unknown stage ${stage}\n`);
   process.exit(1);
@@ -46,6 +46,18 @@ if (stage === "all" || stage === "architecture") {
 for (const [stageName, names] of Object.entries(directSpecialists)) {
   if (stage === "all" || stage === stageName) {
     for (const name of names) requirePath(`.agents/skills/${name}/SKILL.md`);
+  }
+}
+
+// On-demand understanding candidates are advisory, not blocking: they are optional by contract
+// (`no-skill` is a legal outcome) and are third-party skills updated out of band, so a missing
+// candidate must warn rather than fail the workflow.
+const understandingCandidates = ["ljg-structure", "ljg-paper", "ljg-constraint"];
+if (stage === "all" || stage === "understanding") {
+  for (const name of understandingCandidates) {
+    if (!existsSync(resolve(root, `.agents/skills/${name}/SKILL.md`))) {
+      warnings.push(`optional understanding candidate unavailable: ${name}`);
+    }
   }
 }
 

@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.5.0"
+  version: "4.6.0"
 ---
 
 # 微信公众号文章写作
@@ -107,10 +107,25 @@ primary-source duplication remains blocking.
 Before writing, read [references/material-understanding.md](references/material-understanding.md)
 and [references/originality-policy.md](references/originality-policy.md).
 Main creates or updates `understanding-brief.md` using the primary-source model, background evidence,
-blog memory, user intent, and the selected strategy. The brief covers evidence, a central judgement or engineering objective, boundaries, and how those
+blog memory, user intent, and the selected strategy. The brief covers evidence, a central judgement or engineering objective, boundaries, the source-derived fact ledger, and how those
 findings guide the article. Match its depth and headings to the strategy. Main reviews actual
 understanding and reader value; the Gate checks nonempty content domains without imposing visual
 nodes, an originality count, or a fixed seven-section template.
+
+Understanding stays Main's own work: Main reads and understands the primary source directly, and a
+research child must not replace Main's primary-source understanding. When a specific cognitive gap
+needs a structured method, the only on-demand understanding candidates are `ljg-structure` (supports
+`read-only` and writes no file), `ljg-paper`, and `ljg-constraint`. Candidates are optional;
+`no-skill` stays legal, every candidate output still passes Main's second judgement, and the closed
+list governs new invocations rather than candidate credits already recorded in existing briefs. Do
+not grow this into an open capability catalog: adding or removing a candidate means updating
+[references/material-understanding.md](references/material-understanding.md) and the architecture
+check together.
+
+The brief must also carry `## 允许援引的事实`, the source-derived fact ledger defined in
+[references/material-understanding.md](references/material-understanding.md). It is the only
+allowlist for dimensioned facts, state commitments, counterfactual baselines, and cross-source
+identity claims.
 
 Main directly runs:
 
@@ -144,7 +159,26 @@ Gate failure means Main inspects the diagnostic, repairs the draft, and reruns t
 `humanizer-zh` remains mandatory, but mandatory Skill does not mean mandatory child Agent. Main
 passes the current `draft.md` to `humanizer-zh`, reviews the result, and checks semantic drift,
 facts, numbers, URLs, names, quotations, code, key judgements, and H2 order. Main may invoke the same Skill
-again for a targeted correction. Main then directly runs:
+again for a targeted correction.
+
+Drift review compares the humanized draft with the pre-humanization draft, so it cannot detect a
+claim that was already unsupported when the draft was written. Before freezing the text, reconcile
+every falsifiable claim in `draft.md` — including the frontmatter `summary`, which becomes the
+published `description` — against the source-derived fact ledger in `understanding-brief.md`.
+Main directly runs:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/validate-claims.mjs <date-slug>
+```
+
+Only claims registered with an exact source span, an explicit `derived` derivation, or an explicit
+`rhetoric` marker may carry a dimensioned fact, a state commitment, a counterfactual baseline, or a
+cross-source identity claim. An uncovered claim is repaired by rewriting it, or by registering its
+source span in the ledger. The check proves coverage, not truth, and Main still owns the
+reconciliation. After a ledger edit rerun `validate-claims.mjs` only — do not rerun the Step 1.8
+validator, which would move `last_complete_step` back to 1.
+
+Main then directly runs:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>

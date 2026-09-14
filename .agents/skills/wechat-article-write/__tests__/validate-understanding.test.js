@@ -59,6 +59,9 @@ const validBrief = `# Understanding Brief
 - 逐条落实一个作者的独立判断。
 - 连接一条外部证据与材料。
 - 给出一个读者可执行的后续行动。
+
+## 允许援引的事实
+- 恢复耗时数天 ← "the recovery took days"（原文）
 `;
 
 describe("understanding brief Gate", () => {
@@ -115,7 +118,7 @@ describe("understanding brief Gate", () => {
   test("tutorial accepts engineering sections without title, visual nodes or originality count", () => {
     const fx = fixture();
     cleanup.push(fx.root);
-    const brief = "## 验证证据\n本地复现日志确认预期输出。\n## 工程目标\n让读者复现环境配置。\n## 适用范围\n仅适用于已验证的版本。\n## 工程步骤\n按配置、运行、检查结果的顺序说明。\n";
+    const brief = "## 验证证据\n本地复现日志确认预期输出。\n## 工程目标\n让读者复现环境配置。\n## 适用范围\n仅适用于已验证的版本。\n## 工程步骤\n按配置、运行、检查结果的顺序说明。\n## 允许援引的事实\n本项目不产生外部可证伪断言，理由见适用范围。\n";
     writeFileSync(join(fx.dir, "understanding-brief.md"), brief);
     writeState(fx.dir, 0, "tutorial");
     const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
@@ -128,12 +131,36 @@ describe("understanding brief Gate", () => {
   test("reader-response accepts a compact brief with one writing application", () => {
     const fx = fixture();
     cleanup.push(fx.root);
-    writeFileSync(join(fx.dir, "understanding-brief.md"), "### 证据\n原文记录了失败和恢复过程。\n### 中心判断\n恢复能力决定流程可靠性。\n### 边界\n只讨论可重试操作。\n### 写作应用\n用一次失败后的恢复过程解释判断。\n");
+    writeFileSync(join(fx.dir, "understanding-brief.md"), "### 证据\n原文记录了失败和恢复过程。\n### 中心判断\n恢复能力决定流程可靠性。\n### 边界\n只讨论可重试操作。\n### 写作应用\n用一次失败后的恢复过程解释判断。\n### 允许援引的事实\n恢复耗时数天 ← \"recovery took days\"（原文）\n");
     writeState(fx.dir);
     const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
       cwd: REPO_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root }, encoding: "utf8",
     });
     expect(result.status, result.stderr || result.stdout).toBe(0);
+  });
+
+  test("requires the fact ledger as a content area", () => {
+    const fx = fixture();
+    cleanup.push(fx.root);
+    writeFileSync(join(fx.dir, "understanding-brief.md"), validBrief.replace("## 允许援引的事实\n- 恢复耗时数天 ← \"the recovery took days\"（原文）\n", ""));
+    writeState(fx.dir);
+    const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
+      cwd: REPO_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root }, encoding: "utf8",
+    });
+    expect(result.status).toBe(2);
+    expect(JSON.parse(result.stdout).errors[0]).toMatch(/允许援引的事实/);
+  });
+
+  test("fails when the ledger heading exists but its body is empty", () => {
+    const fx = fixture();
+    cleanup.push(fx.root);
+    writeFileSync(join(fx.dir, "understanding-brief.md"), validBrief.replace("- 恢复耗时数天 ← \"the recovery took days\"（原文）\n", ""));
+    writeState(fx.dir);
+    const result = spawnSync("bun", ["run", SCRIPT, fx.slug, "--json"], {
+      cwd: REPO_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: fx.root }, encoding: "utf8",
+    });
+    expect(result.status).toBe(2);
+    expect(JSON.parse(result.stdout).errors[0]).toMatch(/允许援引的事实/);
   });
 
 });

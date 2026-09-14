@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadState, markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postDir } from "./path-resolver.mjs";
+import { contentSections, LEDGER_HEADINGS } from "./claim-ledger-lib.mjs";
 
 const args = process.argv.slice(2);
 const slug = args.find((arg) => !arg.startsWith("--"));
@@ -29,25 +30,11 @@ const areas = [
   { name: "中心判断", headings: /中心|核心判断|central|thesis/i },
   { name: "边界", headings: /边界|适用范围|局限|boundar|limitation|scope/i },
   { name: "写作应用", headings: /可写成正文|写作契约|写作应用|writing|application/i },
+  { name: "允许援引的事实", headings: LEDGER_HEADINGS },
 ];
 if (strategy === "tutorial") {
   areas[1].headings = /中心|核心判断|工程目标|教程目标|目标与预期|central|thesis|objective/i;
   areas[3].headings = /可写成正文|写作契约|写作应用|工程步骤|操作步骤|验证流程|writing|application|procedure/i;
-}
-
-function contentSections(text) {
-  const sections = [];
-  let section;
-  for (const line of text.split(/\r?\n/)) {
-    const heading = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
-    if (heading) {
-      section = { heading: heading[1], body: "" };
-      sections.push(section);
-    } else if (section) {
-      section.body += line + "\n";
-    }
-  }
-  return sections;
 }
 
 function fail(message) {

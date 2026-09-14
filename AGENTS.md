@@ -111,7 +111,12 @@ path-scoped 文件和 Skill reference；本文件只导航，不复制它们的�
   修改源码；更新版本不受此限制。
 - `wechat-article-write/SKILL.md` 是写作步骤和固定业务委托的唯一来源；它依赖的第三方 Skill
   由 `check-deps.mjs` 检查，第三方 Skill 的行为、参数和配置仍以其自身文档及项目配置为准。
-  不维护父 Skill 的 research、understanding 或 writing 能力目录。
+  不维护父 Skill 的 research 或 writing 能力目录，也不维护**开放**的 understanding 能力目录：
+  understanding 只允许一个封闭的按需候选清单（`ljg-structure`、`ljg-paper`、`ljg-constraint`），
+  由 `validate-architecture.mjs` 校验、`check-deps.mjs --stage understanding` 以 warning 探活；
+  候选是可选项，缺失不阻断工作流，`no-skill` 仍是合法结果。新增或移除候选必须同时修改
+  `validate-architecture.mjs` 与该清单在 `SKILL.md`、`material-understanding.md` 中的文本，
+  不能只改一处。
 
 ### Orchestration and verification
 
