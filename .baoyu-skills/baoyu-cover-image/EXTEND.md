@@ -23,6 +23,6 @@ custom_palettes:
       primary: ["#FF5A36", "#1769FF", "#18B979"]
       background: "#FFFDF8"
       accents: ["#FFD166", "#F25F8A"]
-    decorative_hints: "Clean background, crisp shapes, clear visual hierarchy, warm-positive energy"
+    decorative_hints: "Bright, vivid, high-saturation and high-contrast; clean uncluttered background; crisp well-defined shapes; warm-positive energy."
     best_for: "WeChat article covers and AI engineering articles"
 ---

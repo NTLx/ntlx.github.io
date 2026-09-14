@@ -20,14 +20,18 @@ function parseFrontmatter(text) {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/u);
   const result = {};
   if (!match) return result;
-  let inMetadata = false;
+  let block = null;
   for (const line of match[1].split(/\r?\n/u)) {
     const item = line.match(/^(\s*)([\w-]+):\s*(.*)$/u);
     if (!item) continue;
     const [, indent, key, raw] = item;
-    if (indent.length === 0) inMetadata = key === "metadata" && raw === "";
-    else if (inMetadata) result[`metadata.${key}`] = raw.replace(/^['"]|['"]$/gu, "");
-    if (indent.length === 0) result[key] = raw.replace(/^['"]|['"]$/gu, "");
+    const value = raw.replace(/^['"]|['"]$/gu, "");
+    if (indent.length === 0) {
+      block = raw === "" ? key : null;
+      result[key] = value;
+    } else if (block) {
+      result[`${block}.${key}`] = value;
+    }
   }
   return result;
 }
@@ -91,11 +95,60 @@ for (const [unit, specialist] of directSkillRoutes) {
   if (!route || !route.includes(specialist)) errors.push(`Main route missing: ${unit} → ${specialist}`);
 }
 
-for (const specialist of ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator"]) {
-  const configPath = resolve(repoRoot, ".baoyu-skills", specialist, "EXTEND.md");
-  const config = existsSync(configPath) ? parseFrontmatter(readFileSync(configPath, "utf8")) : {};
-  if (config.preferred_image_backend !== "baoyu-image-gen") {
-    errors.push(`${specialist} project preferred_image_backend must be baoyu-image-gen`);
+const baoyuSkillsRoot = resolve(repoRoot, ".baoyu-skills");
+const baoyuConfig = (specialist) => {
+  const configPath = resolve(baoyuSkillsRoot, specialist, "EXTEND.md");
+  return existsSync(configPath) ? readFileSync(configPath, "utf8") : "";
+};
+// Project visual preferences are pinned policy: the three raster owners keep the documented
+// palette, style, and backend so every generated image shares one project tone.
+const requirePreferences = (specialist, preferences) => {
+  const config = parseFrontmatter(baoyuConfig(specialist));
+  for (const [key, expected] of Object.entries(preferences)) {
+    if (config[key] !== expected) errors.push(`${specialist} project ${key} must be ${expected}`);
+  }
+};
+
+requirePreferences("baoyu-cover-image", {
+  version: "3",
+  preferred_palette: "bright-vivid-warm",
+  preferred_text: "none",
+  preferred_mood: "bold",
+  default_aspect: "2.35:1",
+  quick_mode: "true",
+  language: "zh",
+  preferred_image_backend: "baoyu-image-gen",
+});
+if (!/^custom_palettes:[\s\S]*?name:\s*bright-vivid-warm\s*$/mu.test(baoyuConfig("baoyu-cover-image"))) {
+  errors.push("baoyu-cover-image project custom_palettes must define bright-vivid-warm");
+}
+requirePreferences("baoyu-infographic", {
+  version: "1",
+  preferred_style: "claymation",
+  preferred_aspect: "landscape",
+  language: "zh",
+  preferred_image_backend: "baoyu-image-gen",
+});
+requirePreferences("baoyu-article-illustrator", {
+  version: "1",
+  "preferred_style.name": "notion",
+  preferred_palette: "macaron",
+  language: "zh",
+  default_output_dir: "imgs-subdir",
+  generation_batch_size: "1",
+  preferred_image_backend: "baoyu-image-gen",
+});
+
+// Batch generation is opt-in per Skill schema. Absent is fine; present must stay serial so each
+// raster can be reviewed before the next is dispatched.
+for (const entry of existsSync(baoyuSkillsRoot) ? readdirSync(baoyuSkillsRoot, { withFileTypes: true }) : []) {
+  if (!entry.isDirectory()) continue;
+  const configPath = resolve(baoyuSkillsRoot, entry.name, "EXTEND.md");
+  if (!existsSync(configPath)) continue;
+  for (const match of readFileSync(configPath, "utf8").matchAll(/^generation_batch_size:\s*(\S+)\s*$/gmu)) {
+    if (match[1] !== "1") {
+      errors.push(`.baoyu-skills/${entry.name}/EXTEND.md generation_batch_size must remain 1`);
+    }
   }
 }
 const imagePolicy = read("references/image-policy.md");

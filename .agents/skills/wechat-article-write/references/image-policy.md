@@ -3,6 +3,64 @@
 Parent decides whether the overall visual result meets editorial quality; Specialist Skills decide
 the professional visual form inside their owned capability.
 
+## Project-wide generated-image tone
+
+Every generated raster in this workflow MUST inherit the same project-wide art direction regardless
+of the owning visual Skill:
+
+> 明亮、鲜艳、高饱和、高对比；背景干净，边缘清晰，情绪温暖积极。
+
+Canonical prompt form:
+
+> Bright, vivid, high-saturation and high-contrast visual language; clean uncluttered backgrounds;
+> crisp, well-defined edges and shapes; warm and positive emotional tone.
+
+This is an art-direction overlay, not a replacement for the owning Skill's style, palette, layout,
+type, composition, or semantic judgement. Main passes it as an explicit requirement whenever it
+invokes a visual owner, and the owner merges it into the prompt it already owns.
+
+It applies only to generated raster. Reused source figures, screenshots and original evidence images
+are never regenerated or restyled to match it.
+
+Current project defaults:
+
+```text
+Cover
+→ bright-vivid-warm custom palette
+→ bold mood
+
+Lead infographic
+→ claymation
+
+Body illustrations
+→ notion
+→ macaron palette
+
+Raster backend
+→ baoyu-image-gen
+
+Illustrator generation batch size
+→ 1
+```
+
+All three owners generate through `baoyu-image-gen`, and the illustrator renders one image at a
+time so each raster can be reviewed before the next is dispatched.
+
+Precedence when the overlay conflicts with content:
+
+```text
+1. factual / evidence fidelity
+2. semantic clarity
+3. rendered text readability
+4. the owning Skill's structural visual judgement
+5. its configured style / palette
+6. the project-wide bright-vivid-warm tone
+7. decorative richness
+```
+
+Lowering local saturation to keep an infographic label readable is correct; breaking readability to
+satisfy "high saturation" is not.
+
 ## Three visual layers
 
 | Layer | Owner | Final artifact |
@@ -43,10 +101,13 @@ returning `GATE: PASS`. Review the root cover and every referenced local image, 
 source images; a preview, prompt, remote thumbnail, filename, MIME, or successful command does
 not replace inspection. If the runtime cannot view the final raster, that visual unit is `BLOCKED`.
 
-检查 semantic match、中文文字正确性、可读性、构图、裁切、虚构视觉元素和明显生成瑕疵，并判断是否
-确实帮助理解。信息图缩放到典型公众号正文宽度后核心文字仍须可读。Source screenshot 以证据
-真实性为先；核心证据无法读清时更换清晰 source 或放弃该图。生成文字错误交回同一 owner
-定点重新生成，禁止程序化 paint-over；封面、头图、正文插图分别回到各自 Skill。
+检查 semantic match、中文文字正确性、可读性、构图、裁切、虚构视觉元素、明显生成瑕疵和
+project-wide tone coherence（是否明显偏离明亮、鲜艳、高饱和、高对比、背景干净、边缘清晰、
+情绪温暖积极），并判断是否确实帮助理解。信息图缩放到典型公众号正文宽度后核心文字仍须可读。
+Source screenshot 以证据真实性为先；核心证据无法读清时更换清晰 source 或放弃该图。生成文字错误
+或整体调性偏差交回同一 owner 定点重新生成，说明具体问题（过灰暗、饱和度不足、对比过弱、背景杂乱、
+边缘模糊、情绪过冷），并重新附加总体调性；禁止程序化 paint-over，也禁止绕过 owner 直接调用
+backend 重做。封面、头图、正文插图分别回到各自 Skill。
 
 压缩只在最终 raster 过大、下游 size/format rejection、用户要求优化或发布性能需要时调用
 `baoyu-compress-image`，它是唯一压缩 owner。Parent 不直接调用 sips、cwebp、ImageMagick、

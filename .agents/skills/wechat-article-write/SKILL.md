@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.1.0"
+  version: "4.2.0"
 ---
 
 # 微信公众号文章写作
@@ -172,24 +172,48 @@ The visual draft is the only article input Specialists may modify;
 only local Markdown image insertions are allowed. Main supplies article semantics and reviews
 results; the owning Skills decide professional visual form, prompts, and body placement.
 
+For every generated raster in this Step, apply the project-wide visual tone defined in
+`references/image-policy.md`:
+
+```text
+明亮、鲜艳、高饱和、高对比；背景干净，边缘清晰，情绪温暖积极。
+
+Bright, vivid, high-saturation and high-contrast visual language;
+clean uncluttered backgrounds; crisp, well-defined edges and shapes;
+warm and positive emotional tone.
+```
+
+Pass this requirement explicitly to every owning visual Skill. It is an art-direction overlay and
+must not replace that Skill's configured style, palette, layout, type, or semantic judgement, and it
+never applies to reused source figures or screenshots.
+
 1. Invoke `baoyu-cover-image` with the final article, quick mode, aspect `2.35:1`, text `none`,
-   language `zh`, and backend `baoyu-image-gen`. Normalize the chosen raster to exactly one
+   language `zh`, and backend `baoyu-image-gen`. Honor the project EXTEND preferences, including the
+   `bright-vivid-warm` palette and bold mood, and apply the project-wide generated-image tone. The
+   cover Skill still chooses its own type and rendering. Normalize the chosen raster to exactly one
    `cover.png` or `cover.jpg` in the post root.
 2. Invoke `baoyu-infographic` for the lead infographic only, using `draft.md` and necessary
-   semantic context from `understanding-brief.md`. Use landscape / `16:9`, language `zh`,
-   `--no-confirm`, and backend `baoyu-image-gen`. The Skill owns content analysis, layout,
-   style, and prompt. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
+   semantic context from `understanding-brief.md`. Honor the project EXTEND defaults — claymation
+   style, landscape aspect, language `zh`, backend `baoyu-image-gen` — and use `--no-confirm` so it
+   generates directly. Apply the project-wide tone as an overlay on claymation rather than replacing
+   it. The Skill owns content analysis, information layout, semantic structure, style, and prompt:
+   do not preselect a layout. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
    (or another supported raster extension), after the opening prose and before the first
    substantive H2, as the first body image.
 3. Invoke `baoyu-article-illustrator` on `visual-draft.md` for body illustration analysis and
-   generation, even for a short article. Explicitly instruct it: analyze information gain and
+   generation, even for a short article. Honor the project EXTEND defaults — notion style, macaron
+   palette, language `zh`, `imgs/` output, backend `baoyu-image-gen`, one image generated at a time —
+   and apply the project-wide tone as an art-direction overlay that preserves notion as the base
+   visual language and macaron as its palette. Explicitly instruct it: analyze information gain and
    place useful body visuals yourself; preserve the existing lead infographic; do not generate
    another header summary or mechanically illustrate each H2; avoid duplicating source evidence;
    insert images without rewriting article text; directly generate without further user
-   confirmation; use `baoyu-image-gen`. Recommend balanced density for normal long-form and
-   minimal density for clearly short articles. The Skill owns its outline, prompts, generation,
-   and Markdown insertion; Main does not prescribe positions or an image count. Any article length
-   may receive zero body illustrations when the illustrator analysis and Main review support it.
+   confirmation. Recommend balanced density for normal long-form and minimal density for clearly
+   short articles. The Skill owns its outline, prompts, generation, and Markdown insertion; Main
+   does not prescribe positions or an image count. Generating one image at a time changes only the
+   raster dispatch batch, not the Skill's own analyze-then-outline-then-generate workflow. Any
+   article length may receive zero body illustrations when the illustrator analysis and Main review
+   support it.
 4. Inspect every exact final raster. When size, format, platform rejection, explicit optimization,
    or publishing performance requires compression, invoke `baoyu-compress-image` and inspect
    the resulting raster again. Prefer same-format compression; update `visual-draft.md` if the
@@ -201,7 +225,8 @@ cover, infographic, or body illustration design. Provider, model, transport, and
 retries belong to `baoyu-image-gen`; compression implementation belongs to `baoyu-compress-image`.
 Keep only final article rasters at the top of `imgs/`; auxiliary outline/prompts and comparison
 candidates remain Specialist-private and outside the hosting collection. Main reviews and returns
-failed visuals to the same owning Skill for targeted regeneration, including text errors.
+failed visuals to the same owning Skill for targeted regeneration, including text errors and
+project-wide tone deviations.
 
 Main directly runs:
 
