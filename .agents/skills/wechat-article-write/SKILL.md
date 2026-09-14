@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.3.1"
+  version: "4.4.0"
 ---
 
 # 微信公众号文章写作
@@ -198,6 +198,11 @@ Do not run any two of these generation workflows concurrently.
 
 The illustrator additionally uses `generation_batch_size: 1`, so its own body-image raster dispatch
 is serial.
+
+Step 4 and every raster-producing Specialist invocation MUST run with the project root as the
+working directory. The raster backend resolves the project `.baoyu-skills` configuration from its
+working directory; from anywhere else it silently falls back to environment-level configuration and
+loses the pinned backend and worker cap. `step4-images.mjs` enforces this in preflight.
 
 1. Invoke `baoyu-cover-image` with the final article, quick mode, aspect `2.35:1`, text `none`,
    language `zh`, and backend `baoyu-image-gen`. Honor the project EXTEND preferences, including the

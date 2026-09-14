@@ -211,6 +211,12 @@ for (const rel of contractFiles) {
 const pipelineText = read("scripts/pipeline.mjs");
 if (pipelineText.includes("spawnSync") || pipelineText.includes("PIPELINE_AUTO")) errors.push("pipeline must remain advisory and non-orchestrating");
 
+// The raster backend resolves project configuration from the working directory, so Step 4 must
+// refuse to run outside the project root instead of silently using environment-level config.
+const pathResolverText = read("scripts/path-resolver.mjs");
+if (!pathResolverText.includes("assertProjectCwd")) errors.push("path resolution must expose the project cwd guard");
+if (!read("scripts/step4-images.mjs").includes("assertProjectCwd()")) errors.push("Step 4 must enforce the project cwd contract");
+
 const stateLibText = read("scripts/state-lib.mjs");
 if (!stateLibText.includes("v2")) errors.push("state implementation must remain v2");
 const structureText = read("scripts/wechat-structure-lib.mjs");

@@ -96,6 +96,11 @@ The `baoyu-image-gen` backend is itself capped at one batch worker
 (`batch.max_workers: 1`), so serialization does not depend on the current
 default concurrency of whichever provider happens to be selected.
 
+Raster generation runs from the project root. The backend resolves the
+project `.baoyu-skills` configuration from its working directory and would
+otherwise fall back to environment-level configuration, losing both the
+pinned backend and that worker cap. Step 4 enforces this before any work.
+
 Compression is downstream raster processing rather than text-to-image
 generation and does not weaken this generation serialization contract.
 

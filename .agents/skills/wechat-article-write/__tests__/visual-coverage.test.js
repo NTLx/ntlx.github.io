@@ -9,6 +9,7 @@ import { sha256File } from "../scripts/artifact-integrity-lib.mjs";
 
 const lead = "![文章核心信息图](imgs/00-infographic-core-summary.png)";
 const bodyImage = "![机制](imgs/mechanism.png)";
+const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
 const draft = '---\ntitle: 示例\ncoverImage: cover.png\n---\n\n开头。\n\n## 机制\n\n正文 [来源](https://example.com/a)。\n\n```js\nconst value = 42;\n```\n';
 const insertLead = text => text.replace("## 机制", `${lead}\n\n## 机制`);
 async function fixture(run) {
@@ -103,7 +104,7 @@ describe("visual integration", () => {
     writeFileSync(join(base, "visual-draft.md"), insertLead(draft));
     const slug = base.split('/').at(-1);
     writeFileSync(join(base, ".pipeline-state.json"), JSON.stringify({ version: 2, slug, last_complete_step: 3, step3_draft_sha256: sha256File(textPath), publish: { blog: "pending", wechat: "pending" } }));
-    const run = (...args) => spawnSync("bun", [resolve(import.meta.dir, "../scripts/step4-images.mjs"), slug, ...args], { env: { ...process.env, PIPELINE_POSTS_ROOT: tmpdir() }, encoding: "utf8" });
+    const run = (...args) => spawnSync("bun", [resolve(import.meta.dir, "../scripts/step4-images.mjs"), slug, ...args], { cwd: PROJECT_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: tmpdir() }, encoding: "utf8" });
     const stateBefore = readFileSync(join(base, ".pipeline-state.json"), "utf8");
     const initialized = run("--initialize-only");
     expect(initialized.status, initialized.stderr).toBe(0);
