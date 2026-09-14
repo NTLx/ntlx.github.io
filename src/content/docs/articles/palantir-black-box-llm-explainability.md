@@ -42,8 +42,6 @@ Palantir 给出的破局思路是：**放弃对单模型黑盒的可解释性执
 
 在 AIP Logic 中，CoT 的真正使命并不是向人类输出伪解释，而是作为 **LLM 拆解任务与调度工具（Tool Handoff）的通用协议**。
 
-<!-- `SLOT_IMG_02_ONTOLOGY_TOOL_HANDOFF` -->
-
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-31-palantir-black-box-llm-explainability-img-02-ontology_tool_handoff.png)
 
 当用户提出一个复杂业务问题时，AIP 并没有把整个业务逻辑硬塞给 LLM 靠 Prompt 自行计算，而是为 LLM 接入了企业的 [Ontology（本体）](https://www.palantir.com/platforms/aip/) 工具网络：

@@ -8,7 +8,7 @@ const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|webp|gif)$/iu;
 // files are downstream outputs derived from that identity plus image-map.json.
 const UPSTREAM_FILES = Object.freeze([
   ["draft_sha256", "draft.md"],
-  ["image_plan_sha256", "image-plan.json"],
+  ["visual_draft_sha256", "visual-draft.md"],
 ]);
 const INPUT_FILES = Object.freeze([
   ...UPSTREAM_FILES,
@@ -37,8 +37,7 @@ function imageMapSha256(postDir) {
   return sha256File(path);
 }
 
-// Manifest v2 hashes that are verified whenever the manifest records them. v1
-// manifests simply lack the fields, so legacy posts keep their old behavior.
+// Every manifest v3 records and verifies the complete visual and hosting identity.
 const AUX_HASHES = Object.freeze([
   ["imgs_sha256", "imgs/", imgsSha256],
   ["image_map_sha256", "image-map.json", imageMapSha256],
@@ -52,7 +51,7 @@ export function upstreamIdentity(postDir) {
 }
 
 export function upstreamIdentityMatches(postDir, manifest) {
-  if (!manifest) return false;
+  if (!manifest || manifest.version !== 3) return false;
   const current = upstreamIdentity(postDir);
   return UPSTREAM_FIELDS.every((field) => manifest[field] === current[field]);
 }
@@ -92,6 +91,7 @@ function readManifest(postDir) {
 }
 
 function compareManifest(postDir, manifest, { finalized = false } = {}) {
+  if (manifest?.version !== 3) return ["Step 5 manifest version must be 3; rerun Step 5 prepare"];
   const errors = [];
   const current = currentHashes(postDir, finalized);
   if (finalized && manifest.phase !== "finalized") errors.push("manifest.phase must be finalized");
@@ -101,9 +101,7 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
   }
   for (const [field, label, compute] of AUX_HASHES) {
     if (manifest[field] === undefined) {
-      // v2 records the full visual identity; a missing field means the manifest was
-      // truncated or hand-edited, so it must not silently pass the Gate.
-      if (Number(manifest.version ?? 0) >= 2) errors.push(`${field} missing from manifest v2`);
+      errors.push(`${field} missing from manifest v3`);
       continue;
     }
     if (manifest[field] !== compute(postDir)) errors.push(`${label} SHA256 does not match manifest; rerun Step 5`);
@@ -116,7 +114,7 @@ function compareManifest(postDir, manifest, { finalized = false } = {}) {
 
 export function writePreparedArtifactManifest(postDir) {
   const manifest = {
-    version: 2,
+    version: 3,
     phase: "prepared",
     ...currentHashes(postDir),
     imgs_sha256: imgsSha256(postDir),

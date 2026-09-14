@@ -66,21 +66,23 @@ if (step === 3) {
 }
 
 if (step === 4) {
-  printStep("Step 4 — visual planning and assets", [
-    "cover → inspect",
-    "SLOT00 → inspect",
-    "source body review",
-    "generated body visuals → inspect",
-    "image-plan.json",
+  printStep("Step 4 — visual integration and assets", [
+    "exact copy frozen draft.md → visual-draft.md (reuse valid existing visual work on resume)",
+    "baoyu-cover-image → cover → inspect",
+    "baoyu-article-illustrator analyzes article and inserts body illustrations into visual-draft.md",
+    "baoyu-infographic → lead infographic as first body image before first substantive H2",
+    "all three visual Specialists use baoyu-image-gen as the raster backend",
+    "if compression is needed: baoyu-compress-image → inspect final raster",
+    "Main reviews final visuals; retry locally with the same owning Skill",
     "Step 4 Gate",
-  ], { specialist: "baoyu-cover-image / baoyu-infographic as required" });
+  ], { specialist: "baoyu-cover-image / baoyu-infographic / baoyu-article-illustrator (backend: baoyu-image-gen)" });
   process.exit(0);
 }
 
 if (step === 5) {
   printStep("Step 5 — hosting, build, and WeChat layout", [
     `hosting-status: step5-build.mjs ${slug} --hosting-status`,
-    "github-image-hosting if status is NEEDED → image-map.json",
+    "github-image-hosting for final visual-draft.md images if status is NEEDED → image-map.json",
     `prepare: step5-build.mjs ${slug} --prepare-only`,
     "gzh-design → article-wechat.html, native validator, and preview",
     `finalize: step5-build.mjs ${slug} --finalize-only`,

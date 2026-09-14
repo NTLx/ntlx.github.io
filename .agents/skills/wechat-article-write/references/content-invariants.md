@@ -21,33 +21,26 @@
 正文不写 H1；Markdown 链接使用 inline 形式。博客轨保留可点击链接，微信 source 将链接转为可见纯文本 URL。
 正文代码围栏及 whitespace-sensitive code 的内容和行序保持不变；博客构建遵守 MDX 安全，正文避免裸 `<` / `>`。
 
-## SLOT topology
-
-`<!-- SLOT_IMG_00_INFOGRAPHIC -->` 必须恰好一次，位于第一个 substantive H2 前，且是正文第一张视觉。
-`SLOT_IMG_01+` 是正文 visual SLOT，使用 `01..N`，每个编号只能出现一次。正常长文
-至少两个 body visual SLOT；典型 3-6 H2 reader-response 在 2-4 个之间按语义判断自由
-选择。source 与 generated 都计入正文视觉覆盖，cover 与 SLOT00 不计入。真正短、结构
-简单且没有明显对比、流程、机制或复杂关系的内容允许 0 个，但正常长文不能静默 0 图通过。
-正式正文视觉统一由 `SLOT_IMG_01+` 表达；普通 Markdown 图片不计入 Visual Coverage
-Gate。`SLOT` 表示正文中的语义视觉位置，`kind` 表示资产来源（`source` 或 `generated`）。
-占位符描述具体说明附近内容，不使用泛化的 `chart`、`diagram` 或 `illustration`。
-
 ## Visual facts
 
-Step 2 只记录 `draft.md` 中的 SLOT topology，不创建最终图片计划。Step 4 的
-`image-plan.json` 只记录最终资产事实：
+`draft.md` is the immutable textual artifact after Step 3. Step 4 starts by copying it exactly
+into `visual-draft.md`; the latter contains the same article plus local Markdown image insertions.
+Step 4 may add Markdown images but must not rewrite article prose, headings, URLs, quotes, code,
+references, interaction, or semantic frontmatter fields. Removing the added image nodes must
+recover the textual source; code and other whitespace-sensitive content remain intact.
 
-```json
-{
-  "cover": "cover.png",
-  "images": [
-    {"slot": "SLOT_IMG_00", "kind": "generated", "file": "imgs/00-infographic-core-summary.png"},
-    {"slot": "SLOT_IMG_01", "kind": "source", "file": "imgs/01-source-example.png", "source": "https://example.com/source.png", "reason": "原图直接展示讨论的结果"}
-  ]
-}
+Final body image references point inside `imgs/`, for example:
+
+```markdown
+![文章核心信息图](imgs/00-infographic-core-summary.png)
+
+![机制示例](imgs/mechanism-example.png)
 ```
 
-`kind` 只能是 `source` 或 `generated`；source entry 必须有 source URL 和 reason。Gate 只验证 SLOT、basename、文件存在和 cover topology。
+The lead infographic is unique, the first body image, and precedes the first substantive H2.
+Body images are selected and inserted by `baoyu-article-illustrator`; source evidence provenance
+remains in materials, the understanding brief, and article context. Final local rasters are the
+visual facts; Specialist outline and prompt files are not business state.
 
 ## Humanization
 
@@ -55,7 +48,7 @@ Step 2 通过后，所有正常文章都实际执行 `humanizer-zh`。父 Agent 
 Step 3 Gate 将最终 draft SHA256 写入 state。当前 draft hash 改变就重新打开 Step 3，
 不得用任何 receipt 或“曾经调用过”的标记替代 fresh draft。
 
-调用前将当前 draft 的事实、数字、URL、专名、引用、代码、关键判断、H2 和 SLOT 作为保留合同
+调用前将当前 draft 的事实、数字、URL、专名、引用、代码、关键判断、H2 作为保留合同
 交给 Humanizer；完成后 Main 对照调用前内容检查，漂移处交回同一 Skill 定点恢复。Step 3 hash
 只证明下游使用同一份最终 draft，不证明润色前后事实一致，也不替代这次内容审阅。
 
@@ -65,6 +58,6 @@ Step 1.5 必须执行站内检索。写作时自然消费相关旧文，若无�
 
 ## Gates
 
-每个脚本只判断可可靠机器判断的事实：frontmatter、SLOT、文件、MIME、cover 比例、
+每个脚本只判断可可靠机器判断的事实：frontmatter、visual-draft parity、文件、MIME、cover 比例、
 链接形态、代码/段落/H2 parity、HTML validator、artifact freshness 和 state。视觉语义、
 文字正确性、构图和“是否值得配图”由 Agent 实际查看并判断。

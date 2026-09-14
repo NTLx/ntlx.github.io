@@ -2,7 +2,7 @@
 
 本文件定义需要深度理解时的认知质量，不规定由哪个 Skill 产生理解。
 目标是把 `materials.md`、`blog-memory.md` 和用户意图压缩成一份能直接
-指导写作、视觉规划和边界声明的 `understanding-brief.md`。
+指导写作、视觉理解和边界声明的 `understanding-brief.md`。
 
 ## 什么时候需要
 
@@ -34,7 +34,7 @@
 - 哪些约束是事实、规则、解释或自设边界，哪些仍不确定；
 - 最强反方是什么，中心判断在哪些边界内成立；
 - 哪些判断值得进入正文，哪些只应留在材料；
-- 哪些节点适合用 SLOT 表达，以及图要解释什么；每个节点都写明视觉表达目的、最适合的视觉形式、是否可能直接复用 source image、是否与 SLOT00 重复；
+- 哪些概念或关系可能需要视觉辅助，以及材料中有哪些可复用 source evidence；这些是语义上下文，具体形式与位置由视觉 Skill 分析决定；
 - 写作契约如何把以上判断转成章节、证据和行动。
 
 ## 时间敏感事实的复核
@@ -90,38 +90,15 @@
 - 必须承认的证据边界、反方或未知项；
 - 要自然织入的背景和来源；
 - 可联动的站内旧文，或不联动的理由；
-- 需要转成 SLOT 的信息节点和每个节点的表达目的；
-- 正文视觉计划：body visual target、候选节点、必须视觉化的节点、可选节点、明确不做的节点及原因；
+- 可帮助视觉 Skill 理解文章的复杂关系与可复用证据；
 - 至少三条可检查的原创增量承诺，例如第一人称经验、独立判断、跨来源
   连接或预测行动。后续 draft 必须逐条落地。
 
-### 正文视觉计划
+### 视觉语义上下文
 
-写作契约必须明确正文 visual SLOT 的最低覆盖和语义选择，不把 SLOT00 或 cover
-算入正文视觉。正常长文最低覆盖是两个 body visual SLOT；典型 3-6 H2 的
-reader-response 在 2-4 个之间按语义判断自由选择。示例可以写成：
-
-```markdown
-### 正文视觉计划
-
-目标：3 个 body visual SLOT，不含 SLOT00。
-
-必须：
-1. Token usage vs business outcome
-2. Agent workflow contract
-
-优先：
-3. Recovery loop
-
-不做：
-- Basis / Clay / Exa 三案例链，因为已由 SLOT00 表达，避免重复。
-```
-
-这仍然是 Markdown brief，不需要额外 schema；如果最终 draft 没采用某个“必须视觉化”
-节点，Agent 在过程说明中解释原因，不创建 receipt 文件。
-
-Understanding brief 只声明视觉节点、目标和取舍，不记录最终 file path、kind、source URL
-或 basename；这些事实由 Step 4 产生并写入 `image-plan.json`。
+保留「可视觉化的节点」作为理解文章的语义线索。Brief 可以指出难解释的关系、重要证据及其边界，
+不规定插图数量、位置、形式或必画节点。Step 4 将最终文章与必要语义上下文交给各视觉 Skill；
+正文插图由 `baoyu-article-illustrator` 实际分析后决定，最终图片引用落在 `visual-draft.md`。
 
 契约应是短句和可检查的承诺，不要把工具名称当作承诺，也不要把外部
 分析报告全文复制进来。

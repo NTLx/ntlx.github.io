@@ -1,77 +1,45 @@
 #!/usr/bin/env bun
-/** Step 4 Gate: validate final visual assets and their simple asset map. */
-
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+/** Step 4: integrate visuals while preserving the frozen textual source. */
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
-import { collectDraftSlots, countWords, bodyVisualMinimum } from "./validation-lib.mjs";
-import { collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
-import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
-import { assertCoverPixelAspect, imageMime, usableImageFile } from "./image-asset-lib.mjs";
+import { readFmValue } from "./frontmatter-lib.mjs";
+import { assertCoverPixelAspect } from "./image-asset-lib.mjs";
 import { sha256File } from "./artifact-integrity-lib.mjs";
+import { initializeVisualDraft, validateVisualDraft, assertUsableRaster } from "./visual-draft-lib.mjs";
 
-const slug = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
-if (!slug) { process.stderr.write("usage: step4-images.mjs <date-slug>\n"); process.exit(1); }
-
+const args = process.argv.slice(2);
+const slug = args.find(arg => !arg.startsWith("--"));
+if (!slug || args.some(arg => arg.startsWith("--") && arg !== "--initialize-only")) {
+  process.stderr.write("usage: step4-images.mjs <date-slug> [--initialize-only]\n");
+  process.exit(1);
+}
 const base = resolve(postsRoot(), slug);
-const draftPath = resolve(base, "draft.md");
-const planPath = resolve(base, "image-plan.json");
-const imgsDir = resolve(base, "imgs");
-
-function fail(message) {
-  process.stderr.write(`step4: FAIL - ${message}\n`);
-  markStepFailed(slug, 4, message);
+try {
+  const draftPath = resolve(base, "draft.md");
+  if (!existsSync(draftPath)) throw new Error("draft.md missing");
+  const state = loadState(slug);
+  if ((state?.last_complete_step ?? 0) < 3 || state?.step3_draft_sha256 !== sha256File(draftPath)) {
+    throw new Error("draft.md changed after Step 3; rerun humanizer-zh and Step 3");
+  }
+  if (args.includes("--initialize-only")) {
+    initializeVisualDraft(base);
+    process.stdout.write("step4: initialized visual-draft.md from frozen draft.md\n");
+  } else {
+    const draft = readFileSync(draftPath, "utf8");
+    const visual = readFileSync(resolve(base, "visual-draft.md"), "utf8");
+    const covers = ["cover.png", "cover.jpg"].filter(name => existsSync(resolve(base, name)));
+    if (covers.length !== 1) throw new Error("expected exactly one root cover");
+    if (readFmValue(draft, "coverImage") !== covers[0]) throw new Error(`frontmatter.coverImage must be ${covers[0]}`);
+    await assertUsableRaster(resolve(base, covers[0]));
+    assertCoverPixelAspect(resolve(base, covers[0]));
+    const images = await validateVisualDraft(draft, visual, base);
+    markStepDone(slug, 4, { visual_draft: "visual-draft.md", cover_ext: covers[0].slice(6), image_count: images.length });
+    process.stdout.write(JSON.stringify({ slug, step: 4, cover: covers[0], image_count: images.length }) + "\n");
+  }
+} catch (error) {
+  process.stderr.write(`step4: FAIL - ${error.message}\n`);
+  markStepFailed(slug, 4, error.message);
   process.exit(2);
 }
-
-if (!existsSync(draftPath)) fail(`draft.md missing: ${draftPath}`);
-const state = loadState(slug);
-const draftHash = sha256File(draftPath);
-if ((state?.last_complete_step ?? 0) < 3 || state?.step3_draft_sha256 !== draftHash) {
-  fail("draft.md changed after Step 3; rerun humanizer-zh and Step 3");
-}
-
-const draft = readFileSync(draftPath, "utf8");
-const body = extractBody(draft);
-const draftSlots = collectDraftSlots(body);
-const bodySlotCount = draftSlots.filter((slot) => slot.slot > 0).length;
-const substantiveSectionCount = collectSubstantiveSections(body).length;
-const substantiveWordCount = countWords(stripNonSubstantiveTailSections(body)).total;
-const bodyVisualMin = bodyVisualMinimum({ wordCount: substantiveWordCount, substantiveSectionCount });
-if (bodySlotCount < bodyVisualMin) {
-  fail(`normal long-form article requires at least ${bodyVisualMin} body visual SLOTs beyond SLOT00 (found ${bodySlotCount}); review understanding-brief.md visualizable nodes and add SLOT_IMG_01+`);
-}
-const coverImage = readFmValue(draft, "coverImage");
-const rootCovers = ["cover.png", "cover.jpg"].filter((file) => existsSync(resolve(base, file)));
-if (rootCovers.length !== 1) fail(`expected exactly one root cover, found ${rootCovers.join(", ") || "none"}`);
-if (coverImage !== rootCovers[0]) fail(`frontmatter.coverImage must be ${rootCovers[0]}`);
-const coverPath = resolve(base, rootCovers[0]);
-if (!usableImageFile(coverPath)) fail(`root cover is not a usable raster: ${rootCovers[0]}`);
-const expectedMime = rootCovers[0].endsWith(".png") ? "image/png" : "image/jpeg";
-if (imageMime(coverPath) !== expectedMime) fail(`root cover MIME does not match extension: ${rootCovers[0]}`);
-try { assertCoverPixelAspect(coverPath); } catch (error) { fail(error.message); }
-
-if (!existsSync(planPath)) fail(`image-plan.json missing: ${planPath}`);
-let imagePlan;
-try { imagePlan = readImagePlan(planPath); } catch (error) { fail(error.message); }
-const planResult = validateImagePlan(imagePlan, body, base);
-if (!planResult.ok) fail(`image-plan invalid: ${planResult.errors.join("; ")}`);
-if (!existsSync(imgsDir)) fail("imgs/ directory missing");
-
-for (const entry of planResult.entries) {
-  const path = resolve(base, entry.file);
-  if (!usableImageFile(path)) fail(`${entry.slot} is not a usable raster: ${entry.file}`);
-  if (!imageMime(path)) fail(`${entry.slot} has an unknown image MIME: ${entry.file}`);
-}
-
-const slot00 = draftSlots.find((slot) => slot.slot === 0);
-if (!slot00) fail("SLOT_IMG_00 is missing");
-const files = readdirSync(imgsDir).filter((file) => /\.(?:png|jpe?g|webp|gif)$/iu.test(file));
-const mapped = new Set(planResult.entries.map((entry) => entry.file.replace(/^imgs\//u, "")));
-const stale = files.filter((file) => !mapped.has(file));
-if (stale.length) process.stderr.write(`step4: WARNING unplanned images in imgs/: ${stale.join(", ")}\n`);
-
-markStepDone(slug, 4, { imgs_dir: imgsDir, cover_ext: rootCovers[0].slice(6), image_count: planResult.entries.length });
-process.stdout.write(JSON.stringify({ slug, step: 4, cover: rootCovers[0], image_count: planResult.entries.length }) + "\n");

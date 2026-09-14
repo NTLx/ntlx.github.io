@@ -19,7 +19,7 @@ describe("orchestration contract", () => {
     expect(skill).toContain("## Execution model");
     expect(skill).toContain("Main is the default executor");
     expect(skill).toContain("Main directly owns");
-    expect(skill).toContain("Main directly creates `draft.md`");
+    expect(skill).toContain("Main writes a complete, readable article");
     expect(skill).toContain("Main directly runs");
     expect(skill).toContain("State remains v2");
     expect(stateLib).toContain("v2");
@@ -62,19 +62,43 @@ describe("orchestration contract", () => {
 
   test("keeps mandatory Specialist workflows without requiring isolated Executors", () => {
     for (const [unit, specialist] of [
-      ["humanization / Step 3", "humanizer-zh"],
-      ["cover", "baoyu-cover-image"],
-      ["SLOT00", "baoyu-infographic"],
-      ["generated body visual", "baoyu-infographic"],
-      ["image hosting / Step 5A", "github-image-hosting"],
-      ["WeChat layout / Step 5B", "gzh-design"],
-      ["WeChat publish", "baoyu-post-to-wechat"],
+      ["Humanization", "humanizer-zh"],
+      ["Cover", "baoyu-cover-image"],
+      ["Header infographic", "baoyu-infographic"],
+      ["Body illustration analysis + generation", "baoyu-article-illustrator"],
+      ["Raster generation backend", "baoyu-image-gen"],
+      ["Image compression", "baoyu-compress-image"],
+      ["Blog/CDN hosting", "github-image-hosting"],
+      ["WeChat HTML layout", "gzh-design"],
+      ["WeChat draft publishing", "baoyu-post-to-wechat"],
     ]) {
       const route = skill.split("\n").find((line) => line.includes(`| ${unit} |`));
       expect(route).toContain(specialist);
     }
     expect(checkDeps).toContain("humanizer-zh");
     expect(checkDeps).toContain("gzh-design");
+  });
+
+  test("pins raster-producing Specialists to the shared backend", () => {
+    for (const specialist of ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator"]) {
+      const config = readFileSync(resolve(skillDir, "../../..", ".baoyu-skills", specialist, "EXTEND.md"), "utf8");
+      expect(config).toMatch(/^preferred_image_backend: baoyu-image-gen$/mu);
+      expect(checkDeps).toContain(specialist);
+    }
+    expect(checkDeps).toContain("baoyu-image-gen");
+    expect(checkDeps).toContain("baoyu-compress-image");
+    expect(imagePolicy).toMatch(/conditional|when needed|需要压缩/u);
+  });
+
+  test("removes the Parent visual planner and retired visual capabilities", () => {
+    for (const retired of ["SLOT_IMG", "SLOT00", "image-plan", "baoyu-diagram", "baoyu-xhs-images", "baoyu-markdown-to-html"]) {
+      expect(skill).not.toContain(retired);
+      expect(imagePolicy).not.toContain(retired);
+    }
+    for (const rel of ["scripts/image-plan-lib.mjs", "__tests__/image-plan.test.js"]) {
+      expect(existsSync(resolve(skillDir, rel))).toBe(false);
+    }
+    expect(skill).not.toMatch(/generated body visual[^\n]*baoyu-infographic/u);
   });
 
   test("repairs Step 5 locally before any frozen-source rebuild", () => {
@@ -111,10 +135,10 @@ describe("orchestration contract", () => {
     expect(existsSync(resolve(skillDir, "references", "delegated-execution.md"))).toBe(false);
   });
 
-  test("keeps deterministic quality Gates unchanged", () => {
+  test("preserves text, publishing, and recovery Gates with visual-draft integration", () => {
     for (const contract of [
       "Primary Source provenance", "source uniqueness", "understanding-brief.md", "step3_draft_sha256",
-      "visual coverage", "image-plan.json", "structural parity", "publish freshness", "last_complete_step",
+      "visual-draft.md", "structural parity", "publish freshness", "last_complete_step",
       "publish.blog", "publish.wechat",
     ]) expect(skill).toContain(contract);
     expect(readFileSync(resolve(skillDir, "scripts", "wechat-structure-lib.mjs"), "utf8"))
@@ -122,9 +146,9 @@ describe("orchestration contract", () => {
   });
 
   test("keeps visual policy and Parent configuration boundaries", () => {
-    expect(imagePolicy).toContain("prefer-reuse");
-    expect(imagePolicy).toContain("Visual coverage");
-    expect(imagePolicy).not.toContain(["baoyu", "image-gen"].join("-"));
+    expect(imagePolicy).toContain("baoyu-article-illustrator");
+    expect(imagePolicy).toContain("baoyu-image-gen");
+    expect(imagePolicy).toContain("baoyu-compress-image");
     expect(imagePolicy).not.toContain("preferred_style");
     const keys = [...parentExtend.matchAll(/^([\w-]+):/gmu)].map((match) => match[1]);
     expect(keys).toEqual(["default_author", "default_author_bio"]);

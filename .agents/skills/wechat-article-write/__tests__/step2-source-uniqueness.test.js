@@ -34,7 +34,6 @@ function makeFixture({
     "sourceUrl: https://ntlx.github.io/articles/source-uniqueness-test",
     ...(draftSources === null ? [] : [`primarySourceUrls: ${JSON.stringify(draftSources)}`]),
     "---", "",
-    "<!-- SLOT_IMG_00_INFOGRAPHIC -->", "",
     "## 正文", "", "内容。你会怎么做？", "",
     "## 参考资料", "", "- https://example.com/source", "",
   ].join("\n");

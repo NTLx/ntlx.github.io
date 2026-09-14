@@ -8,7 +8,8 @@ import { applyImageMapToMarkdown } from "../scripts/step5-lib.mjs";
 
 const SCRIPT = resolve(import.meta.dir, "../scripts/step5-build.mjs");
 const PROJECT_ROOT = resolve(import.meta.dir, "../../../..");
-const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+import sharp from "sharp";
+const PNG = await sharp({ create: { width: 940, height: 400, channels: 3, background: "white" } }).png().toBuffer();
 
 function makeFixture(map = undefined) {
   const root = join(tmpdir(), `step5-build-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -41,24 +42,12 @@ sourceUrl: https://ntlx.github.io/articles/step5-native
 ---
 
 <!-- KEEP_THIS_COMMENT -->
-<!-- VISUAL_TOPOLOGY: slot=00; kind=generated; purpose=test -->
-<!-- VISUAL_TOPOLOGY:
-slot=01;
-kind=generated;
-purpose=test
--->
-
-<!-- SLOT_IMG_00_INFOGRAPHIC -->
-
 ## 机制
 
 正文内容。
 `;
   writeFileSync(join(postDir, "draft.md"), draft);
-  writeFileSync(join(postDir, "image-plan.json"), JSON.stringify({
-    cover: "cover.png",
-    images: [{ slot: "SLOT_IMG_00", kind: "generated", file: "imgs/00-infographic-core-summary.png" }],
-  }) + "\n");
+  writeFileSync(join(postDir, "visual-draft.md"), draft.replace("## 机制", "![](imgs/00-infographic-core-summary.png)\n\n## 机制"));
   writeFileSync(join(postDir, ".pipeline-state.json"), JSON.stringify({
     slug,
     last_complete_step: 3,
@@ -113,7 +102,6 @@ describe("step5-build", () => {
     expect(article).toContain("KEEP_THIS_COMMENT");
     expect(wechatSource).toContain("KEEP_THIS_COMMENT");
     expect(wechatSource).toContain("![](imgs/00-infographic-core-summary.png)");
-    expect(wechatSource).not.toContain("SLOT_IMG_00_INFOGRAPHIC");
   });
 
   test("fails closed when a local image has no CDN mapping", () => {
@@ -125,14 +113,14 @@ describe("step5-build", () => {
     expect(result.stderr).toContain("missing valid CDN URL");
   });
 
-  test("keeps SLOT00 bound to the infographic instead of a similarly named cover", () => {
+  test("maps only the referenced infographic instead of a similarly named cover", () => {
     const fixture = makeFixture({
       "00-infographic-core-summary.png": "https://cdn.example.test/summary.png",
       "00-cover.png": "https://cdn.example.test/cover.png",
     });
     cleanup.push(fixture.root);
     writeFileSync(join(fixture.postDir, "imgs/00-cover.png"), PNG);
-    const draft = readFileSync(join(fixture.postDir, "draft.md"), "utf8");
+    const draft = readFileSync(join(fixture.postDir, "visual-draft.md"), "utf8");
     const output = applyImageMapToMarkdown(
       draft,
       join(fixture.postDir, "imgs"),
@@ -270,6 +258,66 @@ describe("step5-build", () => {
     const rerun = run(fixture, "--prepare-only");
     expect(rerun.status).toBe(2);
     expect(rerun.stderr).toContain("frozen");
+  });
+
+  test("rejects visual prose changes before preparing artifacts", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    const path = join(fixture.postDir, "visual-draft.md");
+    writeFileSync(path, readFileSync(path, "utf8").replace("正文内容。", "偷偷修改正文。"));
+    const result = run(fixture, "--prepare-only");
+    expect(result.status).toBe(4);
+    expect(existsSync(join(fixture.postDir, "article.md"))).toBe(false);
+  });
+
+  test("visual edits reopen hosting and invalidate prepared artifacts", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const path = join(fixture.postDir, "visual-draft.md");
+    writeFileSync(path, readFileSync(path, "utf8").replace("![]", "![新的说明]"));
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
+    writeFileSync(join(fixture.postDir, "article-wechat.html"), "<section></section>");
+    const result = run(fixture, "--finalize-only");
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain("visual-draft.md SHA256");
+  });
+
+  test("legacy artifact manifests require rebuilding without changing state version", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const path = join(fixture.postDir, ".step5-artifacts.json");
+    const manifest = JSON.parse(readFileSync(path, "utf8"));
+    expect(manifest.version).toBe(3);
+    expect(manifest.visual_draft_sha256).toBeTruthy();
+    manifest.version = 2;
+    writeFileSync(path, JSON.stringify(manifest));
+    writeFileSync(join(fixture.postDir, "article-wechat.html"), "<section></section>");
+    expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
+    const result = run(fixture, "--finalize-only");
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain("rerun Step 5 prepare");
+  });
+
+  test("maps Markdown image nodes while preserving code and ordinary shared references", () => {
+    const markdown = [
+      "![带标题](imgs/a.png \"图示\")",
+      "![引用][shared]",
+      "[普通链接][shared]",
+      "[shared]: imgs/a.png",
+      "`![示例](imgs/a.png)`",
+      "```md",
+      "![代码](imgs/a.png)",
+      "```",
+    ].join("\n\n");
+    const output = applyImageMapToMarkdown(markdown, "/unused", { "a.png": "https://cdn.example.test/a.png" });
+    expect(output).toContain('![带标题](https://cdn.example.test/a.png "图示")');
+    expect(output).toContain("![引用](https://cdn.example.test/a.png)");
+    expect(output).toContain("[普通链接][shared]");
+    expect(output).toContain("[shared]: imgs/a.png");
+    expect(output).toContain("`![示例](imgs/a.png)`");
+    expect(output).toContain("![代码](imgs/a.png)");
   });
 
   test("does not contain the removed uploader bridge", () => {

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed, loadState } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { ASCII_SLUG_RE, VALID_CATEGORIES, collectDraftSlots, countWords } from "./validation-lib.mjs";
+import { ASCII_SLUG_RE, VALID_CATEGORIES, countWords } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 import { sha256File } from "./artifact-integrity-lib.mjs";
 
@@ -42,13 +42,6 @@ if (!fm.targetPath) {
   if (fm.sourceUrl.replace(/\/+$/, "") !== expected) fail(2, "sourceUrl 与 blogSlug 不一致");
 }
 if (/^# /m.test(body)) fail(2, "正文不能包含 H1");
-
-const slots = collectDraftSlots(body);
-const counts = new Map();
-for (const slot of slots) counts.set(slot.slot, (counts.get(slot.slot) ?? 0) + 1);
-const duplicate = [...counts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
-if (duplicate.length) fail(2, `SLOT 编号重复: ${duplicate.join(", ")}`);
-if (counts.get(0) !== 1) fail(2, "正文必须保留恰好一次 SLOT_IMG_00");
 
 const allowNoInteraction = state?.allow_no_interaction === true;
 if (!allowNoInteraction && !/[？?]/.test(body.split(/^## 参考资料/m)[0].slice(-1200))) {

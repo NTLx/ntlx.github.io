@@ -24,7 +24,7 @@ const requirePath = (rel) => {
 };
 const directSpecialists = {
   writing: ["humanizer-zh"],
-  images: ["baoyu-cover-image", "baoyu-infographic"],
+  images: ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator", "baoyu-image-gen", "baoyu-compress-image"],
   build: ["github-image-hosting", "gzh-design"],
   publish: ["baoyu-post-to-wechat"],
 };

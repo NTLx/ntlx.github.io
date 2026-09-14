@@ -11,8 +11,8 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
 准确保留原知识，同时提高解释性、可读性和可执行性。适配不是重新发明
 技术内容，也不是为了公众号形式牺牲步骤、前提和边界。
 
-本策略只定义编辑目标。内容清理、解释补充、结构调整和视觉设计根据原文
-实际缺口选择方法；简单适配可以完全由 Agent 完成。
+本策略只定义编辑目标。内容清理、解释补充和结构调整根据原文实际缺口选择方法；
+视觉设计遵循主 Skill 的固定专业职责。
 
 ## adapt 阶段
 
@@ -24,10 +24,7 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
   可读的引用/提示；
 - 移除不属于文章协议的 frontmatter 字段；
 - 用 H2 组织正文，正文不放 H1；
-- 所有需要进入最终正文并计入视觉覆盖的图片，都映射到有语义的 `SLOT_IMG_01+`：
-  已有高价值原图保留其内容，在对应语义位置使用 SLOT，Step 4 记为 `kind: source`；
-  需要重画或没有合适原图的节点同样使用 SLOT，Step 4 记为 `kind: generated`。不要形成
-  “source image 是普通 Markdown 图片、generated image 才是 SLOT”的双轨语义；
+- 将已有高价值原图及其来源保留在材料中，供 Step 4 illustrator 分析复用；
 - 写入金句式 `summary`，选择分类、`blogSlug`、`targetPath` 和 canonical
   `sourceUrl`。
 
@@ -44,11 +41,9 @@ Step 2 产物：
 posts/{date-slug}/draft.md
 ```
 
-`draft.md` 必须包含 SLOT00；SLOT_IMG_01+ 是正文 visual SLOT，正常长文至少两个；
-未达到 normal long-form 阈值的短文可以为 0 个。这些图服务于概念、流程、配置关系或常见
-误区，不是按章节凑数。Step 2 只验证 `draft.md` 的 SLOT topology；Step 4 完成
-source reuse 或生成后，才创建 `image-plan.json`，记录每个最终资产的 slot、kind、file，
-以及 source 图片的 URL 和 reason。style、layout、type 等设计由对应 Baoyu Skill 根据内容决定。
+`draft.md` 是完整文字版。Step 4 从冻结副本 `visual-draft.md` 开始，按通用图片策略
+调用专业视觉 Skills；正文插图分析概念、流程、配置关系或常见误区，不按章节凑数。
+已有高价值 source evidence 可复用，设计形式与位置由对应 Skill 决定。
 
 完成后运行：
 
@@ -57,7 +52,7 @@ bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> 
   --allow-no-references --allow-no-interaction
 ```
 
-这些 flag 表示本策略的内容例外，不代表跳过 frontmatter、SLOT、链接和
+这些 flag 表示本策略的内容例外，不代表跳过 frontmatter、链接和
 其它工程校验。
 
 ## refine 阶段
@@ -72,5 +67,5 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续阶段
 
-Step 4 先判断视觉意图，再选择能解释该意图的 source 或 generated visual。Step 5/6 继续遵循
+Step 4 由专业视觉 Skills 分析文章、选择视觉形式并集成 source 或 generated visual。Step 5/6 继续遵循
 主 `SKILL.md` 的双轨构建、finalize 和发布顺序。

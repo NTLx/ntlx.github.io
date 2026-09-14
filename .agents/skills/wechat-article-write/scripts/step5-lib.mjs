@@ -1,21 +1,27 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { normalizeLinksForWechat } from "./wechat-link-normalizer.mjs";
-import { SLOT_RESIDUAL_RE, replaceSlotPlaceholders, resolveSlotImageFile } from "./validation-lib.mjs";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
+import remarkStringify from "remark-stringify";
 import { assertWechatStructuralParity } from "./wechat-structure-lib.mjs";
 import { assertNoAuthorPlaceholders, replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
 
-function listImageFiles(dir) {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter(file => /\.(png|jpe?g|webp|gif)$/iu.test(file));
-}
+const markdownParser = unified().use(remarkParse).use(remarkFrontmatter, ["yaml"]).use(remarkGfm);
+const markdownWriter = unified().use(remarkStringify);
 
-function buildImageMapResolver(map, imgsDir) {
-  const files = listImageFiles(imgsDir);
-  return placeholder => {
-    const file = resolveSlotImageFile(placeholder, files);
-    if (!file) return null;
-    return { file, cdn: map[file] };
-  };
+function markdownImages(markdown) {
+  const tree = markdownParser.parse(markdown);
+  const definitions = new Map();
+  const images = [];
+  function walk(node) {
+    if (node.type === "definition") definitions.set(node.identifier, node);
+    if (["image", "imageReference"].includes(node.type)) images.push(node);
+    for (const child of node.children ?? []) walk(child);
+  }
+  walk(tree);
+  return images.map(node => ({ node, definition: definitions.get(node.identifier), src: node.url ?? definitions.get(node.identifier)?.url }));
 }
 
 const INTERNAL_PLANNING_COMMENT_RE = /<!--\s*VISUAL_TOPOLOGY:[\s\S]*?-->\s*/gu;
@@ -33,35 +39,27 @@ export function assertNoInternalPlanningComments(content, artifactName = "artifa
 
 /** Apply a validated flat image map to Markdown without invoking any uploader. */
 export function applyImageMapToMarkdown(markdown, imgsDir, map) {
-  const resolveImage = buildImageMapResolver(map, imgsDir);
-  let output = replaceSlotPlaceholders(stripInternalPlanningComments(markdown), match => {
-    const image = resolveImage(match);
-    return image?.cdn ? `![](${image.cdn})` : match;
-  });
-  return output.replace(/!\[([^\]]*)\]\((?:\.\/)?imgs\/([^\)\s]+)\)/gu, (_full, alt, file) => {
+  let output = stripInternalPlanningComments(markdown);
+  for (const { node, definition, src } of markdownImages(output).reverse()) {
+    if (!/^(?:\.\/)?imgs\//u.test(src ?? "")) continue;
+    const file = src.replace(/^(?:\.\/)?imgs\//u, "");
     const cdn = map[file];
-    return cdn ? `![${alt}](${cdn})` : _full;
-  });
+    if (!cdn) throw new Error(`image-map.json missing CDN URL for ${file}`);
+    const replacement = markdownWriter.stringify({ type: "root", children: [{
+      type: "image", alt: node.alt, title: node.title ?? definition?.title ?? null, url: cdn,
+    }] }).trimEnd();
+    output = output.slice(0, node.position.start.offset) + replacement + output.slice(node.position.end.offset);
+  }
+  return output;
 }
 
-export function buildWechatSourceMarkdown(draft, imgs) {
-  let localMd = replaceSlotPlaceholders(replaceKnownAuthorPlaceholders(stripInternalPlanningComments(draft)), match => {
-    const file = resolveSlotImageFile(match, imgs);
-    if (!file) return match;
-    return `![](imgs/${file})`;
-  });
-
-  localMd = normalizeLinksForWechat(localMd);
-  return localMd;
+export function buildWechatSourceMarkdown(draft) {
+  return normalizeLinksForWechat(replaceKnownAuthorPlaceholders(stripInternalPlanningComments(draft)));
 }
 
 export function validateBlogArtifact(articleContent) {
   assertNoInternalPlanningComments(articleContent, "article.md");
-  if (SLOT_RESIDUAL_RE.test(articleContent)) {
-    throw new Error("article.md still has SLOT_IMG_ placeholders");
-  }
-
-  if (/!\[[^\]]*\]\(\/?imgs\//.test(articleContent)) {
+  if (markdownImages(articleContent).some(({ src }) => /^(?:\.\/|\/)?imgs\//u.test(src ?? ""))) {
     throw new Error("article.md still has local imgs/ paths");
   }
   const authorErrors = assertNoAuthorPlaceholders(articleContent);

@@ -49,7 +49,7 @@ Project constraints:
 - preserve source local image basenames
 - img src must continue to use imgs/<basename>
 - do not replace body image src with CDN URL
-- SLOT00 remains lead visual
+- 00-infographic-core-summary remains the first body visual
 - no ordinary <a href>
 - external links appear as visible plain-text URLs
 ```
@@ -57,7 +57,7 @@ Project constraints:
 HTML body images must preserve the same local `imgs/<basename>` used by `article-wechat-source.md`.
 
 项目边界：保留全部 substantive H2、paragraph/list/code semantics、图片顺序和 section placement；
-`SLOT_IMG_00` 继续是 lead visual。封面只作为微信缩略图，不重复嵌入正文。微信正文链接使用可见纯文本 URL，
+`00-infographic-core-summary` 继续是 lead visual。封面只作为微信缩略图，不重复嵌入正文。微信正文链接使用可见纯文本 URL，
 HTML 不使用普通 `<a href>`。作者事实从本技能 `EXTEND.md` 读取：`NTLx`、`热衷于分享 AI 观察与干货`。
 
 实测高频失败点（调用时必须写明）：
@@ -87,7 +87,7 @@ Main 将以下输入交回同一 `gzh-design` Skill：
 
 执行最小的 content-preserving repair，然后重新运行 native validator、preview 和 parent finalize。
 不得重新设计未受影响的 section，不得改变 theme；除非局部 defect 无法安全修复，否则不得整页重新
-生成。repair 不得修改 source、draft、image-map、image-plan 或 Step 3 / Step 4 artifact；若 diagnostic
+生成。repair 不得修改 source、draft、visual-draft、image-map 或 Step 3 / Step 4 artifact；若 diagnostic
 证明错误来自上游，必须回到真正 owner，不能由 gzh-design 补写内容。
 
 首次失败后只做一次局部修复并重跑 Gate。同一 failure class 再次失败即 `BLOCKED`，

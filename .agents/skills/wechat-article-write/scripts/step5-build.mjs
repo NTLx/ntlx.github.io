@@ -10,12 +10,11 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { extractBody, readFmValue } from "./frontmatter-lib.mjs";
-import { SLOT_EXTRACT_RE, resolveSlotImageFile } from "./validation-lib.mjs";
+import { readFmValue } from "./frontmatter-lib.mjs";
 import { assertNoInternalPlanningComments, buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
 import { assertFinalizeInputsFresh, readArtifactManifest, sha256File, upstreamIdentityMatches, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
-import { validateImagePlan, readImagePlan } from "./image-plan-lib.mjs";
+import { validateVisualDraft } from "./visual-draft-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
 import { assertNoAuthorPlaceholders, replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
@@ -51,7 +50,8 @@ if (dryRun && finalizeOnly) {
 }
 
 const base = resolve(postsRoot(), slug);
-const draftPath = resolve(base, "draft.md");
+const textDraftPath = resolve(base, "draft.md");
+const visualDraftPath = resolve(base, "visual-draft.md");
 const imgsDir = resolve(base, "imgs");
 const mapPath = resolve(base, "image-map.json");
 const articlePath = resolve(base, "article.md");
@@ -130,59 +130,26 @@ function resolveAssetSlug(draft) {
   fail(2, "frontmatter.blogSlug missing or invalid; Step 5 needs an ASCII slug for stable image names");
 }
 
-function validateImageMapCoverage(draft, files, map) {
-  const slotRefs = [...draft.matchAll(SLOT_EXTRACT_RE)];
-  for (const match of slotRefs) {
-    const file = resolveSlotImageFile(match[0], files);
-    const slotNum = match[1];
-    if (!file) fail(4, `SLOT_IMG_${slotNum} has no unambiguous matching image in imgs/`);
+function validateImageMapCoverage(images, map) {
+  for (const { src } of images) {
+    const file = src.replace(/^(?:\.\/)?imgs\//u, "");
+    if (typeof map[file] !== "string" || !/^https?:\/\//u.test(map[file])) {
+      fail(4, `image-map.json missing valid CDN URL for ${file}`);
+    }
   }
-
-  const localRefs = [...draft.matchAll(/!\[[^\]]*\]\((?:\.\/)?imgs\/([^\)\s]+)\)/g)].map(match => match[1]);
-  for (const file of localRefs) {
-    if (!files.includes(file)) fail(4, `draft.md references missing local image imgs/${file}`);
-  }
-
-  if (slotRefs.length === 0 && localRefs.length === 0) {
-    fail(4, "draft.md has images in imgs/ but no SLOT_IMG placeholders or local imgs/ references");
-  }
-  const hasUrl = file => typeof map[file] === "string" && /^https?:\/\//.test(map[file]);
-  for (const match of slotRefs) {
-    const file = resolveSlotImageFile(match[0], files);
-    if (!hasUrl(file)) fail(4, `image-map.json missing valid CDN URL for ${file}`);
-  }
-  for (const file of localRefs) {
-    if (!hasUrl(file)) fail(4, `image-map.json missing valid CDN URL for ${file}`);
-  }
-  return { slot_count: slotRefs.length, local_ref_count: localRefs.length };
-}
-
-function validateLocalImageReferences(draft, files) {
-  const slotRefs = [...draft.matchAll(SLOT_EXTRACT_RE)];
-  for (const match of slotRefs) {
-    const file = resolveSlotImageFile(match[0], files);
-    if (!file) fail(4, `SLOT_IMG_${match[1]} has no unambiguous matching image in imgs/`);
-  }
-  const localRefs = [...draft.matchAll(/!\[[^\]]*\]\((?:\.\/)?imgs\/([^\)\s]+)\)/g)].map(match => match[1]);
-  for (const file of localRefs) {
-    if (!files.includes(file)) fail(4, `draft.md references missing local image imgs/${file}`);
-  }
-  if (slotRefs.length === 0 && localRefs.length === 0) {
-    fail(4, "draft.md has images in imgs/ but no SLOT_IMG placeholders or local imgs/ references");
-  }
-  return { slot_count: slotRefs.length, local_ref_count: localRefs.length };
+  return { local_ref_count: images.length };
 }
 
 function assertStep3Fresh() {
   const state = readStateWithoutMigration();
-  if (!state?.step3_draft_sha256 || state.step3_draft_sha256 !== sha256File(draftPath)) {
+  if (!state?.step3_draft_sha256 || state.step3_draft_sha256 !== sha256File(textDraftPath)) {
     fail(2, "draft.md changed after Step 3; rerun humanizer-zh and Step 3");
   }
 }
 
 function assertPrepareNotFrozen() {
   // image-map.json and both track artifacts stay frozen while the upstream visual
-  // inputs (draft, image-plan, local imgs) are unchanged, so a WeChat-only recovery
+  // inputs (draft, visual-draft, local imgs) are unchanged, so a WeChat-only recovery
   // can never re-upload images or rewrite the blog mapping. Only a real rollback to
   // Step 3/4 changes that identity.
   const manifest = readArtifactManifest(base);
@@ -240,7 +207,7 @@ function finalize() {
   process.exit(0);
 }
 
-if (!existsSync(draftPath)) fail(2, "draft.md missing");
+if (!existsSync(textDraftPath)) fail(2, "draft.md missing");
 try {
   assertStep3Fresh();
 } catch (error) {
@@ -260,17 +227,14 @@ if (rootCovers.length === 0) fail(2, "cover image missing (cover.png/cover.jpg)"
 if (rootCovers.length > 1) fail(2, `multiple root cover images: ${rootCovers.join(", ")}; keep exactly one`);
 validateCoverFormats();
 
-const draft = readFileSync(draftPath, "utf8");
+if (!existsSync(visualDraftPath)) fail(2, "visual-draft.md missing; complete Step 4");
+const textDraft = readFileSync(textDraftPath, "utf8");
+const draft = readFileSync(visualDraftPath, "utf8");
 const imgs = imageFiles(imgsDir);
-if (imgs.length === 0) fail(2, "imgs/ contains no image files");
-  const imagePlanPath = resolve(base, "image-plan.json");
-  let imagePlan;
-  try {
-    imagePlan = readImagePlan(imagePlanPath);
-    const body = extractBody(draft);
-    const planResult = validateImagePlan(imagePlan, body, base);
-    if (!planResult.ok) fail(4, `image-plan invalid: ${planResult.errors.join("; ")}`);
-  } catch (error) {
+let images;
+try {
+  images = await validateVisualDraft(textDraft, draft, base);
+} catch (error) {
   fail(4, error.message);
 }
 const dateStr = slug.slice(0, 10);
@@ -278,7 +242,7 @@ const assetSlug = resolveAssetSlug(draft);
 const namePrefix = `${dateStr}-${assetSlug}-img`;
 
 if (dryRun) {
-  const coverage = validateLocalImageReferences(draft, imgs);
+  const coverage = { local_ref_count: images.length };
   process.stdout.write(JSON.stringify({
     slug,
     step: 5,
@@ -294,9 +258,9 @@ if (dryRun) {
 
 assertPrepareNotFrozen();
 const imageMap = loadImageMap();
-const coverage = validateImageMapCoverage(draft, imgs, imageMap);
+const coverage = validateImageMapCoverage(images, imageMap);
 
-// Placeholder → CDN URL → article.md
+// Local Markdown images → CDN URLs → article.md
 let articleMarkdown;
 try {
   articleMarkdown = applyImageMapToMarkdown(draft, imgsDir, imageMap);
@@ -306,7 +270,7 @@ try {
 }
 if (!existsSync(articlePath)) fail(4, "article.md not created");
 
-// Generate article-wechat-source.md from draft.md (local image paths).
+// Generate article-wechat-source.md from visual-draft.md (local image paths).
 writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 
 try {

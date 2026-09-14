@@ -74,7 +74,7 @@ describe("pipeline advisory CLI", () => {
       [0, "Step 1 / 1.5 / 1.8", ["Main reads the primary source directly", "understanding-brief.md"]],
       [1, "Step 2 / 3", ["MODE: full", "draft.md", "humanizer-zh"]],
       [2, "Step 3", ["MODE: humanization recovery", "reuse frozen draft.md", "humanizer-zh"]],
-      [3, "Step 4", ["cover", "image-plan.json"]],
+      [3, "Step 4", ["cover", "visual-draft.md", "baoyu-article-illustrator", "baoyu-image-gen", "if compression is needed: baoyu-compress-image"]],
     ];
     for (const [lastCompleteStep, phase, units] of cases) {
       const fixture = makeFixture(lastCompleteStep, { blog: "pending", wechat: "pending" });

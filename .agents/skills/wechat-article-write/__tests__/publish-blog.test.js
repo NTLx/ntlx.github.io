@@ -41,7 +41,7 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
     .map(([k, v]) => `${k}: ${Array.isArray(v) ? JSON.stringify(v) : v}`);
   writeFileSync(join(dir, "article.md"), `---\n${lines.join("\n")}\n---\n\n## 正文\n\n内容。`);
   writeFileSync(join(dir, "draft.md"), "---\ntitle: draft\n---\n\n内容。\n");
-  writeFileSync(join(dir, "image-plan.json"), "{}\n");
+  writeFileSync(join(dir, "visual-draft.md"), readFileSync(join(dir, "draft.md")));
   writeFileSync(join(dir, "image-map.json"), "{}\n");
   writeFileSync(join(dir, "imgs/00-infographic-core-summary.png"), "png");
   writeFileSync(join(dir, "article-wechat-source.md"), "## 正文\n\n内容。\n");

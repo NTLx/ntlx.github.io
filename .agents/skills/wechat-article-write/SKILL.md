@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "3.2.0"
+  version: "4.0.0"
 ---
 
 # 微信公众号文章写作
@@ -26,7 +26,7 @@ Main directly owns:
 - primary-source reading and understanding;
 - materials synthesis and blog memory;
 - understanding, thesis, drafting, and review;
-- visual planning and final-raster review;
+- visual integration and final-raster review;
 - `humanizer-zh` and all required specialist Skill invocations;
 - deterministic scripts, Gates, build preparation, validation, repair, and publishing.
 
@@ -119,9 +119,10 @@ asking the research child for a targeted supplement.
 ### Step 2 — Draft
 
 Read the selected strategy and [references/content-invariants.md](references/content-invariants.md).
-Main directly creates `draft.md` from `materials.md`, `understanding-brief.md`, `blog-memory.md`,
+Main writes a complete, readable article without pipeline-specific visual planning markup in
+`draft.md`, using `materials.md`, `understanding-brief.md`, `blog-memory.md`,
 the selected strategy reference, and the content invariants. Preserve frontmatter, summary,
-`blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles, SLOT topology,
+`blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles,
 strategy constraints, and originality requirements.
 
 Main directly runs:
@@ -136,37 +137,73 @@ Gate failure means Main inspects the diagnostic, repairs the draft, and reruns t
 
 `humanizer-zh` remains mandatory, but mandatory Skill does not mean mandatory child Agent. Main
 passes the current `draft.md` to `humanizer-zh`, reviews the result, and checks semantic drift,
-facts, numbers, URLs, terminology, H2 order, and SLOT topology. Main may invoke the same Skill
+facts, numbers, URLs, names, quotations, code, key judgements, and H2 order. Main may invoke the same Skill
 again for a targeted correction. Main then directly runs:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 ```
 
-The Step 3 `step3_draft_sha256` contract remains unchanged. Resuming at Step 3 uses the frozen
+After Step 3, `draft.md` is the immutable textual source. Visual processing uses a separate
+`visual-draft.md` and must not modify the frozen draft. The `step3_draft_sha256` contract remains unchanged. Resuming at Step 3 uses the frozen
 `draft.md` and does not regenerate the draft unless the diagnostic explicitly identifies the draft
 as the owner.
 
 ### Step 4 — Visuals
 
-Main plans the cover, `SLOT_IMG_00`, body visual nodes, source-image reuse, generated assets, and
-their semantic purposes from the understanding brief and final draft. Main directly invokes the
-required specialist Skills, inspects each exact final raster, and performs targeted regeneration
-when needed:
+Read [references/image-policy.md](references/image-policy.md). Initialize an exact copy of frozen
+`draft.md` as `visual-draft.md`:
 
-- `baoyu-cover-image` for the cover, with the equivalent `--quick --aspect 2.35:1 --no-title` parameters;
-- `baoyu-infographic` for `SLOT_IMG_00` and generated body visuals, with the equivalent `--no-confirm` parameter;
-- `baoyu-diagram` only when a clearly named semantic gap needs it;
-- source images are reused when they are the right evidence and are recorded as `kind: source`.
+```bash
+bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug> --initialize-only
+```
 
-Main maintains `image-plan.json` and directly runs:
+Initialization checks the frozen source, refuses to overwrite an existing visual draft, and does
+not mark Step 4 done. On resume, use the existing visual draft after checking its freshness.
+The visual draft is the only article input Specialists may modify;
+only local Markdown image insertions are allowed. Main supplies article semantics and reviews
+results; the owning Skills decide professional visual form, prompts, and body placement.
+
+1. Invoke `baoyu-cover-image` with the final article, quick mode, aspect `2.35:1`, text `none`,
+   language `zh`, and backend `baoyu-image-gen`. Normalize the chosen raster to exactly one
+   `cover.png` or `cover.jpg` in the post root.
+2. Invoke `baoyu-infographic` for the lead infographic only, using `draft.md` and necessary
+   semantic context from `understanding-brief.md`. Use landscape / `16:9`, language `zh`,
+   `--no-confirm`, and backend `baoyu-image-gen`. The Skill owns content analysis, layout,
+   style, and prompt. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
+   (or another supported raster extension), after the opening prose and before the first
+   substantive H2, as the first body image.
+3. Invoke `baoyu-article-illustrator` on `visual-draft.md` for body illustration analysis and
+   generation, even for a short article. Explicitly instruct it: analyze information gain and
+   place useful body visuals yourself; preserve the existing lead infographic; do not generate
+   another header summary or mechanically illustrate each H2; avoid duplicating source evidence;
+   insert images without rewriting article text; directly generate without further user
+   confirmation; use `baoyu-image-gen`. Recommend balanced density for normal long-form and
+   minimal density for clearly short articles. The Skill owns its outline, prompts, generation,
+   and Markdown insertion; Main does not prescribe positions or an image count.
+4. Inspect every exact final raster. When size, format, platform rejection, explicit optimization,
+   or publishing performance requires compression, invoke `baoyu-compress-image` and inspect
+   the resulting raster again. Prefer same-format compression; update `visual-draft.md` if the
+   extension changes. Otherwise skip compression.
+
+All three visual Skills use the project `preferred_image_backend: baoyu-image-gen` preference.
+Main must not bypass them with direct runtime image generation or call the backend to imitate
+cover, infographic, or body illustration design. Provider, model, transport, and generation
+retries belong to `baoyu-image-gen`; compression implementation belongs to `baoyu-compress-image`.
+Keep only final article rasters at the top of `imgs/`; auxiliary outline/prompts and comparison
+candidates remain Specialist-private and outside the hosting collection. Main reviews and returns
+failed visuals to the same owning Skill for targeted regeneration, including text errors.
+
+Main directly runs:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
 
-The visual coverage, cover ratio, SLOT00 uniqueness, basename, source/generated facts, and local
-file Gates remain unchanged. See [references/image-policy.md](references/image-policy.md).
+The Gate verifies the Step 3 draft hash, image-only visual-draft parity, one usable cover with
+correct MIME and aspect, one lead infographic in the required position, and contained local
+raster references. Normal long-form requires at least one body visual beyond the lead;
+short articles may have none after actual illustrator analysis. No invocation receipt is required.
 
 ### Step 5 — Build
 
@@ -183,7 +220,8 @@ When hosting is needed, Main reviews the resulting map and then runs:
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-This produces `article.md` and `article-wechat-source.md`. Main directly invokes `gzh-design` with
+The build consumes `visual-draft.md` and `image-map.json`, producing `article.md` with CDN
+images and `article-wechat-source.md` with local images. `draft.md` still supplies textual freshness. Main directly invokes `gzh-design` with
 the WeChat source and local `imgs/`; the Skill produces `article-wechat.html`, native validation,
 and preview. The input/output and content-preservation contract is in
 [references/adapter-gzh-design.md](references/adapter-gzh-design.md). Main then directly runs:
@@ -244,17 +282,20 @@ runtime concern, not a normal workflow contract.
 
 ## Fixed Specialist ownership
 
-These Skills remain mandatory at their capability boundary; Main invokes and reviews them directly:
+These Skills own their capability boundaries. Main invokes the three visual owners, which call
+the raster backend; compression is invoked only when needed. Main reviews their final results:
 
-| Capability | Main invokes |
+| Capability | Owner |
 |---|---|
-| humanization / Step 3 | `humanizer-zh` |
-| cover | `baoyu-cover-image` |
-| SLOT00 | `baoyu-infographic` |
-| generated body visual | `baoyu-infographic` |
-| image hosting / Step 5A | `github-image-hosting` |
-| WeChat layout / Step 5B | `gzh-design` |
-| WeChat publish | `baoyu-post-to-wechat` |
+| Humanization | `humanizer-zh` |
+| Cover | `baoyu-cover-image` |
+| Header infographic | `baoyu-infographic` |
+| Body illustration analysis + generation | `baoyu-article-illustrator` |
+| Raster generation backend | `baoyu-image-gen` |
+| Image compression | `baoyu-compress-image` |
+| Blog/CDN hosting | `github-image-hosting` |
+| WeChat HTML layout | `gzh-design` |
+| WeChat draft publishing | `baoyu-post-to-wechat` |
 
 Specialist Skills own their professional workflows and configuration. Main must not replace a
 mandatory Skill with a generic imitation, but Skill invocation still leaves Main as the workflow owner.
@@ -268,7 +309,7 @@ Read only the references needed for the current work:
 | background research delegation | `research-delegation.md` |
 | understanding and originality | `material-understanding.md`, `originality-policy.md` |
 | draft/build invariants | `content-invariants.md`, `publishing.md` |
-| visual planning and review | `image-policy.md` |
+| visual integration and review | `image-policy.md` |
 | WeChat layout and repair | `adapter-gzh-design.md` |
 | Gate recovery | `troubleshooting.md` |
 | strategy | the selected `strategy-*.md` |

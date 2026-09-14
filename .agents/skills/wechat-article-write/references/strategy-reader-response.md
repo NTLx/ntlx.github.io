@@ -74,11 +74,7 @@ brief 要给出核心问题、中心判断、机制、边界、反方、可视�
 - 只围绕一个中心判断展开，保留作者第一人称观察和疑问；
 - 吸收背景核验与站内记忆，而非堆砌原文摘要；
 - 逐条落实原创增量承诺，并明确重要边界；
-- 规划 3-6 个 H2 和有语义的 SLOT：SLOT00 是全文速读信息图；SLOT_IMG_01+
-  是正文 visual SLOT，由可视觉化节点决定，正常长文至少两个，典型 3-6 H2
-  reader-response 在 2-4 个之间按语义判断自由选择。未达到 normal long-form 阈值的
-  短文可以为 0 个；normal long-form 必须至少两个。
-  正文图优先表达局部机制、对比、框架、状态变化或原创增量，避免重复 SLOT00；
+- 规划 3-6 个 H2，围绕中心判断组织完整论证；
 - 写出金句式 `summary`（不超过 120 字）、互动问题和 `## 参考资料`。
 
 保存 `draft.md` 并运行 Step 2 Gate：
@@ -87,7 +83,8 @@ brief 要给出核心问题、中心判断、机制、边界、反方、可视�
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
 
-Step 4 完成 source reuse 或生成后，才创建最终 `image-plan.json`，再进入后续图片校验。
+Step 4 由视觉 Specialist 分析并将图片集成到 `visual-draft.md`，再运行图片校验；
+具体职责见 [image-policy.md](image-policy.md)。
 
 站内相关文章是否适合联动属于 editorial judgement：高相关候选未被引用时 Step 2 只给 warning，
 由 Main 在 Understanding 阶段判断是否纳入；不要为了满足数量强行联动。

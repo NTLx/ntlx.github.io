@@ -45,21 +45,21 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 简洁事实、来源和“为什么重要/影响谁”的作者判断；全文还要有综合判断、
 风险或后续观察点。不要复制任何资料工具的输出格式。
 
-正文仍遵守通用内容协议：金句式 `summary`、H2、SLOT00 全文总览，以及表达共同
-趋势、对比、时间线、影响路径或其它独立信息增益的正文 visual SLOT。正常长文至少
-两个；未达到 normal long-form 阈值的短文可以为 0 个；不要用每条消息一张图替代语义判断。
+正文仍遵守通用内容协议：金句式 `summary` 和 H2。Step 4 的头部信息图提供全文总览，
+正文视觉由 `baoyu-article-illustrator` 分析共同趋势、对比、时间线或影响路径后决定，
+按通用图片策略验证；不要用每条消息一张图替代语义判断。
 另有互动问题和
 `## 参考资料`。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
 把猜测伪装成事实。
 
-保存 `draft.md` 并运行 Step 2 Gate；Step 2 不创建最终 `image-plan.json`：
+保存完整文字版 `draft.md` 并运行 Step 2 Gate：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
 
-Step 4 图片完成后，才创建 `image-plan.json`，只记录最终资产的 slot、kind、file，以及
-source 图片必要的 URL 和 reason；source 与 generated 都算正文视觉覆盖，再运行 Step 4 Gate：
+Step 4 将最终本地图片集成到 `visual-draft.md`；source 依据保留在材料与文章上下文，
+source 与 generated 都可作为正文视觉辅助，再运行 Step 4 Gate：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
@@ -77,7 +77,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续阶段
 
-Step 4 先从新闻的共同趋势或影响关系中定义视觉意图，再动态选择视觉
-能力，并按 source reuse 或 generated visual 规则落地。Step 5/6 使用主 `SKILL.md` 的
+Step 4 将新闻的共同趋势与影响关系交给固定视觉 Skills 分析，按通用图片策略集成。Step 5/6 使用主 `SKILL.md` 的
 双轨构建、HTML finalize 和发布顺序。首次采用新的数据源或能力时，遵守
 其 setup 要求；不可用时如实记录覆盖差异。

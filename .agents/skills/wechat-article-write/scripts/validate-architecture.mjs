@@ -57,13 +57,14 @@ if (existsSync(file("references/delegated-execution.md"))) errors.push("obsolete
 
 for (const name of [
   "humanizer-zh", "baoyu-cover-image", "baoyu-infographic",
+  "baoyu-article-illustrator", "baoyu-image-gen", "baoyu-compress-image",
   "github-image-hosting", "gzh-design", "baoyu-post-to-wechat",
 ]) if (!existsSync(resolve(skillsRoot, name, "SKILL.md"))) errors.push(`direct Specialist missing: ${name}`);
 
 for (const rel of [
   "scripts/step1-collect.mjs", "scripts/step2-write.mjs", "scripts/step3-polish.mjs",
   "scripts/step4-images.mjs", "scripts/step5-build.mjs", "scripts/state.mjs", "scripts/state-lib.mjs",
-  "scripts/pipeline.mjs", "scripts/validate-understanding.mjs", "scripts/image-plan-lib.mjs",
+  "scripts/pipeline.mjs", "scripts/validate-understanding.mjs",
   "scripts/markdown-structure-lib.mjs", "scripts/source-provenance-lib.mjs",
 ]) requireFile(rel);
 
@@ -72,14 +73,14 @@ for (const contract of [
   "Main is the default executor",
   "Main directly owns",
   "primary-source reading and understanding",
-  "Main directly creates `draft.md`",
+  "Main writes a complete, readable article",
   "Main directly runs",
   "Skill invocation does not imply an Agent context",
   "Background research may be delegated",
   "State remains v2",
   "owner-local repair",
   "repeated failure class is `BLOCKED`",
-]) if (!skillText.includes(contract)) errors.push(`SKILL.md missing v3 contract: ${contract}`);
+]) if (!skillText.includes(contract)) errors.push(`SKILL.md missing v4 contract: ${contract}`);
 
 const researchText = read("references/research-delegation.md");
 for (const contract of [
@@ -96,17 +97,32 @@ for (const contract of [
 ]) if (!researchText.includes(contract)) errors.push(`research reference missing contract: ${contract}`);
 
 const directSkillRoutes = [
-  ["humanization / Step 3", "humanizer-zh"],
-  ["cover", "baoyu-cover-image"],
-  ["SLOT00", "baoyu-infographic"],
-  ["generated body visual", "baoyu-infographic"],
-  ["image hosting / Step 5A", "github-image-hosting"],
-  ["WeChat layout / Step 5B", "gzh-design"],
-  ["WeChat publish", "baoyu-post-to-wechat"],
+  ["Humanization", "humanizer-zh"],
+  ["Cover", "baoyu-cover-image"],
+  ["Header infographic", "baoyu-infographic"],
+  ["Body illustration analysis + generation", "baoyu-article-illustrator"],
+  ["Raster generation backend", "baoyu-image-gen"],
+  ["Image compression", "baoyu-compress-image"],
+  ["Blog/CDN hosting", "github-image-hosting"],
+  ["WeChat HTML layout", "gzh-design"],
+  ["WeChat draft publishing", "baoyu-post-to-wechat"],
 ];
 for (const [unit, specialist] of directSkillRoutes) {
   const route = skillText.split("\n").find((line) => line.includes(`| ${unit} |`));
   if (!route || !route.includes(specialist)) errors.push(`Main route missing: ${unit} → ${specialist}`);
+}
+
+for (const specialist of ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator"]) {
+  const configPath = resolve(repoRoot, ".baoyu-skills", specialist, "EXTEND.md");
+  const config = existsSync(configPath) ? parseFrontmatter(readFileSync(configPath, "utf8")) : {};
+  if (config.preferred_image_backend !== "baoyu-image-gen") {
+    errors.push(`${specialist} project preferred_image_backend must be baoyu-image-gen`);
+  }
+}
+const imagePolicy = read("references/image-policy.md");
+if (!/conditional|when needed|需要压缩/u.test(imagePolicy)) errors.push("image compression must remain conditional");
+for (const artifact of ["draft.md", "visual-draft.md", "imgs/"]) {
+  if (!skillText.includes(artifact)) errors.push(`SKILL.md missing visual artifact: ${artifact}`);
 }
 
 const contractFiles = [
@@ -117,9 +133,13 @@ const contractFiles = [
   "references/publishing.md",
   "references/image-policy.md",
   "references/originality-policy.md",
+  "references/content-invariants.md",
+  "references/strategy-reader-response.md",
   "scripts/pipeline.mjs",
 ];
 const obsoleteContracts = [
+  "SLOT_IMG", "SLOT00", "image-plan",
+  "baoyu-diagram", "baoyu-xhs-images", "baoyu-markdown-to-html",
   "Main MUST NOT directly execute actual work",
   "planning-only",
   "Model Context Budget",
@@ -153,11 +173,11 @@ for (const contract of [
   "Owner-local repair",
   "failure class",
   "不创建新的 Agent context",
-]) if (!adapterText.includes(contract)) errors.push(`gzh adapter missing v3 contract: ${contract}`);
+]) if (!adapterText.includes(contract)) errors.push(`gzh adapter missing v4 contract: ${contract}`);
 
 const pipelineText = read("scripts/pipeline.mjs");
 for (const contract of ["Main executes this workflow directly", "OPTIONAL DELEGATION", "REQUIRED SPECIALIST", "--prepare-only", "--finalize-only"]) {
-  if (!pipelineText.includes(contract)) errors.push(`pipeline missing v3 advisory contract: ${contract}`);
+  if (!pipelineText.includes(contract)) errors.push(`pipeline missing v4 advisory contract: ${contract}`);
 }
 if (pipelineText.includes("spawnSync") || pipelineText.includes("PIPELINE_AUTO")) errors.push("pipeline must remain advisory and non-orchestrating");
 
@@ -167,7 +187,7 @@ const structureText = read("scripts/wechat-structure-lib.mjs");
 if (!structureText.includes("structural-parity/mixed")) errors.push("structural parity must expose subclass failure classes");
 if (structureText.includes("unexpected_text_replacement")) errors.push("structural parity must not expose misleading replacement metric");
 
-for (const rel of ["scripts/workflow.mjs", "scripts/orchestration-trace.mjs", "scripts/render-images-serial.mjs"]) {
+for (const rel of ["scripts/workflow.mjs", "scripts/orchestration-trace.mjs", "scripts/render-images-serial.mjs", "scripts/image-plan-lib.mjs", "__tests__/image-plan.test.js"]) {
   if (existsSync(file(rel))) errors.push(`retired script remains: ${rel}`);
 }
 for (const rel of [
@@ -196,6 +216,7 @@ const forbiddenCoupling = [
   "github-image-hosting/scripts/upload", "gzh-design/scripts/validate_gzh_html.py",
   "gzh-design/scripts/wrap_preview.py", "render-images-serial", "orchestration-trace",
   "skill-catalog", "image-review receipt",
+  "SLOT_IMG", "image-plan", "collectDraftSlots", "resolveSlotImg", "normalizeSlotDesc", "bodyVisualMinimum",
 ];
 for (const rel of productionFiles) {
   const text = read(rel);

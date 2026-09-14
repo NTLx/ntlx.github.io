@@ -8,12 +8,12 @@
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
 ```
 
-`FROZEN`（已有 manifest，且 draft / image-plan / imgs 未变）时不得调用 hosting；只有 `NEEDED`
-（无 manifest，或上游视觉输入已变）才重新调用。Step 5B 的 child-owned 局部 failure 先由 Main
+`FROZEN`（已有 manifest，且 draft / visual-draft / imgs 未变）时不得调用 hosting；只有 `NEEDED`
+（无 manifest，或上游视觉输入已变）才重新调用。Step 5B 的 Skill-owned 局部 failure 先由 Main
 将当前 HTML、frozen source 和 diagnostic 交给同一 `gzh-design` Skill；重试与停止条件统一见
 [adapter-gzh-design.md](adapter-gzh-design.md#owner-local-repair)，不重跑 hosting 或 prepare。
 
-Main 直接调用 `github-image-hosting`，将 `imgs/`、业务 folder `wechat-articles`、稳定命名前缀和
+Main 直接调用 `github-image-hosting`，将 `visual-draft.md` 实际引用的最终 `imgs/` raster 集合、业务 folder `wechat-articles`、稳定命名前缀和
 `image-map.json` 输出路径传入其当前 SKILL.md 契约，由该 Skill 生成 manifest。它负责 repo 配置、远端
 状态、冲突、重试和 CDN URL。
 
@@ -24,13 +24,15 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 ```
 
 此脚本不执行上传、不访问 GitHub API、不定位第三方 uploader，只消费 `image-map.json`，完成本地图片
-引用替换并生成 `article.md`、`article-wechat-source.md`。随后 Main 调用 `gzh-design` 生成
+引用替换并生成 `article.md`、`article-wechat-source.md`。构建输入为 `visual-draft.md`，不改写冻结的 `draft.md`。随后 Main 调用 `gzh-design` 生成
 `article-wechat.html`；Skill 自己完成主题选择、validator 和 preview，再运行 `--finalize-only`。
 finalize 只做 repository-specific structural/integrity Gate，不修改 HTML。
 
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、纯文本 URL）、
 `article-wechat.html`（gzh-design HTML）。Step 5 记录 deterministic artifact hash；draft 改变时必须
-回到 Step 3。
+回到 Step 3。文本 identity 为 `draft_sha256`，视觉 identity 为
+`visual_draft_sha256` 与 `imgs_sha256`；继续记录 `image_map_sha256`、`article_sha256`、
+`wechat_source_sha256` 和 `wechat_html_sha256`。Specialist auxiliary 文件与 candidates 不进入 hosting 集合。
 
 Step 5 finalize 后 `image-map.json` 与双轨产物即冻结：manifest 仍新鲜时 `--prepare-only` fail closed。
 微信轨恢复只能重新调用 `gzh-design` 并运行 `--finalize-only`，不得重跑 hosting 或 prepare；只有回退到
@@ -53,3 +55,7 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 ```
 
 失败时读取 `state.mjs next`，只恢复失败的博客或微信子状态。
+
+Step 5 artifact manifest is v3; pipeline business state remains v2. Older manifests must be
+rebuilt after integrating `visual-draft.md` and passing Step 4. They cannot authorize finalize or
+publish, and hosting status reports `NEEDED`; completed channel state remains independent.

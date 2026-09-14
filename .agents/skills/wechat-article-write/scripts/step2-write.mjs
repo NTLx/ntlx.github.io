@@ -7,16 +7,14 @@
  *   - 有外部 primary source 时，primarySourceUrls 与 materials.md provenance 完全一致
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
- *   - SLOT_IMG_00 信息图恰好存在一次，正文 SLOT 编号不重复
  *   - 文末互动存在
  *   - 正文无 H1
  *   - ## 参考资料 区块（默认必须，--allow-no-references 可跳过）
  *   - 参考资料区内容验证（至少含 URL 或引用来源）
  *   - materials.md URL 交叉引用检查
- *   - 正常长文至少有一个 SLOT_IMG_01+ 正文视觉
  *   - 高相关站内旧文未联动时给出 advisory warning，不阻断写作
  *
- * 字数用于判断是否触发正常长文的最低正文视觉覆盖门控。
+ * 字数记录在业务状态中。
  *
  * 用法:
  *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction]
@@ -28,7 +26,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
-import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords, collectDraftSlots, bodyVisualMinimum } from "./validation-lib.mjs";
+import { VALID_CATEGORIES, ASCII_SLUG_RE, countWords } from "./validation-lib.mjs";
 import { readFmValue, extractBody } from "./frontmatter-lib.mjs";
 import {
   extractPrimarySourceUrlsFromMaterials,
@@ -36,7 +34,6 @@ import {
   parsePrimarySourceUrlsFrontmatter,
   sameNormalizedSourceSet,
 } from "./source-provenance-lib.mjs";
-import { collectMarkdownImages, collectSubstantiveSections, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 const args = process.argv.slice(2);
 const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction"]);
@@ -137,11 +134,9 @@ if (existsSync(materialsPath)) {
   }
 }
 
-// 2. Preserve full-body word_count for existing state consumers; coverage uses
-// a separate substantive article word count below.
+// 2. Full-body word count for state consumers.
 const body = extractBody(content);
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
-const substantiveWordCount = countWords(stripNonSubstantiveTailSections(body)).total;
 
 if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
   fail(4, "正文使用了 reference-style Markdown 链接。请改用 inline links: [文本](URL)，以便 Step 5 为博客/微信生成不同链接形态");
@@ -149,33 +144,6 @@ if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
-
-// 3a. SLOT_IMG placeholder check. SLOT00 is mandatory; normal long-form
-// articles also require at least two body visual SLOTs beyond SLOT00.
-const draftSlots = collectDraftSlots(body);
-if (draftSlots.length === 0) fail(4, "正文缺少 SLOT_IMG 占位符（必须包含 <!-- SLOT_IMG_00_INFOGRAPHIC -->）");
-const slotCounts = new Map();
-for (const slot of draftSlots) slotCounts.set(slot.slot, (slotCounts.get(slot.slot) ?? 0) + 1);
-const duplicateSlots = [...slotCounts.entries()].filter(([, count]) => count > 1).map(([slot]) => `SLOT_IMG_${String(slot).padStart(2, "0")}`);
-if (duplicateSlots.length > 0) fail(4, `正文 SLOT 编号必须唯一，发现重复: ${duplicateSlots.join(", ")}`);
-if ((slotCounts.get(0) ?? 0) !== 1) fail(4, "正文必须恰好包含一次 SLOT_IMG_00 信息图占位符（SLOT 00 是必填视觉摘要）");
-const bodySlotNumbers = [...slotCounts.keys()].filter((slot) => slot > 0).sort((a, b) => a - b);
-if (!bodySlotNumbers.every((slot, index) => slot === index + 1)) fail(4, "正文 visual SLOT 必须从 SLOT_IMG_01 连续编号");
-
-// SLOT00 is the lead visual. Body visual planning happens after humanization,
-// when source-image reuse and final assets are known.
-const sections = collectSubstantiveSections(body);
-const bodyVisualMin = bodyVisualMinimum({ wordCount: substantiveWordCount, substantiveSectionCount: sections.length });
-if (bodySlotNumbers.length < bodyVisualMin) {
-  fail(4, `normal long-form article requires at least ${bodyVisualMin} body visual SLOTs beyond SLOT00 (found ${bodySlotNumbers.length}); review understanding-brief.md visualizable nodes and add SLOT_IMG_01+`);
-}
-if (sections[0] && draftSlots.find((slot) => slot.slot === 0)?.index >= sections[0].start) {
-  fail(4, "SLOT_IMG_00 must appear before the first substantive H2");
-}
-const firstVisual = [...draftSlots.map((slot) => ({ index: slot.index, slot: slot.slot })),
-  ...collectMarkdownImages(body).map((item) => ({ index: item.index, slot: null }))]
-  .sort((a, b) => a.index - b.index)[0];
-if (firstVisual?.slot !== 0) fail(4, "SLOT_IMG_00 must be the first body visual image");
 
 // 4. Interaction check
 // 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：
