@@ -147,6 +147,10 @@ for (const specialist of ["baoyu-cover-image", "baoyu-infographic", "baoyu-artic
   }
 }
 
+// The raster backend itself is capped at one worker, so serialization does not rest on the current
+// provider default concurrency (codex-cli is 1, but google/openai/dashscope and others are not).
+requirePreferences("baoyu-image-gen", { "batch.max_workers": "1" });
+
 // Batch generation is opt-in per Skill schema. Absent is fine; present must stay at 1 so the
 // illustrator's own raster dispatch stays serial, isolating each generation or retry.
 for (const entry of existsSync(baoyuSkillsRoot) ? readdirSync(baoyuSkillsRoot, { withFileTypes: true }) : []) {

@@ -125,6 +125,11 @@ describe("generation batch size", () => {
     }
     expect(imagePolicy).toContain("Main reviews every exact final raster before Step 4 can pass");
   });
+
+  test("caps the raster backend itself at one worker", () => {
+    expect(imageGenConfig).toMatch(/^batch:\n\s+max_workers: 1$/mu);
+    expect(imagePolicy).toContain("batch.max_workers: 1");
+  });
 });
 
 describe("global raster generation serialization", () => {

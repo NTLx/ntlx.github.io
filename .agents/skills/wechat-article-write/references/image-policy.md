@@ -92,6 +92,10 @@ visual owner while a generation or regeneration request is still active.
 raster dispatch serial. It does not change the Skill's
 analyze → outline → generate workflow.
 
+The `baoyu-image-gen` backend is itself capped at one batch worker
+(`batch.max_workers: 1`), so serialization does not depend on the current
+default concurrency of whichever provider happens to be selected.
+
 Compression is downstream raster processing rather than text-to-image
 generation and does not weaken this generation serialization contract.
 
