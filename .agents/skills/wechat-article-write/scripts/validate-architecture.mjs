@@ -139,8 +139,16 @@ requirePreferences("baoyu-article-illustrator", {
   preferred_image_backend: "baoyu-image-gen",
 });
 
-// Batch generation is opt-in per Skill schema. Absent is fine; present must stay serial so each
-// raster can be reviewed before the next is dispatched.
+// Raster owners use their native styles plus the Parent art-direction overlay, never a project
+// composite style. Cover's custom_palettes stay legal: a palette is not a style.
+for (const specialist of ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator"]) {
+  if (/^custom_styles:/mu.test(baoyuConfig(specialist))) {
+    errors.push(`${specialist} project custom_styles are not allowed; use native styles plus the Parent art-direction overlay`);
+  }
+}
+
+// Batch generation is opt-in per Skill schema. Absent is fine; present must stay at 1 so the
+// illustrator's own raster dispatch stays serial, isolating each generation or retry.
 for (const entry of existsSync(baoyuSkillsRoot) ? readdirSync(baoyuSkillsRoot, { withFileTypes: true }) : []) {
   if (!entry.isDirectory()) continue;
   const configPath = resolve(baoyuSkillsRoot, entry.name, "EXTEND.md");

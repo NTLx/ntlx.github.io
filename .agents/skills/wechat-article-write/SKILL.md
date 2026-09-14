@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.2.0"
+  version: "4.3.0"
 ---
 
 # 微信公众号文章写作
@@ -187,17 +187,33 @@ Pass this requirement explicitly to every owning visual Skill. It is an art-dire
 must not replace that Skill's configured style, palette, layout, type, or semantic judgement, and it
 never applies to reused source figures or screenshots.
 
+Raster generation in this Step is globally serial.
+
+Main MUST execute raster-producing Specialist workflows sequentially and MUST NOT dispatch parallel
+generation calls. Finish the current owner's generation and any immediate owner-local regeneration
+before invoking the next raster-producing owner.
+
+Normal sequence: 1. `baoyu-cover-image`, 2. `baoyu-infographic`, 3. `baoyu-article-illustrator`.
+Do not run any two of these generation workflows concurrently.
+
+The illustrator additionally uses `generation_batch_size: 1`, so its own body-image raster dispatch
+is serial.
+
 1. Invoke `baoyu-cover-image` with the final article, quick mode, aspect `2.35:1`, text `none`,
    language `zh`, and backend `baoyu-image-gen`. Honor the project EXTEND preferences, including the
    `bright-vivid-warm` palette and bold mood, and apply the project-wide generated-image tone. The
    cover Skill still chooses its own type and rendering. Normalize the chosen raster to exactly one
-   `cover.png` or `cover.jpg` in the post root.
+   `cover.png` or `cover.jpg` in the post root. Complete cover generation and inspect the selected
+   final raster before dispatching the lead infographic workflow; if regeneration is required, finish
+   that owner-local retry before moving to the next raster owner.
 2. Invoke `baoyu-infographic` for the lead infographic only, using `draft.md` and necessary
-   semantic context from `understanding-brief.md`. Honor the project EXTEND defaults — claymation
+   semantic context from `understanding-brief.md`. Invoke this workflow only after the cover
+   generation lane is complete. Honor the project EXTEND defaults — claymation
    style, landscape aspect, language `zh`, backend `baoyu-image-gen` — and use `--no-confirm` so it
    generates directly. Apply the project-wide tone as an overlay on claymation rather than replacing
    it. The Skill owns content analysis, information layout, semantic structure, style, and prompt:
-   do not preselect a layout. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
+   do not preselect a layout. Finish any infographic regeneration before invoking the body
+   illustrator. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
    (or another supported raster extension), after the opening prose and before the first
    substantive H2, as the first body image.
 3. Invoke `baoyu-article-illustrator` on `visual-draft.md` for body illustration analysis and

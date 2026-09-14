@@ -72,9 +72,16 @@ describe("project visual preferences", () => {
     expect(skill).not.toMatch(/--layout/u);
   });
 
-  test("does not shadow the claymation owner with a composite custom style", () => {
-    expect(infographicConfig).not.toContain("bright-vivid-warm");
-    expect(illustratorConfig).not.toContain("bright-vivid-warm");
+  test("uses native Specialist styles without project custom styles", () => {
+    for (const config of [coverConfig, infographicConfig, illustratorConfig]) {
+      expect(config).not.toMatch(/^custom_styles:/mu);
+    }
+    expect(infographicConfig).toMatch(/^preferred_style: claymation$/mu);
+    expect(illustratorConfig).toMatch(/^preferred_style:\n\s+name: notion$/mu);
+    expect(illustratorConfig).toMatch(/^preferred_palette: macaron$/mu);
+    // Cover keeps its custom palette: a palette is not a style.
+    expect(coverConfig).toMatch(/^custom_palettes:/mu);
+    expect(coverConfig).toMatch(/^  - name: bright-vivid-warm$/mu);
   });
 
   test("pins the illustrator to notion with the macaron palette", () => {
@@ -109,5 +116,46 @@ describe("generation batch size", () => {
   test("does not pollute Skills whose EXTEND schema lacks the field", () => {
     expect(coverConfig).not.toContain("generation_batch_size");
     expect(infographicConfig).not.toContain("generation_batch_size");
+  });
+
+  test("explains batch size as serial dispatch, not inter-image approval", () => {
+    for (const text of [skill, imagePolicy]) {
+      expect(text).toContain("raster dispatch");
+      expect(text).not.toContain("reviewed before the next is dispatched");
+    }
+    expect(imagePolicy).toContain("Main reviews every exact final raster before Step 4 can pass");
+  });
+});
+
+describe("global raster generation serialization", () => {
+  test("declares raster generation globally serial in both the workflow and the policy", () => {
+    for (const text of [skill, imagePolicy]) {
+      expect(text).toContain("globally serial");
+      expect(text).toContain("sequentially");
+      expect(text).toContain("MUST NOT");
+    }
+    expect(skill).toContain("MUST NOT dispatch parallel");
+    expect(imagePolicy).toContain("only one raster-producing Specialist at a time");
+  });
+
+  test("orders the raster owners cover, infographic, illustrator", () => {
+    const line = skill.split("\n").find((entry) => entry.startsWith("Normal sequence:"));
+    expect(line).toBeDefined();
+    const positions = ["baoyu-cover-image", "baoyu-infographic", "baoyu-article-illustrator"]
+      .map((name) => line.indexOf(name));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  test("keeps retries and every owner inside one serial lane", () => {
+    expect(imagePolicy).toContain("Retries remain inside the same serial lane");
+    expect(skill).toContain("Finish the current owner's generation");
+    expect(skill).toContain("Do not run any two of these generation workflows concurrently");
+    expect(skill).toContain("owner-local retry before moving to the next raster owner");
+    expect(skill).toContain("Finish any infographic regeneration before invoking the body");
+  });
+
+  test("does not treat downstream compression as a second generation lane", () => {
+    expect(imagePolicy).toContain("does not weaken this generation serialization contract");
   });
 });

@@ -43,8 +43,9 @@ Illustrator generation batch size
 → 1
 ```
 
-All three owners generate through `baoyu-image-gen`, and the illustrator renders one image at a
-time so each raster can be reviewed before the next is dispatched.
+All three owners generate through `baoyu-image-gen`. The illustrator renders one image at a time so
+its raster dispatch remains serial and individual generation failures or retries stay isolated.
+Main reviews every exact final raster before Step 4 can pass.
 
 Precedence when the overlay conflicts with content:
 
@@ -60,6 +61,39 @@ Precedence when the overlay conflicts with content:
 
 Lowering local saturation to keep an infographic label readable is correct; breaking readability to
 satisfy "high saturation" is not.
+
+## Global raster generation serialization
+
+Raster generation in Step 4 is globally serial.
+
+Main MUST invoke only one raster-producing Specialist at a time.
+Do not invoke `baoyu-cover-image`, `baoyu-infographic`, or
+`baoyu-article-illustrator` concurrently, and do not issue parallel
+generation tool calls.
+
+Raster-producing owners run sequentially: an owner must finish its current
+generation workflow before Main dispatches another raster-producing owner.
+
+The normal order is:
+
+```text
+Cover
+→ review / owner-local retry if needed
+→ Lead infographic
+→ review / owner-local retry if needed
+→ Body illustrator
+→ review / owner-local retry if needed
+```
+
+Retries remain inside the same serial lane. Main MUST NOT start another
+visual owner while a generation or regeneration request is still active.
+
+`generation_batch_size: 1` additionally keeps the illustrator's own
+raster dispatch serial. It does not change the Skill's
+analyze → outline → generate workflow.
+
+Compression is downstream raster processing rather than text-to-image
+generation and does not weaken this generation serialization contract.
 
 ## Three visual layers
 
