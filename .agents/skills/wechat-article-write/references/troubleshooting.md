@@ -15,11 +15,13 @@ owner，不能让 gzh-design 或其它 Skill 代修。
 
 | 症状 | 处理 |
 |---|---|
-| Step 1 缺背景 URL | Main 判断是否需要 research child → 补可追溯来源 → Step 1 Gate |
+| Step 1 证据缺口 | 按策略判断：tutorial 本地证据充分可继续；reader-response 缺背景是 warning；news-digest 补外部核验；需要时使用 research child |
 | Step 2 H2/frontmatter 失败 | Main 修复 draft/content invariants → Step 2 Gate |
 | Step 3 hash 不新鲜 | Main 调用 `humanizer-zh` → frozen draft → Step 3 Gate |
 | Step 4 缺图、比例或 source 不一致 | Main 调用对应 visual Skill → `visual-draft.md` / 最终本地 raster → Step 4 Gate |
 | Step 4 visual-draft 文字漂移 | 从冻结 `draft.md` 干净副本重新集成图片，交回同一视觉 Skill → Step 4 Gate |
+| Step 4 重复初始化 | ALREADY_INITIALIZED / RESUME_EXISTING 保留已有 artifact 与 state；核对 freshness 后继续 |
+| 封面在 Step 5 后改变 | Main 重审封面 → Step 4 Gate → prepare 复用 image-map → HTML 校验 / finalize；正文 hosting 不重跑 |
 | 图片太大或格式不兼容 | `baoyu-compress-image` → 检查最终 raster → 更新引用（若扩展名改变）→ Step 4 Gate |
 | mandatory Skill unavailable | 当前 unit `BLOCKED`，不使用 fallback |
 | Step 5 prepared | Main → `gzh-design` → HTML validator/preview → build-finalize Gate |

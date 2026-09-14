@@ -2,7 +2,7 @@
 /**
  * step1-collect.mjs 回归测试
  *
- * 覆盖联网背景调研门控，确保写作前的背景资料不是可选项。
+ * 覆盖 strategy-aware 调研与来源完整性。
  */
 
 import { afterEach, describe, expect, test } from "bun:test";
@@ -108,31 +108,48 @@ describe("step1-collect background research gate", () => {
     expect(state.last_complete_step).toBe(0);
   });
 
-  test("missing background research section fails", () => {
+  test("reader-response missing background warns without blocking primary material", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
     const slug = "2026-05-24-missing-background";
-    writeMaterials(fx.postsRoot, slug, "只有原文资料，没有背景调研。");
+    writeMaterials(fx.postsRoot, slug, "## 原始来源\n- pasted: 用户提供的完整原文\n");
     writeState(fx.postsRoot, slug, "reader-response");
-
     const r = runStep1(slug, fx.postsRoot);
-    expect(r.status).toBe(3);
-    expect(r.stderr).toContain("背景调研");
+    expect(r.status).toBe(0);
+    expect(r.stderr).toContain("normally needs background evidence");
   });
 
-  test("background research without URL fails", () => {
+  test("tutorial accepts local evidence without background section or URL", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);
-    const slug = "2026-05-24-background-no-url";
-    writeMaterials(fx.postsRoot, slug, `
-## 背景调研
+    const slug = "2026-05-24-local-tutorial";
+    writeMaterials(fx.postsRoot, slug, "## 本地验证\n依赖版本和复现步骤见本地日志；命令结果已验证。\n");
+    writeState(fx.postsRoot, slug, "tutorial");
+    expect(runStep1(slug, fx.postsRoot).status).toBe(0);
+  });
 
-- 这里写了背景，但没有可追溯来源。
-`);
-
+  test("empty materials cannot bypass the optional research policy", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-24-empty-tutorial";
+    writeMaterials(fx.postsRoot, slug, " \n\t");
+    writeState(fx.postsRoot, slug, "tutorial");
     const r = runStep1(slug, fx.postsRoot);
     expect(r.status).toBe(3);
-    expect(r.stderr).toContain("来源 URL");
+    expect(r.stderr).toContain("is empty");
+  });
+
+  test("news-digest needs external evidence but no fixed background heading", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-05-24-news";
+    const dir = writeMaterials(fx.postsRoot, slug, "## 原始来源\n- pasted: 用户新闻摘录\n");
+    writeState(fx.postsRoot, slug, "news-digest");
+    const missing = runStep1(slug, fx.postsRoot);
+    expect(missing.status).toBe(3);
+    expect(missing.stderr).toContain("external verification");
+    writeFileSync(join(dir, "materials.md"), "## 原始来源\n- url: https://example.com/announcement\n");
+    expect(runStep1(slug, fx.postsRoot).status).toBe(0);
   });
 
   test("reader-response requires an explicit primary source section", () => {

@@ -30,6 +30,7 @@ applies_when: 用户要求汇总 AI 资讯、行业动态、新闻简报或热�
 - url: https://official.example.com/event-b
 ```
 
+外部核验是必要条件：材料需包含可追溯的外部来源 URL，不要求它必须位于背景小节。
 `## 背景调研` 只记录 supporting evidence。Step 1.5 先执行 Primary Source Uniqueness；
 如果某个 source 已被覆盖，从材料中剔除该事件并重新整理后再跑 Step 1 / 1.5；全部核心来源
 均已覆盖时 STOP，不再次摘要或创建新文章。
@@ -48,8 +49,7 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 正文仍遵守通用内容协议：金句式 `summary` 和 H2。Step 4 的头部信息图提供全文总览，
 正文视觉由 `baoyu-article-illustrator` 分析共同趋势、对比、时间线或影响路径后决定，
 按通用图片策略验证；不要用每条消息一张图替代语义判断。
-另有互动问题和
-`## 参考资料`。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
+保留 `## 参考资料`；结尾可以交代观察点、行动或自然收束，互动问题可选。如果某条消息无法核实，就删掉或明确标成未证实，不用语气
 把猜测伪装成事实。
 
 保存完整文字版 `draft.md` 并运行 Step 2 Gate：

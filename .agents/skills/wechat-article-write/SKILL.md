@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.0.0"
+  version: "4.1.0"
 ---
 
 # 微信公众号文章写作
@@ -77,13 +77,17 @@ evidence and must not replace Main's primary-source understanding.
 Main merges the evidence into `materials.md`, preserving Primary Source provenance and uniqueness.
 For `reader-response` and `news-digest`, `## 原始来源` records the direct writing object and
 `## 背景调研` records supporting evidence. `tutorial` records provenance when a clear external
-primary source exists. Then Main directly runs:
+primary source exists. Research follows evidence needs: reader-response normally supplements the
+primary material (missing background is advisory); news-digest requires traceable external verification;
+tutorial may use sufficient local/user evidence without online research. For factual gaps, version
+claims, external technical assertions, or time-sensitive facts, retrieve authoritative evidence.
+Then Main directly runs:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
 ```
 
-The collector Gate, source uniqueness, and provenance rules remain unchanged. A repeated primary
+The collector checks strategy-appropriate evidence, source uniqueness, and provenance. A repeated primary
 source blocks a new article; supporting references do not count as primary-source matches.
 
 ### Step 1.5 — Blog memory
@@ -103,9 +107,10 @@ primary-source duplication remains blocking.
 Before writing, read [references/material-understanding.md](references/material-understanding.md)
 and [references/originality-policy.md](references/originality-policy.md).
 Main creates or updates `understanding-brief.md` using the primary-source model, background evidence,
-blog memory, user intent, and the selected strategy. The brief must preserve the existing contract:
-core question, central judgement, mechanism, constraints, counterarguments, boundaries, writable
-judgements, visualizable nodes, at least three originality increments, and the writing contract.
+blog memory, user intent, and the selected strategy. The brief covers evidence, a central judgement or engineering objective, boundaries, and how those
+findings guide the article. Match its depth and headings to the strategy. Main reviews actual
+understanding and reader value; the Gate checks nonempty content domains without imposing visual
+nodes, an originality count, or a fixed seven-section template.
 
 Main directly runs:
 
@@ -119,7 +124,7 @@ asking the research child for a targeted supplement.
 ### Step 2 — Draft
 
 Read the selected strategy and [references/content-invariants.md](references/content-invariants.md).
-Main writes a complete, readable article without pipeline-specific visual planning markup in
+Main writes a complete, readable article without Markdown image nodes or pipeline-specific visual planning markup in
 `draft.md`, using `materials.md`, `understanding-brief.md`, `blog-memory.md`,
 the selected strategy reference, and the content invariants. Preserve frontmatter, summary,
 `blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles,
@@ -131,6 +136,7 @@ Main directly runs:
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug>
 ```
 
+The ending is an editorial decision: no question mark or interaction formula is required.
 Gate failure means Main inspects the diagnostic, repairs the draft, and reruns the same Gate.
 
 ### Step 3 — Humanization
@@ -158,8 +164,10 @@ Read [references/image-policy.md](references/image-policy.md). Initialize an exa
 bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug> --initialize-only
 ```
 
-Initialization checks the frozen source, refuses to overwrite an existing visual draft, and does
-not mark Step 4 done. On resume, use the existing visual draft after checking its freshness.
+Initialization checks the frozen source and returns INITIALIZED for a new copy. An existing exact
+copy returns ALREADY_INITIALIZED; existing visual work returns RESUME_EXISTING. Both resume
+results leave the artifact and business state unchanged. Initialization never marks Step 4 done.
+On resume, check existing visual work for freshness before proceeding.
 The visual draft is the only article input Specialists may modify;
 only local Markdown image insertions are allowed. Main supplies article semantics and reviews
 results; the owning Skills decide professional visual form, prompts, and body placement.
@@ -180,7 +188,8 @@ results; the owning Skills decide professional visual form, prompts, and body pl
    insert images without rewriting article text; directly generate without further user
    confirmation; use `baoyu-image-gen`. Recommend balanced density for normal long-form and
    minimal density for clearly short articles. The Skill owns its outline, prompts, generation,
-   and Markdown insertion; Main does not prescribe positions or an image count.
+   and Markdown insertion; Main does not prescribe positions or an image count. Any article length
+   may receive zero body illustrations when the illustrator analysis and Main review support it.
 4. Inspect every exact final raster. When size, format, platform rejection, explicit optimization,
    or publishing performance requires compression, invoke `baoyu-compress-image` and inspect
    the resulting raster again. Prefer same-format compression; update `visual-draft.md` if the
@@ -202,8 +211,8 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 
 The Gate verifies the Step 3 draft hash, image-only visual-draft parity, one usable cover with
 correct MIME and aspect, one lead infographic in the required position, and contained local
-raster references. Normal long-form requires at least one body visual beyond the lead;
-short articles may have none after actual illustrator analysis. No invocation receipt is required.
+raster references. Body illustration count remains an editorial decision after actual illustrator
+analysis. No invocation receipt is required.
 
 ### Step 5 — Build
 
@@ -213,7 +222,10 @@ Main directly calls `github-image-hosting` after checking:
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
 ```
 
-`FROZEN` means the existing `image-map.json` is still valid and hosting must not be repeated.
+`FROZEN` means the existing `image-map.json` still matches `visual-draft.md` and `imgs/`;
+hosting must not be repeated. Cover identity belongs to publication freshness, independently of
+hosting. After a cover change, inspect it and rerun Step 4, then prepare with the existing map
+and finalize before publishing.
 When hosting is needed, Main reviews the resulting map and then runs:
 
 ```bash
@@ -315,4 +327,4 @@ Read only the references needed for the current work:
 | strategy | the selected `strategy-*.md` |
 
 The deterministic scripts preserve state v2, provenance, source uniqueness, understanding and
-content Gates, Step 3 hash, visual coverage, Step 4, Step 5 parity/integrity, and publish freshness.
+content Gates, Step 3 hash, visual integration, Step 4, Step 5 parity/integrity, and publish freshness.

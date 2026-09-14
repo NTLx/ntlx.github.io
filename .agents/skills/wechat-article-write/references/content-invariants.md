@@ -23,7 +23,8 @@
 
 ## Visual facts
 
-`draft.md` is the immutable textual artifact after Step 3. Step 4 starts by copying it exactly
+`draft.md` contains no Markdown image nodes and is the immutable textual artifact after Step 3.
+Source figures stay in materials until Step 4 integration; image syntax in code examples remains code. Step 4 starts by copying it exactly
 into `visual-draft.md`; the latter contains the same article plus local Markdown image insertions.
 Step 4 may add Markdown images but must not rewrite article prose, headings, URLs, quotes, code,
 references, interaction, or semantic frontmatter fields. Removing the added image nodes must
@@ -60,4 +61,5 @@ Step 1.5 必须执行站内检索。写作时自然消费相关旧文，若无�
 
 每个脚本只判断可可靠机器判断的事实：frontmatter、visual-draft parity、文件、MIME、cover 比例、
 链接形态、代码/段落/H2 parity、HTML validator、artifact freshness 和 state。视觉语义、
-文字正确性、构图和“是否值得配图”由 Agent 实际查看并判断。
+文字正确性、构图和“是否值得配图”由 Agent 实际查看并判断。结尾是否互动、正文需要几张图、
+原创增量多少和是否存在研究缺口由 Main / Specialist 判断，不以形式特征阻断。

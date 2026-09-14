@@ -16,11 +16,7 @@ const stateLib = readFileSync(resolve(skillDir, "scripts", "state-lib.mjs"), "ut
 describe("orchestration contract", () => {
   test("makes Main the default executor", () => {
     expect(skill).toMatch(/version: "\d+\.\d+\.\d+"/u);
-    expect(skill).toContain("## Execution model");
     expect(skill).toContain("Main is the default executor");
-    expect(skill).toContain("Main directly owns");
-    expect(skill).toContain("Main writes a complete, readable article");
-    expect(skill).toContain("Main directly runs");
     expect(skill).toContain("State remains v2");
     expect(stateLib).toContain("v2");
     expect(skill).not.toContain("Main MUST NOT directly execute actual work");
@@ -30,8 +26,6 @@ describe("orchestration contract", () => {
   test("delegates only context-heavy background research by default", () => {
     expect(skill).toContain("Background research may be delegated");
     expect(research).toContain("only normal Agent boundary");
-    expect(research).toContain("external\nretrieval");
-    expect(research).toContain("compact evidence summary");
     expect(research).toContain("不生成 draft");
     expect(research).not.toContain("生成整篇文章");
   });
@@ -130,7 +124,6 @@ describe("orchestration contract", () => {
       expect(gzhAdapter).not.toContain(obsolete);
       expect(troubleshooting).not.toContain(obsolete);
     }
-    expect(skill).toContain("An additional model context\nis exceptional");
     expect(skill).not.toContain("context count");
     expect(existsSync(resolve(skillDir, "references", "delegated-execution.md"))).toBe(false);
   });

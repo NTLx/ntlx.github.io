@@ -67,6 +67,34 @@ describe("step2 source uniqueness backstop", () => {
     while (cleanup.length > 0) rmSync(cleanup.pop(), { recursive: true, force: true });
   });
 
+  test("Step 2 and Step 3 accept an ending without a question mark", () => {
+    const fixture = makeFixture({ sameSourceMatches: [] });
+    cleanup.push(fixture.root);
+    const path = join(fixture.postDir, "draft.md");
+    const content = readFileSync(path, "utf8").replace("你会怎么做？", "至此流程已验证。");
+    writeFileSync(path, content);
+    const step2 = run(fixture);
+    expect(step2.status, step2.stderr).toBe(0);
+    expect(step2.stderr).not.toContain("互动");
+    const step3 = spawnSync("bun", ["run", resolve(import.meta.dir, "../scripts/step3-polish.mjs"), fixture.slug], {
+      cwd: PROJECT_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: fixture.root }, encoding: "utf8",
+    });
+    expect(step3.status, step3.stderr).toBe(0);
+    expect(readFileSync(path, "utf8")).toBe(content);
+  });
+
+  test("Step 2 rejects real images but allows image syntax in code", () => {
+    const fixture = makeFixture({ sameSourceMatches: [] });
+    cleanup.push(fixture.root);
+    const path = join(fixture.postDir, "draft.md");
+    const content = readFileSync(path, "utf8");
+    writeFileSync(path, content + "\n![source](imgs/source.png)\n");
+    expect(run(fixture).stderr).toContain("must contain no Markdown images");
+    writeFileSync(path, content + "\n~~~md\n![source](imgs/source.png)\n~~~\n");
+    const result = run(fixture);
+    expect(result.status, result.stderr).toBe(0);
+  });
+
   test("fails on same_source_matches without an editorial bypass flag", () => {
     const fixture = makeFixture();
     cleanup.push(fixture.root);

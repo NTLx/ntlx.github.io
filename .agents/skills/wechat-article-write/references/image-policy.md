@@ -21,8 +21,8 @@ The illustrator must actually analyze every article, including short articles th
 illustration. It chooses useful positions and avoids mechanically matching images to H2s, duplicating
 the lead summary, or repeating existing source evidence. Balanced density is the normal long-form
 starting preference; minimal density suits short articles. Main reviews the result rather than
-preplanning positions or counts. Normal long-form means substantive H2 >= 3 or substantive body
->= 1400; its weak backstop is at least one body visual beyond the lead. Short articles may have zero.
+preplanning positions or counts. Articles of any length may have zero body illustrations when
+the illustrator determines that more images would not help and Main agrees.
 Cover and lead do not count as body aids. Source evidence can count when integrated into the article.
 
 ## Evidence reuse
@@ -55,7 +55,7 @@ Sharp 或 Pillow 实现压缩。优先同格式压缩；扩展名改变时同步
 
 ## Final artifact hygiene and machine Gate
 
-`draft.md` 在 Step 3 后冻结。Step 4 从精确副本 `visual-draft.md` 开始，只加入本地 Markdown
+`draft.md` 不包含 Markdown image nodes，在 Step 3 后冻结。Step 4 从精确副本 `visual-draft.md` 开始，只加入本地 Markdown
 图片，不能改写正文、H2、URL、引用、代码、参考资料或 frontmatter 语义字段。
 
 `imgs/` 顶层只保留进入文章的最终 raster。Specialist 可保留 `imgs/outline.md`、`imgs/prompts/`
@@ -64,5 +64,7 @@ Main 不维护 prompt registry、producer metadata、backend receipt 或 review 
 
 `step4-images.mjs` 只验证：冻结 draft hash、去除新增 image nodes 后的 visual-draft parity、
 root cover 唯一性与 MIME/比例/可用 raster、头部 infographic 唯一性与位置、全部图片路径位于
-`imgs/` 内且文件存在并为已知 MIME 的可用 raster、正常长文至少一张 body visual。
+`imgs/` 内且文件存在并为已知 MIME 的可用 raster。
+正文插图数量不设 hard gate。封面改变后必须重新查看并通过 Step 4，再 prepare / finalize；
+封面计入发布 freshness，但不导致正文重新 hosting。
 脚本不判断设计风格和语义质量，也不读取 Specialist 的 outline、prompt 或执行记录。

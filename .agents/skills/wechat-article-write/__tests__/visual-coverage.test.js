@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import sharp from "sharp";
-import { validateVisualDraft, assertVisualTextParity, initializeVisualDraft, collectVisualImages } from "../scripts/visual-draft-lib.mjs";
+import { validateVisualDraft, assertVisualTextParity, initializeVisualDraft, collectVisualImages, assertTextOnlyDraft } from "../scripts/visual-draft-lib.mjs";
 import { sha256File } from "../scripts/artifact-integrity-lib.mjs";
 
 const lead = "![文章核心信息图](imgs/00-infographic-core-summary.png)";
@@ -20,11 +20,14 @@ async function fixture(run) {
 }
 
 describe("visual integration", () => {
-  test("copies frozen draft exactly and refuses to overwrite on resume", () => fixture(async base => {
+  test("copies frozen draft exactly and resumes initialization without overwriting", () => fixture(async base => {
     writeFileSync(join(base, "draft.md"), draft);
-    initializeVisualDraft(base);
+    expect(initializeVisualDraft(base)).toBe("INITIALIZED");
     expect(readFileSync(join(base, "visual-draft.md"), "utf8")).toBe(draft);
-    expect(() => initializeVisualDraft(base)).toThrow("already exists");
+    expect(initializeVisualDraft(base)).toBe("ALREADY_INITIALIZED");
+    writeFileSync(join(base, "visual-draft.md"), insertLead(draft));
+    expect(initializeVisualDraft(base)).toBe("RESUME_EXISTING");
+    expect(readFileSync(join(base, "visual-draft.md"), "utf8")).toBe(insertLead(draft));
   }));
   test("accepts image-only additions and a short article without body illustrations", () => fixture(async base => {
     expect((await validateVisualDraft(draft, insertLead(draft), base)).length).toBe(1);
@@ -36,21 +39,25 @@ describe("visual integration", () => {
   ]) test(`rejects ${name} mutation`, () => {
     expect(() => assertVisualTextParity(draft, insertLead(draft).replace(before, after))).toThrow("changes frozen article");
   });
+  test("rejects reference-style image nodes in a draft", () => {
+    expect(() => assertTextOnlyDraft(draft + '\n![figure][ref]\n\n[ref]: imgs/example.png\n')).toThrow("must contain no Markdown images");
+  });
   test("keeps code containing image syntax literal", () => {
     const text = draft + '\n~~~md\n![example](imgs/no-file.png)\n~~~\n\n`![inline](imgs/no-file.png)`\n';
+    expect(() => assertTextOnlyDraft(text)).not.toThrow();
     expect(collectVisualImages(insertLead(text)).length).toBe(1);
     expect(() => assertVisualTextParity(text, insertLead(text).replace('no-file.png', 'changed.png'))).toThrow();
   });
-  test("preserves existing source images", () => {
-    expect(() => assertVisualTextParity(draft + '\n' + bodyImage, insertLead(draft))).toThrow("preserve existing");
+  test("rejects images in the frozen textual source", () => {
+    expect(() => assertVisualTextParity(draft + '\n' + bodyImage, insertLead(draft))).toThrow("must contain no Markdown images");
   });
-  test("fenced headings do not determine lead position or long-form coverage", () => fixture(async base => {
+  test("fenced headings do not determine lead position", () => fixture(async base => {
     const text = draft.replace("## 机制", "~~~md\n## 假标题一\n## 假标题二\n## 假标题三\n~~~\n\n## 机制");
     expect((await validateVisualDraft(text, insertLead(text), base)).length).toBe(1);
   }));
-  test("uses substantive length and excludes trailing references", () => fixture(async base => {
+  test("allows a long article or long references without body illustrations", () => fixture(async base => {
     const long = draft + "\n" + "正".repeat(1400);
-    await expect(validateVisualDraft(long, insertLead(long), base)).rejects.toThrow("at least 1 body visual");
+    expect((await validateVisualDraft(long, insertLead(long), base)).length).toBe(1);
     const short = draft + "\n## 参考资料\n\n" + "参".repeat(1500);
     expect((await validateVisualDraft(short, insertLead(short), base)).length).toBe(1);
   }));
@@ -71,9 +78,9 @@ describe("visual integration", () => {
     writeFileSync(join(base, "imgs/00-infographic-core-summary.png"), readFileSync(join(base, "cover.png")).subarray(0, 24));
     await expect(validateVisualDraft(draft, insertLead(draft), base)).rejects.toThrow("usable raster");
   }));
-  test("normal long-form needs one body visual", () => fixture(async base => {
+  test("allows zero or more specialist-selected body visuals regardless of H2 count", () => fixture(async base => {
     const long = draft + '\n## 对比\n\n对比。\n\n## 边界\n\n边界。\n';
-    await expect(validateVisualDraft(long, insertLead(long), base)).rejects.toThrow("at least 1 body visual");
+    expect((await validateVisualDraft(long, insertLead(long), base)).length).toBe(1);
     writeFileSync(join(base, "imgs/mechanism.png"), readFileSync(join(base, "cover.png")));
     expect((await validateVisualDraft(long, insertLead(long) + `\n${bodyImage}\n`, base)).length).toBe(2);
   }));
@@ -96,7 +103,13 @@ describe("visual integration", () => {
     writeFileSync(join(base, "visual-draft.md"), insertLead(draft));
     const slug = base.split('/').at(-1);
     writeFileSync(join(base, ".pipeline-state.json"), JSON.stringify({ version: 2, slug, last_complete_step: 3, step3_draft_sha256: sha256File(textPath), publish: { blog: "pending", wechat: "pending" } }));
-    const run = () => spawnSync("bun", [resolve(import.meta.dir, "../scripts/step4-images.mjs"), slug], { env: { ...process.env, PIPELINE_POSTS_ROOT: tmpdir() }, encoding: "utf8" });
+    const run = (...args) => spawnSync("bun", [resolve(import.meta.dir, "../scripts/step4-images.mjs"), slug, ...args], { env: { ...process.env, PIPELINE_POSTS_ROOT: tmpdir() }, encoding: "utf8" });
+    const stateBefore = readFileSync(join(base, ".pipeline-state.json"), "utf8");
+    const initialized = run("--initialize-only");
+    expect(initialized.status, initialized.stderr).toBe(0);
+    expect(initialized.stdout).toContain("RESUME_EXISTING");
+    expect(readFileSync(join(base, ".pipeline-state.json"), "utf8")).toBe(stateBefore);
+    expect(readFileSync(join(base, "visual-draft.md"), "utf8")).toBe(insertLead(draft));
     const result = run();
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(readFileSync(join(base, ".pipeline-state.json"))).last_complete_step).toBe(4);

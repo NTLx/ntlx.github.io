@@ -86,6 +86,17 @@ describe("publish-wechat", () => {
     expect(JSON.parse(readFileSync(join(dir, ".pipeline-state.json"), "utf8")).publish.wechat).toBe("pending");
   });
 
+  test("prepare refuses a replaced cover at the boundary", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-wechat-stale-cover";
+    const dir = writePost(fx.postsRoot, slug);
+    writeFileSync(join(dir, "cover.png"), "replacement");
+    const result = runPublish([slug, "--prepare-only"], fx);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr + result.stdout).toContain("cover SHA256/name");
+  });
+
   test("prepare refuses a changed image-map at the boundary", () => {
     const fx = makeFixture();
     cleanup.push(fx.root);

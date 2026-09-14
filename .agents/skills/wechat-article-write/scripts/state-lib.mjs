@@ -136,7 +136,10 @@ export function setStrategy(slug, name) {
 /** 标记某一步完成（Step 1-5 使用；Step 6 建议用 markBlogDone/markWechatDone） */
 export function markStepDone(slug, step, extra = {}) {
   const state = initState(slug);
-  state.last_complete_step = step;
+  // Revalidating upstream artifacts must not erase durable publication progress.
+  const hasPublicationActivity = Object.values(state.publish).some(status => status !== "pending");
+  state.last_complete_step = step < 6 && hasPublicationActivity
+    ? Math.max(state.last_complete_step, step) : step;
   state.failed_step = null;
   if (step === 6) {
     // 向后兼容：如果直接标记 Step 6 done，设置双轨完成

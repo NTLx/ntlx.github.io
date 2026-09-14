@@ -7,7 +7,6 @@
  *   - 有外部 primary source 时，primarySourceUrls 与 materials.md provenance 完全一致
  *   - blogSlug 为 ASCII kebab-case，且 sourceUrl 与 blogSlug 一致
  *   - 正文无 H1
- *   - 文末互动存在
  *   - 正文无 H1
  *   - ## 参考资料 区块（默认必须，--allow-no-references 可跳过）
  *   - 参考资料区内容验证（至少含 URL 或引用来源）
@@ -19,7 +18,7 @@
  * 用法:
  *   bun run step2-write.mjs <date-slug> [--allow-no-references] [--allow-no-interaction]
  *
- * 退出码: 0 通过；2 frontmatter 缺失；4 互动/参考资料缺失
+ * 退出码: 0 通过；2 frontmatter 缺失；4 内容/参考资料校验失败
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -35,7 +34,10 @@ import {
   sameNormalizedSourceSet,
 } from "./source-provenance-lib.mjs";
 
+import { assertTextOnlyDraft } from "./visual-draft-lib.mjs";
+
 const args = process.argv.slice(2);
+// Legacy --allow-no-interaction is accepted as a no-op for resumed commands.
 const allowedFlags = new Set(["--allow-no-references", "--allow-no-interaction"]);
 const unknownFlag = args.find((arg) => arg.startsWith("--") && !allowedFlags.has(arg));
 if (unknownFlag) {
@@ -43,7 +45,6 @@ if (unknownFlag) {
   process.exit(1);
 }
 const allowNoReferences = args.includes("--allow-no-references");
-const allowNoInteraction = args.includes("--allow-no-interaction");
 // Exactly one positional slug is accepted; do not silently ignore extra args.
 const positional = args.filter((arg) => !arg.startsWith("--"));
 if (positional.length > 1) {
@@ -136,6 +137,7 @@ if (existsSync(materialsPath)) {
 
 // 2. Full-body word count for state consumers.
 const body = extractBody(content);
+try { assertTextOnlyDraft(content); } catch (error) { fail(4, error.message); }
 const { total: wordCount, chineseChars, englishWords } = countWords(body);
 
 if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
@@ -144,24 +146,6 @@ if (/^\[[^\]\n]+\]:\s*\S+/m.test(body)) {
 
 // 3. H1 check
 if (/^# /m.test(body)) fail(4, "正文出现 H1 标题（Starlight 会重复渲染 title 为 H1）");
-
-// 4. Interaction check
-// 旧正则 /(^|\n)\s*\*[^*\n]{4,}[？?]\*\s*$/m 过于脆弱：
-//   - 强制 `*…？*` 斜体 + 行尾（拒绝 "…？* 欢迎留言聊聊"）
-//   - 单行锚定（拒绝 "*问1？* *问2？*" 同行多问）
-//   - 不接受纯文本问句
-// 新规则：正文末尾 1200 字符内出现至少一个中/英文问号即算有互动。
-// 仍保留 --allow-no-interaction 作为彻底跳过校验的逃生口（教程策略等场景）。
-const bodyBeforeRefs = body.split(/^## 参考资料/m)[0];
-const interactionTail = bodyBeforeRefs.slice(-1200);
-const hasInteractionQuestion = /[？?]/.test(interactionTail);
-if (!hasInteractionQuestion) {
-  if (allowNoInteraction) {
-    process.stderr.write("step2: WARNING 未检测到文末互动问题（--allow-no-interaction 已允许跳过）\n");
-  } else {
-    fail(4, "缺少文末互动问题（正文末尾附近需含至少一个中/英文问号；如确无互动，使用 --allow-no-interaction 跳过）");
-  }
-}
 
 // 5. References check (mandatory for all articles)
 const hasRefSection = /^## 参考资料/m.test(body);
@@ -244,7 +228,6 @@ const stateExtra = {
   primary_source_urls: primarySourceUrls,
   word_count: wordCount,
   allow_no_references: allowNoReferences,
-  allow_no_interaction: allowNoInteraction,
   blog_memory_candidates: blogMemoryCandidates,
   blog_memory_used: blogMemoryUsed,
 };

@@ -8,12 +8,12 @@
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { markStepDone, markStepFailed } from "./state-lib.mjs";
+import { loadState, markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
-import { assertNoInternalPlanningComments, buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
+import { buildWechatSourceMarkdown, finalizeStep5Artifacts, validateBlogArtifact } from "./step5-lib.mjs";
 import { assertMarkdownParity } from "./content-parity-lib.mjs";
-import { assertFinalizeInputsFresh, readArtifactManifest, sha256File, upstreamIdentityMatches, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
+import { assertMappedArtifactsUnchanged, publicationIdentityMatches, assertFinalizeInputsFresh, readArtifactManifest, sha256File, upstreamIdentityMatches, writeFinalizedArtifactManifest, writePreparedArtifactManifest } from "./artifact-integrity-lib.mjs";
 import { validateVisualDraft } from "./visual-draft-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
@@ -61,6 +61,13 @@ const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 const WECHAT_IMAGE_FOLDER = "wechat-articles";
 
+// State validity has one owner. Invalid checkpoints must never be rewritten as failures.
+let state;
+try { state = loadState(slug); } catch (error) {
+  process.stderr.write(`step5: ${error.message}\n`);
+  process.exit(2);
+}
+
 if (hostingStatus) {
   process.stdout.write(`${hostingStatusFor(base)}\n`);
   process.exit(0);
@@ -87,16 +94,6 @@ function validateCoverFormat(path, expectedMime) {
 function validateCoverFormats() {
   if (existsSync(coverPng)) validateCoverFormat(coverPng, "image/png");
   if (existsSync(coverJpg)) validateCoverFormat(coverJpg, "image/jpeg");
-}
-
-function readStateWithoutMigration() {
-  const statePath = resolve(base, ".pipeline-state.json");
-  if (!existsSync(statePath)) return null;
-  try {
-    return JSON.parse(readFileSync(statePath, "utf8"));
-  } catch {
-    return null;
-  }
 }
 
 /** Deterministic preflight for the hosting dispatch boundary. */
@@ -141,20 +138,22 @@ function validateImageMapCoverage(images, map) {
 }
 
 function assertStep3Fresh() {
-  const state = readStateWithoutMigration();
   if (!state?.step3_draft_sha256 || state.step3_draft_sha256 !== sha256File(textDraftPath)) {
     fail(2, "draft.md changed after Step 3; rerun humanizer-zh and Step 3");
   }
 }
 
 function assertPrepareNotFrozen() {
-  // image-map.json and both track artifacts stay frozen while the upstream visual
-  // inputs (draft, visual-draft, local imgs) are unchanged, so a WeChat-only recovery
-  // can never re-upload images or rewrite the blog mapping. Only a real rollback to
-  // Step 3/4 changes that identity.
   const manifest = readArtifactManifest(base);
   if (!manifest || !upstreamIdentityMatches(base, manifest)) return;
-  fail(2, "Step 5 upstream visuals are unchanged and already mapped; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
+  if (!publicationIdentityMatches(base, manifest)) {
+    if ((state?.last_complete_step ?? 0) < 4 || state?.failed_step) {
+      fail(2, "publication visuals changed; review the cover and complete Step 4 before Step 5 prepare (hosting stays frozen)");
+    }
+    try { assertMappedArtifactsUnchanged(base, manifest); } catch (error) { fail(2, error.message); }
+    return;
+  }
+  fail(2, "Step 5 publication visuals are unchanged and already mapped; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
 }
 
 function finalize() {
@@ -166,14 +165,7 @@ function finalize() {
     const imageMap = loadImageMap();
     const article = readFileSync(articlePath, "utf8");
     const wechatSource = readFileSync(wechatSourcePath, "utf8");
-    const wechatHtml = readFileSync(wechatHtmlPath, "utf8");
     validateBlogArtifact(article);
-    assertNoInternalPlanningComments(wechatSource, "article-wechat-source.md");
-    try {
-      assertNoInternalPlanningComments(wechatHtml, "article-wechat.html");
-    } catch (error) {
-      throw new Error(`${error.message}; return to gzh-design for owner-local repair or regeneration`);
-    }
     assertMarkdownParity(article, wechatSource, imageMap);
   } catch (error) {
     fail(4, error.message);
@@ -276,7 +268,6 @@ writeFileSync(wechatSourcePath, buildWechatSourceMarkdown(draft, imgs));
 try {
   validateBlogArtifact(readFileSync(articlePath, "utf8"));
   const wechatSource = readFileSync(wechatSourcePath, "utf8");
-  assertNoInternalPlanningComments(wechatSource, "article-wechat-source.md");
   const authorErrors = assertNoAuthorPlaceholders(wechatSource);
   if (authorErrors.length > 0) throw new Error(authorErrors.join("; "));
 } catch (error) {

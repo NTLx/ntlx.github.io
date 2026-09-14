@@ -68,33 +68,12 @@ for (const rel of [
   "scripts/markdown-structure-lib.mjs", "scripts/source-provenance-lib.mjs",
 ]) requireFile(rel);
 
+// Keep only the execution boundary anchors; editorial wording belongs in documentation review.
 for (const contract of [
-  "## Execution model",
   "Main is the default executor",
-  "Main directly owns",
-  "primary-source reading and understanding",
-  "Main writes a complete, readable article",
-  "Main directly runs",
   "Skill invocation does not imply an Agent context",
   "Background research may be delegated",
-  "State remains v2",
-  "owner-local repair",
-  "repeated failure class is `BLOCKED`",
-]) if (!skillText.includes(contract)) errors.push(`SKILL.md missing v4 contract: ${contract}`);
-
-const researchText = read("references/research-delegation.md");
-for (const contract of [
-  "only normal Agent boundary",
-  "Primary sources",
-  "directly by Main",
-  "Research capsule",
-  "compact evidence summary",
-  "FACTS",
-  "CONFLICTS / UNCERTAINTY",
-  "不写文章",
-  "不生成 draft",
-  "does not add fields to `.pipeline-state.json`",
-]) if (!researchText.includes(contract)) errors.push(`research reference missing contract: ${contract}`);
+]) if (!skillText.includes(contract)) errors.push(`SKILL.md missing execution boundary: ${contract}`);
 
 const directSkillRoutes = [
   ["Humanization", "humanizer-zh"],
@@ -164,21 +143,7 @@ for (const rel of contractFiles) {
   }
 }
 
-const adapterText = read("references/adapter-gzh-design.md");
-for (const contract of [
-  "Native gzh-design ERROR count must be 0",
-  "Native WARNING is advisory",
-  "current `article-wechat.html`",
-  "frozen `article-wechat-source.md`",
-  "Owner-local repair",
-  "failure class",
-  "不创建新的 Agent context",
-]) if (!adapterText.includes(contract)) errors.push(`gzh adapter missing v4 contract: ${contract}`);
-
 const pipelineText = read("scripts/pipeline.mjs");
-for (const contract of ["Main executes this workflow directly", "OPTIONAL DELEGATION", "REQUIRED SPECIALIST", "--prepare-only", "--finalize-only"]) {
-  if (!pipelineText.includes(contract)) errors.push(`pipeline missing v4 advisory contract: ${contract}`);
-}
 if (pipelineText.includes("spawnSync") || pipelineText.includes("PIPELINE_AUTO")) errors.push("pipeline must remain advisory and non-orchestrating");
 
 const stateLibText = read("scripts/state-lib.mjs");

@@ -9,6 +9,8 @@ import { ASCII_SLUG_RE, VALID_CATEGORIES, countWords } from "./validation-lib.mj
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
 import { sha256File } from "./artifact-integrity-lib.mjs";
 
+import { assertTextOnlyDraft } from "./visual-draft-lib.mjs";
+
 const slug = process.argv[2];
 if (!slug) { process.stderr.write("usage: step3-polish.mjs <date-slug>\n"); process.exit(1); }
 
@@ -43,10 +45,7 @@ if (!fm.targetPath) {
 }
 if (/^# /m.test(body)) fail(2, "正文不能包含 H1");
 
-const allowNoInteraction = state?.allow_no_interaction === true;
-if (!allowNoInteraction && !/[？?]/.test(body.split(/^## 参考资料/m)[0].slice(-1200))) {
-  fail(2, "缺少文末互动问题；若确无互动，复用 Step 2 的 allow_no_interaction 状态");
-}
+try { assertTextOnlyDraft(content); } catch (error) { fail(2, error.message); }
 if (state?.allow_no_references !== true && !/^## 参考资料/m.test(body)) {
   fail(2, "缺少 ## 参考资料 区块；若确无参考资料，复用 Step 2 的 allow_no_references 状态");
 }

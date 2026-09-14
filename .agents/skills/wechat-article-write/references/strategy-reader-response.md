@@ -41,7 +41,8 @@ posts/{date-slug}/materials.md
 Uniqueness；同一 normalized primary source 已有已发布文章时 STOP，不进入 Understanding，
 不因换标题、opening、thesis 或 visual 而创建第二篇文章。
 
-至少包含 `## 背景调研` 和可追溯 URL，然后运行：
+通常应在 `## 背景调研` 补充可追溯证据；缺少背景证据时 Gate 给出 warning，
+Main 判断已有材料是否足够，事实缺口仍须补齐。然后运行：
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step1-collect.mjs <date-slug>
@@ -61,9 +62,8 @@ bun run .agents/skills/wechat-article-write/scripts/select-related-articles.mjs 
 bun run .agents/skills/wechat-article-write/scripts/validate-understanding.mjs <date-slug>
 ```
 
-brief 要给出核心问题、中心判断、机制、边界、反方、可视觉化节点，以及
-至少三条能在正文中逐条检查的原创增量承诺。它是写作契约，不是分析工具
-输出的存档区。
+brief 要说明证据、中心判断、边界和写作应用；需要时展开机制与反方。
+具体质量要求见 material-understanding.md 和 originality-policy.md，不强制视觉节点或增量条数。
 
 ## Step 2：写作
 
@@ -75,7 +75,7 @@ brief 要给出核心问题、中心判断、机制、边界、反方、可视�
 - 吸收背景核验与站内记忆，而非堆砌原文摘要；
 - 逐条落实原创增量承诺，并明确重要边界；
 - 规划 3-6 个 H2，围绕中心判断组织完整论证；
-- 写出金句式 `summary`（不超过 120 字）、互动问题和 `## 参考资料`。
+- 写出金句式 `summary`（不超过 120 字）和 `## 参考资料`；结尾按论证需要选择，互动问题可选。
 
 保存 `draft.md` 并运行 Step 2 Gate：
 
@@ -102,6 +102,6 @@ bun run .agents/skills/wechat-article-write/scripts/step3-polish.mjs <date-slug>
 
 ## 后续工程阶段
 
-Step 4-6 遵循主 `SKILL.md` 与 `image-policy.md`：先定义视觉意图并决定 source reuse 或
-generated visual，再构建双轨产物并按博客、微信顺序发布。任何 Gate 失败都回到编排闭环改道，
+Step 4-6 遵循主 `SKILL.md` 与 `image-policy.md`：由专业视觉 Skills 分析并集成图片，
+再构建双轨产物并按博客、微信顺序发布。任何 Gate 失败都回到编排闭环改道，
 不跳过验证。

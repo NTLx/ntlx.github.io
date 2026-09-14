@@ -102,3 +102,17 @@ test("publication failures after build completion remain resumable", () => {
     expect(readFileSync(f.path, "utf8")).toBe(raw);
   }
 });
+
+test("upstream revalidation preserves durable independent publication checkpoints", () => {
+  for (const [checkpoint, blog, wechat] of [[6, "done", "failed"], [6, "blocked", "pending"], [6, "failed", "done"], [5, "pending", "failed"]]) {
+    const f = fixture(JSON.stringify({ last_complete_step: checkpoint, publish: { blog, wechat }, failed_step: { step: 6.2 } }));
+    for (const step of [4, 5]) {
+      expect(run(f, "done", String(step)).status).toBe(0);
+      expect(run(f, "dump").status).toBe(0);
+      const state = JSON.parse(readFileSync(f.path, "utf8"));
+      expect(state.last_complete_step).toBe(checkpoint);
+      expect(state.publish).toEqual({ blog, wechat });
+      expect(state.failed_step).toBe(null);
+    }
+  }
+});

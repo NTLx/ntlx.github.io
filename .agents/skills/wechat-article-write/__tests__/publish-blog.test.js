@@ -46,6 +46,7 @@ function writeArticle(postsRoot, slug, fmOverrides = {}) {
   writeFileSync(join(dir, "imgs/00-infographic-core-summary.png"), "png");
   writeFileSync(join(dir, "article-wechat-source.md"), "## 正文\n\n内容。\n");
   writeFileSync(join(dir, "article-wechat.html"), "<section><p>内容。</p></section>\n");
+  writeFileSync(join(dir, "cover.png"), "cover");
   writePreparedArtifactManifest(dir);
   writeFinalizedArtifactManifest(dir);
 }
@@ -102,6 +103,17 @@ describe("publish-blog", () => {
     expect(r.stdout).not.toContain("blogSlug:");
     expect(r.stdout).not.toContain("sourceUrl:");
     expect(r.stdout).not.toContain("coverImage:");
+  });
+
+  test("publish refuses a replaced cover at the boundary", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const slug = "2026-09-03-stale-cover";
+    writeArticle(fx.postsRoot, slug);
+    writeFileSync(join(fx.postsRoot, slug, "cover.png"), "replacement");
+    const result = runPublish([slug, "--dry-run"], fx);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr + result.stdout).toContain("cover SHA256/name");
   });
 
   test("publish freshness rejects a changed local image", () => {

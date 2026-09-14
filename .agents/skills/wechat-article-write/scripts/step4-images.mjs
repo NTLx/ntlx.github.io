@@ -24,8 +24,8 @@ try {
     throw new Error("draft.md changed after Step 3; rerun humanizer-zh and Step 3");
   }
   if (args.includes("--initialize-only")) {
-    initializeVisualDraft(base);
-    process.stdout.write("step4: initialized visual-draft.md from frozen draft.md\n");
+    const status = initializeVisualDraft(base);
+    process.stdout.write(`step4: ${status} visual-draft.md\n`);
   } else {
     const draft = readFileSync(draftPath, "utf8");
     const visual = readFileSync(resolve(base, "visual-draft.md"), "utf8");

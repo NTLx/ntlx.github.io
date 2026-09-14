@@ -8,7 +8,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { markStepDone, markStepFailed } from "./state-lib.mjs";
+import { loadState, markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postDir } from "./path-resolver.mjs";
 
 const args = process.argv.slice(2);
@@ -21,26 +21,33 @@ if (!slug) {
 }
 
 const briefPath = resolve(postDir(slug), "understanding-brief.md");
-const requiredSections = [
-  "原始材料结构",
-  "核心问题链",
-  "中心论点下钻",
-  "反方与边界",
-  "可写成正文的判断",
-  "可视觉化的节点",
-  "写作契约",
+// These are minimum content areas, not a prescribed seven-section template.
+// Main judges whether the evidence and reasoning are actually sound.
+const strategy = loadState(slug)?.strategy;
+const areas = [
+  { name: "证据", headings: /原始材料|证据|材料来源|sources|evidence/i },
+  { name: "中心判断", headings: /中心|核心判断|central|thesis/i },
+  { name: "边界", headings: /边界|适用范围|局限|boundar|limitation|scope/i },
+  { name: "写作应用", headings: /可写成正文|写作契约|写作应用|writing|application/i },
 ];
+if (strategy === "tutorial") {
+  areas[1].headings = /中心|核心判断|工程目标|教程目标|目标与预期|central|thesis|objective/i;
+  areas[3].headings = /可写成正文|写作契约|写作应用|工程步骤|操作步骤|验证流程|writing|application|procedure/i;
+}
 
-function sectionBody(text, heading) {
-  const lines = text.split(/\r?\n/);
-  const start = lines.findIndex((line) => line.trim() === `## ${heading}`);
-  if (start === -1) return null;
-  const body = [];
-  for (let i = start + 1; i < lines.length; i++) {
-    if (/^##\s+/.test(lines[i])) break;
-    body.push(lines[i]);
+function contentSections(text) {
+  const sections = [];
+  let section;
+  for (const line of text.split(/\r?\n/)) {
+    const heading = /^#{1,6}\s+(.+?)\s*#*\s*$/.exec(line);
+    if (heading) {
+      section = { heading: heading[1], body: "" };
+      sections.push(section);
+    } else if (section) {
+      section.body += line + "\n";
+    }
   }
-  return body.join("\n").trim();
+  return sections;
 }
 
 function fail(message) {
@@ -53,23 +60,16 @@ function fail(message) {
 if (!existsSync(briefPath)) fail(`understanding-brief.md missing: ${briefPath}`);
 const text = readFileSync(briefPath, "utf8");
 if (!text.trim()) fail("understanding-brief.md is empty");
-if (!/^#\s+Understanding Brief\s*$/m.test(text)) {
-  fail("understanding-brief.md must start with # Understanding Brief");
-}
+const sections = contentSections(text);
+const missing = areas.filter(({ headings }) => !sections.some(
+  (section) => headings.test(section.heading) && section.body.trim(),
+));
+if (missing.length > 0) fail(`missing or empty content areas: ${missing.map(({ name }) => name).join(", ")}`);
 
-const missing = requiredSections.filter((heading) => !sectionBody(text, heading));
-if (missing.length > 0) fail(`missing or empty sections: ${missing.join(", ")}`);
-
-const contract = sectionBody(text, "写作契约");
-const commitments = (contract.match(/^\s*[-*]\s+\S.+$/gm) ?? []).length;
-if (commitments < 3) {
-  fail(`写作契约至少需要 3 条可执行增量承诺，当前 ${commitments} 条`);
-}
-
-const result = { slug, ok: true, brief: briefPath, sections: requiredSections.length };
+const result = { slug, ok: true, brief: briefPath, sections: sections.length };
 markStepDone(slug, 1, {
   understanding_brief: briefPath,
-  understanding_sections: requiredSections.length,
+  understanding_sections: sections.length,
 });
 if (json) process.stdout.write(JSON.stringify(result) + "\n");
 else process.stdout.write(`validate-understanding: OK (${briefPath})\n`);

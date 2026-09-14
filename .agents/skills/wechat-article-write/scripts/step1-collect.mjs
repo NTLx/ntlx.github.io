@@ -2,7 +2,7 @@
 /**
  * Step 1: 资料收集验证
  *
- * 验证 materials.md 存在且非空，且包含联网背景调研章节。
+ * 验证 materials.md 存在且非空、来源可追溯；调研要求随 strategy 而定。
  * 低质量检测（字数 < 200 打印警告，非阻塞）。
  *
  * 用法:
@@ -37,6 +37,11 @@ if (!existsSync(materialsPath)) {
 const content = readFileSync(materialsPath, "utf8");
 const charCount = content.replace(/\s+/g, "").length;
 
+if (charCount === 0) {
+  process.stderr.write("step1: FAIL materials.md is empty\n");
+  process.exit(3);
+}
+
 const lines = content.split(/\r?\n/);
 const state = loadState(slug);
 const strategy = state?.strategy ?? null;
@@ -46,21 +51,26 @@ const primarySourceUrls = extractPrimarySourceUrlsFromMaterials(content);
 const primarySourceRequired = strategy === "reader-response" || strategy === "news-digest";
 
 const headingIndex = lines.findIndex((line) => /^##\s+背景调研\s*$/.test(line));
-if (headingIndex === -1) {
-  process.stderr.write("step1: FAIL materials.md 缺少 `## 背景调研` 章节。每次写作前必须联网查询相关人物/组织/概念/事件/评论等背景资料\n");
-  process.exit(3);
-}
-
 const sectionLines = [];
-for (const line of lines.slice(headingIndex + 1)) {
-  if (/^##\s+/.test(line) || /^---\s*$/.test(line)) break;
-  sectionLines.push(line);
+if (headingIndex !== -1) {
+  for (const line of lines.slice(headingIndex + 1)) {
+    if (/^##\s+/.test(line) || /^---\s*$/.test(line)) break;
+    sectionLines.push(line);
+  }
 }
 const backgroundSection = sectionLines.join("\n");
-if (!/https?:\/\//.test(backgroundSection)) {
-  process.stderr.write("step1: FAIL `## 背景调研` 章节缺少来源 URL。背景资料必须可追溯；找不到可靠来源时也要说明检索结果\n");
+// A URL makes external evidence traceable; Main still assesses its relevance and quality.
+const externalUrls = (content.match(/https?:\/\/[^\s)\]>"']+/g) ?? [])
+  .filter((url) => normalizeSourceUrl(url));
+if (strategy === "news-digest" && externalUrls.length === 0) {
+  process.stderr.write("step1: FAIL news-digest requires traceable external verification (source URL)\n");
   process.exit(3);
 }
+if (strategy === "reader-response" && !backgroundSection.trim()) {
+  process.stderr.write("step1: WARNING reader-response normally needs background evidence; Main must assess evidence gaps\n");
+}
+// Tutorials may rely on complete local evidence. Research gaps and version-sensitive
+// claims are editorial decisions, not a mandatory background URL ritual.
 
 if (primarySourceRequired && primaryHeadingIndex === -1) {
   process.stderr.write("step1: FAIL materials.md 缺少 `## 原始来源` 章节。reader-response/news-digest 必须明确记录原始写作材料\n");

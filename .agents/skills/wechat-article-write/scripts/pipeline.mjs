@@ -36,7 +36,7 @@ if (step === 1) {
   printStep("Step 1 / 1.5 / 1.8 — research, memory, and understanding", [
     "state preflight: state.mjs init/next",
     "Main reads the primary source directly",
-    "supporting research only when external evidence is needed",
+    "supporting research follows strategy and evidence gaps; tutorial may use sufficient local evidence; news-digest requires external verification",
     "materials.md and Step 1 Gate",
     "Primary Source Uniqueness and site memory",
     "understanding-brief.md and understanding validator",
@@ -47,7 +47,7 @@ if (step === 1) {
 
 if (step === 2) {
   printStep("Step 2 / 3 — draft and humanization", [
-    "draft.md",
+    "draft.md: complete text without Markdown image nodes",
     "Step 2 Gate",
     "humanizer-zh",
     "Step 3 Gate and draft hash",
@@ -67,9 +67,9 @@ if (step === 3) {
 
 if (step === 4) {
   printStep("Step 4 — visual integration and assets", [
-    "exact copy frozen draft.md → visual-draft.md (reuse valid existing visual work on resume)",
+    "initialize-only: copy frozen draft.md → visual-draft.md; existing work returns ALREADY_INITIALIZED / RESUME_EXISTING without overwrite",
     "baoyu-cover-image → cover → inspect",
-    "baoyu-article-illustrator analyzes article and inserts body illustrations into visual-draft.md",
+    "baoyu-article-illustrator analyzes article and inserts useful body illustrations into visual-draft.md; zero body illustrations is valid at any length",
     "baoyu-infographic → lead infographic as first body image before first substantive H2",
     "all three visual Specialists use baoyu-image-gen as the raster backend",
     "if compression is needed: baoyu-compress-image → inspect final raster",
@@ -85,6 +85,7 @@ if (step === 5) {
     "github-image-hosting for final visual-draft.md images if status is NEEDED → image-map.json",
     `prepare: step5-build.mjs ${slug} --prepare-only`,
     "gzh-design → article-wechat.html, native validator, and preview",
+    "cover changes require Step 4 review and prepare/finalize; unchanged body images keep hosting FROZEN",
     `finalize: step5-build.mjs ${slug} --finalize-only`,
   ], { specialist: "github-image-hosting / gzh-design" });
   process.exit(0);

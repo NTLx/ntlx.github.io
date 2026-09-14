@@ -8,7 +8,7 @@
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
 ```
 
-`FROZEN`（已有 manifest，且 draft / visual-draft / imgs 未变）时不得调用 hosting；只有 `NEEDED`
+`FROZEN`（已有 manifest，且 visual-draft / imgs 未变）时不得调用 hosting；只有 `NEEDED`
 （无 manifest，或上游视觉输入已变）才重新调用。Step 5B 的 Skill-owned 局部 failure 先由 Main
 将当前 HTML、frozen source 和 diagnostic 交给同一 `gzh-design` Skill；重试与停止条件统一见
 [adapter-gzh-design.md](adapter-gzh-design.md#owner-local-repair)，不重跑 hosting 或 prepare。
@@ -30,8 +30,8 @@ finalize 只做 repository-specific structural/integrity Gate，不修改 HTML�
 
 最终保留：`article.md`（CDN 图片、博客链接）、`article-wechat-source.md`（本地图片、纯文本 URL）、
 `article-wechat.html`（gzh-design HTML）。Step 5 记录 deterministic artifact hash；draft 改变时必须
-回到 Step 3。文本 identity 为 `draft_sha256`，视觉 identity 为
-`visual_draft_sha256` 与 `imgs_sha256`；继续记录 `image_map_sha256`、`article_sha256`、
+回到 Step 3。文本 identity 为 `draft_sha256`，hosting identity 为
+`visual_draft_sha256` 与 `imgs_sha256`；发布 freshness 另纳入 root cover 的文件身份和内容 hash；继续记录 `image_map_sha256`、`article_sha256`、
 `wechat_source_sha256` 和 `wechat_html_sha256`。Specialist auxiliary 文件与 candidates 不进入 hosting 集合。
 
 Step 5 finalize 后 `image-map.json` 与双轨产物即冻结：manifest 仍新鲜时 `--prepare-only` fail closed。
@@ -56,6 +56,14 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 
 失败时读取 `state.mjs next`，只恢复失败的博客或微信子状态。
 
-Step 5 artifact manifest is v3; pipeline business state remains v2. Older manifests must be
-rebuilt after integrating `visual-draft.md` and passing Step 4. They cannot authorize finalize or
-publish, and hosting status reports `NEEDED`; completed channel state remains independent.
+Step 5 artifact manifest is v4; pipeline business state remains v2. Older manifests cannot
+authorize finalize or publish. A v3 manifest may still establish FROZEN hosting when its visual
+inputs match; the existing image map and track outputs must still match their recorded hashes.
+Rebuild the publication manifest after Step 4 without re-uploading
+unchanged body images. Completed channel state remains independent.
+
+封面替换会使发布 freshness 失效。只要 `visual-draft.md` 和 `imgs/` 未变，hosting 保持
+FROZEN。Main 重新打开最终封面并通过 Step 4，再运行 prepare（复用原 image-map）、HTML 校验与 finalize。
+若扩展名变化需要修改 frontmatter.coverImage，按文本变更回到 Step 3，再生成一致的视觉稿；
+hosting preflight 仍按实际 visual-draft / imgs identity 判断。
+即使封面仍存在、格式正确，也不能直接用旧 manifest 发布。

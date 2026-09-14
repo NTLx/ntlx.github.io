@@ -31,6 +31,9 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
 教程若有明确外部原始写作材料，应在 `materials.md` 写入 `## 原始来源`，最终 draft 保留
 `primarySourceUrls`；只有本站文档、本地文件或用户粘贴内容时，不要为了满足字段而编造外部 URL。
 
+研究由证据缺口触发：已有本站资料、用户材料和本地验证充分时可以不联网。涉及版本、
+外部技术断言、时效性或未知事实时，补齐相应一手证据并记录依据。
+
 Agent 可读取 `blog-memory.md` 并选择是否联动旧文；是否联动由 Main 在 Understanding 阶段作
 editorial judgement，不适合时不触发 retry。教程默认允许没有互动和参考资料，但如果
 原文有来源信息，应保留它们。
@@ -49,10 +52,10 @@ posts/{date-slug}/draft.md
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step2-write.mjs <date-slug> \
-  --allow-no-references --allow-no-interaction
+  --allow-no-references
 ```
 
-这些 flag 表示本策略的内容例外，不代表跳过 frontmatter、链接和
+此 flag 表示本策略的参考资料例外，不代表跳过 frontmatter、链接和
 其它工程校验。
 
 ## refine 阶段

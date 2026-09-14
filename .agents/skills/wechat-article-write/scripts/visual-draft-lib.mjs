@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, realpathSync, copyFileSync } from "node:fs";
+import { existsSync, readdirSync, realpathSync, copyFileSync, readFileSync } from "node:fs";
 import { resolve, relative, basename } from "node:path";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
@@ -6,7 +6,6 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import sharp from "sharp";
 import { extractBody } from "./frontmatter-lib.mjs";
-import { countWords, requiresBodyVisualCoverage } from "./validation-lib.mjs";
 import { NON_SUBSTANTIVE_HEADINGS } from "./markdown-structure-lib.mjs";
 import { imageMime, usableImageFile } from "./image-asset-lib.mjs";
 
@@ -48,32 +47,34 @@ function textualTree(markdown) {
   return JSON.stringify(clean(parser.parse(markdown)));
 }
 
-export function assertVisualTextParity(draft, visual) {
-  const original = collectVisualImages(draft);
-  const integrated = collectVisualImages(visual);
-  let cursor = 0;
-  for (const image of original) {
-    while (cursor < integrated.length && !["src", "alt", "title"].every(key => image[key] === integrated[cursor][key])) cursor += 1;
-    if (cursor === integrated.length) throw new Error("visual-draft.md must preserve existing draft images");
-    cursor += 1;
+export function assertTextOnlyDraft(draft) {
+  function visit(node) {
+    if (node.type === "image" || node.type === "imageReference") throw new Error("draft.md must contain no Markdown images; integrate source figures and generated images in Step 4");
+    for (const child of node.children ?? []) visit(child);
   }
+  visit(parser.parse(draft));
+}
+
+export function assertVisualTextParity(draft, visual) {
+  assertTextOnlyDraft(draft);
   if (textualTree(draft) !== textualTree(visual)) throw new Error("visual-draft.md changes frozen article text, headings, URLs, code or frontmatter; restore from draft.md and insert images only");
 }
 
-function substantiveContent(body) {
+function substantiveSections(body) {
   const headings = parser.parse(body).children.filter(node => node.type === "heading" && node.depth === 2);
   const headingText = node => node.value ?? (node.children ?? []).map(headingText).join("");
   const substantive = headings.filter(node => !NON_SUBSTANTIVE_HEADINGS.has(headingText(node).trim()));
-  const last = substantive.at(-1)?.position.start.offset ?? -1;
-  const tail = headings.find(node => node.position.start.offset > last);
-  return { sections: substantive, text: tail ? body.slice(0, tail.position.start.offset) : body };
+  return substantive;
 }
 
 /** Explicit initialization; resumes never overwrite an existing visual draft. */
 export function initializeVisualDraft(base) {
   const target = resolve(base, "visual-draft.md");
-  if (existsSync(target)) throw new Error("visual-draft.md already exists; resume its visual work");
-  copyFileSync(resolve(base, "draft.md"), target);
+  const source = resolve(base, "draft.md");
+  assertTextOnlyDraft(readFileSync(source, "utf8"));
+  if (existsSync(target)) return readFileSync(target).equals(readFileSync(source)) ? "ALREADY_INITIALIZED" : "RESUME_EXISTING";
+  copyFileSync(source, target);
+  return "INITIALIZED";
 }
 
 export async function assertUsableRaster(path) {
@@ -92,7 +93,7 @@ export async function validateVisualDraft(draft, visual, base) {
   const headers = images.filter(image => lead.test(image.src));
   if (headers.length !== 1) throw new Error("requires exactly one header infographic at imgs/00-infographic-core-summary.*");
   if (images[0] !== headers[0]) throw new Error("header infographic must be the first body visual");
-  const { sections } = substantiveContent(body);
+  const sections = substantiveSections(body);
   if (sections[0] && headers[0].index >= sections[0].position.start.offset) throw new Error("header infographic must be before the first substantive H2");
   const imgsDir = resolve(base, "imgs");
   if (!existsSync(imgsDir)) throw new Error("imgs/ directory missing");
@@ -108,9 +109,5 @@ export async function validateVisualDraft(draft, visual, base) {
   const mapped = new Set(images.map(image => basename(image.src)));
   const stale = readdirSync(imgsDir).filter(name => raster.test(name) && !mapped.has(name));
   if (stale.length) throw new Error(`unreferenced final rasters in imgs/: ${stale.join(", ")}; move candidates to a private subdirectory`);
-  const textContent = substantiveContent(extractBody(draft));
-  if (requiresBodyVisualCoverage({ wordCount: countWords(textContent.text).total, substantiveSectionCount: textContent.sections.length }) && images.length < 2) {
-    throw new Error("normal long-form requires at least 1 body visual after the header infographic");
-  }
   return images;
 }
