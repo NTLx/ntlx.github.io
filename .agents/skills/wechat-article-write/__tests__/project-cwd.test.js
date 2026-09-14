@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -6,7 +6,11 @@ import { join, resolve } from "node:path";
 import { PROJECT_ROOT, assertProjectCwd } from "../scripts/path-resolver.mjs";
 
 const step4 = resolve(import.meta.dir, "../scripts/step4-images.mjs");
-const NESTED = resolve(PROJECT_ROOT, "posts");
+// A working directory outside the project. It must never be a checkout path such as `posts/`,
+// which is gitignored and therefore absent from a clean CI checkout.
+const FOREIGN = mkdtempSync(join(tmpdir(), "foreign-cwd-"));
+
+afterAll(() => rmSync(FOREIGN, { recursive: true, force: true }));
 
 function inheritedEnv() {
   const env = { ...process.env };
@@ -25,12 +29,23 @@ function inDir(dir, run) {
   }
 }
 
-function withTempPosts(run) {
-  const posts = mkdtempSync(join(tmpdir(), "project-cwd-"));
+function withEnv(name, value, run) {
+  const original = process.env[name];
+  process.env[name] = value;
   try {
-    return run({ ...inheritedEnv(), PIPELINE_POSTS_ROOT: posts });
+    return run();
   } finally {
-    rmSync(posts, { recursive: true, force: true });
+    if (original === undefined) delete process.env[name];
+    else process.env[name] = original;
+  }
+}
+
+function withTempDir(run) {
+  const dir = mkdtempSync(join(tmpdir(), "cwd-fixture-"));
+  try {
+    return run(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -45,38 +60,30 @@ describe("project cwd contract", () => {
 
   test("accepts the project root and rejects every other working directory", () => {
     inDir(PROJECT_ROOT, () => expect(() => assertProjectCwd()).not.toThrow());
-    inDir(NESTED, () => expect(() => assertProjectCwd()).toThrow(/project root/u));
+    inDir(FOREIGN, () => expect(() => assertProjectCwd()).toThrow(/project root/u));
   });
 
   test("follows an explicit PIPELINE_REPO_ROOT as the project definition", () => {
-    process.env.PIPELINE_REPO_ROOT = NESTED;
-    try {
-      inDir(NESTED, () => expect(() => assertProjectCwd()).not.toThrow());
-    } finally {
-      delete process.env.PIPELINE_REPO_ROOT;
-    }
+    withEnv("PIPELINE_REPO_ROOT", FOREIGN, () =>
+      inDir(FOREIGN, () => expect(() => assertProjectCwd()).not.toThrow()));
   });
 
   test("treats a redirected posts root as data redirection, not a project redefinition", () => {
-    process.env.PIPELINE_POSTS_ROOT = NESTED;
-    try {
-      inDir(NESTED, () => expect(() => assertProjectCwd()).toThrow(/project root/u));
-    } finally {
-      delete process.env.PIPELINE_POSTS_ROOT;
-    }
+    withTempDir((posts) => withEnv("PIPELINE_POSTS_ROOT", posts, () =>
+      inDir(FOREIGN, () => expect(() => assertProjectCwd()).toThrow(/project root/u))));
   });
 
   test("Step 4 refuses to run outside the project root", () => {
-    withTempPosts((env) => {
-      const run = runStep4(NESTED, env);
+    withTempDir((posts) => {
+      const run = runStep4(FOREIGN, { ...inheritedEnv(), PIPELINE_POSTS_ROOT: posts });
       expect(run.status).toBe(1);
       expect(run.stderr).toContain("must run from the project root");
     });
   });
 
   test("Step 4 clears the cwd preflight when run from the project root", () => {
-    withTempPosts((env) => {
-      const run = runStep4(PROJECT_ROOT, env);
+    withTempDir((posts) => {
+      const run = runStep4(PROJECT_ROOT, { ...inheritedEnv(), PIPELINE_POSTS_ROOT: posts });
       expect(run.stderr).not.toContain("must run from the project root");
       expect(run.stderr).toContain("draft.md missing");
     });
