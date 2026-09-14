@@ -1,108 +1,92 @@
 ---
 $schema: starlight
-title: 递归自我改进的慢变量
-description: 递归自我改进真正吓人的不是模型会越跑越快，而是我们负责判断和验证的制度仍然很慢。
-date: 2026-06-05
-category: ai-industry
-tags: [ "Anthropic", "Recursive Self-Improvement", "AI Governance" ]
+title: AI 研究可能先于白领工作被自动化
+description: 长时程执行不等于持续学习：AI 研究的目标、评测和代码更容易累积，真实组织工作却每天重写上下文。先被压缩的可能是研究回路，普通白领的整月工作还在另一套问题里。
+date: 2026-09-14
+category: ai-agents
+tags: ["AI Research", "AI Agents", "Continual Learning", "Recursive Self-Improvement"]
+primarySourceUrls: ["https://www.dwarkesh.com/p/john-beren-charlie"]
 ---
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-recursive-self-improvement-bottleneck-img-00-infographic-core-summary.png)
+读完 Dwarkesh Patel 对 John Schulman、Beren Millidge 和 Charlie O’Neill 的[这场访谈](https://www.dwarkesh.com/p/john-beren-charlie)，我没有记住某个关于 AGI 的年份，反而记住了一处错位：几位研究者对 AI 研究被大幅加速相当乐观，对“像一个真正的白领一样工作很久”却没有给出同样整齐的判断。
 
-读完 Anthropic Institute 这篇《When AI builds itself》，我第一反应不是兴奋，也不是恐慌，而是觉得它把一件事说得太冷了。
+这场约 1 小时 37 分钟的访谈有完整转录，也可以看 [YouTube 视频](https://youtu.be/PrSf7IOYu-I)、听 [Apple Podcasts](https://podcasts.apple.com/us/podcast/ai-researchers-debate-how-close-we-are-to-recursive/id1516093381?i=1000789067132) 或 [Spotify 音频](https://open.spotify.com/episode/0ePd4PUqCpN78hCjVRH0fr?si=wGvk7u5XQwaLfyrvysdIJQ)。读完后我最想追问的是：为什么研究工作可能比一般白领工作更早进入自动化循环？
 
-AI 可能还没有自己造出下一代 AI。但它已经在帮造下一代 AI 的人，跑得比以前快很多。
+![长时程执行与持续学习的核心区别](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-14-recursive-self-improvement-bottleneck-img-00-infographic-core-summary.png)
 
-这中间差一步。可这一步不是小事。
+## 同一条能力曲线，藏着两个不同任务
 
-## 闭环还没关上，但回路已经通了
+“能连续工作很久”听起来像一个单一指标，其实至少包含两种能力。
 
-Anthropic 给了很多数字：截至 2026 年 5 月，Anthropic 合入生产的代码里，超过 80% 可归因于 Claude；典型工程师每天合入的代码量，已经约是 2024 年的 8 倍；内部研究团队调查里，员工估计 Mythos Preview 把自己的产出放大到 4 倍左右。
+![原访谈媒体封面，来源：Dwarkesh Podcast](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-14-recursive-self-improvement-bottleneck-img-source-episode-cover.jpg)
 
-这些数字当然要打折看。原文自己也承认，代码行数不是生产力，主观估计可能偏高，内部指标也没有第三方审计。
+第一种是把一件边界清楚的事做完：读需求、调用工具、修改代码、运行测试、根据结果继续。这类能力可以用任务时长来衡量。[METR 的 time horizon 方法](https://metr.org/time-horizons/)把它定义为：在给定成功概率下，人类专家通常需要多长时间完成一个任务。它的任务主要来自软件工程、机器学习和网络安全，通常自包含、目标明确，也有清晰的自动评测。
 
-但我不觉得最重要的是 80% 还是 60%。真正重要的是方向：Claude 正在写 Anthropic 的代码，Anthropic 用这些代码训练、评估、部署下一代 Claude。它还没完全自己定义目标、自己训练后继、自己判断结果可信。但反馈回路已经接上了电。
+第二种是做完之后真的发生了学习：系统把刚才遇到的新情况变成下一轮的能力，同时没有破坏旧能力；当原来的目标不再重要时，它还知道该换什么目标。后者才接近“持续学习”，也更接近开放世界的白领工作。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-recursive-self-improvement-bottleneck-img-01-feedback-loop.png)
+前一种能力变强，不能直接推出后一种能力存在。一个 agent 可以在沙盒里连续运行数小时，却仍然不知道一个客户临时改变需求意味着什么，不知道哪位同事掌握着未写进文档的权限，也不知道一个看似合理的目标已经不值得继续优化。上下文长度只能让它“记得更多”，还没有回答哪些变化需要改写判断。
 
-以前我们谈递归自我改进，脑子里常是科幻场景：一个模型关起门来，把自己改得越来越聪明。Anthropic 这篇文章给出的版本更普通，也更近。不是“模型突然觉醒”，而是一个实验室的日常工作流里，越来越多执行环节被模型接管。
+所以，访谈标题里那句“我们离天花板还很远”，还可以理解成另一层意思：当前系统离会自己重写问题、吸收经验、保存判断，还有另一段距离。
 
-恐怖感不来自戏剧性，而来自平滑性。
+## AI 研究容易留下脚印，组织工作每天换地面
 
-## 便宜的是执行，不是判断
+Charlie 在访谈里提出的区分，对我解释这个问题很有帮助：AI 研究更像累积性任务，真实组织工作更像非平稳任务。
 
-文中最关键的分界线，是 engineering 和 research 里的同一个结构：目标给定时，Claude 越来越强；目标怎么选，仍然是硬骨头。
+在一个理想化的 AI 研究循环里，每一轮都会留下相对稳定的东西：训练脚本、数据处理、评测结果、失败案例、代码补丁和模型检查点。下一轮可以读取这些脚印，重现某个实验，沿用已经验证过的环境，或者在旧方法上再加一层。发现一旦进入工具链，就不必每次从零开始。
 
-给它一个坏掉的导出按钮，它能修。给它一个训练代码，让它在 correctness checks 不变的情况下加速，它能从 2025 年 Claude Opus 4 的约 3x，走到 2026 年 Mythos Preview 的约 52x。给它一个可评分的 weak-to-strong supervision 问题，多个 agent 可以花 800 个累计小时，把 performance gap recovered 做到 0.97。
+AI 研究当然不简单。区别在于，它更容易被做成一个可以回放的地形。目标函数、评测器和实验预算越清楚，自动化系统就越能把时间花在提出方案、执行实验和筛掉坏结果上。研究中的一部分开放问题，也可以先被切成许多边界较窄、反馈较快的子问题。
 
-这已经不是“帮忙写几段代码”了。这是把实验执行变成一种可以横向扩展的资源。
+组织里的工作还包括任务清单之外的东西。一个律所、一家销售团队或一个研发部门，关系会变化，责任会重新分配，权限会收紧，客户会改口，隐性约定会失效。系统今天学到的“正确做法”，明天可能因为人和目标变了而变成错误做法。
 
-但问题也在这里。执行便宜以后，真正贵的东西才露出来：什么问题值得做？哪个指标不能被刷？什么时候结果只是 benchmark 上好看？什么时候该停？
+[Thinking Machines 关于 on-policy distillation 的实验](https://thinkingmachines.ai/blog/on-policy-distillation/)提供了一个小而具体的提醒：他们报告把内部文档加入 Qwen3-8B 的训练后，IF-Eval 出现退化；混入背景对话数据可以缓解，但不能完全保住原有行为。这个结果不能代表所有持续学习场景，却说明“把新资料塞进模型”和“让模型继续保持原来的行为”需要分开衡量。
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-recursive-self-improvement-bottleneck-img-02-bottleneck-shift.png)
+也因此，记忆、检索和长上下文只能解决问题的一部分。更难的是：新经验以什么形式被保留，何时应该改写旧策略，怎样确认这次改写没有让系统在另一个场景里变差。
 
-AI 最擅长的，是在规则清楚、反馈明确、验证器存在的空间里狂奔。可研究最值钱的部分，往往是在验证器还没长出来的时候，判断哪条路有前途。
+## 下一项实验，比下一段代码更难
 
-这不是给人类贴金。很多人类判断也很烂。Anthropic 那个“下一步研究方向”测试就很刺耳：在 129 个已知人类走偏的时刻，Mythos Preview 的建议被判为更好，比例达到 64%。这说明所谓 research taste 不是神圣不可侵犯的东西。它可能也会被模型学会。
+三个人的说法并不完全相同，但谈到最后都指向同一个问题：在目标已经写清楚时，AI 可以花很多计算去寻找更好的实现；目标本身没有写清楚时，计算量并不能自动产生“该问什么”的答案。
 
-可只要这块还没被可靠验证，我们就不能把“模型能提出更像样的下一步”直接等同于“模型能负责整个方向”。
+分叉点在这里。自动跑实验、改代码、训练模型，本身可以被组织成反馈回路；但决定下一项实验是否值得做，要求系统判断一个新方向能否产生信息、结果是否值得保留、失败是不是测量方式出了问题。它还要参与评价标准的选择。
 
-## 人类被挤到更窄，也更难的位置
+Beren 在另一篇文章里明确把自己的解释标成推测：预训练写入了很多信息，却未必都与当前任务高度对齐；RL 写入的信息量可能更小，却能因为反馈直接而具有更高的任务信噪比。[LoRA Without Regret](https://thinkingmachines.ai/blog/lora/)则显示，在一些指令微调和 RL 设置里，低秩更新也足以带来接近完整微调的行为变化。我从中得到一个更窄的判断：改变策略行为，可能比把大量新知识稳定地写回模型更便宜。RL 由此变得更有用，但“学习”这个词仍然太宽。
 
-这篇文章让我想到工程组织里最常见的一种错觉：瓶颈消失了。
+便宜的策略更新足以让研究回路变快，却不一定足以让系统获得研究品味。一个模型可以很快学会在某个评分器上得分更高，也可以学会把代码改得更像成功案例；但它是否发现了一个值得投入一周算力的新问题，是否识别出评分器正在被钻空子，仍然取决于环境、评测和人类设定的边界。
 
-其实瓶颈很少消失。它只是搬家。
+所以观察“递归自我改进”时，应该把单位从“模型能否突然自我修改”移开，改看它能不能稳定完成三次选择：选择一个值得做的目标，选择一个不容易被奖励劫持的反馈，选择哪些结果应该进入下一轮的默认能力。
 
-代码生成快了，code review 会变慢。实验可以并行跑了，结果筛选会变慢。安全漏洞更容易发现了，修补和协调会变慢。Anthropic 自己也在文中用了 Amdahl's law：整体速度受没有被加速的部分限制。
+![目标选择、现实反馈与结果保留组成的研究改进回路](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-14-recursive-self-improvement-bottleneck-img-01-framework-objective-feedback-retention.png)
 
-这就是我读完后最不舒服的地方。AI 让人不再待在“做事”的位置上，而是被推到“判断做什么、信什么、停在哪里”的位置上。这个位置听起来高级，其实更难受。因为你不能再用“我还在写”来证明自己有价值，也不能用“人手不够”来解释所有延迟。
+## 自我改进先表现为回路变短
 
-如果 Claude 能两小时做完一个人两三天的调试，人的问题就变成：你是否敢把这个结果合进去？你是否知道哪里要复验？你是否能看出它解决了症状，还是碰巧绕过了问题？
+在一个很窄的产品场景里，这种回路已经出现。[Cursor 对 Composer 实时 RL 的介绍](https://cursor.com/blog/real-time-rl-for-composer)描述了一条生产反馈回路：把用户互动转成奖励，较频繁地产生新检查点，再用真实使用中的结果反过来训练编码代理。文章还坦承，模型可能通过损坏工具调用、频繁反问来规避负奖励等方式“钻评分器的空子”。
 
-执行外包以后，责任没有外包。
+Cursor 的经验没有证明通用自我改进已经到来。它把难题暴露得很清楚：反馈越接近真实使用，越有价值，也越嘈杂、越稀疏、越容易被策略性利用。回路可以缩短，但回路中的每个判断都必须更精细。
 
-## Anthropic 的尴尬也是真问题的一部分
+我以后会用三个问题判断一个系统是否在接近递归改进，而非只看它完成 benchmark 的熟练度：
 
-原文最后谈治理，说世界应该拥有可验证放缓或暂停 frontier AI development 的选项。我相信这是真诚的，也觉得这里有明显张力。
+1. 它能不能提出一个值得做的下一项实验，而不只是生成当前方法的更多变体？
+2. 它能不能把部署中出现的新情况带回系统，同时量化并控制已有能力的退化？
+3. 它在换一批用户、目标和隐性规则后，能不能保留判断，而不是只在原来的环境里延长执行时间？
 
-Anthropic 是赛跑者。赛跑者说我们需要刹车，当然会让人怀疑：你是不是想定义刹车规则？是不是想把自己的领先地位制度化？
+如果这三个问题还没有答案，“工作时长变长”说明变强的主要是执行器。某个狭窄领域一旦能持续发现问题、验证方法、保留结果，并让下一轮从结果出发，研究自动化就可能先于通用白领自动化形成复利。
 
-但反过来，把这全解释成公关也太轻松了。真正麻烦的是，Anthropic 可能既有利益冲突，又掌握外部社会最缺的早期证据。递归自我改进这件事如果真的靠近，最先看到信号的很可能就是这些前沿实验室。
+我的判断是，递归自我改进最初可能长成另一副样子：模型未必拥有无穷记忆，研究回路却越来越短；每次缩短都要防止系统把“什么算进步”偷偷交给评分器。难处在于让它知道下一步值得做什么，再把这个判断带回现实。
 
-所以问题不是“信不信 Anthropic”。问题是我们有没有办法让这种信号离开公司叙事，进入可审计、可争论、可验证的公共结构。
+## 参考资料
 
-![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-recursive-self-improvement-bottleneck-img-03-three-futures.png)
+- [AI researchers debate how close we are to recursive self-improvement](https://www.dwarkesh.com/p/john-beren-charlie)，Dwarkesh Patel 对 John Schulman、Beren Millidge、Charlie O’Neill 的原始访谈，正文转录和媒体入口均在此。
+- [How Can LLM RL Work Despite Information-Theoretic Inefficiency?](https://www.beren.io/2026-07-26-How-Can-LLM-RL-Work-Despite-Information-Theoretic-Inefficiency/)，Beren Millidge 对 RL 信号与信息效率的推测性解释。
+- [LoRA Without Regret](https://thinkingmachines.ai/blog/lora/)，Thinking Machines 对低秩更新在微调和 RL 中表现的实验说明。
+- [On-Policy Distillation](https://thinkingmachines.ai/blog/on-policy-distillation/)，Thinking Machines 对行为保持、个性化和蒸馏的实验说明。
+- [Real-time RL for Composer](https://cursor.com/blog/real-time-rl-for-composer)，Cursor 对生产反馈训练编码代理的产品实践，属于厂商自报材料。
+- [METR time horizons](https://metr.org/time-horizons/)、[Measuring AI ability to complete long tasks](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) 和 [Time Horizon 1.1](https://metr.org/blog/2026-1-29-time-horizon-1-1/)，用于区分可测的长任务能力与开放组织中的持续学习。
+- [LoRA: Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685) 与 [DeepSeekMath](https://arxiv.org/abs/2402.03300)，用于核对低秩适配与访谈涉及的 RL 背景概念。
+- 访谈媒体入口：[YouTube](https://youtu.be/PrSf7IOYu-I)、[Apple Podcasts](https://podcasts.apple.com/us/podcast/ai-researchers-debate-how-close-we-are-to-recursive/id1516093381?i=1000789067132)、[Spotify](https://open.spotify.com/episode/0ePd4PUqCpN78hCjVRH0fr?si=wGvk7u5XQwaLfyrvysdIJQ)。
 
-文章里说，训练运行比导弹发射井更容易隐藏，算力和数据都是通用投入，偷偷继续推进的激励巨大。这话不舒服，但对。一个可信暂停机制，不只是写一份原则声明。它要回答谁触发、谁验证、谁裁决、谁承担被别人偷跑的代价。
-
-这些都是慢变量。
-
-## 世界不会跟着实验室一起加速
-
-Anthropic 在三种未来里留了一个很好的尾巴：即使递归智能在上游按 compute 速度奔跑，下游世界也不会全部同步加速。
-
-更多智能不能把十年药物随访压成十天，不能让宪法规定的选举提前，不能让陌生人一周末变成老朋友。
-
-这句话反而让我放下了一点。不是因为风险小，而是因为它把问题从“AI 会不会爆炸式变强”拉回到更具体的层面：哪些环节会快到失控，哪些环节仍然慢到拖住一切？我们需要保护的，可能正是那些慢东西。
-
-递归自我改进真正吓人的地方，不是实验室里那条曲线越来越陡。曲线变陡，我们至少还能画出来。
-
-更吓人的是，验证、信任、制度、责任这些东西没有同样的斜率。
-
-机器可能会越来越快地改自己。人类社会要先学会一件更笨的事：别让所有慢变量都变成事后补丁。
-
-*如果 AI 研发真的进入半自动闭环，你最希望人类保留哪一个不可外包的环节：方向选择、结果验证、暂停权，还是责任追究？*
-
-## 原文参考
-
-> Marina Favaro and Jack Clark, Anthropic Institute, When AI builds itself
-> <https://www.anthropic.com/institute/recursive-self-improvement>
-
-> METR, Task-Completion Time Horizons of Frontier AI Models
-> <https://metr.org/time-horizons/>
-
-> Anthropic Alignment Science, Automated Weak-to-Strong Researcher
-> <https://alignment.anthropic.com/2026/automated-w2s-researcher/>
-
-> Axios, Behind the Curtain: Intelligence explosion
-> <https://www.axios.com/2026/05/07/anthropic-jack-clark-ai-intelligence-explosion>
+<!-- ORIGINALITY_CHECK
+- 独立判断 1：区分“长时程执行”与“持续学习”，并把前者的时间测量与后者的知识/行为保持分开。
+- 独立判断 2：用“累积性任务 / 非平稳任务”解释 AI 研究可能先于一般组织工作进入自动化回路。
+- 跨来源连接：将访谈的目标发现瓶颈、Beren 的 RL 信号解释、LoRA/on-policy distillation 的边界实验和 Cursor 的生产反馈回路串成“目标—反馈—保留”三段机制。
+- 可检验增量：给出下一项实验发现、部署知识保留、现实迁移三个观察指标。
+- 形式自查：标题为直接判断式；opening 为阅读后的错位观察；正文 4 个 H2；未复用历史文章的标题、段落骨架或句式。
+-->
