@@ -18,7 +18,7 @@ export const LEDGER_HEADINGS = /账本|允许援引|可援引|援引清单|ledge
  * 句式捕捉；这是本 Gate 已知的召回边界，不要假装它完备。
  */
 const CLAIM_PATTERNS = [
-  { cls: "quantity", source: String.raw`\d+\s*(?:万|亿|千|百|PB|TB|GB|MB|倍|个|名|人|台|次)` },
+  { cls: "quantity", source: String.raw`\d+(?:\.\d+)?\s*(?:%|％|万|亿|千|百|PB|TB|GB|MB|倍|个|名|人|台|次)` },
   { cls: "duration", source: String.raw`[几数半][周月年天日]|\d+\s*(?:周|月|天|小时|分钟|秒|个?季度)` },
   { cls: "year", source: String.raw`\d{4}\s*年` },
   {

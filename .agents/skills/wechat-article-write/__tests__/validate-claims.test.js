@@ -90,6 +90,21 @@ describe("claim coverage Gate", () => {
     expect(payload.by_class.duration).toBeGreaterThan(0);
   });
 
+  test("scans percentages and decimals as quantities", () => {
+    const fx = fixture();
+    cleanup.push(fx.root);
+    write(fx.dir, "draft.md", "---\ntitle: t\n---\n\n新服务处理 95% 的生产请求，内存效率是 12.5% 的水平，单进程占用约 1.5 GB。\n");
+    write(fx.dir, "understanding-brief.md", ledger('- 一个无关登记 ← "unrelated"（原文）'));
+    const result = run(fx.root, ["--all"]);
+    expect(result.status).toBe(2);
+    const payload = JSON.parse(result.stdout);
+    const flagged = payload.uncovered.join("\n");
+    expect(flagged).toContain("95%");
+    expect(flagged).toContain("12.5%");
+    expect(flagged).toContain("1.5 GB");
+    expect(payload.by_class.quantity).toBeGreaterThan(0);
+  });
+
   test("treats a ledger row without a source/derived/rhetoric marker as structural failure", () => {
     const fx = fixture();
     cleanup.push(fx.root);
