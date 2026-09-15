@@ -35,9 +35,13 @@ Andrew Ng 把这种能力称为 `Shaping the build`。它是 [AI Engineering Ski
 
 推动构建循环，重点不在让项目一直动，而在知道下一次行动要获取什么信息。可以先做一个原型验证技术概念，也可以拿一个足够小的版本去接触用户；有时应当继续加功能，有时应当停下来做技术实验。速度的价值，是更早拿到能改变判断的证据。
 
+我之前写过的[《Agent Engineering 的真门槛：把失败变成资产》](https://ntlx.github.io/articles/agent-engineering-production-learning-loop)也谈到这件事：Agent 工程化的对象，最后落在团队的学习回路上。放到这里，证据的标准就不只是“看起来跑通了”，而是能否留下可复现的失败、明确的 pass/fail 判断，以及下一轮回归的依据。
+
 接着是产品决策。产品规格没有覆盖的地方，不能自动交给“以后再说”。用户需要、交互是否容易理解、商业上是否值得、技术风险是否可接受，都会影响取舍。工程师不必拥有 PM 的完整职责，但需要具备足够的产品感，知道自己正在替用户和组织决定什么。
 
 再往外走，就是沟通与领导。AI Engineering 的范围一旦扩大，工程师面对的就不只是代码库，还包括产品、设计、营销、财务和法务等使用不同语言的利益相关者。一个方案能不能做，不能只停留在工程会议里；工程师需要解释它为什么可行、哪里有风险、哪些前提必须先确认。
+
+我在[《Anthropic 这篇 skills 文章，真正写的是组织接口》](https://ntlx.github.io/articles/claude-code-skills-organizational-interface)里写过，验证、配置和历史经验一旦都能被调用，沟通就不只是在会议上把方案讲清楚，还得把判断依据和边界留给下一次协作。
 
 最后是高主动性责任担当。它把前面的工作串起来：发现问题，提出方案，推进执行，在含糊和挫折里继续往前推，并用创造的价值衡量工作。“完成任务”只是过程证据，还不能代表结果。
 
@@ -48,6 +52,8 @@ Andrew Ng 把这种能力称为 `Shaping the build`。它是 [AI Engineering Ski
 我会先看它有没有边界。
 
 主动行动必须放在组织的优先级和约束里。Andrew Ng 原文特意把这两点放在一起：尊重边界，同时不等待一份精确到每个动作的自上而下指令。没有边界会变成越权，永远等命令又无法发挥 AI 工具带来的速度。
+
+[《循环交出控制权之后：读 ByteByteGo《The Agent Loop》》](https://ntlx.github.io/articles/agent-loop-reading-bytebytego)让我想到同一个转折：把循环控制权交给模型以后，工程工作没有消失，只是换了位置，要在模型周围重新建立可控性。本文所说的目标、证据、权限和回退，正是这圈可控性的几部分。
 
 ![高主动性中的目标、证据、权限与回退边界](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-15-ai-engineering-shape-the-build-img-01-framework-bounded-agency.png)
 
@@ -93,3 +99,6 @@ AI 工程师的变化，最终会落在工作方式上：工程师要能把问�
 - [Andrew Ng：AI Engineering Skills Map: Software engineering fundamentals](https://www.linkedin.com/pulse/ai-engineering-skills-map-software-fundamentals-andrew-ng-7lnac)
 - [DeepLearning.AI：AI-Native Software Development Needs Generalists](https://www.deeplearning.ai/the-batch/ai-native-software-development-needs-generalists/)
 - [DeepLearning.AI：Meet The New Breed of GenAI Application Engineers](https://www.deeplearning.ai/the-batch/meet-the-new-breed-of-genai-application-engineers/)
+- [站内延伸：Agent Engineering 的真门槛：把失败变成资产](https://ntlx.github.io/articles/agent-engineering-production-learning-loop)
+- [站内延伸：循环交出控制权之后：读 ByteByteGo《The Agent Loop》](https://ntlx.github.io/articles/agent-loop-reading-bytebytego)
+- [站内延伸：Anthropic 这篇 skills 文章，真正写的是组织接口](https://ntlx.github.io/articles/claude-code-skills-organizational-interface)
