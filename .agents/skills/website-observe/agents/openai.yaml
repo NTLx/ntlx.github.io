@@ -1,4 +1,0 @@
-interface:
-  display_name: "Website Observe"
-  short_description: "Observe rich website analytics reports"
-  default_prompt: "Use $website-observe to generate or update a rich Chinese website observation report with GA4, GSC, GitHub, public mentions, tracking gaps, and actionable insights."
