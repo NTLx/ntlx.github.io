@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.8.0"
+  version: "4.8.1"
 ---
 
 # 微信公众号文章写作
@@ -247,14 +247,13 @@ loses the pinned backend and worker cap. `step4-images.mjs` enforces this in pre
    that owner-local retry before moving to the next raster owner.
 2. Invoke `baoyu-infographic` for the lead infographic only, using `draft.md` and necessary
    semantic context from `understanding-brief.md`. Invoke this workflow only after the cover
-   generation lane is complete. Honor the project EXTEND defaults — claymation
-   style, landscape aspect, language `zh`, backend `baoyu-image-gen` — and use `--no-confirm` so it
-   generates directly. Apply the project-wide tone as an overlay on claymation rather than replacing
-   it. The Skill owns content analysis, information layout, semantic structure, style, and prompt:
-   do not preselect a layout. Finish any infographic regeneration before invoking the body
-   illustrator. Integrate its selected raster as `imgs/00-infographic-core-summary.png`
-   (or another supported raster extension), after the opening prose and before the first
-   substantive H2, as the first body image.
+   generation lane is complete. Honor the project EXTEND defaults — claymation style, landscape
+   aspect, language `zh`, backend `baoyu-image-gen` — and use `--no-confirm` so it generates directly.
+   Apply the project-wide tone as an overlay on claymation rather than replacing it. The Skill owns
+   content analysis, information layout, semantic structure, style, and prompt: do not preselect a
+   layout. Finish any infographic regeneration before invoking the body illustrator. Integrate its
+   selected raster as `imgs/00-infographic-core-summary.png` (or another supported raster extension),
+   after the opening prose and before the first substantive H2, as the first body image.
 3. Invoke `baoyu-article-illustrator` on `visual-draft.md` for body illustration analysis and
    generation, even for a short article. Honor the project EXTEND defaults — notion style, macaron
    palette, language `zh`, `imgs/` output, backend `baoyu-image-gen`, one image generated at a time —
@@ -262,26 +261,24 @@ loses the pinned backend and worker cap. `step4-images.mjs` enforces this in pre
    visual language and macaron as its palette. Explicitly instruct it: analyze information gain and
    place useful body visuals yourself; preserve the existing lead infographic; do not generate
    another header summary or mechanically illustrate each H2; avoid duplicating source evidence;
-   insert images without rewriting article text; directly generate without further user
-   confirmation. Recommend balanced density for normal long-form and minimal density for clearly
-   short articles. The Skill owns its outline, prompts, generation, and Markdown insertion; Main
-   does not prescribe positions or an image count. Generating one image at a time changes only the
-   raster dispatch batch, not the Skill's own analyze-then-outline-then-generate workflow. Any
-   article length may receive zero body illustrations when the illustrator analysis and Main review
-   support it.
+   insert images without rewriting article text; directly generate without further user confirmation.
+   Recommend balanced density for normal long-form and minimal density for clearly short articles.
+   The Skill owns its outline, prompts, generation, and Markdown insertion; Main does not prescribe
+   positions or an image count. Generating one image at a time changes only the raster dispatch batch,
+   not the Skill's own analyze-then-outline-then-generate workflow. Any article length may receive zero
+   body illustrations when the illustrator analysis and Main review support it.
 4. Inspect every exact final raster. When size, format, platform rejection, explicit optimization,
-   or publishing performance requires compression, invoke `baoyu-compress-image` and inspect
-   the resulting raster again. Prefer same-format compression; update `visual-draft.md` if the
-   extension changes. Otherwise skip compression.
+   or publishing performance requires compression, invoke `baoyu-compress-image` and inspect the
+   resulting raster again. Prefer same-format compression; update `visual-draft.md` if the extension
+   changes. Otherwise skip compression.
 
 All three visual Skills use the project `preferred_image_backend: baoyu-image-gen` preference.
-Main must not bypass them with direct runtime image generation or call the backend to imitate
-cover, infographic, or body illustration design. Provider, model, transport, and generation
-retries belong to `baoyu-image-gen`; compression implementation belongs to `baoyu-compress-image`.
-Keep only final article rasters at the top of `imgs/`; auxiliary outline/prompts and comparison
-candidates remain Specialist-private and outside the hosting collection. Main reviews and returns
-failed visuals to the same owning Skill for targeted regeneration, including text errors and
-project-wide tone deviations.
+Main must not bypass them with direct runtime image generation or call the backend to imitate cover,
+infographic, or body illustration design. Provider, model, transport, and generation retries belong
+to `baoyu-image-gen`; compression implementation belongs to `baoyu-compress-image`. Keep only final
+article rasters at the top of `imgs/`; auxiliary outline/prompts and comparison candidates remain
+Specialist-private and outside the hosting collection. Main reviews and returns failed visuals to the
+same owning Skill for targeted regeneration, including text errors and project-wide tone deviations.
 
 Main directly runs:
 
@@ -296,36 +293,38 @@ analysis. No invocation receipt is required.
 
 ### Step 5 — Build
 
-Main directly calls `github-image-hosting` after checking:
+Read [references/adapter-gzh-design.md](references/adapter-gzh-design.md) before the layout unit.
+Step 5 is a short Main-owned sequence:
+
+1. Check hosting freshness:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --hosting-status
 ```
 
-`FROZEN` means the existing `image-map.json` still matches `visual-draft.md` and `imgs/`;
-hosting must not be repeated. Cover identity belongs to publication freshness, independently of
-hosting. After a cover change, inspect it and rerun Step 4, then prepare with the existing map
-and finalize before publishing.
-When hosting is needed, Main reviews the resulting map and then runs:
+   `FROZEN` means body-image hosting is still valid and must not be repeated. If hosting is needed,
+   Main invokes `github-image-hosting` and reviews `image-map.json`.
+2. Prepare the two platform sources:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --prepare-only
 ```
 
-The build consumes `visual-draft.md` and `image-map.json`, producing `article.md` with CDN
-images and `article-wechat-source.md` with local images. `draft.md` still supplies textual freshness. Main directly invokes `gzh-design` with
-the WeChat source and local `imgs/`; the Skill produces `article-wechat.html`, native validation,
-and preview. The input/output and content-preservation contract is in
-[references/adapter-gzh-design.md](references/adapter-gzh-design.md). Main then directly runs:
+   This produces `article.md` with CDN images and `article-wechat-source.md` with local images.
+3. Main directly invokes `gzh-design` with the frozen WeChat source and local `imgs/`; the Skill
+   owns layout, native validator, preview, and `article-wechat.html`.
+4. Finalize with the read-only parent parity/integrity Gate:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-The parent structural parity and integrity Gate remains read-only and blocking on errors. Use
-owner-local repair with the current HTML and frozen source. The adapter owns the retry sequence
-and stopping condition: a repeated failure class is `BLOCKED`. This is a Skill retry,
-not a new Agent context. Route upstream defects to their artifact owner.
+A cover-only change does not force body-image rehosting: review the new cover, rerun Step 4, then
+prepare/finalize with the still-frozen image map. The parent structural parity and integrity Gate
+remains read-only and blocking on errors. On gzh-design structural/integrity failure, use owner-local repair
+with the current HTML and frozen source. The adapter owns the retry sequence and stopping
+condition: a repeated failure class is `BLOCKED`. This is a Skill retry, not a new Agent context.
+Route upstream defects to their artifact owner.
 
 ### Step 6 — Publish
 

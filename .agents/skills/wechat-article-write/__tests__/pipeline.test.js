@@ -90,6 +90,21 @@ describe("pipeline advisory CLI", () => {
     }
   });
 
+  test("keeps Step 4 visual owners in canonical serial order", () => {
+    const fixture = makeFixture(3, { blog: "pending", wechat: "pending" });
+    cleanup.push(fixture.root);
+    const result = run(fixture);
+
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    const cover = result.stdout.indexOf("baoyu-cover-image → cover");
+    const infographic = result.stdout.indexOf("baoyu-infographic → lead infographic");
+    const illustrator = result.stdout.indexOf("baoyu-article-illustrator analyzes article");
+
+    expect(cover).toBeGreaterThanOrEqual(0);
+    expect(infographic).toBeGreaterThan(cover);
+    expect(illustrator).toBeGreaterThan(infographic);
+  });
+
   test("resumes Step 3 with frozen draft and skips draft generation", () => {
     const fixture = makeFixture(2, { blog: "pending", wechat: "pending" });
     cleanup.push(fixture.root);

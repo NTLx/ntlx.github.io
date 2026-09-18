@@ -71,8 +71,8 @@ if (step === 4) {
   printStep("Step 4 — visual integration and assets", [
     "initialize-only: copy frozen draft.md → visual-draft.md; existing work returns ALREADY_INITIALIZED / RESUME_EXISTING without overwrite",
     "baoyu-cover-image → cover → inspect",
-    "baoyu-article-illustrator analyzes article and inserts useful body illustrations into visual-draft.md; zero body illustrations is valid at any length",
-    "baoyu-infographic → lead infographic as first body image before first substantive H2",
+    "baoyu-infographic → lead infographic as first body image before first substantive H2 → inspect",
+    "baoyu-article-illustrator analyzes article with the existing lead infographic and inserts useful body illustrations into visual-draft.md; zero body illustrations is valid at any length",
     "all three visual Specialists use baoyu-image-gen as the raster backend",
     "if compression is needed: baoyu-compress-image → inspect final raster",
     "Main reviews final visuals; retry locally with the same owning Skill",
