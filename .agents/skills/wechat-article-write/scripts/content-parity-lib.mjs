@@ -244,10 +244,21 @@ export function extractSubstantiveMarkdownBlocks(markdown) {
 // article carrying an external link mismatches at block 1.
 // Markdown↔Markdown parity only: the Markdown→HTML gate compares source against
 // HTML rendered from that same source, so both sides already carry the wrapper.
+// remark-stringify rewrites GFM table delimiter widths while building the WeChat
+// source. Delimiter width is presentation syntax, not visible article content,
+// so preserve alignment colons but canonicalize the run of dashes before comparing.
+function normalizeTableSyntax(value) {
+  return value.replace(/\|(:?-{3,}:?)(?=\|)/gu, (_match, cell) => {
+    const left = cell.startsWith(":") ? ":" : "";
+    const right = cell.endsWith(":") ? ":" : "";
+    return `|${left}-${right}`;
+  });
+}
+
 function canonicalizeSubstantiveBlocks(markdown) {
   const blocks = [];
   for (const raw of extractSubstantiveMarkdownBlocks(markdown)) {
-    const block = raw.replace(/（链接：([^）]*)）/gu, "$1");
+    const block = normalizeTableSyntax(raw.replace(/（链接：([^）]*)）/gu, "$1"));
     if (/^https?:\/\//iu.test(block) && blocks.length > 0) {
       blocks[blocks.length - 1] += block;
     } else {

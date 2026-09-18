@@ -204,6 +204,25 @@ function formatSection(sectionIndex) {
   return sectionIndex === 0 ? "lead section" : `section ${sectionIndex}`;
 }
 
+/**
+ * Markdown tables are rendered as HTML tables by gzh-design, so the Markdown
+ * delimiter row has no visible counterpart in the flattened HTML text. Return
+ * the visible cell values for table-specific coverage checks, excluding the
+ * alignment-only row.
+ */
+function extractMarkdownTableCells(entry) {
+  const text = String(entry?.text ?? "");
+  if (!/^\|[^]*\|\|/u.test(text) || !/\|:?-{3,}:?\|/u.test(text)) return null;
+  const cells = [];
+  for (const row of text.split("||")) {
+    for (const cell of row.split("|")) {
+      if (!cell || /^:?-{3,}:?$/u.test(cell)) continue;
+      cells.push(cell);
+    }
+  }
+  return cells.length > 0 ? cells : null;
+}
+
 const DIAGNOSTIC_SAMPLE_LIMIT = 3;
 const DIAGNOSTIC_SAMPLE_LENGTH = 160;
 const STRUCTURAL_FRAGMENT_LENGTH = 80;
@@ -346,6 +365,13 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
     if (!needle) continue;
     const scope = windows?.[entry.section_index];
     const scopeText = scope ? flattened.normalized.slice(scope.start, scope.end) : flattened.normalized;
+    const tableCells = extractMarkdownTableCells(entry);
+    if (tableCells) {
+      const missingCells = tableCells.filter((cell) => !scopeText.includes(normalizeVisibleText(cell)));
+      if (missingCells.length === 0) continue;
+      errors.push(`substantive block ${index + 1} missing from HTML: "table cell ${truncateFragment(missingCells[0])}"`);
+      continue;
+    }
     if (scopeText.includes(needle)) continue;
     // Bottom citations legitimately relocate a URL to the document tail, so URLs are
     // document-scoped; prose stays confined to the section it was written in.

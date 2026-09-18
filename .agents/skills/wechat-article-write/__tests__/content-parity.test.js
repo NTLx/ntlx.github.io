@@ -46,4 +46,29 @@ OpenAI 在公告（链接：https://openai.com/index/navier-stokes-solution/）�
 
     expect(validateMarkdownParity(article, wechatSource).ok).toBe(true);
   });
+
+  test("ignores GFM table delimiter width changes between tracks", () => {
+    const article = `---
+title: parity test
+---
+
+## 数据
+
+| 指标 | Luna | Astra |
+| --- | ---: | ---: |
+| 已验证 bug | 69 个 | 92 个 |
+`;
+    const wechatSource = `---
+title: parity test
+---
+
+## 数据
+
+| 指标             | Luna | Astra |
+| -------------- | ---: | ---: |
+| 已验证 bug      | 69 个 | 92 个 |
+`;
+
+    expect(validateMarkdownParity(article, wechatSource).ok).toBe(true);
+  });
 });
