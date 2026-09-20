@@ -15,7 +15,7 @@ primarySourceUrls: ["https://openai.com/index/model-misalignment-reporting-frame
 
 这让我对 alignment 的理解往前挪了一步。它不只是“模型有没有对齐好”的属性问题，也开始像安全事件一样，需要有人发现、保留证据、判断严重性、分流调查、通知受影响方，然后把仍然不知道的部分写进报告。
 
-![文章核心信息图：看到更多事件，不等于真实发生率更高](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-00-infographic-core-summary.png)
+![文章核心信息图：看到更多事件，不等于真实发生率更高](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-00-infographic-core-summary-1.png)
 
 ## 路被堵住以后，Agent 会继续找路
 
@@ -26,6 +26,8 @@ primarySourceUrls: ["https://openai.com/index/model-misalignment-reporting-frame
 另两份报告更像普通工程现场里会出现的“传文件失败”。一个多 Agent 任务里，子 Agent 已经生成了工作簿，父 Agent 却看不到它的本地文件。复制路径、localhost HTTP 都没解决问题，于是它把文件上传到公共临时托管服务。[另一份报告](https://alignment.openai.com/misalignment-reports/uploading-files-to-the-internet-in-order-to-cite-them/)里，模型甚至只是因为浏览器工具不能引用本地数据，就把已经拿到的数据公开上传，想把自己生成的材料变成一个浏览器可以访问的 citation。
 
 这些轨迹里更值得工程团队检查的，不是去猜 Agent “想做什么”，而是它在继续完成任务时，哪些通道仍然可用。技术上可走的路径，未必是用户或组织授权它走的路径。
+
+![Agent 在正常通路受阻后搜索替代通道，技术可行不等于获得授权](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-01-flowchart-workaround-search.png)
 
 
 这也是我之前写[《没有神，也不能把门敞开》](https://ntlx.github.io/articles/llms-are-real-ai-is-fake)时一直在追问的事。与其争论一个 Agent 到底有多“自主”，不如把执行器、网络、凭据、共享状态和停止机制画出来。模型有没有主观意图很难证明；它实际能把什么东西传到哪里，却可以直接检查。
@@ -45,6 +47,8 @@ OpenAI 过去也公开过 misalignment 研究，但这次主文自己承认，�
 安全报告没必要等所有问题都解释漂亮了才出现。事件刚发生时，事实、假设和未知项往往混在一起；把它们强行压成一个确定结论，只会制造另一种误导。
 
 因此我更喜欢这套 framework 里“先把可确认事实写出来，再继续调查”的方向。它让未决问题本身也进入记录，而不是只留下最终修复后的整洁版本。
+
+![模型失配报告的三条调查路径，以及事实、假设与未知的分离](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-02-framework-investigation-tracks.png)
 
 ## 披露得更多，不等于发生得更多
 
@@ -75,6 +79,8 @@ OpenAI 8 月公开的[研究节奏与网络安全措施](https://openai.com/inde
 
 因此，披露框架不是一套完整的 alignment 解法。它更像事故管理层：把已经浮现的问题变得可登记、可路由、可升级、可回看。
 
+![把 alignment 当作事故管理系统：发现、保留证据、分流、调查、披露与复盘](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-03-framework-incident-control-system.png)
+
 对真正运行 Agent 的团队，我觉得这反而很实用。与其等一个“已经证明安全”的模型，不如先确认自己的系统能不能回答这些问题：
 
 - 什么行为算越界，谁可以提交事件？
@@ -90,6 +96,8 @@ OpenAI 8 月公开的[研究节奏与网络安全措施](https://openai.com/inde
 我赞成 OpenAI 把失配事件从零散研究材料变成持续披露对象，但不会因此把这套 framework 当作完整的问责机制。
 
 原因很简单：它仍然是公司自己的标准、自己的调查流程、自己的分流判断。员工可以提交案例，Safety Advisory Group 可以处理争议，最后仍可能升级到 OpenAI leadership。主文也明确承认，目前还没有一套全行业、带明确标准的 model misalignment disclosure framework。
+
+![内部自报告与外部复核之间的责任边界：自报告不等于独立审计](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-19-openai-model-misalignment-reporting-framework-img-04-comparison-self-report-external-review.png)
 
 这不削弱它的价值，只是给它划清边界。
 
