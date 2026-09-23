@@ -6,24 +6,14 @@ sidebar:
   hidden: true
 ---
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 import { getCollection } from 'astro:content';
+import TopicOverview from '../../components/TopicOverview.astro';
 
 export const articles = await getCollection(
   'docs',
   ({ id, data }) => id.startsWith('articles/') && Boolean(data.date && data.category),
 );
 
-export const count = (category) =>
-  articles.filter((post) => post.data.category === category).length;
+博客文章目前按六个长期主题组织。专题页只做发现入口，不改变任何文章 URL，也不要求额外维护。
 
-博客文章目前按六个长期主题组织。分类只负责帮助发现内容，不改变任何文章 URL。
-
-<CardGrid>
-  <LinkCard title={`Agent 与工具链 · ${count('ai-agents')}`} href="/articles/ai-agents/" description="Agent 架构、MCP、Harness、记忆、评估与长期运行" />
-  <LinkCard title={`AI 行业洞察 · ${count('ai-industry')}`} href="/articles/ai-industry/" description="企业 AI、产品、组织、商业模型与产业变化" />
-  <LinkCard title={`AI 编程实践 · ${count('ai-coding')}`} href="/articles/ai-coding/" description="AI Coding、工程方法论、开发效率与技术债" />
-  <LinkCard title={`模型与研究 · ${count('ai-models')}`} href="/articles/ai-models/" description="模型能力、评测、论文与前沿研究" />
-  <LinkCard title={`安全 · ${count('security')}`} href="/articles/security/" description="AI 安全、网络安全、漏洞、边界与治理" />
-  <LinkCard title={`工程案例 · ${count('engineering')}`} href="/articles/engineering/" description="真实系统、基础设施与工程设计复盘" />
-</CardGrid>
+<TopicOverview articles={articles} />

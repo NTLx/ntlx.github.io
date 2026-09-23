@@ -15,16 +15,42 @@ const sourceLabel = (url) => {
 
 let related = [];
 if (isArticle) {
+  const normalizeTag = (tag) => String(tag).trim().toLocaleLowerCase('en');
+  const sourceHost = (url) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      return '';
+    }
+  };
+  const currentTags = new Set((entry.data.tags ?? []).map(normalizeTag));
+  const currentHosts = new Set(sourceUrls.map(sourceHost).filter(Boolean));
+
   related = (await getCollection(
     'docs',
     ({ id, data }) =>
       id.startsWith('articles/') &&
       id !== entry.id &&
-      data.category === entry.data.category &&
-      Boolean(data.date),
+      Boolean(data.date && data.category),
   ))
-    .sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0))
-    .slice(0, 3);
+    .map((post) => {
+      const sharedTags = (post.data.tags ?? [])
+        .map(normalizeTag)
+        .filter((tag) => currentTags.has(tag)).length;
+      const sharedSources = (post.data.primarySourceUrls ?? [])
+        .map(sourceHost)
+        .filter((host) => host && currentHosts.has(host)).length;
+      const sameCategory = post.data.category === entry.data.category ? 1 : 0;
+
+      return {
+        post,
+        score: sharedTags * 100 + sharedSources * 40 + sameCategory * 20,
+      };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || +(b.post.data.date ?? 0) - +(a.post.data.date ?? 0))
+    .slice(0, 3)
+    .map(({ post }) => post);
 }
 ---
 

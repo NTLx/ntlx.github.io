@@ -8,7 +8,7 @@ sidebar:
 ---
 
 import { getCollection } from 'astro:content';
-import ArticleList from '../../components/ArticleList.astro';
+import ArchiveExplorer from '../../components/ArchiveExplorer.astro';
 
 export const allPosts = (await getCollection(
   'docs',
@@ -16,22 +16,6 @@ export const allPosts = (await getCollection(
 ))
   .sort((a, b) => +b.data.date - +a.data.date);
 
-export const grouped = (() => {
-  const buckets = new Map();
-  for (const post of allPosts) {
-    const d = post.data.date;
-    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(post);
-  }
-  return [...buckets.entries()];
-})();
+共 {allPosts.length} 篇文章。可直接按关键词、专题或年份筛选；全站全文搜索仍可使用顶部搜索。
 
-共 {allPosts.length} 篇文章。这里是时间线；按主题浏览可从首页或顶部导航进入专题。
-
-{grouped.map(([month, posts]) => (
-  <section>
-    <h2 id={month}>{month}</h2>
-    <ArticleList posts={posts} showDescription={false} />
-  </section>
-))}
+<ArchiveExplorer posts={allPosts} />

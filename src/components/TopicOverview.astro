@@ -1,0 +1,155 @@
+---
+const { articles = [] } = Astro.props;
+
+const topics = [
+  {
+    id: 'ai-agents',
+    label: 'Agent 与工具链',
+    description: 'Agent 架构、MCP、Harness、记忆、评估与长期运行',
+  },
+  {
+    id: 'ai-industry',
+    label: 'AI 行业洞察',
+    description: '企业 AI、产品、组织、商业模型与产业变化',
+  },
+  {
+    id: 'ai-coding',
+    label: 'AI 编程实践',
+    description: 'AI Coding、工程方法论、开发效率与技术债',
+  },
+  {
+    id: 'ai-models',
+    label: '模型与研究',
+    description: '模型能力、评测、论文与前沿研究',
+  },
+  {
+    id: 'security',
+    label: '安全',
+    description: 'AI 安全、网络安全、漏洞、边界与治理',
+  },
+  {
+    id: 'engineering',
+    label: '工程案例',
+    description: '真实系统、基础设施与工程设计复盘',
+  },
+];
+
+const fmtDate = (d) => {
+  if (!d) return '';
+  const date = new Date(d);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+};
+
+const topicData = topics.map((topic) => {
+  const posts = articles
+    .filter((post) => post.data.category === topic.id)
+    .sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
+
+  return { ...topic, count: posts.length, latest: posts[0] };
+});
+---
+
+<div class="topic-grid">
+  {topicData.map((topic) => (
+    <section class="topic-card">
+      <div class="topic-heading">
+        <h2><a href={`/articles/${topic.id}/`}>{topic.label}</a></h2>
+        <span>{topic.count} 篇</span>
+      </div>
+      <p>{topic.description}</p>
+      {topic.latest && (
+        <a class="latest" href={`/${topic.latest.id}/`}>
+          <small>最新 · {fmtDate(topic.latest.data.date)}</small>
+          <strong>{topic.latest.data.title}</strong>
+        </a>
+      )}
+    </section>
+  ))}
+</div>
+
+<style>
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1.5rem;
+  }
+
+  .topic-card {
+    margin: 0;
+    padding: 1.15rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--sl-color-bg) 96%, var(--sl-color-gray-6));
+  }
+
+  .topic-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+  }
+
+  .topic-heading h2 {
+    margin: 0;
+    font-size: var(--sl-text-lg);
+  }
+
+  .topic-heading h2 a {
+    color: var(--sl-color-white);
+    text-decoration: none;
+  }
+
+  .topic-heading h2 a:hover {
+    color: var(--sl-color-accent-high);
+  }
+
+  .topic-heading span {
+    flex: none;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+  }
+
+  .topic-card > p {
+    min-height: 3.1em;
+    margin: 0.55rem 0 1rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    line-height: 1.55;
+  }
+
+  .latest {
+    display: block;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--sl-color-hairline);
+    text-decoration: none;
+  }
+
+  .latest small {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+  }
+
+  .latest strong {
+    display: block;
+    color: var(--sl-color-white);
+    font-size: var(--sl-text-sm);
+    line-height: 1.45;
+  }
+
+  .latest:hover strong {
+    color: var(--sl-color-accent-high);
+  }
+
+  @media (max-width: 50rem) {
+    .topic-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .topic-card > p {
+      min-height: 0;
+    }
+  }
+</style>
