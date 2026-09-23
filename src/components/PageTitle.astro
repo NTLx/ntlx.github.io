@@ -36,6 +36,11 @@ const fmtDate = (d) => {
 )}
 <h1 id={PAGE_TITLE_ID}>{data.title}</h1>
 {isArticle && data.description && <p class="article-deck">{data.description}</p>}
+{isArticle && data.tags?.length > 0 && (
+  <div class="article-tags" aria-label="文章标签">
+    {data.tags.map((tag) => <span>{tag}</span>)}
+  </div>
+)}
 
 <style>
   @layer starlight.core {
@@ -69,6 +74,22 @@ const fmtDate = (d) => {
       color: var(--sl-color-gray-2);
       font-size: var(--sl-text-lg);
       line-height: 1.7;
+    }
+
+    .article-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.9rem;
+    }
+
+    .article-tags span {
+      padding: 0.2rem 0.5rem;
+      border: 1px solid var(--sl-color-gray-5);
+      border-radius: 999px;
+      color: var(--sl-color-gray-3);
+      font-size: var(--sl-text-xs);
+      line-height: 1.4;
     }
   }
 </style>

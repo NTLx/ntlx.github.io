@@ -5,12 +5,12 @@ const { entry } = Astro.locals.starlightRoute;
 const isArticle = entry?.id?.startsWith('articles/') && entry.data?.date && entry.data?.category;
 
 const categories = [
-  ['AI 编程实践', '/articles/ai-coding/'],
-  ['Agent 与工具链', '/articles/ai-agents/'],
-  ['AI 行业洞察', '/articles/ai-industry/'],
-  ['模型与研究', '/articles/ai-models/'],
-  ['安全', '/articles/security/'],
-  ['工程案例', '/articles/engineering/'],
+  ['ai-coding', 'AI 编程实践', '/articles/ai-coding/'],
+  ['ai-agents', 'Agent 与工具链', '/articles/ai-agents/'],
+  ['ai-industry', 'AI 行业洞察', '/articles/ai-industry/'],
+  ['ai-models', '模型与研究', '/articles/ai-models/'],
+  ['security', '安全', '/articles/security/'],
+  ['engineering', '工程案例', '/articles/engineering/'],
 ];
 ---
 
@@ -20,7 +20,9 @@ const categories = [
     <a class="section-link" href="/archive/">全部文章</a>
     <a class="section-link" href="/topics/">专题</a>
     <div class="label">专题</div>
-    {categories.map(([label, href]) => <a href={href}>{label}</a>)}
+    {categories.map(([category, label, href]) => (
+      <a href={href} aria-current={entry.data.category === category ? 'page' : undefined}>{label}</a>
+    ))}
     <div class="label">知识库</div>
     <a href="/notes/">技术笔记</a>
     <a href="/about/">关于</a>
@@ -45,7 +47,8 @@ const categories = [
     line-height: 1.45;
   }
 
-  .blog-sidebar a:hover {
+  .blog-sidebar a:hover,
+  .blog-sidebar a[aria-current='page'] {
     color: var(--sl-color-white);
     background: var(--sl-color-gray-6);
   }

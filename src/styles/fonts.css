@@ -10,6 +10,37 @@
 /* 仅作用于文章正文，避免导航/侧边栏发生字体跳变 */
 .sl-markdown-content {
   font-family: "LXGW WenKai Screen", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 1.04rem;
+  line-height: 1.9;
+  letter-spacing: 0.005em;
+}
+
+.sl-markdown-content :is(p, ul, ol, blockquote) {
+  margin-block: 1.15rem;
+}
+
+.sl-markdown-content :is(h2, h3) {
+  scroll-margin-top: calc(var(--sl-nav-height) + 1.5rem);
+  text-wrap: balance;
+}
+
+.sl-markdown-content h2 {
+  margin-top: 2.8rem;
+}
+
+.sl-markdown-content h3 {
+  margin-top: 2.2rem;
+}
+
+.sl-markdown-content img {
+  display: block;
+  margin-inline: auto;
+  border-radius: 0.55rem;
+}
+
+.sl-markdown-content blockquote {
+  border-inline-start-width: 3px;
+  color: var(--sl-color-gray-2);
 }
 
 /* 代码块使用 Fira Code + contextual 连字（!= → ≠、-> → 箭头等） */

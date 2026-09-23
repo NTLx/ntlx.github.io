@@ -4,6 +4,14 @@ import { getCollection } from 'astro:content';
 
 const { entry } = Astro.locals.starlightRoute;
 const isArticle = entry?.id?.startsWith('articles/') && entry.data?.date && entry.data?.category;
+const sourceUrls = isArticle ? (entry.data.primarySourceUrls ?? []) : [];
+const sourceLabel = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+};
 
 let related = [];
 if (isArticle) {
@@ -35,8 +43,17 @@ if (isArticle) {
         </a>
       ))}
     </div>
+    {sourceUrls.length > 0 && (
+      <div class="sources">
+        <div class="sources-label">原始资料</div>
+        <div class="source-links">
+          {sourceUrls.map((url) => <a href={url} rel="noreferrer">{sourceLabel(url)} ↗</a>)}
+        </div>
+      </div>
+    )}
     <div class="footer-links">
       <a href="/archive/">全部文章</a>
+      <a href="/topics/">专题</a>
       <a href="/rss.xml">RSS</a>
       <a href="/about/">关于</a>
     </div>
@@ -106,8 +123,37 @@ if (isArticle) {
       line-height: 1.55;
     }
 
+    .sources {
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem;
+      border: 1px solid var(--sl-color-hairline);
+      border-radius: 0.65rem;
+      background: color-mix(in srgb, var(--sl-color-bg) 92%, var(--sl-color-gray-6));
+    }
+
+    .sources-label {
+      margin-bottom: 0.45rem;
+      color: var(--sl-color-gray-3);
+      font-size: var(--sl-text-xs);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem 1rem;
+    }
+
+    .source-links a {
+      font-size: var(--sl-text-sm);
+      text-decoration: none;
+      overflow-wrap: anywhere;
+    }
+
     .footer-links {
       display: flex;
+      flex-wrap: wrap;
       gap: 1.25rem;
       margin: 1.5rem 0 2rem;
     }

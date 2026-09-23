@@ -75,9 +75,13 @@ const fmtDate = (d) => {
   }
 
   p {
+    display: -webkit-box;
     margin: 0.4rem 0 0;
+    overflow: hidden;
     color: var(--sl-color-gray-2);
     font-size: var(--sl-text-sm);
     line-height: 1.65;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 </style>
