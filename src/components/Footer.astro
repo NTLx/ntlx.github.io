@@ -4,6 +4,20 @@ import { getCollection } from 'astro:content';
 
 const { entry } = Astro.locals.starlightRoute;
 const isArticle = entry?.id?.startsWith('articles/') && entry.data?.date && entry.data?.category;
+const blogLandingIds = new Set([
+  'index',
+  'archive',
+  'topics',
+  'notes',
+  'about',
+  'articles/ai-coding',
+  'articles/ai-agents',
+  'articles/ai-industry',
+  'articles/ai-models',
+  'articles/security',
+  'articles/engineering',
+]);
+const isBlogLanding = blogLandingIds.has(entry?.id);
 const sourceUrls = isArticle ? (entry.data.primarySourceUrls ?? []) : [];
 const sourceLabel = (url) => {
   try {
@@ -83,6 +97,18 @@ if (isArticle) {
       <a href="/rss.xml">RSS</a>
       <a href="/about/">关于</a>
     </div>
+  </footer>
+) : isBlogLanding ? (
+  <footer class="site-footer">
+    <div class="site-footer-links">
+      <a href="/archive/">文章</a>
+      <a href="/topics/">专题</a>
+      <a href="/notes/">技术笔记</a>
+      <a href="/rss.xml">RSS</a>
+      <a href="/about/">关于</a>
+      <a href="https://github.com/NTLx/ntlx.github.io" rel="noreferrer">GitHub ↗</a>
+    </div>
+    <small>© NTLx · 原创内容采用 CC BY-NC-SA 4.0</small>
   </footer>
 ) : (
   <DefaultFooter />
@@ -182,6 +208,29 @@ if (isArticle) {
       flex-wrap: wrap;
       gap: 1.25rem;
       margin: 1.5rem 0 2rem;
+    }
+
+    .site-footer {
+      margin-top: 3.5rem;
+      padding: 1.5rem 0 2rem;
+      border-top: 1px solid var(--sl-color-hairline);
+      color: var(--sl-color-gray-3);
+    }
+
+    .site-footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem 1.1rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .site-footer-links a {
+      font-size: var(--sl-text-sm);
+      text-decoration: none;
+    }
+
+    .site-footer small {
+      font-size: var(--sl-text-xs);
     }
   }
 </style>

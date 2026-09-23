@@ -9,6 +9,14 @@ const site = Astro.site ?? new URL('https://ntlx.github.io/');
 const defaultOgImage = new URL('/og-image.png', site).toString();
 
 let ogImage = defaultOgImage;
+const categoryLabels = {
+	'ai-coding': 'AI 编程实践',
+	'ai-agents': 'Agent 与工具链',
+	'ai-industry': 'AI 行业洞察',
+	'ai-models': '模型与研究',
+	security: '安全',
+	engineering: '工程案例',
+};
 const isArticle = Boolean(
 	entry &&
 	entry.id.startsWith('articles/') &&
@@ -45,7 +53,7 @@ if (isArticle && entry.data) {
 		headline: d.title,
 		description: d.description,
 		image: [ogImage],
-		...(d.category ? { articleSection: d.category } : {}),
+		...(d.category ? { articleSection: categoryLabels[d.category] ?? d.category } : {}),
 		...(d.tags?.length ? { keywords: d.tags } : {}),
 		...(datePublished ? { datePublished } : {}),
 		...(dateModified ? { dateModified } : {}),
@@ -88,7 +96,10 @@ if (isArticle && entry.data) {
 	/>
 )}
 {isArticle && entry.data?.category && (
-	<meta property="article:section" content={entry.data.category} />
+	<meta
+		property="article:section"
+		content={categoryLabels[entry.data.category] ?? entry.data.category}
+	/>
 )}
 {isArticle && entry.data?.tags?.map((tag) => (
 	<meta property="article:tag" content={tag} />

@@ -23,7 +23,7 @@ const years = [...new Set(
 ---
 
 <div class="archive-explorer" data-archive-explorer>
-  <div class="filters" role="search" aria-label="筛选文章">
+  <div class="filters" role="search" aria-label="筛选文章" data-filters hidden>
     <label class="search-field">
       <span class="sr-label">搜索文章</span>
       <input type="search" placeholder="搜索标题或标签…" autocomplete="off" data-filter-query />
@@ -81,12 +81,16 @@ const years = [...new Set(
   </ul>
 
   <p class="empty-state" data-empty-state hidden>没有匹配的文章。可以清除筛选或换一个关键词。</p>
+  <noscript><p class="noscript-note">筛选功能需要 JavaScript；当前已完整显示全部文章。</p></noscript>
 </div>
 
 <script>
   const explorers = document.querySelectorAll('[data-archive-explorer]');
 
   explorers.forEach((root) => {
+    const filters = root.querySelector('[data-filters]');
+    if (filters instanceof HTMLElement) filters.hidden = false;
+
     const queryInput = root.querySelector('[data-filter-query]');
     const categorySelect = root.querySelector('[data-filter-category]');
     const yearSelect = root.querySelector('[data-filter-year]');
@@ -237,6 +241,12 @@ const years = [...new Set(
     padding: 2rem 0;
     color: var(--sl-color-gray-3);
     text-align: center;
+  }
+
+  .noscript-note {
+    margin-top: 1rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
   }
 
   @media (max-width: 50rem) {
