@@ -104,6 +104,19 @@ const years = [...new Set(
         !(yearSelect instanceof HTMLSelectElement) ||
         !(resetButton instanceof HTMLButtonElement)) return;
 
+    let queryTimer;
+    const emitFilterEvent = (filterType, value, visible) => {
+      root.dispatchEvent(new CustomEvent('blog:archive-filter', {
+        bubbles: true,
+        detail: {
+          filter_type: filterType,
+          filter_value: filterType === 'query' ? undefined : value || 'all',
+          query_length: filterType === 'query' ? value.length : undefined,
+          result_count: visible,
+        },
+      }));
+    };
+
     const applyFilters = () => {
       const query = queryInput.value.trim().toLocaleLowerCase('zh-CN');
       const category = categorySelect.value;
@@ -125,9 +138,27 @@ const years = [...new Set(
       resetButton.hidden = !query && !category && !year;
     };
 
-    queryInput.addEventListener('input', applyFilters);
-    categorySelect.addEventListener('change', applyFilters);
-    yearSelect.addEventListener('change', applyFilters);
+    queryInput.addEventListener('input', () => {
+      applyFilters();
+      window.clearTimeout(queryTimer);
+      queryTimer = window.setTimeout(() => {
+        const query = queryInput.value.trim();
+        if (query.length >= 2 || query.length === 0) {
+          const visible = items.filter((item) => item instanceof HTMLElement && !item.hidden).length;
+          emitFilterEvent('query', query, visible);
+        }
+      }, 600);
+    });
+    categorySelect.addEventListener('change', () => {
+      applyFilters();
+      const visible = items.filter((item) => item instanceof HTMLElement && !item.hidden).length;
+      emitFilterEvent('category', categorySelect.value, visible);
+    });
+    yearSelect.addEventListener('change', () => {
+      applyFilters();
+      const visible = items.filter((item) => item instanceof HTMLElement && !item.hidden).length;
+      emitFilterEvent('year', yearSelect.value, visible);
+    });
     resetButton.addEventListener('click', () => {
       queryInput.value = '';
       categorySelect.value = '';

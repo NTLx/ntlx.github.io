@@ -83,8 +83,11 @@ if (isArticle && entry.data) {
 	))
 }
 
-{/* 按页 og:image，覆盖默认值 */}
+{/* 按页分享图片，覆盖默认值 */}
 <meta property="og:image" content={ogImage} />
+<meta property="og:image:alt" content={entry?.data?.title ?? "NTLx's Blog"} />
+<meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={entry?.data?.title ?? "NTLx's Blog"} />
 
 {isArticle && entry.data?.date && (
 	<meta property="article:published_time" content={new Date(entry.data.date).toISOString()} />
@@ -111,3 +114,84 @@ if (isArticle && entry.data) {
 		<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 	)
 }
+
+<script is:inline>
+(() => {
+  const track = (name, params = {}) => {
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', name, params);
+    }
+  };
+
+  const linkContext = (anchor) => {
+    if (anchor.closest('.related')) return 'related_articles';
+    if (anchor.closest('.article-list')) return 'article_list';
+    if (anchor.closest('.topic-grid')) return 'topic_overview';
+    if (anchor.closest('.primary-nav')) return 'primary_nav';
+    if (anchor.closest('.blog-sidebar')) return 'blog_sidebar';
+    if (anchor.closest('.site-footer, .article-footer')) return 'footer';
+    return 'content';
+  };
+
+  document.addEventListener('blog:archive-filter', (event) => {
+    const detail = event.detail ?? {};
+    track('archive_filter', {
+      page_path: location.pathname,
+      filter_type: detail.filter_type,
+      filter_value: detail.filter_value,
+      query_length: detail.query_length,
+      result_count: detail.result_count,
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const searchButton = target.closest('site-search [data-open-modal]');
+    if (searchButton) {
+      track('blog_search_open', { page_path: location.pathname });
+      return;
+    }
+
+    const copyButton = target.closest('.expressive-code .copy button[data-code]');
+    if (copyButton instanceof HTMLButtonElement) {
+      const pre = copyButton.closest('figure')?.querySelector('pre[data-language]');
+      track('copy_code', {
+        page_path: location.pathname,
+        code_language: pre?.getAttribute('data-language') ?? 'unknown',
+        code_length: (copyButton.dataset.code ?? '').length,
+      });
+      return;
+    }
+
+    const anchor = target.closest('a[href]');
+    if (!(anchor instanceof HTMLAnchorElement)) return;
+
+    let url;
+    try {
+      url = new URL(anchor.href, location.href);
+    } catch {
+      return;
+    }
+
+    if (url.origin !== location.origin) return;
+
+    if (url.pathname === '/rss.xml') {
+      track('rss_click', {
+        page_path: location.pathname,
+        link_context: linkContext(anchor),
+      });
+      return;
+    }
+
+    if (url.pathname.startsWith('/articles/') && url.pathname !== location.pathname) {
+      track('internal_article_click', {
+        page_path: location.pathname,
+        destination_path: url.pathname,
+        link_context: linkContext(anchor),
+      });
+    }
+  });
+})();
+</script>
