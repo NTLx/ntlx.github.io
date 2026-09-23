@@ -9,10 +9,14 @@ const site = Astro.site ?? new URL('https://ntlx.github.io/');
 const defaultOgImage = new URL('/og-image.png', site).toString();
 
 let ogImage = defaultOgImage;
-let isArticle = false;
+const isArticle = Boolean(
+	entry &&
+	entry.id.startsWith('articles/') &&
+	entry.data?.date &&
+	entry.data?.category
+);
 
-if (entry && entry.id.startsWith('articles/')) {
-	isArticle = true;
+if (isArticle) {
 	const body = entry.body ?? '';
 	// 提取正文第一张 Markdown 图片：![alt](url) 或 ![alt](url "title")
 	const m = body.match(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/);

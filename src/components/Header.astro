@@ -1,0 +1,86 @@
+---
+import Search from '@astrojs/starlight/components/Search.astro';
+import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
+import SocialIcons from '@astrojs/starlight/components/SocialIcons.astro';
+import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
+---
+
+<div class="header">
+  <div class="title-wrapper sl-flex">
+    <SiteTitle />
+  </div>
+
+  <nav class="primary-nav sl-hidden md:sl-flex print:hidden" aria-label="主导航">
+    <a href="/archive/">文章</a>
+    <a href="/topics/">专题</a>
+    <a href="/notes/">技术笔记</a>
+    <a href="/about/">关于</a>
+  </nav>
+
+  <div class="actions sl-flex print:hidden">
+    <Search />
+    <div class="sl-hidden md:sl-flex social-icons">
+      <SocialIcons />
+    </div>
+    <div class="sl-hidden md:sl-flex">
+      <ThemeSelect />
+    </div>
+  </div>
+</div>
+
+<style>
+  @layer starlight.core {
+    .header {
+      display: grid;
+      grid-template-columns: minmax(0, auto) 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      height: 100%;
+    }
+
+    .title-wrapper {
+      overflow: clip;
+      min-width: 0;
+      padding: 0.25rem;
+      margin: -0.25rem;
+    }
+
+    .primary-nav {
+      justify-content: center;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+
+    .primary-nav a {
+      padding: 0.45rem 0.65rem;
+      border-radius: 0.45rem;
+      color: var(--sl-color-gray-2);
+      text-decoration: none;
+      font-size: var(--sl-text-sm);
+      white-space: nowrap;
+    }
+
+    .primary-nav a:hover {
+      color: var(--sl-color-white);
+      background: var(--sl-color-gray-6);
+    }
+
+    .actions,
+    .social-icons {
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .social-icons::before {
+      content: '';
+      height: 1.75rem;
+      border-inline-start: 1px solid var(--sl-color-gray-5);
+    }
+
+    @media (max-width: 72rem) {
+      .primary-nav a {
+        padding-inline: 0.45rem;
+      }
+    }
+  }
+</style>

@@ -1,0 +1,115 @@
+---
+import DefaultFooter from '@astrojs/starlight/components/Footer.astro';
+import { getCollection } from 'astro:content';
+
+const { entry } = Astro.locals.starlightRoute;
+const isArticle = entry?.id?.startsWith('articles/') && entry.data?.date && entry.data?.category;
+
+let related = [];
+if (isArticle) {
+  related = (await getCollection(
+    'docs',
+    ({ id, data }) =>
+      id.startsWith('articles/') &&
+      id !== entry.id &&
+      data.category === entry.data.category &&
+      Boolean(data.date),
+  ))
+    .sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0))
+    .slice(0, 3);
+}
+---
+
+{isArticle ? (
+  <footer class="article-footer">
+    <div class="rule"></div>
+    <div class="footer-heading">
+      <h2>继续阅读</h2>
+      <a href={`/articles/${entry.data.category}/`}>查看同专题全部文章 →</a>
+    </div>
+    <div class="related">
+      {related.map((post) => (
+        <a href={`/${post.id}/`}>
+          <span>{post.data.title}</span>
+          {post.data.description && <small>{post.data.description}</small>}
+        </a>
+      ))}
+    </div>
+    <div class="footer-links">
+      <a href="/archive/">全部文章</a>
+      <a href="/rss.xml">RSS</a>
+      <a href="/about/">关于</a>
+    </div>
+  </footer>
+) : (
+  <DefaultFooter />
+)}
+
+<style>
+  @layer starlight.core {
+    .article-footer {
+      margin-top: 4rem;
+    }
+
+    .rule {
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+
+    .footer-heading {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: baseline;
+      margin: 1.5rem 0 0.75rem;
+    }
+
+    .footer-heading h2 {
+      margin: 0;
+      color: var(--sl-color-white);
+      font-size: var(--sl-text-xl);
+    }
+
+    .footer-heading a,
+    .footer-links a {
+      font-size: var(--sl-text-sm);
+      text-decoration: none;
+    }
+
+    .related {
+      display: grid;
+      gap: 0;
+      border-top: 1px solid var(--sl-color-hairline);
+    }
+
+    .related > a {
+      display: block;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--sl-color-hairline);
+      text-decoration: none;
+    }
+
+    .related span {
+      display: block;
+      color: var(--sl-color-white);
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .related a:hover span {
+      color: var(--sl-color-accent-high);
+    }
+
+    .related small {
+      display: block;
+      margin-top: 0.35rem;
+      color: var(--sl-color-gray-3);
+      line-height: 1.55;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.25rem;
+      margin: 1.5rem 0 2rem;
+    }
+  }
+</style>

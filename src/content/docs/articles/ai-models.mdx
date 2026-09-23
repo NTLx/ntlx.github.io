@@ -3,29 +3,19 @@ title: 模型与研究
 description: 模型架构、缩放定律、评测基准、前沿论文解读
 lastUpdated: false
 sidebar:
-  label: 📂 模型与研究
+  label: 模型与研究
   order: 0
 ---
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 import { getCollection } from 'astro:content';
+import ArticleList from '../../../components/ArticleList.astro';
 
-export const fmtDate = (d) =>
-	d
-		? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-		: '';
+export const posts = (await getCollection(
+  'docs',
+  ({ id, data }) => id.startsWith('articles/') && data.category === 'ai-models',
+))
+  .sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
 
-export const posts = (await getCollection('docs'))
-	.filter((p) => p.data.category === 'ai-models')
-	.sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
+模型架构、缩放定律、评测基准、前沿论文解读。共 **{posts.length} 篇**，按发布时间倒序排列。
 
-> 模型架构、缩放定律、评测基准、前沿论文解读
-
-<CardGrid>
-	{posts.map((p) => (
-		<LinkCard
-			title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
-			href={`/${p.id}/`}
-		/>
-	))}
-</CardGrid>
+<ArticleList posts={posts} showCategory={false} />

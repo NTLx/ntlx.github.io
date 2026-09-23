@@ -1,73 +1,64 @@
 ---
-title: 欢迎来到 NTLx's Blog
-description: 技术洞察与实践笔记 — AI、系统运维、生物信息学
+title: NTLx's Blog
+description: AI Agent、AI Native 工程与真实系统实践
 template: splash
 lastUpdated: false
 hero:
   title: "NTLx's Blog"
-  tagline: 不写废话，只写算过账的结论
+  tagline: AI Agent、AI Native 工程，以及真实系统里的判断与实践
   actions:
-    - text: 浏览文章
-      link: /articles/ai-coding/
+    - text: 最新文章
+      link: /archive/
       icon: right-arrow
       variant: primary
-    - text: AI 工具指南
-      link: /ai-tools/install-cli-tools/
-      icon: laptop
+    - text: 关于本站
+      link: /about/
+      icon: information
       variant: secondary
-    - text: GitHub
-      link: https://github.com/NTLx/ntlx.github.io
-      icon: external
-      variant: minimal
 ---
 
 import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 import { getCollection } from 'astro:content';
+import ArticleList from '../../components/ArticleList.astro';
 
-export const fmtDate = (d) =>
-  d
-    ? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-    : '';
+export const articles = (await getCollection(
+  'docs',
+  ({ id, data }) => id.startsWith('articles/') && Boolean(data.date && data.category),
+))
+  .sort((a, b) => +b.data.date - +a.data.date);
 
-export const latestPosts = (await getCollection('docs', ({ id }) => id.startsWith('articles/')))
-  .filter((p) => p.data.date)
-  .sort((a, b) => +b.data.date - +a.data.date)
-  .slice(0, 5);
+export const latestPosts = articles.slice(0, 8);
 
-## 最新文章
+export const categoryCount = (category) =>
+  articles.filter((post) => post.data.category === category).length;
 
-<CardGrid>
-  {latestPosts.map((p) => (
-    <LinkCard
-      title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
-      href={`/${p.id}/`}
-      description={p.data.description}
-    />
-  ))}
-</CardGrid>
+## 最近写的
 
-<p style="text-align:right;margin-top:0.5rem;">
-  <a href="/archive/">查看全部归档 →</a>
-</p>
+<ArticleList posts={latestPosts} />
 
-## 文章分类
+<p style="text-align:right;margin-top:1rem;"><a href="/archive/">查看全部 {articles.length} 篇文章 →</a></p>
+
+## 长期关注
+
+<p style="text-align:right;margin-top:-0.75rem;"><a href="/topics/">查看全部专题 →</a></p>
 
 <CardGrid>
-	<LinkCard title="AI 编程实践" href="/articles/ai-coding/" description="AI 编码工具、工程方法论、开发提效与技术债务" />
-	<LinkCard title="Agent 与工具链" href="/articles/ai-agents/" description="Agent 架构设计、MCP 协议、测试验证、记忆系统" />
-	<LinkCard title="AI 行业洞察" href="/articles/ai-industry/" description="商业模型、公司战略、产业经济学、行业趋势" />
-	<LinkCard title="模型与研究" href="/articles/ai-models/" description="模型架构、缩放定律、评测基准、前沿论文解读" />
-	<LinkCard title="安全" href="/articles/security/" description="网络安全、AI 安全能力评估、漏洞与防护" />
-	<LinkCard title="工程案例" href="/articles/engineering/" description="非 AI 的工程实践 — Figma、Stripe、Instacart 等" />
+  <LinkCard title={`Agent 与工具链 · ${categoryCount('ai-agents')}`} href="/articles/ai-agents/" description="Agent 架构、MCP、Harness、记忆、评估与长期运行" />
+  <LinkCard title={`AI 行业洞察 · ${categoryCount('ai-industry')}`} href="/articles/ai-industry/" description="企业 AI、产品、组织、商业模型与产业变化" />
+  <LinkCard title={`AI 编程实践 · ${categoryCount('ai-coding')}`} href="/articles/ai-coding/" description="AI Coding、工程方法论、开发效率与技术债" />
+  <LinkCard title={`模型与研究 · ${categoryCount('ai-models')}`} href="/articles/ai-models/" description="模型能力、评测、论文与前沿研究" />
+  <LinkCard title={`安全 · ${categoryCount('security')}`} href="/articles/security/" description="AI 安全、网络安全、漏洞、边界与治理" />
+  <LinkCard title={`工程案例 · ${categoryCount('engineering')}`} href="/articles/engineering/" description="真实系统、基础设施与工程设计复盘" />
 </CardGrid>
 
 ## 技术笔记
 
+这里保留更偏 Reference 的长期维护内容，与按时间发布的博客文章分开。<br />
+<a href="/notes/">进入技术笔记总览 →</a>
+
 <CardGrid>
-	<LinkCard title="AI 辅助编程" href="/ai-tools/install-cli-tools/" description="AI Coding 工具安装配置、Agent 实践、MCP 与 Skills 开发" />
-	<LinkCard title="操作系统" href="/operating-systems/linux/arch-linux/" description="Linux 发行版配置、NAS 与虚拟化、树莓派与 macOS" />
-	<LinkCard title="HPC 与集群" href="/hpc-cluster/install-slurm-openmpi/" description="Slurm、OpenMPI 等高性能计算工具部署与使用" />
-	<LinkCard title="网络与代理" href="/network-proxy/shadowsocks/" description="Shadowsocks、Privoxy、ZeroTier 等网络工具" />
-	<LinkCard title="DevOps 工具" href="/devops/shell-terminal/bash/" description="Shell、编辑器、Git、n8n、LLMs API" />
-	<LinkCard title="生物信息学" href="/bioinformatics/snakemake-benchmark/" description="Snakemake 流程管理与性能分析" />
+  <LinkCard title="AI 工具" href="/ai-tools/install-cli-tools/" description="Claude Code、AI Coding CLI、MCP 与本地工具配置" />
+  <LinkCard title="系统与运维" href="/operating-systems/linux/arch-linux/" description="Linux、NAS、虚拟化、HPC 与网络工具" />
+  <LinkCard title="DevOps" href="/devops/shell-terminal/bash/" description="Shell、Git、编辑器、服务与自动化" />
+  <LinkCard title="生物信息学" href="/bioinformatics/snakemake-benchmark/" description="工作流与科研计算实践" />
 </CardGrid>

@@ -12,7 +12,10 @@ function escapeXml(str) {
 }
 
 export async function GET(context) {
-  const articles = await getCollection('docs', ({ id }) => id.startsWith('articles/'));
+  const articles = await getCollection(
+    'docs',
+    ({ id, data }) => id.startsWith('articles/') && Boolean(data.date && data.category),
+  );
 
   // 按 date 降序排列（不用 updated，避免老文章小改置顶破坏订阅体验）
   // 没有 date 的排到最后
@@ -40,7 +43,7 @@ export async function GET(context) {
 
   return rss({
     title: "NTLx's Blog",
-    description: '技术洞察与实践笔记 — AI、系统运维、生物信息学',
+    description: 'AI Agent、AI Native 工程与真实系统实践',
     site: context.site,
     xmlns: {
       atom: 'http://www.w3.org/2005/Atom',

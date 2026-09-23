@@ -3,29 +3,19 @@ title: 工程案例
 description: 非 AI 的工程实践 — Figma、Stripe、Instacart 等
 lastUpdated: false
 sidebar:
-  label: 📂 工程案例
+  label: 工程案例
   order: 0
 ---
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
 import { getCollection } from 'astro:content';
+import ArticleList from '../../../components/ArticleList.astro';
 
-export const fmtDate = (d) =>
-	d
-		? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-		: '';
+export const posts = (await getCollection(
+  'docs',
+  ({ id, data }) => id.startsWith('articles/') && data.category === 'engineering',
+))
+  .sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
 
-export const posts = (await getCollection('docs'))
-	.filter((p) => p.data.category === 'engineering')
-	.sort((a, b) => +(b.data.date ?? 0) - +(a.data.date ?? 0));
+非 AI 的工程实践 — Figma、Stripe、Instacart 等。共 **{posts.length} 篇**，按发布时间倒序排列。
 
-> 非 AI 的工程实践 — Figma、Stripe、Instacart 等
-
-<CardGrid>
-	{posts.map((p) => (
-		<LinkCard
-			title={`(${fmtDate(p.data.date)}) ${p.data.title}`}
-			href={`/${p.id}/`}
-		/>
-	))}
-</CardGrid>
+<ArticleList posts={posts} showCategory={false} />

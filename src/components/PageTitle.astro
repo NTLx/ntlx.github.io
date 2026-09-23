@@ -1,0 +1,74 @@
+---
+const PAGE_TITLE_ID = '_top';
+
+const { entry } = Astro.locals.starlightRoute;
+const data = entry.data;
+const isArticle = entry?.id?.startsWith('articles/') && data?.date && data?.category;
+
+const categoryLabels = {
+  'ai-coding': 'AI 编程实践',
+  'ai-agents': 'Agent 与工具链',
+  'ai-industry': 'AI 行业洞察',
+  'ai-models': '模型与研究',
+  security: '安全',
+  engineering: '工程案例',
+};
+
+const fmtDate = (d) => {
+  if (!d) return '';
+  const date = new Date(d);
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+};
+---
+
+{isArticle && (
+  <div class="article-kicker">
+    <a href={`/articles/${data.category}/`}>{categoryLabels[data.category] ?? data.category}</a>
+    <span aria-hidden="true">·</span>
+    <time datetime={fmtDate(data.date)}>{fmtDate(data.date)}</time>
+    {data.updated && (
+      <>
+        <span aria-hidden="true">·</span>
+        <span>更新于 {fmtDate(data.updated)}</span>
+      </>
+    )}
+  </div>
+)}
+<h1 id={PAGE_TITLE_ID}>{data.title}</h1>
+{isArticle && data.description && <p class="article-deck">{data.description}</p>}
+
+<style>
+  @layer starlight.core {
+    h1 {
+      margin-top: 1rem;
+      font-size: var(--sl-text-h1);
+      line-height: var(--sl-line-height-headings);
+      font-weight: 650;
+      color: var(--sl-color-white);
+      text-wrap: balance;
+    }
+
+    .article-kicker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 1rem;
+      color: var(--sl-color-gray-3);
+      font-size: var(--sl-text-sm);
+    }
+
+    .article-kicker a {
+      color: var(--sl-color-accent-high);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .article-deck {
+      max-width: 52rem;
+      margin: 0.85rem 0 0;
+      color: var(--sl-color-gray-2);
+      font-size: var(--sl-text-lg);
+      line-height: 1.7;
+    }
+  }
+</style>

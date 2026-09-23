@@ -9,7 +9,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: "NTLx's Blog",
-			description: '技术洞察与实践笔记 — AI、系统运维、生物信息学',
+			description: 'AI Agent、AI Native 工程与真实系统实践',
 			defaultLocale: 'root',
 			locales: {
 				root: {
@@ -78,21 +78,36 @@ export default defineConfig({
 			customCss: ['./src/styles/fonts.css'],
 			// 显示最后更新时间
 			lastUpdated: true,
-			// 覆盖 Head 组件：按页注入 og:image（文章取正文首图）+ BlogPosting JSON-LD
+			// 博客展示层覆盖：保留 Starlight 内容/搜索能力，文章使用博客化导航与元数据。
 			components: {
 				Head: './src/components/Head.astro',
+				Header: './src/components/Header.astro',
+				Sidebar: './src/components/Sidebar.astro',
+				PageTitle: './src/components/PageTitle.astro',
+				Pagination: './src/components/Pagination.astro',
+				Footer: './src/components/Footer.astro',
 			},
 			sidebar: [
 				{
 					label: '开始',
 					items: [
+						{ label: '专题', slug: 'topics' },
+						{ label: '技术笔记', slug: 'notes' },
 						{ slug: 'about' },
 					],
 				},
 				{
-					label: '文章',
+					label: '博客',
 					collapsed: true,
-					items: [{ autogenerate: { directory: 'articles' } }],
+					items: [
+						{ label: '全部文章', slug: 'archive' },
+						{ label: 'AI 编程实践', slug: 'articles/ai-coding' },
+						{ label: 'Agent 与工具链', slug: 'articles/ai-agents' },
+						{ label: 'AI 行业洞察', slug: 'articles/ai-industry' },
+						{ label: '模型与研究', slug: 'articles/ai-models' },
+						{ label: '安全', slug: 'articles/security' },
+						{ label: '工程案例', slug: 'articles/engineering' },
+					],
 				},
 				{
 					label: 'AI 辅助编程',

@@ -1,0 +1,67 @@
+---
+import DefaultSidebar from '@astrojs/starlight/components/Sidebar.astro';
+
+const { entry } = Astro.locals.starlightRoute;
+const isArticle = entry?.id?.startsWith('articles/') && entry.data?.date && entry.data?.category;
+
+const categories = [
+  ['AI 编程实践', '/articles/ai-coding/'],
+  ['Agent 与工具链', '/articles/ai-agents/'],
+  ['AI 行业洞察', '/articles/ai-industry/'],
+  ['模型与研究', '/articles/ai-models/'],
+  ['安全', '/articles/security/'],
+  ['工程案例', '/articles/engineering/'],
+];
+---
+
+{isArticle ? (
+  <nav class="blog-sidebar" aria-label="博客导航">
+    <a class="section-link" href="/">首页</a>
+    <a class="section-link" href="/archive/">全部文章</a>
+    <a class="section-link" href="/topics/">专题</a>
+    <div class="label">专题</div>
+    {categories.map(([label, href]) => <a href={href}>{label}</a>)}
+    <div class="label">知识库</div>
+    <a href="/notes/">技术笔记</a>
+    <a href="/about/">关于</a>
+  </nav>
+) : (
+  <DefaultSidebar />
+)}
+
+<style>
+  .blog-sidebar {
+    display: grid;
+    gap: 0.15rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .blog-sidebar a {
+    display: block;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.4rem;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    line-height: 1.45;
+  }
+
+  .blog-sidebar a:hover {
+    color: var(--sl-color-white);
+    background: var(--sl-color-gray-6);
+  }
+
+  .blog-sidebar .section-link {
+    color: var(--sl-color-white);
+    font-weight: 600;
+  }
+
+  .label {
+    margin: 1rem 0 0.2rem;
+    padding: 0 0.65rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+</style>
