@@ -1,50 +1,131 @@
 # NTLx's Blog
 
 [![Built with Astro Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+[![Deploy to GitHub Pages](https://github.com/NTLx/ntlx.github.io/actions/workflows/deploy.yml/badge.svg)](https://github.com/NTLx/ntlx.github.io/actions/workflows/deploy.yml)
 [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-我的个人博客，基于 [Astro Starlight](https://starlight.astro.build) 构建，托管在 GitHub Pages 上。
+一个围绕 **AI Agent、AI Native 工程与真实系统实践**持续演进的个人博客与技术知识库。
 
-## 内容方向
+在线访问：**https://ntlx.github.io/**
 
-技术随笔为主，覆盖 AI 辅助编程、操作系统、HPC 集群、网络代理、DevOps、生物信息学等话题。文章风格偏「有感而发」——读了什么东西、踩了什么坑、想通了什么道理，写下来。
+## 站点结构
 
-## 功能特性
+这个仓库同时承载两类内容，但二者采用不同的信息组织方式：
 
-### 博客站点
+- **Blog**：面向连续阅读与观点表达，文章位于 `src/content/docs/articles/`
+- **Notes**：面向长期维护与按问题查找的 Reference，覆盖 AI 工具、操作系统、HPC、网络、DevOps、生物信息学等主题
 
-- **Astro Starlight** 构建，支持全文搜索、深色模式、RSS 订阅
-- 完善的 **SEO 优化**（Open Graph、结构化数据、自动 sitemap）
-- 直接在 `src/content/docs/` 下创建 Markdown 文件，推送到 `main` 分支后通过 GitHub Actions 自动部署到 [ntlx.github.io](https://ntlx.github.io/)
+主要入口：
 
-### 微信公众号文章管线
+- `/`：首页
+- `/archive/`：全部文章，支持关键词 / 专题 / 年份即时筛选
+- `/topics/`：博客专题总览
+- `/notes/`：技术笔记 Hub
+- `/rss.xml`：RSS Feed
+- `/about/`：关于本站
 
-通过 `wechat-article-write` 技能，从一个 URL 或素材出发，自动完成 15 阶段流水线：
+博客文章目前按 6 个长期主题组织：
 
+- AI 编程实践
+- Agent 与工具链
+- AI 行业洞察
+- 模型与研究
+- 安全
+- 工程案例
+
+专题只是发现层，不改变任何既有文章 URL。
+
+## 当前特性
+
+### 博客阅读与内容发现
+
+- 基于 Astro + Starlight 的静态站点
+- Pagefind 全文搜索
+- 深色 / 浅色主题
+- RSS 全文订阅
+- 动态文章归档与专题页
+- 基于 tags、来源域名和专题信号的相关阅读
+- 移动端主导航
+- 文章标签、发布日期、更新时间与原始资料 provenance 展示
+- 定制 404 恢复页，提供专题、Notes 和最近文章入口
+
+### SEO 与分享
+
+- canonical URL
+- sitemap
+- RSS autodiscovery
+- Open Graph / Twitter Card
+- `BlogPosting` JSON-LD
+- `article:published_time` / `article:modified_time`
+- `article:section` / `article:tag`
+- 404 页面 `noindex, nofollow`，并排除出 Pagefind 索引
+
+### 性能与稳定性
+
+仓库不是只依赖人工验收，而是把关键约束固化为自动检查：
+
+- **历史 URL 兼容性**：388 个既有文章 URL 受 baseline 保护
+- **Tag policy**：统一 canonical tag，阻止 `write`、`reader-response` 等流水线状态污染内容元数据
+- **静态性能预算**：约束首页、归档、专题、Notes 和代表文章的 HTML / JS 体积
+- **图片加载策略**：
+  - 文章第一张 Markdown 图片：`fetchpriority="high"`
+  - 后续图片：`loading="lazy"`
+  - Markdown 图片统一 `decoding="async"`
+
+### 行为可观测性
+
+站点使用 GA4，并补充了与内容发现相关的事件：
+
+- `blog_search_open`
+- `internal_article_click`
+- `archive_filter`
+- `rss_click`
+- `copy_code`
+
+归档搜索不会上传查询文本；代码复制事件不会上传代码内容。
+
+## 写作与发布管线
+
+仓库内置 `wechat-article-write` Skill，用于微信公众号与博客双轨内容生产。
+
+它负责从素材收集、理解、写作、视觉素材、CDN、格式化，到博客与公众号发布的完整流程，并支持断点续跑与发布前验证。
+
+最终博客文章写入：
+
+```text
+src/content/docs/articles/
 ```
-资料收集 → 文章创作 → 封面图 → 插图 → 信息图 → 图床上传 → CDN 整合
-→ 去 AI 痕迹 → 格式化 → HTML 转换 → 发布博客 → 发布公众号草稿
+
+流水线工作目录位于：
+
+```text
+posts/YYYY-MM-DD-slug/
 ```
 
-支持 blog-slug 生成、CDN 图床批量上传、状态断点续跑。一条命令，同时产出博客文章和公众号草稿。
+写作和发布的权威说明见：
 
-### 技能系统
+- [`.agents/skills/wechat-article-write/SKILL.md`](.agents/skills/wechat-article-write/SKILL.md)
+- [`src/content/AGENTS.md`](src/content/AGENTS.md)
 
-项目集成了 **28 个 AI 技能**，覆盖写作、翻译、图像生成、信息图表、幻灯片、漫画、论文阅读、概念分析、投资分析等领域。
+## Agent Skills
 
-- **自研技能**：`wechat-article-write`（15 阶段写作发布流水线）和 `github-image-hosting`（GitHub 图床上传）
-- **外部技能**：通过 `npx skills` 管理版本，**只调用不修改**
-- 技能源文件在 `.agents/skills/`，版本锁文件为 `skills-lock.json`
+项目级 Skill 的 canonical source 位于：
 
-## 快速开始
+```text
+.agents/skills/
+```
 
-### 在线访问
+仓库同时包含自建、managed 与 vendored Skills。生命周期、版本和修改边界以 [`AGENTS.md`](AGENTS.md) 中的 **Agent Skills Governance** 为准；README 不维护技能数量或复制完整治理规则，避免与实际仓库状态漂移。
 
-[https://ntlx.github.io/](https://ntlx.github.io/)
+## 本地开发
 
-### 本地运行
+### 环境要求
 
-需要 Node.js 22+：
+- Node.js 22+
+- npm
+- Bun（用于 Agent 测试与静态校验）
+
+### 启动开发服务器
 
 ```bash
 git clone https://github.com/NTLx/ntlx.github.io.git
@@ -53,46 +134,147 @@ npm install
 npm run dev
 ```
 
-浏览器访问 `http://localhost:4321/`
+默认地址：
 
-### 构建
+```text
+http://localhost:4321/
+```
+
+### 生产构建
 
 ```bash
 npm run build
 ```
 
-产物在 `dist/` 目录。
+产物输出到 `dist/`。
+
+## 验证与质量门禁
+
+推荐在提交前直接运行：
+
+```bash
+npm run verify
+```
+
+它会依次执行：
+
+```text
+test:agent
+  ↓
+check:agent
+  ↓
+check:urls
+  ↓
+check:tags
+  ↓
+build
+  ↓
+check:perf
+```
+
+也可以单独运行：
+
+```bash
+npm run test:agent   # Agent / Skill 测试
+npm run check:agent  # Agent 架构静态校验
+npm run check:urls   # 历史文章 URL 兼容性
+npm run check:tags   # Tag canonical policy
+npm run build        # Astro 生产构建
+npm run check:perf   # 构建产物性能预算与图片加载策略
+```
+
+这些检查同时被 GitHub Pages workflow 使用，因此本地通过与部署通过尽量保持同一套质量标准。
+
+## 部署
+
+推送到 `main` 后，GitHub Actions 自动：
+
+1. 安装 Node.js / Bun 环境
+2. 安装依赖
+3. 运行 Agent 测试
+4. 运行架构检查
+5. 检查历史 URL
+6. 检查 tag policy
+7. 构建 Astro 站点
+8. 检查性能预算
+9. 上传并部署到 GitHub Pages
+
+工作流：
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+
+生产站点：
+
+https://ntlx.github.io/
 
 ## 技术栈
 
-- **框架**：Astro v6 + Starlight v0.39
-- **部署**：GitHub Pages（GitHub Actions 自动化）
-- **RSS**：Astro RSS 集成，自动生成全文 Feed
-- **SEO**：Open Graph、结构化数据、自动 sitemap
-- **图床**：GitHub 仓库 + jsDelivr CDN
-- **公众号发布**：微信公众号 API
+- **Framework**：Astro 6
+- **Content / UI**：Starlight 0.39
+- **Search**：Pagefind
+- **Feed**：`@astrojs/rss`
+- **Content**：Markdown / MDX
+- **Image hosting**：GitHub + jsDelivr CDN
+- **Analytics**：Google Analytics 4
+- **Deployment**：GitHub Actions + GitHub Pages
 
-## 项目结构
+## 仓库结构
 
-```
+```text
 .
-├── .agents/skills/           # 37+ AI 技能源文件（写作、图像、翻译等）
-├── .github/workflows/        # GitHub Actions 自动部署
+├── .agents/skills/                 # 项目级 Agent Skills canonical source
+├── .github/workflows/
+│   └── deploy.yml                  # GitHub Pages CI/CD
+├── scripts/
+│   ├── check-public-urls.mjs       # 历史文章 URL 兼容性
+│   ├── check-tags.mjs              # Tag policy
+│   └── check-performance.mjs       # 静态性能预算
 ├── src/
-│   ├── content/docs/         # 博客文章（文档 + 管线产出文章）
-│   │   └── articles/         # 公众号文章同步到博客
-│   ├── pages/rss.xml.js      # RSS Feed 生成
-│   └── styles/               # 自定义样式（字体等）
-├── public/                   # 静态资源（favicon、CNAME 等）
-├── posts/                    # 文章管线中间产物
-├── astro.config.mjs          # Astro 配置（含侧边栏、SEO、RSS 社交图标）
+│   ├── components/                 # 博客展示层组件
+│   ├── content/
+│   │   ├── AGENTS.md               # 内容与发布规则
+│   │   └── docs/
+│   │       ├── articles/           # Blog
+│   │       ├── guides/             # 编写规范等
+│   │       └── ...                 # Notes / Reference
+│   ├── pages/
+│   │   └── rss.xml.js              # RSS Feed
+│   ├── plugins/
+│   │   └── rehype-image-performance.mjs
+│   └── styles/
+├── posts/                          # 内容管线中间产物
+├── public/                         # favicon、CNAME、OG 资源等
+├── AGENTS.md                       # Repository-wide Agent governance
+├── astro.config.mjs
 └── package.json
 ```
 
-## 版权声明
+## 内容维护约束
 
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)（署名-非商业性使用-相同方式共享 4.0 国际）
+高层原则：
+
+- 不重命名或移动已经发布的 `articles/` 文件
+- 博客文章 URL 必须保持稳定
+- 分类由 frontmatter `category` 驱动
+- tags 是辅助发现信号，不要求每篇文章强行填写
+- 技术文档与博客文章保持 Blog / Notes 两套语义
+- 修改内容后按对应规则更新 `updated`
+
+完整规则不要以 README 为准，权威来源是：
+
+- [`AGENTS.md`](AGENTS.md)
+- [`src/content/AGENTS.md`](src/content/AGENTS.md)
+- [技术博文编写规范](src/content/docs/guides/authoring-guide.md)
+
+## 版权
+
+除另有说明外，原创内容采用：
+
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+代码、Agent Skills 或第三方 vendored 内容如带有独立许可，则以对应文件中的许可声明为准。
 
 ---
 
-*Created by [NTLx](https://github.com/NTLx)*
+Created by [NTLx](https://github.com/NTLx)
+
