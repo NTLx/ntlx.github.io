@@ -2,7 +2,6 @@
 $schema: starlight
 title: 更强的模型只会让你陷得更快
 date: 2026-05-06
-tags: [ write ]
 identifier: 20260506T140013
 author: 李继刚
 description: 云端 AI 是新的主机。逃出沥青坑的路不在更强的模型那里，在你能磨成自己形状的工具那里。

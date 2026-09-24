@@ -4,7 +4,7 @@ title: 模型路由不是排行榜问题
 description: 真正危险的不是选错最强模型，而是用一张排行榜替你决定什么叫赢。
 date: 2026-06-05
 category: ai-models
-tags: [ "OpenRouter", "LLM", "Benchmark", "Alignment", "模型路由", "AI Eval" ]
+tags: ["OpenRouter", "LLM", "Benchmarks", "AI Alignment", "模型路由", "AI Eval"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-model-routing-not-leaderboard-img-00-infographic-core-summary.png)

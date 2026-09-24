@@ -3,7 +3,6 @@ $schema: starlight
 title: 1930年的AI不知道互联网，但能写代码
 date: 2026-05-04
 description: 推理能力不是知识记忆的副产品，旧基座模型经高质量后训练也能解决现代工程问题。
-tags: [ write ]
 identifier: 20260504T191611
 author: NTLx
 coverImage: cover.png

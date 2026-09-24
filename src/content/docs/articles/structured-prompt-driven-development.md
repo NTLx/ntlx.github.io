@@ -3,7 +3,6 @@ $schema: starlight
 title: 用了三年 AI 编程工具后，我发现瓶颈从来不是工具
 description: Martin Fowler 提出的 SPDD（结构化提示词驱动开发）揭示了一个真相：AI 编程的瓶颈不在工具，而在你是否想清楚了要做什么。
 date: 2026-04-30
-tags: [write]
 identifier: 20260430T112029
 author: 李继刚
 category: ai-coding

@@ -4,7 +4,7 @@ title: 别把 26% 当成 AI 修补能力的总分
 description: 读完 Trail of Bits 对 1Password FLAWED benchmark 的反驳，我更在意的不是 26% 还是 86%，而是评测有没有把分母、条件和验证成本写清楚。
 date: 2026-09-18
 category: security
-tags: [AI security, vulnerability patching, benchmarks, evaluation]
+tags: ["AI Security", "Vulnerability Patching", "Benchmarks", "Evaluation"]
 primarySourceUrls: ["https://blog.trailofbits.com/2026/09/15/1passwords-ai-patching-benchmark-is-misleading/"]
 ---
 

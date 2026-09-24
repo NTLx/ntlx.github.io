@@ -3,7 +3,6 @@ $schema: starlight
 title: MCP 和 Skills：给 AI 装手还是装脑子
 date: 2026-05-04
 description: MCP 让 AI 能碰到外面的世界，Skills 让 AI 知道碰到了之后该怎么做。一个解决能力，一个解决方法。
-tags: [ write ]
 identifier: 20260504T184405
 author: 李继刚
 coverImage: cover.png

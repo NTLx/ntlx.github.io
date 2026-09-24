@@ -4,7 +4,7 @@ title: 当 AI 开始建造自己，我们还能抓住什么？
 description: 当执行变得便宜，真正稀缺的不是会写代码的人，而是知道哪些问题值得交给机器的人。
 date: 2026-06-05
 category: ai-industry
-tags: [ "AI", "Anthropic", "AI Agents", "recursive self-improvement" ]
+tags: ["AI", "Anthropic", "AI Agents", "Recursive Self-Improvement"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-05-ai-builds-itself-img-00-infographic-core-summary.png)

@@ -4,7 +4,7 @@ title: 当 AI 总能接着说下去，判断该从哪里回来？
 description: AI 最值得警惕的未必是它说错了什么，而是它让我们把“还在继续”误当成“已经判断过”。
 date: 2026-09-10
 category: ai-agents
-tags: [AI, Agent, 判断]
+tags: ["AI", "AI Agents", "判断"]
 primarySourceUrls: ["https://jeffs.blog/p/defining-ai-psychosis-part-1-true", "https://jeffs.blog/p/defining-ai-psychosis-part-2-prolific"]
 ---
 

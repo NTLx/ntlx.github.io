@@ -21,6 +21,7 @@ sidebar:
 - **Sidebar autogenerate v0.39+**：`autogenerate` 必须嵌套在 `items: [{ autogenerate: { ... } }]` 内，不能作为 group 顶层属性
 - `src/content/docs/guides/` 下的 `.md` 是知识库页面（带 frontmatter）；本文件（`sidebar.hidden: true`）不进入可见页面
 - 通过 `wechat-article-write` 发布、且存在外部 primary source 的文章，应保留 `primarySourceUrls`，用于来源 provenance 与跨文章去重；具体政策见 [`wechat-article-write/references/originality-policy.md`](../../.agents/skills/wechat-article-write/references/originality-policy.md)
+- `tags` 是辅助发现信号，不要求每篇文章强行填写；禁止把 `write`、`reader-response` 等流水线状态写成 tag。同义词、大小写和格式的 canonical 规则以 `scripts/check-tags.mjs` 为准，修改 tags 后运行 `npm run check:tags`。
 
 ## category 与 URL 稳定性
 

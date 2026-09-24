@@ -4,7 +4,7 @@ title: 一万名 Agent 之后，我更关心验证能不能跟上
 description: 认知劳动已经能像云资源一样扩容，可信证据却没有同步变快。Agent swarm 与 RSI 真正的瓶颈，可能正在从智能转向 assurance throughput。
 date: 2026-09-19
 category: ai-agents
-tags: ["multi-agent", "AI R&D", "alignment", "recursive self-improvement"]
+tags: ["Multi-Agent", "AI R&D", "AI Alignment", "Recursive Self-Improvement"]
 primarySourceUrls: ["https://www.dwarkesh.com/p/noam-brown"]
 ---
 

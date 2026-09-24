@@ -4,7 +4,6 @@ title: 8B 干翻了 32B：Granite 4.1 告诉我，大力不一定出奇迹
 date: 2026-05-01
 description: 参数不是信仰，数据才是。IBM 用 8B 密集模型干翻了自家 32B MoE，说明训练的质量远比模型的体量重要。
 coverImage: cover.png
-tags: [ write ]
 identifier: 20260501T014545
 category: ai-models
 ---

@@ -4,7 +4,7 @@ title: Agent 规模化后，最贵的不是模型
 description: Uber 的软件工厂让我看到，AI 降本的关键不是买更便宜的模型，而是让 Agent 少加载、少轮询、少迷路，并用质量指标证明省下的是真浪费。
 date: 2026-08-31
 category: ai-agents
-tags: ["AI Agent", "Software Factory", "MCP", "Context Engineering"]
+tags: ["AI Agents", "Software Factory", "MCP", "Context Engineering"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-31-agent-scale-cost-loop-img-00-infographic-core-summary.png)

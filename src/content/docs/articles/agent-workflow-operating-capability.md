@@ -4,7 +4,7 @@ title: Agent 真正学会工作了吗？三个 AI 原生案例给我的答案
 description: Agent 的价值不在一次漂亮的输出，而在于一段工作能否持续运行、留下证据、遇到例外有人接管，并在下一次运行前变得更好。
 date: 2026-09-04
 category: ai-agents
-tags: [agent, workflow, enterprise-ai, ai-native]
+tags: ["AI Agents", "Workflow", "Enterprise AI", "AI Native"]
 ---
 
 > 我读完后最强烈的感受是：企业 AI 的分水岭，已经不在“有没有 Agent”，而在“这段工作有没有被组织接住”。

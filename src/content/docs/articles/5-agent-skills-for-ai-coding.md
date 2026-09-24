@@ -3,7 +3,7 @@ $schema: starlight
 title: 让 AI 写代码不再翻车：一个 TypeScript 巫师的 5 个 Agent Skills
 description: TypeScript 社区「巫师」Matt Pocock 总结的 5 个 Agent Skills，用工程纪律约束 AI 编码行为，解决「AI 写得快但质量差」的核心矛盾。
 date: 2026-05-05
-tags: [ write, AI, agent-skills, 工程实践 ]
+tags: ["AI", "Agent Skills", "工程实践"]
 identifier: 20260505T155727
 author: 李继刚
 category: ai-coding

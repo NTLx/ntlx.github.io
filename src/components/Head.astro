@@ -17,6 +17,7 @@ const categoryLabels = {
 	security: '安全',
 	engineering: '工程案例',
 };
+const isNotFound = entry?.id === '404';
 const isArticle = Boolean(
 	entry &&
 	entry.id.startsWith('articles/') &&
@@ -88,6 +89,7 @@ if (isArticle && entry.data) {
 <meta property="og:image:alt" content={entry?.data?.title ?? "NTLx's Blog"} />
 <meta name="twitter:image" content={ogImage} />
 <meta name="twitter:image:alt" content={entry?.data?.title ?? "NTLx's Blog"} />
+{isNotFound && <meta name="robots" content="noindex, nofollow" />}
 
 {isArticle && entry.data?.date && (
 	<meta property="article:published_time" content={new Date(entry.data.date).toISOString()} />

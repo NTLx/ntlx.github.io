@@ -4,7 +4,7 @@ title: 省下 token 之前，先消灭 Agent 的回头路
 description: AI Agent 的成本不在某次输出有多长，而在完成任务前被迫重读、重跑、重试了多少次；GitHub Copilot 这次复盘讲的是怎样把这些回头路从轨迹里删掉。
 date: 2026-09-04
 category: ai-coding
-tags: [AI Agent, GitHub Copilot, cost, harness, context engineering]
+tags: ["AI Agents", "GitHub Copilot", "Cost", "Harness", "Context Engineering"]
 primarySourceUrls: ["https://github.blog/ai-and-ml/github-copilot/how-we-make-ai-coding-more-cost-efficient-without-sacrificing-task-quality/"]
 ---
 

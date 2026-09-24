@@ -4,7 +4,6 @@ title: AI 什么都做不了，除非你让它做
 date: 2026-05-05
 description: LLM 连查天气都做不到。所有「AI 能做某事」的背后，都是一整套人建的基础设施和人攥着的控制权。
 coverImage: cover.png
-tags: [ write ]
 category: ai-agents
 ---
 

@@ -59,12 +59,24 @@ jobs:
         run: npm run check:agent
         working-directory: ${{ env.BUILD_PATH }}
 
+      - name: Check public URL compatibility
+        run: npm run check:urls
+        working-directory: ${{ env.BUILD_PATH }}
+
+      - name: Check blog tag policy
+        run: npm run check:tags
+        working-directory: ${{ env.BUILD_PATH }}
+
       - name: Build with Astro
         run: |
           npm run build \
             -- --site "${{ steps.pages.outputs.origin }}"
         working-directory: ${{ env.BUILD_PATH }}
         
+      - name: Check performance budgets
+        run: npm run check:perf
+        working-directory: ${{ env.BUILD_PATH }}
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:

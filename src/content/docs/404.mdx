@@ -1,0 +1,43 @@
+---
+$schema: starlight
+title: '404 - 页面未找到'
+description: 页面不存在时的恢复入口
+template: splash
+editUrl: false
+lastUpdated: false
+pagefind: false
+hero:
+  title: '404 - 页面未找到'
+  tagline: 这个地址不存在，或者页面已经不再位于这里。可以从下面几个入口继续。
+  actions:
+    - text: 返回首页
+      link: /
+      icon: right-arrow
+      variant: primary
+    - text: 全部文章
+      link: /archive/
+      variant: secondary
+---
+
+import { getCollection } from 'astro:content';
+import ArticleList from '../../components/ArticleList.astro';
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+export const latest = (await getCollection(
+  'docs',
+  ({ id, data }) => id.startsWith('articles/') && Boolean(data.date && data.category),
+))
+  .sort((a, b) => +b.data.date - +a.data.date)
+  .slice(0, 3);
+
+## 也许你在找
+
+<CardGrid>
+  <LinkCard title="专题" href="/topics/" description="按 Agent、AI 编程、模型、安全与工程主题浏览" />
+  <LinkCard title="技术笔记" href="/notes/" description="按工具和问题域查找长期维护的 Reference" />
+  <LinkCard title="RSS" href="/rss.xml" description="订阅博客后续更新" />
+</CardGrid>
+
+## 最近文章
+
+<ArticleList posts={latest} />

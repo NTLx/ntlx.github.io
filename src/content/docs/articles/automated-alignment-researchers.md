@@ -4,7 +4,7 @@ title: 自动对齐先要会出题
 description: 这项研究真正自动化的不是“什么叫安全”，而是在既定评测里反复找更好的答案；题面越窄，结果越可靠，也越不能冒充全部对齐。
 date: 2026-08-29
 category: ai-models
-tags: [ "AI Safety", "Alignment", "AI Agents", "Anthropic" ]
+tags: ["AI Safety", "AI Alignment", "AI Agents", "Anthropic"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-29-automated-alignment-researchers-img-00-infographic-core-summary-1.png)

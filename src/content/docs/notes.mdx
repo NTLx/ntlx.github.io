@@ -6,15 +6,14 @@ sidebar:
   hidden: true
 ---
 
-import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+import { getCollection } from 'astro:content';
+import NotesOverview from '../../components/NotesOverview.astro';
 
-技术笔记与博客文章分开：这里更接近长期维护的 Reference，适合按问题、工具和环境查找，而不是按发布时间阅读。
+export const docs = await getCollection(
+  'docs',
+  ({ id }) => !id.startsWith('articles/') && !['index', 'archive', 'topics', 'notes', 'about', '404'].includes(id),
+);
 
-<CardGrid>
-  <LinkCard title="AI 工具" href="/ai-tools/install-cli-tools/" description="AI Coding CLI、Claude Code、MCP、Skills 与本地工具配置" />
-  <LinkCard title="操作系统" href="/operating-systems/linux/arch-linux/" description="Linux、嵌入式设备、NAS 与虚拟化" />
-  <LinkCard title="HPC 与集群" href="/hpc-cluster/install-slurm-openmpi/" description="Slurm、OpenMPI 与高性能计算环境" />
-  <LinkCard title="网络与代理" href="/network-proxy/shadowsocks/" description="代理、组网、mDNS 与网络工具" />
-  <LinkCard title="DevOps 与工具" href="/devops/shell-terminal/bash/" description="Shell、Git、编辑器、服务与自动化" />
-  <LinkCard title="生物信息学" href="/bioinformatics/snakemake-benchmark/" description="科研计算与工作流实践" />
-</CardGrid>
+技术笔记与博客文章分开：这里更接近长期维护的 Reference，适合按问题、工具和环境查找，而不是按发布时间阅读。顶部搜索可以跨博客与技术笔记全文检索。
+
+<NotesOverview docs={docs} />

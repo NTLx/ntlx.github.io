@@ -4,7 +4,7 @@ title: 最稀缺的 AI 能力，正在变成访问权
 description: 模型越强，真正昂贵的越不是 token，而是没有退出权：你能否使用、迁移、审计，并在供应商改变规则时继续工作。
 date: 2026-09-01
 category: ai-industry
-tags: [frontier AI, AI access, model lock-in, open weights, enterprise AI]
+tags: ["Frontier AI", "AI Access", "Model Lock-In", "Open Weights", "Enterprise AI"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-09-01-frontier-ai-access-img-00-infographic-core-summary-2.png)

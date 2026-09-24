@@ -1,11 +1,15 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import rehypeImagePerformance from './src/plugins/rehype-image-performance.mjs';
 
 // https://astro.build/config
 export default defineConfig({
 	// site 将由 GitHub Actions 在构建时设置，这里设置默认值以启用 sitemap
 	site: 'https://ntlx.github.io',
+	markdown: {
+		rehypePlugins: [rehypeImagePerformance],
+	},
 	integrations: [
 		starlight({
 			title: "NTLx's Blog",

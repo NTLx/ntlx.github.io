@@ -20,7 +20,7 @@ path-scoped 文件和 Skill reference；本文件只导航，不复制它们的�
 - **预览生产构建**：`npm run preview`
 - **同步内容集合**（新增/重命名 `src/content/docs/` 文件后）：`npx astro sync`
 - **清缓存重试**：`rm -rf .astro/ && npm run build`
-- **Agent harness 验证**：`npm run test:agent`（bun 单测）+ `npm run check:agent`（架构校验）+ `npm run verify`（三者串联）
+- **完整验证**：`npm run verify` 串联 Agent 测试、架构校验、历史 URL 兼容性、tag policy、Astro 生产构建与静态性能预算
 
 ## Python / uv 环境
 
@@ -191,5 +191,8 @@ workflow。
 ```bash
 npm run test:agent   # wechat-article-write bun 单测（含 golden behavior 契约）
 npm run check:agent  # validate-architecture.mjs 架构静态校验
+npm run check:urls   # 历史文章 URL 兼容性
+npm run check:tags   # 博客 tag canonical policy
 npm run build        # Astro 生产构建
+npm run check:perf   # 构建产物性能预算与图片加载策略
 ```

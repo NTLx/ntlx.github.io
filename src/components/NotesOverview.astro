@@ -1,0 +1,141 @@
+---
+const { docs = [] } = Astro.props;
+
+const sections = [
+  {
+    id: 'ai-tools',
+    title: 'AI 工具',
+    description: 'AI Coding CLI、Claude Code、MCP、Skills 与本地工具配置',
+    href: '/ai-tools/install-cli-tools/',
+  },
+  {
+    id: 'operating-systems',
+    title: '操作系统',
+    description: 'Linux、嵌入式设备、NAS、虚拟化与系统配置',
+    href: '/operating-systems/linux/arch-linux/',
+  },
+  {
+    id: 'hpc-cluster',
+    title: 'HPC 与集群',
+    description: 'Slurm、OpenMPI 与高性能计算环境',
+    href: '/hpc-cluster/install-slurm-openmpi/',
+  },
+  {
+    id: 'network-proxy',
+    title: '网络与代理',
+    description: '代理、组网、mDNS 与网络工具',
+    href: '/network-proxy/shadowsocks/',
+  },
+  {
+    id: 'devops',
+    title: 'DevOps 与工具',
+    description: 'Shell、Git、编辑器、服务与自动化',
+    href: '/devops/shell-terminal/bash/',
+  },
+  {
+    id: 'bioinformatics',
+    title: '生物信息学',
+    description: '科研计算与工作流实践',
+    href: '/bioinformatics/snakemake-benchmark/',
+  },
+];
+
+const rows = sections.map((section) => ({
+  ...section,
+  count: docs.filter((entry) => entry.id.startsWith(`${section.id}/`)).length,
+}));
+
+const total = rows.reduce((sum, section) => sum + section.count, 0);
+---
+
+<div class="notes-summary">
+  <strong>{total}</strong>
+  <span>篇长期维护的技术笔记，按问题域组织。</span>
+</div>
+
+<div class="notes-grid">
+  {rows.map((section) => (
+    <section class="notes-card">
+      <div class="notes-heading">
+        <h2><a href={section.href}>{section.title}</a></h2>
+        <span>{section.count} 篇</span>
+      </div>
+      <p>{section.description}</p>
+      <a class="browse" href={section.href}>进入该领域 →</a>
+    </section>
+  ))}
+</div>
+
+<style>
+  .notes-summary {
+    display: flex;
+    gap: 0.55rem;
+    align-items: baseline;
+    margin: 1rem 0 1.5rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .notes-summary strong {
+    color: var(--sl-color-white);
+    font-size: var(--sl-text-xl);
+  }
+
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+
+  .notes-card {
+    margin: 0;
+    padding: 1.1rem;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.7rem;
+    background: color-mix(in srgb, var(--sl-color-bg) 96%, var(--sl-color-gray-6));
+  }
+
+  .notes-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: baseline;
+  }
+
+  .notes-heading h2 {
+    margin: 0;
+    font-size: var(--sl-text-lg);
+  }
+
+  .notes-heading h2 a {
+    color: var(--sl-color-white);
+    text-decoration: none;
+  }
+
+  .notes-heading h2 a:hover {
+    color: var(--sl-color-accent-high);
+  }
+
+  .notes-heading span {
+    flex: none;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+  }
+
+  .notes-card p {
+    margin: 0.55rem 0 1rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-sm);
+    line-height: 1.55;
+  }
+
+  .browse {
+    font-size: var(--sl-text-sm);
+    text-decoration: none;
+  }
+
+  @media (max-width: 50rem) {
+    .notes-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

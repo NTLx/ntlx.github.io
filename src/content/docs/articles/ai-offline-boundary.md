@@ -4,7 +4,7 @@ title: 一个开源人的离线告别
 description: 真正刺痛人的不是他离开了技术行业，而是他把“离线”当成一种重新夺回自我的工程实践。
 date: 2026-06-01
 category: ai-industry
-tags: ["AI", "open-source", "offline-life", "reader-response"]
+tags: ["AI", "Open Source", "Offline Life"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-06-01-ai-offline-boundary-img-00-infographic-core-summary.png)

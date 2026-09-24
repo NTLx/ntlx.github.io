@@ -4,7 +4,7 @@ title: AGENTS.md 不该追求完整，它该负责把信息分层
 description: AGENTS.md 的价值不在写成总说明书，而在决定哪些规则每次都加载、哪些内容按任务展开、哪些边界必须交给工具验证。
 date: 2026-09-18
 category: ai-agents
-tags: [AGENTS.md, AI agents, context engineering]
+tags: ["AGENTS.md", "AI Agents", "Context Engineering"]
 primarySourceUrls: ["https://www.aihero.dev/a-complete-guide-to-agents-md"]
 ---
 

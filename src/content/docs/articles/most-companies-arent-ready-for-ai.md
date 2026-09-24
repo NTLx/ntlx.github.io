@@ -3,7 +3,6 @@ $schema: starlight
 title: 你的公司连自己在干啥都说不清，还指望用 AI？
 date: 2026-05-04
 description: AI 不会拯救一家不知道自己该干什么的公司。
-tags: [ write ]
 identifier: 20260504T203547
 author: NTLx
 coverImage: cover.png

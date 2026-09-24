@@ -4,7 +4,7 @@ title: 图不替你决定下一步：它先把下一步变成可拒绝的改动
 description: PG 的价值不在把经验画成图，而在于只给当前站位之后的一小段程序，并允许 held-out validation 拒绝一次自我修改。
 date: 2026-09-12
 category: ai-agents
-tags: [Procedural Graph, LLM agents, procedural memory, agent evaluation, self-evolution]
+tags: ["Procedural Graph", "AI Agents", "Procedural Memory", "Agent Evaluation", "Self-Evolution"]
 primarySourceUrls: ["https://arxiv.org/abs/2609.09153"]
 ---
 

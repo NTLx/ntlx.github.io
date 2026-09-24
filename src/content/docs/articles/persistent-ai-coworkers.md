@@ -4,7 +4,7 @@ title: 当 AI 开始记住工作，人还要做什么？
 description: 持久型 AI 不是把答案写得更长，而是把工作变成一项跨时间、跨工具、跨人的共同状态；人要做的，是定方向、看证据、及时刹车。
 date: 2026-08-31
 category: ai-agents
-tags: [AI Agent, persistent AI, ChatGPT, Codex, knowledge work]
+tags: ["AI Agents", "Persistent AI", "ChatGPT", "Codex", "Knowledge Work"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-08-31-persistent-ai-coworkers-img-00-infographic-core-summary.png)

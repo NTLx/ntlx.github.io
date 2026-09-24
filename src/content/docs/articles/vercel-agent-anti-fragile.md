@@ -4,12 +4,7 @@ title: 让 Agent 犯错
 description: Agent 的安全不靠让它更聪明，靠让它犯错时有人兜底——Vercel 把信任从模型挪到了基础设施，这才是 Agent 时代真正的基础工程。
 date: 2026-07-12
 category: ai-agents
-tags:
-  - Vercel
-  - Agent安全
-  - 反脆弱
-  - 基础设施
-  - 权限模型
+tags: ["Vercel", "Agent Safety", "反脆弱", "基础设施", "权限模型"]
 ---
 
 ![](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-07-12-vercel-agent-anti-fragile-img-00-infographic-core-summary.png)

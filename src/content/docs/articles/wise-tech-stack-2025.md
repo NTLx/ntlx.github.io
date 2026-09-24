@@ -3,7 +3,6 @@ $schema: starlight
 title: 读了Wise 2025技术栈，我发现真正厉害的公司都在做减法
 date: 2026-05-01
 description: 技术选型的答案不在工具列表里，在你敢不敢说「不」。
-tags: [ write ]
 identifier: 20260501T013740
 author: 李继刚
 coverImage: cover.png
