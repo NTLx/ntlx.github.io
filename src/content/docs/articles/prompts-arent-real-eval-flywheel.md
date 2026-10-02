@@ -3,6 +3,7 @@ $schema: starlight
 title: 提示词交给优化器后，谁来定义“好”？
 description: 优化器能改写提示词，却不能替团队决定哪些行为算好。测试场景、判分规则和线上反馈仍要有人定义、校准并负责。
 date: 2026-10-02
+updated: 2026-10-02
 category: ai-agents
 primarySourceUrls: ["https://evaluation.club/"]
 ---
