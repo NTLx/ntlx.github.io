@@ -110,12 +110,13 @@ function buildBlogFm(fm) {
   const excluded = ["coverImage", "sourceUrl", "blogSlug", "targetPath"];
   for (const k of excluded) delete fm[k];
 
-  // 字段顺序：$schema -> title -> description -> date -> category -> tags? -> primarySourceUrls?
+  // 字段顺序：$schema -> title -> description -> date -> updated? -> category -> tags? -> primarySourceUrls?
   const lines = [];
   lines.push(`$schema: starlight`);
   lines.push(`title: ${quote(fm.title)}`);
   lines.push(`description: ${quote(fm.summary ?? fm.description ?? "")}`);
   lines.push(`date: ${fm.date}`);
+  if (fm.updated) lines.push(`updated: ${fm.updated}`);
   lines.push(`category: ${fm.category}`);
   if (fm.tags) lines.push(`tags: ${fm.tags}`);
   if (fm.primarySourceUrls) lines.push(`primarySourceUrls: ${fm.primarySourceUrls}`);

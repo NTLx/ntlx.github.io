@@ -146,6 +146,7 @@ describe("publish-blog", () => {
     cleanup.push(fx.root);
     const dateSlug = "2026-05-17-中文标题";
     writeArticle(fx.postsRoot, dateSlug, {
+      updated: "2026-05-18",
       primarySourceUrls: ["https://example.com/a"],
     });
 
@@ -153,6 +154,7 @@ describe("publish-blog", () => {
     expect(r.status).toBe(0);
     const target = join(fx.repoRoot, "src/content/docs/articles/frontmatter-blog-slug.md");
     const published = readFileSync(target, "utf8");
+    expect(published).toContain("updated: 2026-05-18");
     expect(published).toContain('primarySourceUrls: ["https://example.com/a"]');
     expect(published).not.toContain("sourceUrl:");
     expect(published).not.toContain("blogSlug:");
