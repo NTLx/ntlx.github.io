@@ -1,15 +1,31 @@
 # 微信排版：gzh-design
 
 当 Step 5 prepare 已生成 `article-wechat-source.md` 且需要 HTML 时，Main 直接调用并完整执行
-`.agents/skills/gzh-design/SKILL.md`。输入是微信 source 与本地图片，输出固定为
-`posts/<date-slug>/article-wechat.html`；让 Skill 自己选择主题、组件、HTML 结构并运行 validator/preview。
+`.agents/skills/gzh-design/SKILL.md`，并在调用中明确“直接排版 / 全自动模式，不再提问”。输入是微信
+source 与本地图片；主题选择、文章类型、组件配方、模板骨架、关键词标记、原生 validator、preview
+和原生输出命名全部以当前安装的 `gzh-design` Skill 为权威。Main 不得手写一个简化 HTML 来代替它。
+
+`gzh-design` 先按自己的输出契约在 post 目录生成：
+
+```text
+article-wechat-source_排版_<主题中文名>(<theme-id>).html
+article-wechat-source_排版_<主题中文名>(<theme-id>)_预览.html
+```
+
+父管线 finalize 在验证通过后才把这一对原生产物复制为稳定发布名
+`article-wechat.html` / `article-wechat_预览.html`。
 
 ## Content preservation contract
 
-Presentation may change; visible article content may not. Theme/component may wrap existing content and add
-styling, but MUST NOT replace source-visible text, invent body-visible placeholder text, insert keyword
-placeholder labels, or replace paragraph text with generated labels。正文区域的可见文字必须来自
-`article-wechat-source.md`，或来自明确允许的固定 metadata（`author`、`author bio`）。不得注入正文可见占位文字。
+Presentation may change; substantive article content may not. Theme/component may wrap, split, or visually
+promote source content, but MUST NOT replace source-visible claims, omit paragraphs, invent factual body text,
+insert placeholder copy, or replace paragraph text with generated labels。`article-wechat-source.md` 中的实质正文、
+代码、URL、数字和专名必须保留。
+
+同时，**gzh-design 自己规范要求的 presentation metadata 明确允许新增**，不能再被父契约误判为“正文注入”。
+允许范围仅限当前 Skill / 当前主题定义或由 source 直接派生的展示文字，例如：章节序号、由章节标题派生的
+英文标签、导读/目录中的 source-derived 标题摘要、主题组件 label、`END`、作者区与固定 CTA。它们不得引入
+新的事实主张，也不得替代原文内容。除此之外的新增正文仍然禁止。
 
 ## Parent validator policy
 
@@ -33,13 +49,17 @@ validator non-zero。WARNING 默认不阻断 Parent workflow；只要 source-vis
 调用 capsule 必须明确包含：
 
 ```text
+Mode:
+- 直接排版 / 全自动模式，不再提问
+- 完整执行当前 gzh-design/SKILL.md，不得简化为普通 Markdown→HTML 转换
+
 Input:
 - article-wechat-source.md
 - local imgs/
 
-Output:
-- article-wechat.html
-- preview
+Native output:
+- article-wechat-source_排版_<主题中文名>(<theme-id>).html
+- matching _预览.html
 
 Project constraints:
 - preserve all substantive H2 order
@@ -52,6 +72,7 @@ Project constraints:
 - 00-infographic-core-summary remains the first body visual
 - no ordinary <a href>
 - external links appear as visible plain-text URLs
+- presentation metadata required by the selected gzh theme is allowed and expected
 ```
 
 HTML body images must preserve the same local `imgs/<basename>` used by `article-wechat-source.md`.
@@ -73,16 +94,18 @@ HTML 不使用普通 `<a href>`。作者事实从本技能 `EXTEND.md` 读取：
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
-gzh-design 调用必须先完成其原生 validator 和 preview；随后 finalize 只运行本仓库的
-structural/integrity Gate，并且只读 `article-wechat.html`。
+gzh-design 调用必须先完成其原生 validator 和 preview。随后 finalize 会发现唯一一对原生 clean/preview
+产物，并对原生 clean HTML 运行本仓库 structural/integrity 与 design-fidelity Gates；全部通过后才生成
+稳定发布名。父管线不调用第三方 Skill 内部脚本，也不修饰、不重排、不重写 gzh HTML。
 
 ## Owner-local repair
 
-如果 Parent finalize 首次报告 gzh-design 产生的 structural/integrity failure，Main 不丢弃当前 HTML。
-Main 将以下输入交回同一 `gzh-design` Skill：
+如果 Parent finalize 首次报告 gzh-design 产生的 native-validator 或 structural/integrity failure，Main 不丢弃
+当前原生 clean HTML。Main 将以下输入交回同一 `gzh-design` Skill：
 
 - frozen `article-wechat-source.md`；
-- current `article-wechat.html`；
+- current `article-wechat-source_排版_<主题中文名>(<theme-id>).html`；
+- matching preview；
 - bounded parent diagnostic（failure class、counts、samples）；需要更多上下文时按 section 查看本地 source/HTML。
 
 执行最小的 content-preserving repair，然后重新运行 native validator、preview 和 parent finalize。
@@ -93,7 +116,8 @@ Main 将以下输入交回同一 `gzh-design` Skill：
 首次失败后只做一次局部修复并重跑 Gate。同一 failure class 再次失败即 `BLOCKED`，
 报告 owner、原文片段和已尝试的修复，不继续盲目重做。只有诊断明确局部修复不可行、且已有不同
 修复依据时，才允许从 frozen source 重建一次；仍失败即 `BLOCKED`。这是同一 workflow 中的
-Skill 重试，不创建新的 Agent context，不轮换主题。Main 不得以脚本或手工编辑代替 gzh-design，也不得把微信 source 直接发布。
+Skill 重试，不创建新的 Agent context，不轮换主题。Main 不得以脚本或手工编辑代替 gzh-design，也不得
+把微信 source 直接发布；稳定名 `article-wechat.html` 只能由 finalize 从验证通过的原生产物生成。
 
 ## Repair priority
 

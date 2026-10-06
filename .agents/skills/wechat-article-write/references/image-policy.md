@@ -118,13 +118,15 @@ preferences pin all three with `preferred_image_backend: baoyu-image-gen`. The b
 provider/model configuration and generation transport/retries; Main does not reproduce them or
 bypass the owning visual Skill with runtime generation.
 
-The illustrator must actually analyze every article, including short articles that need no body
-illustration. It chooses useful positions and avoids mechanically matching images to H2s, duplicating
-the lead summary, or repeating existing source evidence. Balanced density is the normal long-form
-starting preference; minimal density suits short articles. Main reviews the result rather than
-preplanning positions or counts. Articles of any length may have zero body illustrations when
-the illustrator determines that more images would not help and Main agrees.
-Cover and lead do not count as body aids. Source evidence can count when integrated into the article.
+The illustrator must actually analyze every article and execute the current installed
+`baoyu-article-illustrator` workflow end to end. Its own density definitions, outline schema,
+prompt records, reference handling, and image count are authoritative; this parent policy does not
+redefine them or create local exceptions. Main may supply article semantics and the requirement to
+preserve the existing lead infographic, but must not preselect a density, invent a substitute
+`outline.md`, or collapse the Specialist workflow into an ad-hoc body-image decision.
+Cover and lead do not count as body illustrations. Source evidence may be selected by the Specialist
+when its own workflow supports that choice. Step 4 verifies the installed Specialist contract against
+the native `imgs/outline.md` and actual non-lead body visuals.
 
 ## Evidence reuse
 

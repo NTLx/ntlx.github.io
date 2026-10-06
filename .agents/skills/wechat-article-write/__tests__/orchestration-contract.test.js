@@ -100,10 +100,20 @@ describe("orchestration contract", () => {
     const rebuild = skill.indexOf("a repeated failure class", localRepair);
     expect(localRepair).toBeGreaterThanOrEqual(0);
     expect(rebuild).toBeGreaterThan(localRepair);
-    expect(gzhAdapter).toContain("current `article-wechat.html`");
+    expect(gzhAdapter).toContain("current `article-wechat-source_排版_<主题中文名>(<theme-id>).html`");
     expect(gzhAdapter).toContain("frozen `article-wechat-source.md`");
     expect(gzhAdapter).toContain("不创建新的 Agent context");
     expect(troubleshooting).toContain("Retry locally before changing context");
+  });
+
+  test("keeps Specialist-owned visual and gzh-design contracts authoritative", () => {
+    expect(skill).toContain("execute its current `SKILL.md`");
+    expect(skill).toContain("workflow as the authority for body illustration analysis");
+    expect(skill).toContain("Do not restate or replace its density/image-count semantics");
+    expect(skill).toContain("`gzh-design/SKILL.md` is authoritative");
+    expect(skill).toContain("`gzh-design` clean HTML plus its matching preview");
+    expect(gzhAdapter).toContain("完整执行当前 gzh-design/SKILL.md");
+    expect(gzhAdapter).toContain("presentation metadata required by the selected gzh theme is allowed and expected");
   });
 
   test("keeps native validator errors blocking and warnings advisory", () => {
@@ -131,7 +141,7 @@ describe("orchestration contract", () => {
   test("preserves text, publishing, and recovery Gates with visual-draft integration", () => {
     for (const contract of [
       "Primary Source provenance", "source uniqueness", "understanding-brief.md", "step3_draft_sha256",
-      "visual-draft.md", "structural parity", "publish freshness", "last_complete_step",
+      "visual-draft.md", "structural/content", "publish freshness", "last_complete_step",
       "publish.blog", "publish.wechat",
     ]) expect(skill).toContain(contract);
     expect(readFileSync(resolve(skillDir, "scripts", "wechat-structure-lib.mjs"), "utf8"))

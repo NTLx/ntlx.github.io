@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import sharp from "sharp";
-import { validateVisualDraft, assertVisualTextParity, initializeVisualDraft, collectVisualImages, assertTextOnlyDraft } from "../scripts/visual-draft-lib.mjs";
+import { validateVisualDraft, validateIllustratorCompletion, assertVisualTextParity, initializeVisualDraft, collectVisualImages, assertTextOnlyDraft } from "../scripts/visual-draft-lib.mjs";
 import { sha256File } from "../scripts/artifact-integrity-lib.mjs";
 
 const lead = "![文章核心信息图](imgs/00-infographic-core-summary.png)";
@@ -79,11 +79,53 @@ describe("visual integration", () => {
     writeFileSync(join(base, "imgs/00-infographic-core-summary.png"), readFileSync(join(base, "cover.png")).subarray(0, 24));
     await expect(validateVisualDraft(draft, insertLead(draft), base)).rejects.toThrow("usable raster");
   }));
-  test("allows zero or more specialist-selected body visuals regardless of H2 count", () => fixture(async base => {
+  test("keeps low-level visual parity independent from Specialist completion", () => fixture(async base => {
     const long = draft + '\n## 对比\n\n对比。\n\n## 边界\n\n边界。\n';
     expect((await validateVisualDraft(long, insertLead(long), base)).length).toBe(1);
     writeFileSync(join(base, "imgs/mechanism.png"), readFileSync(join(base, "cover.png")));
     expect((await validateVisualDraft(long, insertLead(long) + `\n${bodyImage}\n`, base)).length).toBe(2);
+  }));
+  test("requires the native illustrator outline and current installed density semantics", () => fixture(async base => {
+    writeFileSync(join(base, "imgs/mechanism.png"), readFileSync(join(base, "cover.png")));
+    const visual = insertLead(draft) + `\n${bodyImage}\n`;
+    writeFileSync(join(base, "imgs/outline.md"), [
+      "---",
+      "type: flowchart",
+      "density: minimal",
+      "style: notion",
+      "palette: macaron",
+      "image_count: 1",
+      "---",
+      "",
+      "## Illustration 1",
+      "**Position**: 机制",
+      "**Purpose**: explain",
+      "**Visual Content**: mechanism",
+      "**Filename**: mechanism.png",
+      "",
+    ].join("\n"));
+    expect(validateIllustratorCompletion(visual, base)).toEqual({ outline: "imgs/outline.md", density: "minimal", image_count: 1 });
+
+    writeFileSync(join(base, "imgs/outline.md"), readFileSync(join(base, "imgs/outline.md"), "utf8").replace("image_count: 1", "image_count: 0").replace("## Illustration 1\n**Position**: 机制\n**Purpose**: explain\n**Visual Content**: mechanism\n**Filename**: mechanism.png\n", ""));
+    expect(() => validateIllustratorCompletion(insertLead(draft), base)).toThrow("density 'minimal' requires");
+  }));
+  test("rejects Main-authored substitute outline schemas", () => fixture(async base => {
+    writeFileSync(join(base, "imgs/mechanism.png"), readFileSync(join(base, "cover.png")));
+    const visual = insertLead(draft) + `\n${bodyImage}\n`;
+    writeFileSync(join(base, "imgs/outline.md"), [
+      "---",
+      "type: flowchart",
+      "density: minimal",
+      "style: notion",
+      "palette: macaron",
+      "image_count: 1",
+      "---",
+      "",
+      "## Body Visual 1",
+      "**Filename**: mechanism.png",
+      "",
+    ].join("\n"));
+    expect(() => validateIllustratorCompletion(visual, base)).toThrow("native '## Illustration N' entries");
   }));
   test("rejects traversal and escaped symlinks", () => fixture(async base => {
     await expect(validateVisualDraft(draft, insertLead(draft) + '\n![bad](imgs/../cover.png)\n', base)).rejects.toThrow("inside imgs/");
@@ -98,10 +140,28 @@ describe("visual integration", () => {
     writeFileSync(join(base, "imgs/stale.png"), readFileSync(join(base, "cover.png")));
     await expect(validateVisualDraft(draft, insertLead(draft), base)).rejects.toThrow("unreferenced final rasters");
   }));
-  test("CLI checks Step 3 freshness and completes Step 4 without changing state version", () => fixture(async base => {
+  test("CLI checks Step 3 freshness and native illustrator completion without changing state version", () => fixture(async base => {
     const textPath = join(base, "draft.md");
     writeFileSync(textPath, draft);
-    writeFileSync(join(base, "visual-draft.md"), insertLead(draft));
+    writeFileSync(join(base, "imgs/mechanism.png"), readFileSync(join(base, "cover.png")));
+    const visual = insertLead(draft) + `\n${bodyImage}\n`;
+    writeFileSync(join(base, "visual-draft.md"), visual);
+    writeFileSync(join(base, "imgs/outline.md"), [
+      "---",
+      "type: flowchart",
+      "density: minimal",
+      "style: notion",
+      "palette: macaron",
+      "image_count: 1",
+      "---",
+      "",
+      "## Illustration 1",
+      "**Position**: 机制",
+      "**Purpose**: explain",
+      "**Visual Content**: mechanism",
+      "**Filename**: mechanism.png",
+      "",
+    ].join("\n"));
     const slug = base.split('/').at(-1);
     writeFileSync(join(base, ".pipeline-state.json"), JSON.stringify({ version: 2, slug, last_complete_step: 3, step3_draft_sha256: sha256File(textPath), publish: { blog: "pending", wechat: "pending" } }));
     const run = (...args) => spawnSync("bun", [resolve(import.meta.dir, "../scripts/step4-images.mjs"), slug, ...args], { cwd: PROJECT_ROOT, env: { ...process.env, PIPELINE_POSTS_ROOT: tmpdir() }, encoding: "utf8" });
@@ -110,10 +170,13 @@ describe("visual integration", () => {
     expect(initialized.status, initialized.stderr).toBe(0);
     expect(initialized.stdout).toContain("RESUME_EXISTING");
     expect(readFileSync(join(base, ".pipeline-state.json"), "utf8")).toBe(stateBefore);
-    expect(readFileSync(join(base, "visual-draft.md"), "utf8")).toBe(insertLead(draft));
+    expect(readFileSync(join(base, "visual-draft.md"), "utf8")).toBe(visual);
     const result = run();
     expect(result.status, result.stderr).toBe(0);
-    expect(JSON.parse(readFileSync(join(base, ".pipeline-state.json"))).last_complete_step).toBe(4);
+    const state = JSON.parse(readFileSync(join(base, ".pipeline-state.json")));
+    expect(state.last_complete_step).toBe(4);
+    expect(state.body_image_count).toBe(1);
+    expect(state.illustrator_density).toBe("minimal");
     writeFileSync(textPath, draft + "改写");
     expect(run().stderr).toContain("changed after Step 3");
   }));

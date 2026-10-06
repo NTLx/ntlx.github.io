@@ -6,7 +6,7 @@
  * finalize: 只读取 gzh-design 已生成的 HTML，运行项目级 structural/integrity Gate。
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { loadState, markStepDone, markStepFailed } from "./state-lib.mjs";
 import { postsRoot } from "./path-resolver.mjs";
@@ -18,6 +18,7 @@ import { validateVisualDraft } from "./visual-draft-lib.mjs";
 import { imageMime } from "./image-asset-lib.mjs";
 import { applyImageMapToMarkdown } from "./step5-lib.mjs";
 import { assertNoAuthorPlaceholders, replaceKnownAuthorPlaceholders } from "./author-profile-lib.mjs";
+import { validateGzhDesignFidelity } from "./gzh-fidelity-lib.mjs";
 
 const args = process.argv.slice(2);
 let slug = null;
@@ -57,6 +58,7 @@ const mapPath = resolve(base, "image-map.json");
 const articlePath = resolve(base, "article.md");
 const wechatSourcePath = resolve(base, "article-wechat-source.md");
 const wechatHtmlPath = resolve(base, "article-wechat.html");
+const wechatPreviewPath = resolve(base, "article-wechat_预览.html");
 const coverPng = resolve(base, "cover.png");
 const coverJpg = resolve(base, "cover.jpg");
 const WECHAT_IMAGE_FOLDER = "wechat-articles";
@@ -156,10 +158,36 @@ function assertPrepareNotFrozen() {
   fail(2, "Step 5 publication visuals are unchanged and already mapped; image-map and dual-track artifacts are frozen. Roll back to Step 3/4 before re-running prepare, or run --finalize-only for a WeChat-only recovery.");
 }
 
+function discoverNativeGzhArtifacts({ required = true } = {}) {
+  const cleanPattern = /^article-wechat-source_排版_(.+)\(([^()]+)\)\.html$/u;
+  const cleanNames = readdirSync(base).filter(name => cleanPattern.test(name) && !name.endsWith("_预览.html")).sort();
+  if (cleanNames.length === 0) {
+    if (!required) return null;
+    fail(4, "native gzh-design clean HTML missing; complete the installed gzh-design workflow instead of writing article-wechat.html directly");
+  }
+  if (cleanNames.length > 1) {
+    fail(4, `multiple native gzh-design clean HTML artifacts found: ${cleanNames.join(", ")}; repair the existing selected theme instead of switching themes`);
+  }
+  const cleanName = cleanNames[0];
+  const match = cleanName.match(cleanPattern);
+  const previewName = cleanName.replace(/\.html$/u, "_预览.html");
+  const previewPath = resolve(base, previewName);
+  if (!existsSync(previewPath)) fail(4, `native gzh-design preview missing: ${previewName}`);
+  return {
+    cleanName,
+    cleanPath: resolve(base, cleanName),
+    previewName,
+    previewPath,
+    theme_name: match[1],
+    theme_id: match[2],
+  };
+}
+
 function finalize() {
   if (!existsSync(articlePath)) fail(4, "article.md missing; cannot finalize Step 5");
   if (!existsSync(wechatSourcePath)) fail(4, "article-wechat-source.md missing; cannot finalize Step 5");
-  if (!existsSync(wechatHtmlPath)) fail(4, "article-wechat.html missing; cannot finalize Step 5");
+  const native = discoverNativeGzhArtifacts();
+  let fidelity;
   try {
     assertFinalizeInputsFresh(base);
     const imageMap = loadImageMap();
@@ -167,6 +195,11 @@ function finalize() {
     const wechatSource = readFileSync(wechatSourcePath, "utf8");
     validateBlogArtifact(article);
     assertMarkdownParity(article, wechatSource, imageMap);
+    fidelity = validateGzhDesignFidelity({
+      sourceMarkdown: wechatSource,
+      html: readFileSync(native.cleanPath, "utf8"),
+      themeId: native.theme_id,
+    });
   } catch (error) {
     fail(4, error.message);
   }
@@ -174,13 +207,20 @@ function finalize() {
   try {
     finalizeStep5Artifacts({
       wechatSourcePath,
-      wechatHtmlPath,
+      wechatHtmlPath: native.cleanPath,
       markDone: () => {
+        copyFileSync(native.cleanPath, wechatHtmlPath);
+        copyFileSync(native.previewPath, wechatPreviewPath);
         writeFinalizedArtifactManifest(base);
         markStepDone(slug, 5, {
           article_md: "article.md",
           article_wechat_source_md: "article-wechat-source.md",
           article_wechat_html: "article-wechat.html",
+          article_wechat_preview_html: "article-wechat_预览.html",
+          gzh_native_html: native.cleanName,
+          gzh_native_preview_html: native.previewName,
+          gzh_theme: native.theme_id,
+          gzh_fidelity: fidelity,
         });
       },
     });
@@ -195,6 +235,10 @@ function finalize() {
     article_md: "article.md",
     wechat_source: "article-wechat-source.md",
     article_wechat_html: "article-wechat.html",
+    article_wechat_preview_html: "article-wechat_预览.html",
+    gzh_native_html: native.cleanName,
+    gzh_theme: native.theme_id,
+    gzh_fidelity: fidelity,
   }) + "\n");
   process.exit(0);
 }
@@ -296,7 +340,7 @@ if (prepareOnly) {
   process.exit(0);
 }
 
-if (!existsSync(wechatHtmlPath)) {
+if (!discoverNativeGzhArtifacts({ required: false })) {
   process.stdout.write(JSON.stringify({
     slug,
     step: 5,
@@ -309,6 +353,5 @@ if (!existsSync(wechatHtmlPath)) {
   process.exit(0);
 }
 
-// Backward-compatible default: if HTML already exists, finalize it. This
-// branch still performs no second image-hosting invocation.
+// If the native gzh-design pair already exists, finalize it without a second hosting invocation.
 finalize();

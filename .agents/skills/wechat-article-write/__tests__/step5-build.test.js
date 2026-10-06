@@ -21,6 +21,7 @@ function makeFixture(map = undefined) {
   mkdirSync(join(postDir, "imgs"), { recursive: true });
   mkdirSync(join(repoRoot, ".agents/skills/wechat-article-write"), { recursive: true });
   mkdirSync(join(repoRoot, ".agents/skills/github-image-hosting/scripts"), { recursive: true });
+  mkdirSync(join(repoRoot, ".agents/skills/gzh-design/references"), { recursive: true });
   writeFileSync(join(repoRoot, ".agents/skills/wechat-article-write/EXTEND.md"), [
     "default_author: NTLx",
     "default_author_bio: 热衷于分享 AI 观察与干货",
@@ -29,6 +30,26 @@ function makeFixture(map = undefined) {
     "process.stderr.write('uploader must not be invoked\\n');",
     "process.exit(99);",
   ].join("\n"));
+  writeFileSync(join(repoRoot, ".agents/skills/gzh-design/references/theme-index.md"), [
+    "| 主题 | 主色 | 适用场景 | 组件库文件 | 正文下划线 CSS |",
+    "|---|---|---|---|---|",
+    "| 石墨极简风 | gray | test | `references/theme-graphite-minimal.md` | - |",
+  ].join("\n") + "\n");
+  writeFileSync(join(repoRoot, ".agents/skills/gzh-design/references/theme-graphite-minimal.md"), [
+    "# Test theme",
+    "",
+    "## 完整文章模板骨架",
+    "",
+    "```html",
+    "<section>{{正文}}</section>",
+    "```",
+    "",
+    "## Markdown → 组件映射规则",
+    "",
+    "| Markdown 元素 | 对应组件 | 说明 |",
+    "|---|---|---|",
+    "| `## 章节标题` | plain | test only |",
+  ].join("\n") + "\n");
   writeFileSync(join(postDir, "cover.png"), PNG);
   writeFileSync(join(postDir, "imgs/00-infographic-core-summary.png"), PNG);
 
@@ -68,6 +89,14 @@ function run(fixture, ...args) {
     env: { ...process.env, PIPELINE_POSTS_ROOT: fixture.postsRoot, PIPELINE_REPO_ROOT: fixture.repoRoot },
     encoding: "utf8",
   });
+}
+
+function writeNativeGzh(fixture, html, { themeName = "石墨极简风", themeId = "graphite-minimal", preview = "<html>preview</html>\n" } = {}) {
+  const cleanName = `article-wechat-source_排版_${themeName}(${themeId}).html`;
+  const previewName = `article-wechat-source_排版_${themeName}(${themeId})_预览.html`;
+  writeFileSync(join(fixture.postDir, cleanName), html);
+  writeFileSync(join(fixture.postDir, previewName), preview);
+  return { cleanName, previewName, cleanPath: join(fixture.postDir, cleanName), previewPath: join(fixture.postDir, previewName) };
 }
 
 describe("step5-build", () => {
@@ -130,43 +159,70 @@ describe("step5-build", () => {
     expect(output).not.toContain("https://cdn.example.test/cover.png");
   });
 
-  test("finalize is read-only for valid HTML and fails without rewriting ordinary anchors", () => {
+  test("finalize validates the native gzh pair, then copies stable publish artifacts", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     const prepare = run(fixture, "--prepare-only");
     expect(prepare.status, prepare.stderr || prepare.stdout).toBe(0);
-    const htmlPath = join(fixture.postDir, "article-wechat.html");
-    writeFileSync(htmlPath, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
-    const before = createHash("sha256").update(readFileSync(htmlPath)).digest("hex");
+    const native = writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
+    const before = createHash("sha256").update(readFileSync(native.cleanPath)).digest("hex");
 
     const finalized = run(fixture, "--finalize-only");
 
     expect(finalized.status, finalized.stderr || finalized.stdout).toBe(0);
-    expect(createHash("sha256").update(readFileSync(htmlPath)).digest("hex")).toBe(before);
-
-    writeFileSync(htmlPath, "<section><a href=\"https://example.com\"><h2>机制</h2></a><p>正文内容。</p></section>\n");
-    const anchorBefore = readFileSync(htmlPath, "utf8");
-    const rejected = run(fixture, "--finalize-only");
-    expect(rejected.status).toBe(4);
-    expect(rejected.stderr).toContain("ordinary <a href>");
-    expect(readFileSync(htmlPath, "utf8")).toBe(anchorBefore);
+    expect(createHash("sha256").update(readFileSync(native.cleanPath)).digest("hex")).toBe(before);
+    expect(readFileSync(join(fixture.postDir, "article-wechat.html"), "utf8")).toBe(readFileSync(native.cleanPath, "utf8"));
+    expect(readFileSync(join(fixture.postDir, "article-wechat_预览.html"), "utf8")).toBe(readFileSync(native.previewPath, "utf8"));
+    expect(JSON.parse(readFileSync(join(fixture.postDir, ".pipeline-state.json"), "utf8")).gzh_theme).toBe("graphite-minimal");
   });
 
-  test("allows an existing child HTML artifact to be repaired and finalized", () => {
+  test("stable article-wechat.html cannot bypass the native gzh-design contract", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    const htmlPath = join(fixture.postDir, "article-wechat.html");
+    writeFileSync(join(fixture.postDir, "article-wechat.html"), "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
+    const result = run(fixture, "--finalize-only");
+    expect(result.status).toBe(4);
+    expect(result.stderr).toContain("native gzh-design clean HTML missing");
+  });
+
+  test("requires the matching native preview before stable normalization", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const native = writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
+    rmSync(native.previewPath);
+    const noPreview = run(fixture, "--finalize-only");
+    expect(noPreview.status).toBe(4);
+    expect(noPreview.stderr).toContain("native gzh-design preview missing");
+    expect(existsSync(join(fixture.postDir, "article-wechat.html"))).toBe(false);
+  });
+
+  test("rejects ordinary anchors in the native gzh artifact without rewriting it", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
+    const native = writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><a href=\"https://example.com\"><h2>机制</h2></a><p>正文内容。</p></section>\n");
+    const before = readFileSync(native.cleanPath, "utf8");
+    const rejected = run(fixture, "--finalize-only");
+    expect(rejected.status).toBe(4);
+    expect(rejected.stderr).toContain("ordinary <a href>");
+    expect(readFileSync(native.cleanPath, "utf8")).toBe(before);
+  });
+
+  test("allows an existing native gzh artifact to be repaired and finalized", () => {
+    const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
+    cleanup.push(fixture.root);
+    expect(run(fixture, "--prepare-only").status).toBe(0);
     const failedHtml = "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p></p></section>\n";
-    writeFileSync(htmlPath, failedHtml);
+    const native = writeNativeGzh(fixture, failedHtml);
 
     const failed = run(fixture, "--finalize-only");
     expect(failed.status).toBe(4);
     expect(failed.stderr).toContain("substantive block");
-    expect(readFileSync(htmlPath, "utf8")).toBe(failedHtml);
+    expect(readFileSync(native.cleanPath, "utf8")).toBe(failedHtml);
 
-    // The artifact owner repairs the existing HTML in place; the parent Gate remains read-only.
-    writeFileSync(htmlPath, failedHtml.replace("<p></p>", "<p>正文内容。</p>"));
+    writeFileSync(native.cleanPath, failedHtml.replace("<p></p>", "<p>正文内容。</p>"));
     expect(run(fixture, "--finalize-only").status).toBe(0);
   });
 
@@ -175,10 +231,7 @@ describe("step5-build", () => {
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
     writeFileSync(join(fixture.postDir, "imgs/00-infographic-core-summary.png"), "changed");
-    writeFileSync(
-      join(fixture.postDir, "article-wechat.html"),
-      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
-    );
+    writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
     const finalized = run(fixture, "--finalize-only");
     expect(finalized.status).toBe(4);
     expect(finalized.stderr).toContain("imgs/");
@@ -192,10 +245,7 @@ describe("step5-build", () => {
       join(fixture.postDir, "image-map.json"),
       JSON.stringify({ "00-infographic-core-summary.png": "https://cdn.example.test/other.png" }) + "\n",
     );
-    writeFileSync(
-      join(fixture.postDir, "article-wechat.html"),
-      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
-    );
+    writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
     const finalized = run(fixture, "--finalize-only");
     expect(finalized.status).toBe(4);
     expect(finalized.stderr).toContain("image-map.json");
@@ -207,32 +257,26 @@ describe("step5-build", () => {
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
 
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    // prepared is already enough: a gzh-design retry must not re-upload images.
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
 
-    writeFileSync(
-      join(fixture.postDir, "article-wechat.html"),
-      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
-    );
+    writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
     expect(run(fixture, "--finalize-only").status).toBe(0);
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
 
-    // Frozen textual identity is outside body-image hosting.
     const draftPath = join(fixture.postDir, "draft.md");
     writeFileSync(draftPath, readFileSync(draftPath, "utf8").replace("正文内容。", "正文内容改了。"));
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("FROZEN");
   });
 
-  test("keeps prepare frozen even when only a downstream artifact changed", () => {
+  test("keeps prepare frozen even when only a downstream stable artifact changed", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    const htmlPath = join(fixture.postDir, "article-wechat.html");
-    writeFileSync(htmlPath, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
+    writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
     expect(run(fixture, "--finalize-only").status).toBe(0);
 
-    // A WeChat-only retry rewrites the HTML; that must not unfreeze hosting/prepare.
-    writeFileSync(htmlPath, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p><p>追加。</p></section>\n");
+    const stablePath = join(fixture.postDir, "article-wechat.html");
+    writeFileSync(stablePath, "<section>downstream change</section>\n");
     const rerun = run(fixture, "--prepare-only");
     expect(rerun.status).toBe(2);
     expect(rerun.stderr).toContain("frozen");
@@ -243,10 +287,7 @@ describe("step5-build", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    writeFileSync(
-      join(fixture.postDir, "article-wechat.html"),
-      "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n",
-    );
+    writeNativeGzh(fixture, "<section><img src=\"imgs/00-infographic-core-summary.png\"><h2>机制</h2><p>正文内容。</p></section>\n");
     expect(run(fixture, "--finalize-only").status).toBe(0);
 
     const rerun = run(fixture, "--prepare-only");
@@ -271,7 +312,7 @@ describe("step5-build", () => {
     const path = join(fixture.postDir, "visual-draft.md");
     writeFileSync(path, readFileSync(path, "utf8").replace("![]", "![新的说明]"));
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
-    writeFileSync(join(fixture.postDir, "article-wechat.html"), "<section></section>");
+    writeNativeGzh(fixture, "<section></section>");
     const result = run(fixture, "--finalize-only");
     expect(result.status).toBe(4);
     expect(result.stderr).toContain("visual-draft.md SHA256");
@@ -287,7 +328,7 @@ describe("step5-build", () => {
     expect(manifest.visual_draft_sha256).toBeTruthy();
     manifest.version = 2;
     writeFileSync(path, JSON.stringify(manifest));
-    writeFileSync(join(fixture.postDir, "article-wechat.html"), "<section></section>");
+    writeNativeGzh(fixture, "<section></section>");
     expect(run(fixture, "--hosting-status").stdout.trim()).toBe("NEEDED");
     const result = run(fixture, "--finalize-only");
     expect(result.status).toBe(4);
@@ -319,7 +360,7 @@ describe("step5-build", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    writeFileSync(join(fixture.postDir, "article-wechat.html"), '<section><img src="imgs/00-infographic-core-summary.png"><h2>机制</h2><p>正文内容。</p></section>');
+    writeNativeGzh(fixture, '<section><img src="imgs/00-infographic-core-summary.png"><h2>机制</h2><p>正文内容。</p></section>');
     expect(run(fixture, "--finalize-only").status).toBe(0);
     const path = join(fixture.postDir, ".pipeline-state.json");
     const state = JSON.parse(readFileSync(path, "utf8"));
@@ -353,8 +394,7 @@ describe("step5-build", () => {
     const fixture = makeFixture({ "00-infographic-core-summary.png": "https://cdn.example.test/summary.png" });
     cleanup.push(fixture.root);
     expect(run(fixture, "--prepare-only").status).toBe(0);
-    const htmlPath = join(fixture.postDir, "article-wechat.html");
-    writeFileSync(htmlPath, '<section><img src="imgs/00-infographic-core-summary.png"><h2>机制</h2><p>正文内容。</p></section>');
+    writeNativeGzh(fixture, '<section><img src="imgs/00-infographic-core-summary.png"><h2>机制</h2><p>正文内容。</p></section>');
     expect(run(fixture, "--finalize-only").status).toBe(0);
     const originals = Object.fromEntries(["article.md", "article-wechat-source.md", "image-map.json"].map(name => [name, readFileSync(join(fixture.postDir, name), "utf8")]));
     writeFileSync(join(fixture.postDir, "cover.png"), await sharp({ create: { width: 940, height: 400, channels: 3, background: "blue" } }).png().toBuffer());

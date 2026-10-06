@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.9.0"
+  version: "4.10.0"
 ---
 
 # 微信公众号文章写作
@@ -254,19 +254,17 @@ loses the pinned backend and worker cap. `step4-images.mjs` enforces this in pre
    layout. Finish any infographic regeneration before invoking the body illustrator. Integrate its
    selected raster as `imgs/00-infographic-core-summary.png` (or another supported raster extension),
    after the opening prose and before the first substantive H2, as the first body image.
-3. Invoke `baoyu-article-illustrator` on `visual-draft.md` for body illustration analysis and
-   generation, even for a short article. Honor the project EXTEND defaults — notion style, macaron
-   palette, language `zh`, `imgs/` output, backend `baoyu-image-gen`, one image generated at a time —
-   and apply the project-wide tone as an art-direction overlay that preserves notion as the base
-   visual language and macaron as its palette. Explicitly instruct it: analyze information gain and
-   place useful body visuals yourself; preserve the existing lead infographic; do not generate
-   another header summary or mechanically illustrate each H2; avoid duplicating source evidence;
-   insert images without rewriting article text; directly generate without further user confirmation.
-   Recommend balanced density for normal long-form and minimal density for clearly short articles.
-   The Skill owns its outline, prompts, generation, and Markdown insertion; Main does not prescribe
-   positions or an image count. Generating one image at a time changes only the raster dispatch batch,
-   not the Skill's own analyze-then-outline-then-generate workflow. Any article length may receive zero
-   body illustrations when the illustrator analysis and Main review support it.
+3. Invoke `baoyu-article-illustrator` on `visual-draft.md` and execute its current `SKILL.md`
+   workflow as the authority for body illustration analysis, density, outline format, prompt records,
+   generation, and Markdown insertion. Do not restate or replace its density/image-count semantics in
+   this parent Skill. Honor the project EXTEND defaults — notion style, macaron palette, language `zh`,
+   `imgs/` output, backend `baoyu-image-gen`, one image generated at a time — and apply the project-wide
+   tone only as an art-direction overlay. The invocation must explicitly say `直接生成` so the
+   Specialist's own Confirmation Policy can proceed without another user round-trip, and must also
+   preserve the existing lead infographic, avoid duplicating it, and leave article prose untouched.
+   Main must not create a substitute `imgs/outline.md`, invent a different outline schema, preselect a
+   density, or override the Specialist's resulting image count. If the Specialist contract changes,
+   follow the installed Skill rather than preserving an older parent interpretation.
 4. Inspect every exact final raster. When size, format, platform rejection, explicit optimization,
    or publishing performance requires compression, invoke `baoyu-compress-image` and inspect the
    resulting raster again. Prefer same-format compression; update `visual-draft.md` if the extension
@@ -287,9 +285,12 @@ bun run .agents/skills/wechat-article-write/scripts/step4-images.mjs <date-slug>
 ```
 
 The Gate verifies the Step 3 draft hash, image-only visual-draft parity, one usable cover with
-correct MIME and aspect, one lead infographic in the required position, and contained local
-raster references. Body illustration count remains an editorial decision after actual illustrator
-analysis. No invocation receipt is required.
+correct MIME and aspect, one lead infographic in the required position, contained local raster
+references, and native `baoyu-article-illustrator` completion. The completion check reads the
+installed Specialist contract, requires its native `imgs/outline.md` frontmatter and
+`## Illustration N` entries, matches declared filenames to the actual non-lead body visuals, and
+validates the selected density against the current Specialist definition. Parent-owned substitute
+outlines and locally invented zero-image exceptions are invalid.
 
 ### Step 5 — Build
 
@@ -311,20 +312,28 @@ bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> 
 ```
 
    This produces `article.md` with CDN images and `article-wechat-source.md` with local images.
-3. Main directly invokes `gzh-design` with the frozen WeChat source and local `imgs/`; the Skill
-   owns layout, native validator, preview, and `article-wechat.html`.
-4. Finalize with the read-only parent parity/integrity Gate:
+3. Main directly invokes `gzh-design` in its own full automatic/direct-layout mode with the frozen
+   WeChat source and local `imgs/`. `gzh-design/SKILL.md` is authoritative for theme selection,
+   article-type classification, component recipe, template skeleton, paragraph emphasis, native
+   validator, and preview. Main must not hand-write a simplified HTML equivalent. Let `gzh-design`
+   emit its native clean HTML and matching `_预览.html` filename in the post directory exactly as its
+   own output contract specifies.
+4. Finalize with the parent integrity Gate:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/step5-build.mjs <date-slug> --finalize-only
 ```
 
 A cover-only change does not force body-image rehosting: review the new cover, rerun Step 4, then
-prepare/finalize with the still-frozen image map. The parent structural parity and integrity Gate
-remains read-only and blocking on errors. On gzh-design structural/integrity failure, use owner-local repair
-with the current HTML and frozen source. The adapter owns the retry sequence and stopping
-condition: a repeated failure class is `BLOCKED`. This is a Skill retry, not a new Agent context.
-Route upstream defects to their artifact owner.
+prepare/finalize with the still-frozen image map. Finalization discovers exactly one native
+`gzh-design` clean HTML plus its matching preview, requires the Specialist to have completed its own
+native validator/preview workflow, applies the read-only structural/content and design-fidelity Gates
+to that clean output without calling third-party internals, and only after those checks copies the
+validated pair to stable publishing names `article-wechat.html` and `article-wechat_预览.html`.
+On gzh-design structural/integrity failure, use owner-local repair on the native gzh artifact with the
+frozen source. The adapter owns the retry sequence and stopping condition: a repeated failure class
+is `BLOCKED`. This is a Skill retry, not a new Agent context. Route upstream defects to their artifact
+owner.
 
 ### Step 6 — Publish
 

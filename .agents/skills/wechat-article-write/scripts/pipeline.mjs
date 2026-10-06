@@ -72,7 +72,7 @@ if (step === 4) {
     "initialize-only: copy frozen draft.md → visual-draft.md; existing work returns ALREADY_INITIALIZED / RESUME_EXISTING without overwrite",
     "baoyu-cover-image → cover → inspect",
     "baoyu-infographic → lead infographic as first body image before first substantive H2 → inspect",
-    "baoyu-article-illustrator analyzes article with the existing lead infographic and inserts useful body illustrations into visual-draft.md; zero body illustrations is valid at any length",
+    "baoyu-article-illustrator executes its installed native workflow; its density, outline schema, prompt records, references, and image count are authoritative; preserve the existing lead infographic",
     "all three visual Specialists use baoyu-image-gen as the raster backend",
     "if compression is needed: baoyu-compress-image → inspect final raster",
     "Main reviews final visuals; retry locally with the same owning Skill",
@@ -86,7 +86,7 @@ if (step === 5) {
     `hosting-status: step5-build.mjs ${slug} --hosting-status`,
     "github-image-hosting for final visual-draft.md images if status is NEEDED → image-map.json",
     `prepare: step5-build.mjs ${slug} --prepare-only`,
-    "gzh-design → article-wechat.html, native validator, and preview",
+    "gzh-design full automatic workflow → native themed clean HTML + matching preview; parent reruns native validator and normalizes validated outputs to article-wechat.html / article-wechat_预览.html",
     "cover changes require Step 4 review and prepare/finalize; unchanged body images keep hosting FROZEN",
     `finalize: step5-build.mjs ${slug} --finalize-only`,
   ], { specialist: "github-image-hosting / gzh-design" });

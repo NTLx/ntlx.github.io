@@ -7,7 +7,7 @@ import { postsRoot, assertProjectCwd } from "./path-resolver.mjs";
 import { readFmValue } from "./frontmatter-lib.mjs";
 import { assertCoverPixelAspect } from "./image-asset-lib.mjs";
 import { sha256File } from "./artifact-integrity-lib.mjs";
-import { initializeVisualDraft, validateVisualDraft, assertUsableRaster } from "./visual-draft-lib.mjs";
+import { initializeVisualDraft, validateVisualDraft, validateIllustratorCompletion, assertUsableRaster } from "./visual-draft-lib.mjs";
 
 const args = process.argv.slice(2);
 const slug = args.find(arg => !arg.startsWith("--"));
@@ -44,8 +44,23 @@ try {
     await assertUsableRaster(resolve(base, covers[0]));
     assertCoverPixelAspect(resolve(base, covers[0]));
     const images = await validateVisualDraft(draft, visual, base);
-    markStepDone(slug, 4, { visual_draft: "visual-draft.md", cover_ext: covers[0].slice(6), image_count: images.length });
-    process.stdout.write(JSON.stringify({ slug, step: 4, cover: covers[0], image_count: images.length }) + "\n");
+    const illustrator = validateIllustratorCompletion(visual, base);
+    markStepDone(slug, 4, {
+      visual_draft: "visual-draft.md",
+      cover_ext: covers[0].slice(6),
+      image_count: images.length,
+      body_image_count: illustrator.image_count,
+      illustrator_outline: illustrator.outline,
+      illustrator_density: illustrator.density,
+    });
+    process.stdout.write(JSON.stringify({
+      slug,
+      step: 4,
+      cover: covers[0],
+      image_count: images.length,
+      body_image_count: illustrator.image_count,
+      illustrator_density: illustrator.density,
+    }) + "\n");
   }
 } catch (error) {
   process.stderr.write(`step4: FAIL - ${error.message}\n`);
