@@ -105,6 +105,10 @@ path-scoped 文件和 Skill reference；本文件只导航，不复制它们的�
   `metadata.author`、`metadata.version`；`author` / `version` 不得放在顶层。
 - 行为变更（增删步骤、替换调用 Skill、修改门控逻辑）升 minor；纯文档或注释修正升 patch；
   不升版本即视为改动不完整。
+- `wechat-article-write` 的行为变更不能只以 Gate、测试或职责边界更严格作为收益证明。修改前先写明
+  真实产物问题、受影响的 reader-facing editorial dimension、预期改善与回归风险；修改后按
+  `.agents/skills/wechat-article-write/references/editorial-evaluation.md` 从稳定回归语料中选择代表案例做
+  baseline/candidate 对照。确定性测试只证明 invariant；文章质量不得折叠成一个综合分数或新的硬 Gate。
 - description 只写触发条件，不写实现细节、pipeline 步骤或产物格式；每项任务只选择最匹配的
   1–2 个 Skill，重叠触发面优先收敛。
 - `.agents/skills/` 下由 `npx skills` 管理的第三方 Skill（如 `baoyu-*`、`ljg-*`）不得擅自
@@ -189,7 +193,7 @@ workflow。
 每次改动后按仓库惯例运行对应验证：
 
 ```bash
-npm run test:agent   # wechat-article-write bun 单测（含 golden behavior 契约）
+npm run test:agent   # wechat-article-write bun 单测（含回归语料完整性；不代表 editorial quality）
 npm run check:agent  # validate-architecture.mjs 架构静态校验
 npm run check:urls   # 历史文章 URL 兼容性
 npm run check:tags   # 博客 tag canonical policy

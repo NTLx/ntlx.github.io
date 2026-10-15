@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.10.0"
+  version: "4.11.0"
 ---
 
 # 微信公众号文章写作
@@ -14,6 +14,9 @@ metadata:
 Quality means reliable facts, a defensible original judgement, natural writing, and visuals that
 help readers understand. Passing scripts is necessary but does not establish editorial quality.
 Main reviews these qualities before freezing the draft; scripts verify deterministic invariants.
+When evolving this Skill itself, use [references/editorial-evaluation.md](references/editorial-evaluation.md)
+and the stable regression corpus in `evals/golden-set.json` to test reader-facing outcomes rather
+than treating additional procedural compliance as evidence of improvement.
 
 ## Execution model
 
@@ -364,6 +367,26 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slu
 
 Blog and WeChat publish state remain independent and resumable.
 
+## Pipeline evolution and editorial regression
+
+This section governs changes to `wechat-article-write`; it is not an extra blocking Step for normal
+article production.
+
+Before a behavioral change, state the observed problem, affected editorial dimension, expected
+reader-facing improvement, and likely regression risk. Read
+[references/editorial-evaluation.md](references/editorial-evaluation.md), choose the smallest
+representative subset of `evals/golden-set.json` that could falsify the proposed fix, and compare
+baseline versus candidate final outputs. Broad cross-stage changes use the full corpus.
+
+Do not accept a change merely because ownership is clearer, another Gate passes, or the workflow is
+more strict. Accept it when representative finished articles improve on the intended dimension,
+material regressions are explained or repaired, and deterministic invariant tests still pass.
+"Golden" denotes stable evaluation cases, not prose, structure, or visual choices that future
+articles should imitate.
+
+Normal article runs still rely on Main's editorial judgement plus existing deterministic Gates; they
+do not create a mandatory evaluation artifact or composite quality score.
+
 ## Retry and failure rules
 
 Retry locally before changing context:
@@ -412,6 +435,7 @@ Read only the references needed for the current work:
 | visual integration and review | `image-policy.md` |
 | WeChat layout and repair | `adapter-gzh-design.md` |
 | Gate recovery | `troubleshooting.md` |
+| pipeline/editorial regression | `editorial-evaluation.md`, `../evals/golden-set.json` |
 | strategy | the selected `strategy-*.md` |
 
 The deterministic scripts preserve state v2, provenance, source uniqueness, understanding and
