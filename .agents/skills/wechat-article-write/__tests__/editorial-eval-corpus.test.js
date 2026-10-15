@@ -16,11 +16,11 @@ describe("editorial regression corpus", () => {
     expect(new Set(manifest.cases.map((item) => item.path)).size).toBe(manifest.cases.length);
   });
 
-  test("points only to real reader-facing production artifacts", () => {
+  test("points only to tracked reader-facing production artifacts", () => {
     for (const item of manifest.cases) {
-      expect(item.path.startsWith("posts/")).toBe(true);
-      expect(existsSync(resolve(repoRoot, item.path, "article.md"))).toBe(true);
-      expect(existsSync(resolve(repoRoot, item.path, "article-wechat.html"))).toBe(true);
+      expect(item.path.startsWith("src/content/docs/")).toBe(true);
+      expect(item.path.endsWith(".md")).toBe(true);
+      expect(existsSync(resolve(repoRoot, item.path))).toBe(true);
       expect(typeof item.archetype).toBe("string");
       expect(item.archetype.length).toBeGreaterThan(0);
       expect(Array.isArray(item.focus)).toBe(true);

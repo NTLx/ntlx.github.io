@@ -18,9 +18,10 @@ This directory exists to answer one question that deterministic pipeline tests c
 ## Corpus maintenance
 
 - Keep 10–20 stable cases; add a case only when it covers a materially different failure mode or article shape.
+- Each `path` points to the tracked, reader-facing Markdown page. Do not point the integrity check at `posts/`: that pipeline workspace is gitignored and unavailable in CI.
 - Do not replace a hard case merely because a new pipeline performs poorly on it.
 - Prefer real published production artifacts over synthetic fixtures.
 - A baseline weakness is evidence, not a reason to force future outputs to copy it.
-- When a post directory is intentionally removed, replace its case with another that preserves the same coverage before merging the deletion.
+- Local `posts/<date-slug>/article.md` and `article-wechat.html` remain useful for reviewing a complete two-track run, but the tracked page is the stable corpus artifact.
 
 The unit test validates only corpus integrity and coverage metadata. It deliberately does not compute an editorial quality score.

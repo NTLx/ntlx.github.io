@@ -4,73 +4,73 @@
   "cases": [
     {
       "id": "long-interview-worldprompt",
-      "path": "posts/2026-09-25-runway-podcast-reader-response",
+      "path": "src/content/docs/articles/worldprompt-world-state.md",
       "archetype": "long-interview",
       "focus": ["long-context", "factual-fidelity", "visual-explanation", "source-figure-integration"]
     },
     {
       "id": "scientific-alphafold-boundaries",
-      "path": "posts/2026-10-10-alphafold-problem-boundaries",
+      "path": "src/content/docs/articles/alphafold-problem-boundaries.md",
       "archetype": "scientific-research",
       "focus": ["factual-fidelity", "claim-boundaries", "technical-clarity", "citation-discipline"]
     },
     {
       "id": "product-event-openai-devday",
-      "path": "posts/2026-10-01-openai-devday-computer-use-decisions",
+      "path": "src/content/docs/articles/openai-devday-agent-runtime-layers.md",
       "archetype": "product-event",
       "focus": ["time-sensitive-facts", "synthesis", "structure", "wechat-layout"]
     },
     {
       "id": "tutorial-claude-code-config",
-      "path": "posts/2026-05-27-ClaudeCode自定义配置",
+      "path": "src/content/docs/ai-tools/claude-code-config.md",
       "archetype": "tutorial",
       "focus": ["instructional-clarity", "technical-correctness", "code-preservation", "structure"]
     },
     {
       "id": "engineering-code-modernization",
-      "path": "posts/2026-10-08-ai-driven-code-modernization",
+      "path": "src/content/docs/articles/ai-driven-code-modernization.md",
       "archetype": "engineering-analysis",
       "focus": ["technical-clarity", "original-judgement", "factual-fidelity", "visual-explanation"]
     },
     {
       "id": "design-vibe-coded-attention",
-      "path": "posts/2026-10-12-vibe-coded-design-attention",
+      "path": "src/content/docs/articles/vibe-coded-design-attention.md",
       "archetype": "design-analysis",
       "focus": ["visual-explanation", "reader-flow", "original-judgement", "wechat-layout"]
     },
     {
       "id": "eval-production-traffic",
-      "path": "posts/2026-10-12-golden-eval-production-traffic",
+      "path": "src/content/docs/articles/golden-eval-production-context.md",
       "archetype": "technical-method",
       "focus": ["conceptual-precision", "technical-clarity", "original-judgement", "structure"]
     },
     {
       "id": "fresh-pipeline-dyna",
-      "path": "posts/2026-10-14-dyna-world-action-model",
+      "path": "src/content/docs/articles/dyna-world-action-model.md",
       "archetype": "fresh-production",
       "focus": ["current-pipeline", "factual-fidelity", "visual-explanation", "wechat-layout"]
     },
     {
       "id": "argumentative-llmentalist",
-      "path": "posts/2026-10-05-llmentalist-effect-reading",
+      "path": "src/content/docs/articles/llmentalist-effect-reading.md",
       "archetype": "argumentative-essay",
       "focus": ["original-judgement", "natural-language", "reader-flow", "claim-boundaries"]
     },
     {
       "id": "management-company-lab",
-      "path": "posts/2026-10-12-company-lab-experiments",
+      "path": "src/content/docs/articles/company-lab-experiments.md",
       "archetype": "management-analysis",
       "focus": ["synthesis", "original-judgement", "reader-value", "natural-language"]
     },
     {
       "id": "older-pipeline-cognitive-commons",
-      "path": "posts/2026-08-11-tragedy-cognitive-commons",
+      "path": "src/content/docs/articles/tragedy-cognitive-commons.md",
       "archetype": "older-production",
       "focus": ["temporal-regression", "natural-language", "original-judgement", "structure"]
     },
     {
       "id": "older-pipeline-concurrency",
-      "path": "posts/2026-05-22-token-streams-agent-streams-llm-concurrency-revolution",
+      "path": "src/content/docs/articles/token-streams-agent-streams-llm-concurrency-revolution.md",
       "archetype": "older-technical-production",
       "focus": ["temporal-regression", "technical-clarity", "structure", "reader-flow"]
     }
