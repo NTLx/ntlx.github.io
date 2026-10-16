@@ -220,6 +220,7 @@ describe("step5-build", () => {
     const failed = run(fixture, "--finalize-only");
     expect(failed.status).toBe(4);
     expect(failed.stderr).toContain("substantive block");
+    expect(failed.stderr).toContain("recovery_hint: owner-local-repair");
     expect(readFileSync(native.cleanPath, "utf8")).toBe(failedHtml);
 
     writeFileSync(native.cleanPath, failedHtml.replace("<p></p>", "<p>正文内容。</p>"));
@@ -235,6 +236,7 @@ describe("step5-build", () => {
     const finalized = run(fixture, "--finalize-only");
     expect(finalized.status).toBe(4);
     expect(finalized.stderr).toContain("imgs/");
+    expect(finalized.stderr).not.toContain("recovery_hint: owner-local-repair");
   });
 
   test("fails finalize when image-map.json changed after prepare", () => {

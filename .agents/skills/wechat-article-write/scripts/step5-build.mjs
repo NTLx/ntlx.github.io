@@ -75,8 +75,9 @@ if (hostingStatus) {
   process.exit(0);
 }
 
-function fail(code, message) {
+function fail(code, message, { recoveryHint = null } = {}) {
   process.stderr.write(`step5: FAIL - ${message}\n`);
+  if (recoveryHint) process.stderr.write(`recovery_hint: ${recoveryHint}\n`);
   if (!dryRun) markStepFailed(slug, 5, message);
   process.exit(code);
 }
@@ -201,7 +202,10 @@ function finalize() {
       themeId: native.theme_id,
     });
   } catch (error) {
-    fail(4, error.message);
+    const message = error.message;
+    fail(4, message, {
+      recoveryHint: message.startsWith("gzh-design fidelity Gate failed:") ? "owner-local-repair" : null,
+    });
   }
 
   try {
@@ -225,7 +229,7 @@ function finalize() {
       },
     });
   } catch (error) {
-    fail(4, error.message);
+    fail(4, error.message, { recoveryHint: "owner-local-repair" });
   }
 
   process.stdout.write(JSON.stringify({
