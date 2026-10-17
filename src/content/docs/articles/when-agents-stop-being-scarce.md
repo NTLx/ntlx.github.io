@@ -13,7 +13,7 @@ Epoch AI 在 10 月 2 日发了一份很容易让人记住大数字的报告：�
 
 Epoch 自己也写得很清楚：这里比较的是 working hours，不是相同质量的产出，更不是已经存在的就业替代。它算出来的首先是一种机房承载力。问题在后面：如果并发 Agent 真的多到不再稀缺，我们有没有那么多工作可以放心交给它们？
 
-![文章核心信息图：从硬件潜在并发容量到可委托 Agent-hours，再到 outcome 总成本](https://ntlx.github.io/images/articles/when-agents-stop-being-scarce/00-infographic-core-summary.png)
+![文章核心信息图：从硬件潜在并发容量到可委托 Agent-hours，再到 outcome 总成本](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-17-when-agents-stop-being-scarce-img-00-infographic-core-summary.png)
 
 ## 这个数字量的是机房承载力，不是劳动力
 
@@ -23,7 +23,7 @@ Epoch 自己也写得很清楚：这里比较的是 working hours，不是相同
 
 因此，3000 万至 1.7 亿更像“潜在同时在线会话数”，不是未来社会里真的会出现这么多数字员工。这个范围还假设相应硬件已经完成部署，并且全部分配给这类 workload。数据中心没建好、电力没接上、模型效率继续变化，都会让现实值偏离这个容量模型。
 
-![并发 Agent 容量增加后，城市级数字工作环境中同时活跃的多个 Agent 会话](https://ntlx.github.io/images/articles/when-agents-stop-being-scarce/01-scene-capacity.png)
+![潜在并发容量与人类工时类比的边界：工时类比不等于等量产出](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-17-when-agents-stop-being-scarce-img-01-comparison-capacity-vs-labor.png)
 
 报告给出的开放模型情景更夸张：套用 DeepSeek V4 Pro 的 AgentX benchmark，同一批潜在硬件供给可以得到约 19 亿个并发 Agent。这个数字对我最大的作用不是让我相信“十九亿个 Agent 快来了”，而是说明 Agent 数量本身可能很快失去解释力。模型越便宜、serving 越高效，同一份硬件能塞进去的 session 就越多。
 
@@ -37,6 +37,8 @@ Epoch 后半篇其实一直在问：这么多 capacity，谁来用？
 
 这就是我觉得这份报告最值得看的地方。它没有给出“算力一定过剩”的结论，而是把不确定性推到了需求端：工作会不会增长得足够快，足够复杂，足够长时间地占用这些 Agent？
 
+![从潜在 Agent 容量到需求吸收：20% effective use 与 API-equivalent spending 情景](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-17-when-agents-stop-being-scarce-img-02-flowchart-demand-absorption.png)
+
 对企业来说，这个宏观问题会变得更具体。不是“还有多少 GPU”，而是“还有多少工作能被改造成 Agent 可以独立推进的任务”。
 
 ## 企业缺的可能是可委托 Agent-hours
@@ -47,7 +49,7 @@ Epoch 后半篇其实一直在问：这么多 capacity，谁来用？
 
 第二种才是组织实际能消费的 Agent-hours。它至少要满足几个条件：任务边界说得清，Agent 拿得到需要的上下文和工具，权限可以限制在本次任务里，结果有办法验证，出错后也知道怎么停、怎么恢复。否则，多出来的 Agent-hour 只是把更多待检查结果推到人面前。
 
-![当 Agent 供给不再稀缺，组织仍需要把任务、上下文、权限与监督能力接入工作流](https://ntlx.github.io/images/articles/when-agents-stop-being-scarce/02-scene-delegation.png)
+![可委托 Agent-hours 的四层条件：物理容量、任务与工具、验证恢复、经济价值](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-17-when-agents-stop-being-scarce-img-03-framework-delegable-agent-hours.png)
 
 这和我最近写的[《Agent 共用底座后，权限仍要跟着每次任务走》](https://ntlx.github.io/articles/agent-shared-infrastructure-task-scoped-permissions)是同一个问题的另一面。共享基础设施可以让 Agent 更容易扩张，但身份、权限和 trace 没有随着任务一起走，规模化只会把不确定性放大。
 
@@ -62,6 +64,8 @@ Epoch 后半篇其实一直在问：这么多 capacity，谁来用？
 同样跑一批 Agent-hours，一套系统可能完成大量可以自动验收的代码修改；另一套系统可能产生一批需要专家逐份判断的建议。底层消耗相近，组织拿到的生产力完全不同。
 
 我更想看的指标会往 outcome 靠近：一次任务真正完成后创造了什么结果，花了多少模型与工具成本，占用了多少人的复核时间，失败时付出了多少恢复成本，又产生了多少无法撤回的外部影响。供应链这类场景尤其明显。我在[《供应链 Agent 开始执行后，权限边界得先写进流程》](https://ntlx.github.io/articles/supply-chain-agents-execution-boundaries)里写过，能给出建议和能把动作写回业务系统是两种成熟度。Agent 数量增加，并不会自动跨过这条线。
+
+![一次 outcome 的总成本框架：模型工具、人工复核、失败恢复与不可撤回影响](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-17-when-agents-stop-being-scarce-img-04-framework-outcome-cost.png)
 
 如果以后硬件真的可以容纳海量 Agent，我猜很多企业会经历一个很熟悉的过程：先发现模型调用不再是最贵的东西，然后发现上下文、工具接入、验证、权限和责任交接开始占据更多工程成本。最后，容量规划也会从“我们还能开多少 Agent”变成“我们还能稳定闭环多少任务”。
 
