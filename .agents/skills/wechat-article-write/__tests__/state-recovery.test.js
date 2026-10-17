@@ -44,16 +44,26 @@ test("adding strategy to an existing checkpoint survives a fresh process", () =>
   expect(run(f, "next").stdout.trim()).toBe("3");
 });
 
-test("independent publication recovery preserves the already completed channel", () => {
-  for (const [blog, wechat, failed, command] of [
-    ["done", "failed", 6.2, "wechat"], ["failed", "done", 6.1, "blog"],
-  ]) {
-    const f = fixture(JSON.stringify({ last_complete_step: 6, publish: { blog, wechat }, failed_step: { step: failed } }));
-    expect(run(f, "next").stdout.trim()).toBe(String(failed));
-    expect(run(f, command, "done").status).toBe(0);
-    expect(run(f, "next").stdout.trim()).toBe("done");
-    expect(JSON.parse(readFileSync(f.path, "utf8")).publish).toEqual({ blog: "done", wechat: "done" });
-  }
+test("wechat recovery completes only when blog deployment evidence already exists", () => {
+  const f = fixture(JSON.stringify({
+    last_complete_step: 6,
+    publish: { blog: "done", wechat: "failed" },
+    failed_step: { step: 6.2 },
+    publish_result: { blog: { site_deployed: true, deployed_commit: "abc123" } },
+  }));
+  expect(run(f, "next").stdout.trim()).toBe("6.2");
+  expect(run(f, "wechat", "done").status).toBe(0);
+  expect(run(f, "next").stdout.trim()).toBe("done");
+  expect(JSON.parse(readFileSync(f.path, "utf8")).publish).toEqual({ blog: "done", wechat: "done" });
+});
+
+test("blog completion cannot be asserted manually or inferred without deployment evidence", () => {
+  const f = fixture(JSON.stringify({ last_complete_step: 6, publish: { blog: "done", wechat: "done" }, failed_step: null }));
+  expect(run(f, "next").stdout.trim()).toBe("6");
+  const manual = run(f, "blog", "done");
+  expect(manual.status).not.toBe(0);
+  expect(manual.stderr).toContain("derived from deployment evidence");
+  expect(run(f, "next").stdout.trim()).toBe("6");
 });
 
 test("legacy checkpoint remains readable without rewriting during next", () => {

@@ -14,8 +14,8 @@
  *   }
  *
  * Step 0: 尚未开始；Step 1: Research + Understanding 完成；Step 2: Draft checkpoint；
- * Step 3-5: 对应完成 phase；Step 6: 发布（至少一项完成）
- * nextStep() 在全部完成（博客 done + 微信 done）时返回 "done"
+ * Step 3-5: 对应完成 phase；Step 6: 发布（至少一项进入发布状态）
+ * nextStep() 仅在博客 done + site_deployed=true + 微信 done 时返回 "done"
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -161,12 +161,34 @@ export function markStepFailed(slug, step, error) {
   return true;
 }
 
-/** 标记博客发布完成/阻塞 */
-export function markBlogDone(slug, { pushed, extra = {} } = {}) {
+/** 记录博客 commit 已推送，但 Pages 尚未确认部署。 */
+export function markBlogPushed(slug, extra = {}) {
   const state = initState(slug);
   state.last_complete_step = 6;
   state.failed_step = null;
-  state.publish = { ...state.publish, blog: pushed ? "done" : "blocked" };
+  state.publish = { ...state.publish, blog: "pending" };
+  applyExtra(state, extra);
+  saveState(slug, state);
+  return true;
+}
+
+/** 标记博客发布被阻塞；保留已完成的 commit/push 事实供恢复。 */
+export function markBlogBlocked(slug, extra = {}) {
+  const state = initState(slug);
+  state.last_complete_step = 6;
+  state.failed_step = null;
+  state.publish = { ...state.publish, blog: "blocked" };
+  applyExtra(state, extra);
+  saveState(slug, state);
+  return true;
+}
+
+/** 标记博客已完成：仅用于确认 Pages deploy 且最终 URL 可达之后。 */
+export function markBlogDone(slug, { extra = {} } = {}) {
+  const state = initState(slug);
+  state.last_complete_step = 6;
+  state.failed_step = null;
+  state.publish = { ...state.publish, blog: "done" };
   applyExtra(state, extra);
   saveState(slug, state);
   return true;
@@ -201,9 +223,10 @@ export function nextStep(slug) {
   if (state.failed_step) return state.failed_step.step;
 
   const pub = state.publish ?? DEFAULT_PUBLISH;
-  const allDone = state.last_complete_step >= 6 && pub.blog === "done" && pub.wechat === "done";
+  const blogDeploymentVerified = pub.blog === "done" && state.publish_result?.blog?.site_deployed === true;
+  const allDone = state.last_complete_step >= 6 && blogDeploymentVerified && pub.wechat === "done";
 
-  // 如果 Step 6 全部完成 → "done"
+  // Step 6 只有在博客部署证据与微信发布都完成后才真正结束。
   if (allDone) return "done";
 
   // 如果 Step 5 完成但发布未全部完成 → 返回 6

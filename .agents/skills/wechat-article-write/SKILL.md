@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.11.1"
+  version: "4.12.0"
 ---
 
 # 微信公众号文章写作
@@ -67,7 +67,9 @@ checkpoint rather than initialize over it.
 
 State remains v2. `.pipeline-state.json` is business state only: do not add agent, thread,
 context, token, handoff, or execution telemetry. `last_complete_step` remains the durable
-checkpoint; `publish.blog` and `publish.wechat` remain independently resumable.
+checkpoint; `publish.blog` and `publish.wechat` remain independently resumable. For the blog track,
+`done` means the pushed commit has a successful Pages workflow and the canonical article URL has
+been verified reachable; push alone remains a resumable non-done state.
 
 ## Workflow
 
@@ -350,7 +352,18 @@ bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
 ```
 
 The blog track consumes `article.md` and preserves freshness, provenance, Git safety, tracked
-pipeline cleanliness, and publish state. Blog push is not a Pages deployment.
+pipeline cleanliness, and publish state. Before commit/push it runs the repository's canonical
+`npm run verify` contract rather than maintaining a partial copy of CI policy. Blog push is not a
+Pages deployment and therefore does not mark the blog track `done`. After a successful push Main
+directly reconciles the pushed commit against GitHub Pages and the canonical article URL:
+
+```bash
+bun run .agents/skills/wechat-article-write/scripts/reconcile-blog-deploy.mjs <date-slug> --wait
+```
+
+A successful workflow plus a reachable canonical URL marks the blog track `done`. A confirmed CI
+failure, verification timeout, or unavailable deployment evidence leaves the blog track explicitly
+resumable/blocked; never infer deployment from `git push` alone.
 
 For WeChat, Main directly runs:
 
@@ -358,8 +371,11 @@ For WeChat, Main directly runs:
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --prepare-only
 ```
 
-Main then invokes `baoyu-post-to-wechat` with `article-wechat.html`. The Skill owns cover upload,
-body image handling, draft creation, and its API/browser selection. After success Main directly runs:
+`--prepare-only` returns the frozen WeChat publishing capsule: `input`, `title`, `summary`, `author`,
+`cover`, and `source_url`. Main then invokes `baoyu-post-to-wechat` with that complete capsule,
+including the explicit metadata, rather than passing only `article-wechat.html` and asking the
+third-party Skill to infer metadata from HTML. The Skill still owns cover upload, body image handling,
+draft creation, and its API/browser selection. After success Main directly runs:
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --finalize-only [--media-id <id>]
@@ -395,7 +411,7 @@ Retry locally before changing context:
 - Humanization: Main invokes `humanizer-zh` again with the relevant frozen input.
 - Visuals: Main asks the same specialist Skill for targeted regeneration.
 - Step 5: follow the owner-local repair contract in `references/adapter-gzh-design.md`.
-- Publish: Main retries only the failed blog or WeChat operation.
+- Publish: Main retries only the failed blog/Pages reconciliation or WeChat operation; a pushed blog commit is reconciled rather than republished.
 - Research: Main asks the research child only for missing or conflicting evidence.
 
 Do not bypass a Gate, edit an owned specialist artifact to hide a failure, or introduce a new

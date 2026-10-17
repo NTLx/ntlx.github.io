@@ -40,21 +40,32 @@ Step 3/4 让 manifest 变旧，才允许重建。
 
 ## Publish
 
-Main 按 blog-first 顺序执行 blog publish、WeChat prepare、`baoyu-post-to-wechat` 和 finalize。博客先
-运行 `publish-blog.mjs`，它负责 Astro build、commit/push 与状态记录；push 不代表 GitHub Pages 已 deploy。
-博客状态完成或明确 blocked 后，才构建微信 capsule。`publish-wechat.mjs` 只消费 `article-wechat.html`
-并生成 canonical `sourceUrl` 的 UTM；实际草稿由 Main 调用 `baoyu-post-to-wechat` 创建。该 Skill 读取
-自己的 `SKILL.md` 与项目 `EXTEND.md`，选择 API/browser/remote-api，获取 token，上传图片和 cover，并
-创建草稿。Main 不调用其内部 API script；Skill 失败时重试该 Skill，创建草稿不等于群发。
+Main 按 blog-first 顺序执行 blog publish、Pages reconciliation、WeChat prepare、`baoyu-post-to-wechat`
+和 finalize。博客先运行 `publish-blog.mjs`：写入公开文章后，它直接复用仓库唯一的 `npm run verify`
+契约，再 commit/push 与记录状态；不要在 Parent Skill 内复制 `check:tags` 等仓库 policy。push 成功只证明
+remote commit 已存在，不代表 GitHub Pages 已 deploy，也不得把 blog 标成 `done`。随后 Main 运行
+`reconcile-blog-deploy.mjs --wait`，把该 commit 与 `deploy.yml` workflow 绑定，并在 workflow success 后
+探活 canonical `sourceUrl`；两项都成立才写 `site_deployed: true` 和 `publish.blog = done`。CI 明确失败、
+等待超时或部署证据不可得时保留可恢复状态，不得以 push 代替上线证据。
+
+博客状态完成或明确 blocked 后，才构建微信 capsule。`publish-wechat.mjs --prepare-only` 只消费
+`article-wechat.html` 并生成 canonical `sourceUrl` 的 UTM，同时输出 `input`、`title`、`summary`、
+`author`、`cover`、`source_url`。Main 调用 `baoyu-post-to-wechat` 时必须把这整个 capsule 作为冻结输入
+显式交给 Skill，不能只传 HTML 路径并依赖它从 HTML 重新推断标题等元数据。该 Skill 仍读取自己的
+`SKILL.md` 与项目 `EXTEND.md`，选择 API/browser/remote-api，获取 token，上传图片和 cover，并创建草稿。
+Main 不调用其内部 API script；Skill 失败时重试该 Skill，创建草稿不等于群发。
 
 ```bash
 bun run .agents/skills/wechat-article-write/scripts/publish-blog.mjs <date-slug>
+bun run .agents/skills/wechat-article-write/scripts/reconcile-blog-deploy.mjs <date-slug> --wait
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --prepare-only
-# Main invokes baoyu-post-to-wechat with the prepared HTML.
+# Main invokes baoyu-post-to-wechat with input + title + summary + author + cover + source_url.
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs <date-slug> --finalize-only [--media-id <id>]
 ```
 
-失败时读取 `state.mjs next`，只恢复失败的博客或微信子状态。
+失败时读取 `state.mjs next`，只恢复失败的博客部署确认或微信子状态。博客 commit 已 push 时不得重新
+发布文章来“碰碰运气”；直接重跑 reconciliation。`publish_result.blog.site_deployed` 为 `true` 才代表
+线上已确认，`null` 表示证据不足，`false` 表示已观察到明确失败。
 
 Step 5 artifact manifest is v4; pipeline business state remains v2. Older manifests cannot
 authorize finalize or publish. A v3 manifest may still establish FROZEN hosting when its visual

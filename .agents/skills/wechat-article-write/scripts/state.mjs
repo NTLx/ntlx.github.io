@@ -2,7 +2,7 @@
 /** Small state-v2 CLI used to resume the article workflow. */
 
 import {
-  initState, loadState, markBlogDone, markStepDone, markStepFailed,
+  initState, loadState, markBlogBlocked, markStepDone, markStepFailed,
   markWechatDone, markWechatFailed, nextStep, getPublishState, setStrategy,
 } from "./state-lib.mjs";
 
@@ -10,7 +10,7 @@ const STRATEGIES = new Set(["reader-response", "tutorial", "news-digest"]);
 const COMMANDS = new Set(["init", "get", "next", "done", "fail", "blog", "wechat", "dump", "strategy"]);
 
 function usage() {
-  process.stdout.write(`state.mjs <command> <date-slug> [args...]\n\ninit/get/next/dump: inspect or create state\ndone/fail: mark a numeric Step 1-6\nblog: done|blocked|get\nwechat: done|failed|get [error]\nstrategy: set|get (reader-response|tutorial|news-digest)\n`);
+  process.stdout.write(`state.mjs <command> <date-slug> [args...]\n\ninit/get/next/dump: inspect or create state\ndone/fail: mark a numeric Step 1-6\nblog: blocked|get（done 只能由 reconcile-blog-deploy.mjs 写入）\nwechat: done|failed|get [error]\nstrategy: set|get (reader-response|tutorial|news-digest)\n`);
 }
 
 function fail(message) { process.stderr.write(`state.mjs: ${message}\n`); process.exit(1); }
@@ -41,10 +41,10 @@ switch (cmd) {
   }
   case "blog": {
     const action = rest[0];
-    if (action === "done") markBlogDone(slug, { pushed: true });
-    else if (action === "blocked") markBlogDone(slug, { pushed: false });
+    if (action === "done") fail("blog done is derived from deployment evidence; run reconcile-blog-deploy.mjs");
+    else if (action === "blocked") markBlogBlocked(slug);
     else if (action === "get") { process.stdout.write(`${getPublishState(slug).blog}\n`); break; }
-    else fail("blog expects done|blocked|get");
+    else fail("blog expects blocked|get");
     process.stdout.write(`ok: blog ${action}\n`); break;
   }
   case "wechat": {

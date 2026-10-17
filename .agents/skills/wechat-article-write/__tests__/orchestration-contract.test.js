@@ -49,7 +49,7 @@ describe("orchestration contract", () => {
     for (const script of [
       "state.mjs init", "step1-collect.mjs", "select-related-articles.mjs", "validate-understanding.mjs",
       "step2-write.mjs", "step3-polish.mjs", "step4-images.mjs", "step5-build.mjs", "publish-blog.mjs",
-      "publish-wechat.mjs",
+      "reconcile-blog-deploy.mjs", "publish-wechat.mjs",
     ]) expect(skill).toContain(script);
     expect(architectureValidator).toContain("pipeline must remain advisory and non-orchestrating");
   });
@@ -136,6 +136,14 @@ describe("orchestration contract", () => {
     }
     expect(skill).not.toContain("context count");
     expect(existsSync(resolve(skillDir, "references", "delegated-execution.md"))).toBe(false);
+  });
+
+  test("binds blog completion to deployment evidence and freezes WeChat publishing metadata", () => {
+    expect(skill).toContain("`npm run verify` contract");
+    expect(skill).toMatch(/Blog push is not a\s+Pages deployment/u);
+    expect(skill).toContain("reconcile-blog-deploy.mjs");
+    expect(skill).toMatch(/`input`, `title`, `summary`, `author`,\s+`cover`, and `source_url`/u);
+    expect(skill).toContain("rather than passing only `article-wechat.html`");
   });
 
   test("preserves text, publishing, and recovery Gates with visual-draft integration", () => {

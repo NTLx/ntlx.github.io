@@ -7,9 +7,10 @@
  *   2. 确定 blog slug：优先 --blog-slug，其次 frontmatter.blogSlug，最后从 date-slug 去日期前缀
  *   3. 转换：summary→description、加 $schema: starlight、删管线专用字段
  *   4. 写入：src/content/docs/articles/<slug>.md
- *   5. 构建：npx astro sync && npm run build
+ *   5. 发布前验证：npm run verify（与 GitHub Pages CI 的仓库级 Gate 对齐）
  *   6. git add → git commit → git push
- *   7. push 失败 → 生成 RESUME.md，commit 不丢失
+ *   7. push 成功只记录为待部署确认；由 reconcile-blog-deploy.mjs 确认 Pages + 最终 URL 后才算 done
+ *   8. push 失败 → 生成 RESUME.md，commit 不丢失
  *
  * 用法:
  *   bun run publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]
@@ -23,7 +24,7 @@
 import { existsSync, readFileSync, writeFileSync, copyFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, relative, basename } from "node:path";
 import { spawnSync } from "node:child_process";
-import { markBlogDone, markStepFailed } from "./state-lib.mjs";
+import { markBlogPushed, markBlogBlocked, markStepFailed } from "./state-lib.mjs";
 import { postsRoot, repoRoot } from "./path-resolver.mjs";
 import { VALID_CATEGORIES, ASCII_SLUG_RE } from "./validation-lib.mjs";
 import { parseFrontmatter, extractBody } from "./frontmatter-lib.mjs";
@@ -58,12 +59,12 @@ function statusOf(cmd, args, opts = {}) {
 }
 
 function parseArgs(argv) {
-  const opts = { noPush: false, noBuild: false, dryRun: false, overwrite: false, allowNonMain: false, autoRebase: false, slug: null, blogSlug: null, targetPath: null, commitTemplate: null, postDir: null };
+  const opts = { noPush: false, noVerify: false, dryRun: false, overwrite: false, allowNonMain: false, autoRebase: false, slug: null, blogSlug: null, targetPath: null, commitTemplate: null, postDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--help") { printHelp(); process.exit(0); }
     else if (a === "--no-push") opts.noPush = true;
-    else if (a === "--no-build") opts.noBuild = true;
+    else if (a === "--no-build" || a === "--no-verify") opts.noVerify = true;
     else if (a === "--dry-run") opts.dryRun = true;
     else if (a === "--overwrite") opts.overwrite = true;
     else if (a === "--allow-non-main") opts.allowNonMain = true;
@@ -93,7 +94,8 @@ function printHelp() {
   --allow-non-main          跳过 main 分支检查
   --auto-rebase             push 失败时自动尝试 git pull --rebase 再 push（最多 1 次）
   --no-push                 不执行 git commit/push，状态标记为 blocked
-  --no-build                不执行 Astro 构建
+  --no-verify               跳过仓库级 npm run verify（仅限恢复/诊断）
+  --no-build                --no-verify 的兼容旧名
   --dry-run                 只输出将要执行的操作，不实际执行
   --commit-template <tmpl>  git commit 消息模板
   --help                    显示此帮助信息
@@ -213,7 +215,7 @@ if (!opts.slug && opts.postDir) {
   opts.slug = stripped.split("/").filter(Boolean).pop() || null;
 }
 if (!opts.slug) {
-  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--target-path <path>] [--no-push] [--no-build] [--dry-run] [--overwrite] [--allow-non-main]\n");
+  process.stderr.write("usage: publish-blog.mjs <date-slug> [--blog-slug <ascii-slug>] [--target-path <path>] [--no-push] [--no-verify] [--dry-run] [--overwrite] [--allow-non-main]\n");
   process.exit(1);
 }
 
@@ -310,10 +312,9 @@ mkdirSync(dirname(targetPath), { recursive: true });
 writeFileSync(targetPath, blogContent);
 process.stdout.write(`written: ${targetPath}\n`);
 
-// 构建验证
-if (!opts.noBuild) {
-  run("npx", ["astro", "sync"], { cwd: repoRoot(), failExit: 3 });
-  run("npm", ["run", "build"], { cwd: repoRoot(), failExit: 3 });
+// 发布前仓库级验证：复用 package.json 的唯一 verify 契约，避免本地 Gate 与 Pages CI 漂移。
+if (!opts.noVerify) {
+  run("npm", ["run", "verify"], { cwd: repoRoot(), failExit: 3 });
 }
 
 // git: commit 与 push 必须分离 —— push 失败时 commit 仍然有效，状态写 blocked 而非 failed
@@ -391,13 +392,16 @@ git log origin/main..HEAD   # 应为空
 \`\`\`bash
 SLUG="${dateSlug}"
 
-# Step 6 微信发布：先构建 capsule，再由 Agent 原生委托 baoyu-post-to-wechat，最后 finalize
+# 先确认 Pages workflow 与 canonical URL；只有成功才会把 blog 标成 done
+bun run .agents/skills/wechat-article-write/scripts/reconcile-blog-deploy.mjs "$SLUG" --wait
+
+# 再构建微信 capsule，由 Main 把完整 capsule 委托给 baoyu-post-to-wechat，最后 finalize
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs "$SLUG" --prepare-only
-# native delegate baoyu-post-to-wechat
+# native delegate baoyu-post-to-wechat with input/title/summary/author/cover/source_url
 bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs "$SLUG" --finalize-only
 \`\`\`
 
-\`publish-wechat.mjs\` 不执行网络探活或第三方发布脚本；部署状态由博客轨和 Agent 自行确认。
+\`publish-wechat.mjs\` 不执行博客网络探活或第三方发布脚本；博客部署状态只由 \`reconcile-blog-deploy.mjs\` 回写。
 
 ## 排查 push 失败常见原因
 
@@ -410,18 +414,16 @@ bun run .agents/skills/wechat-article-write/scripts/publish-wechat.mjs "$SLUG" -
   resumeFile = "RESUME.md";
 }
 
-// 写 state：push 成功 = done；push 失败或 --no-push = blocked
+// 写 state：push 成功仍为 pending，只有 deployment reconciliation 才能变 done；失败/本地-only 为 blocked
+const verificationPassed = opts.noVerify ? null : true;
 if (opts.noPush) {
-  markBlogDone(dateSlug, {
+  markBlogBlocked(dateSlug, {
+    commit: null,
+    blog_slug: slug,
     pushed: false,
-    extra: {
-      commit: null,
-      blog_slug: slug,
-      pushed: false,
-      no_push: true,
-      local_only: true,
-      publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: false, remote_pushed: false, site_deployed: null } },
-    },
+    no_push: true,
+    local_only: true,
+    publish_result: { blog: { verify_passed: verificationPassed, build_passed: verificationPassed, commit_created: false, remote_pushed: false, site_deployed: null } },
   });
   process.stderr.write("publish-blog: --no-push enabled; local article written but blog state is blocked until commit/push completes.\n");
 } else if (pushBlocked) {
@@ -431,18 +433,19 @@ if (opts.noPush) {
     pushed: false,
     push_error: pushError,
     resume_file: resumeFile,
-    publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: true, remote_pushed: false, site_deployed: null } },
+    publish_result: { blog: { verify_passed: verificationPassed, build_passed: verificationPassed, commit_created: true, remote_pushed: false, site_deployed: null } },
   };
-  markBlogDone(dateSlug, { pushed: false, extra: stateExtra });
-  process.stderr.write("publish-blog: push failed but commit succeeded. Run 'git push origin HEAD:main' manually then mark step complete.\n");
+  markBlogBlocked(dateSlug, stateExtra);
+  process.stderr.write("publish-blog: push failed but commit succeeded. Resolve the push, then run reconcile-blog-deploy.mjs after the remote commit exists.\n");
 } else {
   const stateExtra = {
     commit: sha,
     blog_slug: slug,
     pushed,
-    publish_result: { blog: { build_passed: opts.noBuild ? null : true, commit_created: true, remote_pushed: pushed, site_deployed: null } },
+    publish_result: { blog: { verify_passed: verificationPassed, build_passed: verificationPassed, commit_created: true, remote_pushed: pushed, site_deployed: null } },
   };
-  markBlogDone(dateSlug, { pushed: true, extra: stateExtra });
+  markBlogPushed(dateSlug, stateExtra);
+  process.stdout.write("publish-blog: push completed; Pages deployment is not yet verified. Run reconcile-blog-deploy.mjs before treating the blog track as done.\n");
 }
 
 process.stdout.write(JSON.stringify({
@@ -450,12 +453,15 @@ process.stdout.write(JSON.stringify({
   target: targetPath,
   commit: sha,
   pushed,
-  build_passed: opts.noBuild ? null : true,
+  verify_passed: verificationPassed,
+  build_passed: verificationPassed,
   commit_created: sha !== null,
   remote_pushed: pushed,
   site_deployed: null,
+  blog_state: pushed ? "pending" : "blocked",
   no_push: opts.noPush,
   blocked: pushBlocked || opts.noPush,
+  next_action: pushed ? "reconcile-blog-deploy" : null,
   resume_file: resumeFile,
   backup: backupPath,
 }) + "\n");

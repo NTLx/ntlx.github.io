@@ -68,6 +68,14 @@ function seedTrackedPipelineFile(repoRoot, content) {
   return file;
 }
 
+function addLocalOrigin(fixture) {
+  const remote = join(fixture.root, "remote.git");
+  expect(spawnSync("git", ["init", "--bare", remote], { cwd: fixture.root }).status).toBe(0);
+  expect(spawnSync("git", ["remote", "add", "origin", remote], { cwd: fixture.repoRoot }).status).toBe(0);
+  expect(spawnSync("git", ["push", "-u", "origin", "main"], { cwd: fixture.repoRoot }).status).toBe(0);
+  return remote;
+}
+
 function runPublish(args, fixture) {
   return spawnSync("bun", ["run", SCRIPT, ...args], {
     cwd: resolve(import.meta.dir, "../../../.."),
@@ -173,6 +181,30 @@ describe("publish-blog", () => {
     expect(r.status).toBe(2);
     expect(r.stderr).toContain("sourceUrl");
     expect(r.stderr).toContain("不一致");
+  });
+
+  test("normal publish uses the repository verify contract instead of a partial build-only preflight", () => {
+    const source = readFileSync(SCRIPT, "utf8");
+    expect(source).toContain('run("npm", ["run", "verify"]');
+    expect(source).not.toContain('run("npx", ["astro", "sync"]');
+  });
+
+  test("successful push remains pending until deployment reconciliation", () => {
+    const fx = makeFixture();
+    cleanup.push(fx.root);
+    const dateSlug = "2026-05-17-pending-deploy";
+    writeArticle(fx.postsRoot, dateSlug);
+    initPipelineGitRepo(fx.repoRoot);
+    seedTrackedPipelineFile(fx.repoRoot, "export const version = 1;\n");
+    addLocalOrigin(fx);
+
+    const r = runPublish([dateSlug, "--no-build"], fx);
+    expect(r.status).toBe(0);
+    const state = JSON.parse(readFileSync(join(fx.postsRoot, dateSlug, ".pipeline-state.json"), "utf8"));
+    expect(state.publish.blog).toBe("pending");
+    expect(state.publish_result.blog.remote_pushed).toBe(true);
+    expect(state.publish_result.blog.site_deployed).toBe(null);
+    expect(r.stdout).toContain("reconcile-blog-deploy");
   });
 
   test("--no-push writes local file but marks blog blocked", () => {
