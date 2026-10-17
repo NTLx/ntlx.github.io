@@ -4,7 +4,7 @@ title: 多模型系统别先选框架，先分清谁负责什么
 description: OpenRouter 把多模型系统拆成工作流编排、模型路由和 Provider 路由。比三选一更重要的是让状态、质量判断和故障回退各归其位。
 date: 2026-10-17
 category: engineering
-tags: ["多模型系统", "模型路由", "Agent", "OpenRouter", "LangGraph", "CrewAI"]
+tags: ["多模型系统", "模型路由", "AI Agents", "OpenRouter", "LangGraph", "CrewAI"]
 primarySourceUrls: ["https://openrouter.ai/blog/insights/langchain-vs-crewai-orchestration-compared-to-openrouter-native-routing/"]
 ---
 
