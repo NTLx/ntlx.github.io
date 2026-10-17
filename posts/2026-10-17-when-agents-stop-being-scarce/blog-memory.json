@@ -1,0 +1,70 @@
+{
+  "slug": "2026-10-17-when-agents-stop-being-scarce",
+  "generated_at": "2026-10-17",
+  "primary_source_urls": [
+    "https://epoch.ai/publications/estimating-the-agent-population"
+  ],
+  "same_source_matches": [],
+  "query_terms": [
+    "agent",
+    "concurrency",
+    "capacity",
+    "inference",
+    "permissions",
+    "utilization",
+    "delegation",
+    "outcome"
+  ],
+  "candidates": [
+    {
+      "slug": "agent-shared-infrastructure-task-scoped-permissions",
+      "title": "Agent 共用底座后，权限仍要跟着每次任务走",
+      "url": "https://ntlx.github.io/articles/agent-shared-infrastructure-task-scoped-permissions",
+      "date": "2026-10-12",
+      "category": "ai-agents",
+      "score": 24,
+      "high_confidence": true,
+      "reason": "Agent scale, shared infrastructure, task-scoped permissions and traceability"
+    },
+    {
+      "slug": "agent-proactive-action-user-control",
+      "title": "一个愿意替你修故障的 Agent，先得学会何时停手",
+      "url": "https://ntlx.github.io/articles/agent-proactive-action-user-control",
+      "date": "2026-10-09",
+      "category": "ai-agents",
+      "score": 21,
+      "high_confidence": true,
+      "reason": "Autonomous activity, authorization and supervision cost"
+    },
+    {
+      "slug": "agent-safety-control-plane",
+      "title": "按下停止键后，Agent 的工作该怎样收住",
+      "url": "https://ntlx.github.io/articles/agent-safety-control-plane",
+      "date": "2026-10-12",
+      "category": "security",
+      "score": 20,
+      "high_confidence": true,
+      "reason": "Stopping, in-flight work, external side effects and recoverability"
+    },
+    {
+      "slug": "supply-chain-agents-execution-boundaries",
+      "title": "供应链 Agent 开始执行后，权限边界得先写进流程",
+      "url": "https://ntlx.github.io/articles/supply-chain-agents-execution-boundaries",
+      "date": "2026-10-05",
+      "category": "ai-agents",
+      "score": 18,
+      "high_confidence": true,
+      "reason": "Economic value depends on bounded execution and auditable outcomes"
+    },
+    {
+      "slug": "token-streams-agent-streams-llm-concurrency-revolution",
+      "title": "从 Token 流到 Agent 流：LLM 应用正在经历它自己的“协程革命”",
+      "url": "https://ntlx.github.io/articles/token-streams-agent-streams-llm-concurrency-revolution",
+      "date": "2026-05-22",
+      "category": "ai-agents",
+      "score": 16,
+      "high_confidence": true,
+      "reason": "Agent concurrency, event streams and workflow observability"
+    }
+  ]
+}
