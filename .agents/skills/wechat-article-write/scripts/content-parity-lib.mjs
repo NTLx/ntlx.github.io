@@ -175,6 +175,7 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
     const text = normalizeVisibleText(rawText);
     if (text) entries.push({
       text,
+      kind: "paragraph",
       display_text: rawText.replace(/\s+/gu, " ").trim(),
       section_index: sectionIndexAt(paragraphStart),
     });
@@ -220,6 +221,7 @@ export function extractSubstantiveMarkdownBlockEntries(markdown) {
       const item = normalizeVisibleText(line.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/u, ""));
       if (item) entries.push({
         text: item,
+        kind: "list",
         display_text: line.replace(/^(?:[-*+]\s+|\d+[.)]\s+)/u, "").trim(),
         section_index: sectionIndexAt(lineStart),
       });

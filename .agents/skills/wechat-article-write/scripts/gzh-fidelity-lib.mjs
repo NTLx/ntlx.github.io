@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { PROJECT_ROOT, repoRoot } from "./path-resolver.mjs";
 import { getWechatAuthorProfile } from "./config-lib.mjs";
 import { extractSubstantiveMarkdownBlockEntries } from "./content-parity-lib.mjs";
-import { NON_SUBSTANTIVE_HEADINGS } from "./markdown-structure-lib.mjs";
+import { extractBody } from "./frontmatter-lib.mjs";
+import { NON_SUBSTANTIVE_HEADINGS, stripNonSubstantiveTailSections } from "./markdown-structure-lib.mjs";
 
 function stripCode(value) {
   return String(value ?? "").trim().replace(/^`|`$/gu, "");
@@ -106,15 +107,16 @@ export function validateGzhDesignFidelity({ sourceMarkdown, html, themeId }) {
 
   const underlineCount = countThemeUnderlineMarks(html, underlineCss);
   if (underlineCount !== null && /正文关键词/u.test(themeText)) {
-    const eligible = extractSubstantiveMarkdownBlockEntries(sourceMarkdown)
-      .filter(entry => entry.kind !== "code" && String(entry.text ?? "").length >= 12).length;
+    const substantiveBody = stripNonSubstantiveTailSections(extractBody(sourceMarkdown));
+    const eligible = extractSubstantiveMarkdownBlockEntries(substantiveBody)
+      .filter(entry => entry.kind === "paragraph" && String(entry.text ?? "").length >= 12).length;
     if (eligible > 0) {
       // gzh-design requires paragraph-level keyword marking. Keep this as a gross
       // regression guard rather than a second layout recipe: the Specialist still
       // decides which phrases and how many (1-3) within each paragraph.
       const minimum = Math.max(1, Math.ceil(eligible * 0.5));
       if (underlineCount < minimum) {
-        errors.push(`gzh paragraph keyword marking is grossly incomplete: theme marks=${underlineCount}, expected at least ${minimum} for ${eligible} substantive blocks`);
+        errors.push(`gzh paragraph keyword marking is grossly incomplete: theme marks=${underlineCount}, expected at least ${minimum} for ${eligible} substantive paragraphs`);
       }
     }
   }
