@@ -78,7 +78,7 @@ v0.1 的 review 很快把问题从“工具能不能返回内容”推进到了�
 
 最后保留了：
 
-```env
+```dotenv
 SERVERFS_DISABLE_DEFAULT_DENY=true
 ```
 
@@ -112,7 +112,7 @@ delete_directory
 
 权限也没有做成一个全局开关。每个 workdir 增加：
 
-```env
+```dotenv
 WORKDIR_01_READ_ONLY=true
 WORKDIR_02_READ_ONLY=false
 ```
