@@ -73,7 +73,7 @@ Databricks 在发布博客里给过一组内部评测：28 题、84.5% 对 52.4%
 
 文档把结论固定下来。看文档的人看到的是结果，不是推理路径；引用面板可以补上路径，但文档本身仍然是截断的。日程固定的是节奏。一个定义一旦进入每周运行的模板，它就不再需要每次被重新判断；如果这个定义错了，错误会以周为单位重复。Agent 固定的是角色：它继承这次对话的数据源，也继承此前关于这个主题的对话；它可以在作者不在场的时候替作者回答问题。这既是它的用处，也是它的风险。
 
-![把复盘设为每周一 8:00 自动运行，结果发到 Slack 频道](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-21-genie-ontology-img-05-source-schedule.png)
+![把复盘设为每周一早上 8 点自动运行，结果发到 Slack 频道](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-10-21-genie-ontology-img-05-source-schedule.png)
 
 原文说，这个 Agent 在几秒内就能变成一个专家同事。文档的说法更谨慎：Genie Agents 由数据分析师用 Unity Catalog 数据集、示例 SQL、业务语义表达式和文本指令来策展；从对话创建只是起点，后面还要调质量、做测试、看监控。秒级完成的是创建；可信度不在那几秒里。“同事”这个隐喻容易让人默认它已经受过上岗培训，而文档里的 Agent 还需要 curator 持续调。
 
