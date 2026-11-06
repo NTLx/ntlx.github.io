@@ -133,6 +133,7 @@ function flattenHtml(html) {
   const source = masked.html;
   let normalized = "";
   const images = [];
+  const headingPositions = [];
   const tagRe = /<!--[\s\S]*?-->|<img\b[^>]*>|<[^>]+>/giu;
   let cursor = 0;
   // HTML text is already presentation-free, so it is compared verbatim: literal
@@ -144,6 +145,7 @@ function flattenHtml(html) {
   let match;
   while ((match = tagRe.exec(source)) !== null) {
     appendText(source.slice(cursor, match.index));
+    if (/^<h[2-6]\b/iu.test(match[0])) headingPositions.push(normalized.length);
     if (/^<img\b/iu.test(match[0])) {
       const src = match[0].match(/\bsrc\s*=\s*["']([^"']+)["']/iu)?.[1] ?? "";
       const image = {
@@ -159,6 +161,7 @@ function flattenHtml(html) {
   return {
     normalized,
     images,
+    headingPositions,
     codeBlocks: masked.codeBlocks.map((block) => ({
       text: block.text,
       index: normalized.indexOf(block.marker),
@@ -326,7 +329,10 @@ export function validateWechatStructuralParity(sourceMarkdown, html) {
   // Heading positions are needed both to window body text and to place images, so
   // resolve them once up front.
   const headingsForPositions = htmlSubstantiveHeadings.length > 0 ? htmlSubstantiveHeadings : source.headings;
-  const actualHeadingPositions = fallbackHeadingPositions(flattened.normalized, headingsForPositions);
+  const actualHeadingPositions = htmlSubstantiveHeadings.length > 0
+    ? htmlHeadingTags.flatMap((heading, index) =>
+      substantiveHtmlHeadings([heading], source.headings).length ? [flattened.headingPositions[index]] : [])
+    : fallbackHeadingPositions(flattened.normalized, headingsForPositions);
   // Only window body text when the heading sequences agree. Otherwise the windows are
   // misaligned and would cascade into spurious block errors on top of the
   // heading-sequence error reported below.

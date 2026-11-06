@@ -474,3 +474,10 @@ title: 波浪号测试
     expect(validateWechatStructuralParity(strikeSource, strikeRendered.replace("~300", "300")).ok).toBe(false);
   });
 });
+
+test('chapter positions ignore repeated heading text in a table of contents', () => {
+  const source = '## First\n\nFirst body.\n\n![figure](imgs/figure.png)\n\n## Second\n\nSecond body.';
+  const html = '<p>First Second</p><h3>First</h3><p>First body.</p><img src="imgs/figure.png"><h3>Second</h3><p>Second body.</p>';
+  expect(validateWechatStructuralParity(source, html).ok).toBe(true);
+  expect(validateWechatStructuralParity(source, html.replace('<p>First body.</p>', '').replace('<p>Second body.</p>', '<p>Second body.</p><p>First body.</p>')).ok).toBe(false);
+});
