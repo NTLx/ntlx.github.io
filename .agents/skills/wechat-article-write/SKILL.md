@@ -6,7 +6,7 @@ description: >
 license: MIT
 metadata:
   author: NTLx
-  version: "4.13.0"
+  version: "4.13.1"
 ---
 
 # 微信公众号文章写作
@@ -148,7 +148,10 @@ Main writes a complete, readable article without Markdown image nodes or pipelin
 `draft.md`, using `materials.md`, `understanding-brief.md`, `blog-memory.md`,
 the selected strategy reference, and the content invariants. Preserve frontmatter, summary,
 `blogSlug`, `sourceUrl`, H2 topology, visible URLs, quotations, related articles,
-strategy constraints, and originality requirements.
+strategy constraints, and originality requirements. Let evidence and the reader's next question
+shape the sequence of paragraphs and H2 sections; do not force a fixed number of headings, a
+rhetorical reveal, or a quotable slogan in `summary`. Every paragraph should advance the case
+rather than restate the previous point in different words.
 
 Main directly runs:
 

@@ -25,8 +25,8 @@ applies_when: 用户已有博文或文档，要求转为微信公众号文章、
 - 移除不属于文章协议的 frontmatter 字段；
 - 用 H2 组织正文，正文不放 H1；
 - 将已有高价值原图及其来源保留在材料中，供 Step 4 illustrator 分析复用；
-- 写入金句式 `summary`，选择分类、`blogSlug`、`targetPath` 和 canonical
-  `sourceUrl`。
+- 写入清楚、具体且不夸大事实的 `summary`（不超过 120 字），选择分类、`blogSlug`、`targetPath` 和 canonical
+  `sourceUrl`；不强求金句式表达。
 
 教程若有明确外部原始写作材料，应在 `materials.md` 写入 `## 原始来源`，最终 draft 保留
 `primarySourceUrls`；只有本站文档、本地文件或用户粘贴内容时，不要为了满足字段而编造外部 URL。

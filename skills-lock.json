@@ -49,11 +49,17 @@
       "skillPath": "SKILL.md",
       "computedHash": "cba0a35bcc639882029822c08d228a48b260b9ba761d8ceeeec1afc22b32b75d"
     },
+    "human-writing": {
+      "source": "KKKKhazix/human-writing",
+      "sourceType": "github",
+      "skillPath": "human-writing/SKILL.md",
+      "computedHash": "1f5817f8943b77f4d8188e2f534b4f648f4c2fdcc7feb7d42c5f976c7ada8fc9"
+    },
     "humanizer-zh": {
       "source": "op7418/Humanizer-zh",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "7bd195e3bcdcc24f078dfd4e3b3e37e8ac321c36f410a41241fc4175eab1825a"
+      "computedHash": "9813f49a01497e18c091593b44f98a26a5a6e278c1c3c73eaee76b5b701bc4d7"
     },
     "last30days": {
       "source": "mvanhorn/last30days-skill",
