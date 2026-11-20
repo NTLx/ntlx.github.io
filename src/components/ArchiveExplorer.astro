@@ -55,7 +55,6 @@ const years = [...new Set(
 
   <ul class="article-list" data-article-list>
     {posts.map((post) => {
-      const year = post.data.date?.getUTCFullYear();
       const searchText = [
         post.data.title,
         ...(post.data.tags ?? []),
@@ -65,7 +64,6 @@ const years = [...new Set(
         <li
           data-article-item
           data-category={post.data.category}
-          data-year={year}
           data-search={searchText}
         >
           <a class="article-link" href={`/${post.id}/`}>
@@ -127,7 +125,7 @@ const years = [...new Set(
         if (!(item instanceof HTMLElement)) continue;
         const matchesQuery = !query || (item.dataset.search ?? '').includes(query);
         const matchesCategory = !category || item.dataset.category === category;
-        const matchesYear = !year || item.dataset.year === year;
+        const matchesYear = !year || item.querySelector('time')?.dateTime.slice(0, 4) === year;
         const show = matchesQuery && matchesCategory && matchesYear;
         item.hidden = !show;
         if (show) visible += 1;
