@@ -11,7 +11,7 @@ Linear 的 CEO Karri Saarinen 发了一篇题为《Issue tracking is dead》的�
 
 这期节目拿 Linear 年度经常性收入超过 1 亿美元做标题。读完逐字稿，我反而记住了这个买家问题。手工写工单、贴标签、催人更新状态，确实有很多可以省下来的动作。可当别人接手时，他还得知道这件事为什么要做、做到哪里、谁能确认结束。客户肯花钱买的，也许正是这段交接。
 
-![同一张工单连接工程、产品和客服](https://cdn.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-11-20-linear-agent-gtm-00-infographic-core-summary.png)
+![同一张工单连接工程、产品和客服](https://fastly.jsdelivr.net/gh/NTLx/Pic@master/wechat-articles/2026-11-20-linear-agent-gtm-00-infographic-core-summary.png)
 
 ## 工单写得快了，接手的人还是得看懂
 
